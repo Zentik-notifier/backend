@@ -14,6 +14,30 @@ describe('UpdateBucketDto', () => {
       expect(errors).toHaveLength(0);
     });
 
+    it('should pass validation with emoji icon', async () => {
+      const dto = new UpdateBucketDto();
+      dto.icon = '🎯';
+
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should pass validation with non-HTTP icon', async () => {
+      const dto = new UpdateBucketDto();
+      dto.icon = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjRkY2MzQ3Ii8+Cjwvc3ZnPgo=';
+
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should pass validation with file path icon', async () => {
+      const dto = new UpdateBucketDto();
+      dto.icon = './assets/icons/custom-icon.png';
+
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
     it('should pass validation with empty object', async () => {
       const dto = new UpdateBucketDto();
 

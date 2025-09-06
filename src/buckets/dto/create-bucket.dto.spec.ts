@@ -14,6 +14,33 @@ describe('CreateBucketDto', () => {
       expect(errors).toHaveLength(0);
     });
 
+    it('should pass validation with emoji icon', async () => {
+      const dto = new CreateBucketDto();
+      dto.name = 'Test Bucket';
+      dto.icon = '🚀';
+
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should pass validation with non-HTTP icon', async () => {
+      const dto = new CreateBucketDto();
+      dto.name = 'Test Bucket';
+      dto.icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should pass validation with file path icon', async () => {
+      const dto = new CreateBucketDto();
+      dto.name = 'Test Bucket';
+      dto.icon = '/path/to/icon.svg';
+
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
     it('should pass validation with only required fields', async () => {
       const dto = new CreateBucketDto();
       dto.name = 'Test Bucket';

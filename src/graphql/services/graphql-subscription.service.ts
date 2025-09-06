@@ -70,7 +70,7 @@ export class GraphQLSubscriptionService {
 
   async publishBucketDeleted(bucketId: string, userId: string) {
     await this.pubSub.publish(SubscriptionEvents.BUCKET_DELETED, {
-      bucketDeleted: { id: bucketId },
+      bucketDeleted: bucketId,
       userId,
     });
   }

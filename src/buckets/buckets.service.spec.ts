@@ -36,6 +36,16 @@ describe('BucketsService', () => {
     icon: 'bucket-icon.png',
   };
 
+  const mockCreateBucketDtoWithEmoji: CreateBucketDto = {
+    name: 'Emoji Bucket',
+    icon: '🚀',
+  };
+
+  const mockCreateBucketDtoWithDataUrl: CreateBucketDto = {
+    name: 'Data URL Bucket',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  };
+
   const mockUpdateBucketDto: UpdateBucketDto = {
     name: 'Updated Bucket',
     icon: 'updated-icon.png',
@@ -94,6 +104,36 @@ describe('BucketsService', () => {
 
       expect(bucketsRepository.create).toHaveBeenCalledWith({
         ...mockCreateBucketDto,
+        user: { id: 'user-1' },
+      });
+      expect(bucketsRepository.save).toHaveBeenCalled();
+      expect(bucketsRepository.findOne).toHaveBeenCalledWith({
+        where: { id: mockBucket.id },
+        relations: ['user'],
+      });
+      expect(result).toEqual(mockBucket);
+    });
+
+    it('should create a bucket with emoji icon successfully', async () => {
+      const result = await service.create('user-1', mockCreateBucketDtoWithEmoji);
+
+      expect(bucketsRepository.create).toHaveBeenCalledWith({
+        ...mockCreateBucketDtoWithEmoji,
+        user: { id: 'user-1' },
+      });
+      expect(bucketsRepository.save).toHaveBeenCalled();
+      expect(bucketsRepository.findOne).toHaveBeenCalledWith({
+        where: { id: mockBucket.id },
+        relations: ['user'],
+      });
+      expect(result).toEqual(mockBucket);
+    });
+
+    it('should create a bucket with data URL icon successfully', async () => {
+      const result = await service.create('user-1', mockCreateBucketDtoWithDataUrl);
+
+      expect(bucketsRepository.create).toHaveBeenCalledWith({
+        ...mockCreateBucketDtoWithDataUrl,
         user: { id: 'user-1' },
       });
       expect(bucketsRepository.save).toHaveBeenCalled();

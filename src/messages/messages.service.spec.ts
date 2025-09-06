@@ -43,14 +43,14 @@ describe('MessagesService', () => {
     bucket: {
       id: 'bucket-1',
       name: 'Test Bucket',
-      icon: 'bucket-icon.png',
+      icon: 'https://example.com/bucket-icon.png',
     } as any,
   };
 
   const mockBucket: Partial<Bucket> = {
     id: 'bucket-1',
     name: 'Test Bucket',
-    icon: 'bucket-icon.png',
+    icon: 'https://example.com/bucket-icon.png',
     user: { id: 'user-1' } as any,
     isPublic: false,
   };
@@ -208,7 +208,7 @@ describe('MessagesService', () => {
           expect.objectContaining({
             mediaType: MediaType.ICON,
             name: 'Test Bucket Icon',
-            url: 'bucket-icon.png',
+            url: 'https://example.com/bucket-icon.png',
           }),
         ]),
         attachmentUuids: [],
@@ -245,7 +245,7 @@ describe('MessagesService', () => {
           expect.objectContaining({
             mediaType: MediaType.ICON,
             name: 'Test Bucket Icon',
-            url: 'bucket-icon.png',
+            url: 'https://example.com/bucket-icon.png',
           }),
         ]),
         attachmentUuids: [],
@@ -291,7 +291,7 @@ describe('MessagesService', () => {
             expect.objectContaining({
               mediaType: MediaType.ICON,
               name: 'Test Bucket Icon',
-              url: 'bucket-icon.png',
+              url: 'https://example.com/bucket-icon.png',
             }),
           ]),
         }),
@@ -302,6 +302,39 @@ describe('MessagesService', () => {
         'user-1',
         [],
       );
+      expect(result).toEqual(mockMessage);
+    });
+
+    it('should not add bucket icon when icon is not HTTP URL', async () => {
+      // Mock bucket with non-HTTP icon
+      const mockBucketWithEmojiIcon: Partial<Bucket> = {
+        ...mockBucket,
+        icon: '🚀', // Emoji icon
+      };
+
+      // Mock the createQueryBuilder to return our emoji bucket
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucketWithEmojiIcon),
+      };
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+
+      const result = await service.create(mockCreateMessageDto, 'user-1');
+
+      expect(bucketsRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(messagesRepository.create).toHaveBeenCalledWith({
+        ...mockCreateMessageDto,
+        bucketId: 'bucket-1',
+        attachments: [], // Should be empty, no icon added
+        attachmentUuids: [],
+      });
+      expect(messagesRepository.save).toHaveBeenCalled();
+      expect(pushOrchestrator.create).toHaveBeenCalled();
       expect(result).toEqual(mockMessage);
     });
   });
@@ -475,14 +508,23 @@ describe('MessagesService', () => {
       ]);
 
       expect(usersRepository.find).toHaveBeenCalledWith({
-        where: { id: In(['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']) },
+        where: {
+          id: In([
+            '550e8400-e29b-41d4-a716-446655440000',
+            '550e8400-e29b-41d4-a716-446655440001',
+          ]),
+        },
       });
       expect(result).toEqual(mockUsers);
     });
 
     it('should find users by usernames when IDs not found', async () => {
-      const mockUsersById = [{ id: '550e8400-e29b-41d4-a716-446655440000', username: 'user1' }];
-      const mockUsersByUsername = [{ id: '550e8400-e29b-41d4-a716-446655440001', username: 'user2' }];
+      const mockUsersById = [
+        { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user1' },
+      ];
+      const mockUsersByUsername = [
+        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'user2' },
+      ];
 
       jest
         .spyOn(usersRepository, 'find')
@@ -491,7 +533,7 @@ describe('MessagesService', () => {
 
       const result = await service['findUsersByIdsOrUsernames']([
         '550e8400-e29b-41d4-a716-446655440000', // valid UUID
-        'user2',  // username
+        'user2', // username
       ]);
 
       expect(usersRepository.find).toHaveBeenCalledTimes(2);
@@ -518,8 +560,12 @@ describe('MessagesService', () => {
     });
 
     it('should find users with mixed IDs and usernames', async () => {
-      const mockUsersById = [{ id: '550e8400-e29b-41d4-a716-446655440000', username: 'user1' }];
-      const mockUsersByUsername = [{ id: '550e8400-e29b-41d4-a716-446655440001', username: 'user2' }];
+      const mockUsersById = [
+        { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user1' },
+      ];
+      const mockUsersByUsername = [
+        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'user2' },
+      ];
 
       jest
         .spyOn(usersRepository, 'find')
@@ -528,7 +574,7 @@ describe('MessagesService', () => {
 
       const result = await service['findUsersByIdsOrUsernames']([
         '550e8400-e29b-41d4-a716-446655440000', // ID (valid UUID format)
-        'user2',  // username
+        'user2', // username
       ]);
 
       expect(usersRepository.find).toHaveBeenCalledTimes(2);
@@ -544,13 +590,15 @@ describe('MessagesService', () => {
     it('should only search by username for non-UUID identifiers', async () => {
       const mockUsersByUsername = [
         { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user2' },
-        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'john_doe' }
+        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'john_doe' },
       ];
 
-      jest.spyOn(usersRepository, 'find').mockResolvedValueOnce(mockUsersByUsername as any);
+      jest
+        .spyOn(usersRepository, 'find')
+        .mockResolvedValueOnce(mockUsersByUsername as any);
 
       const result = await service['findUsersByIdsOrUsernames']([
-        'user2',  // username (not UUID)
+        'user2', // username (not UUID)
         'john_doe', // username (not UUID)
       ]);
 
@@ -612,7 +660,10 @@ describe('MessagesService', () => {
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001'], // Should use actual user IDs
+        [
+          '550e8400-e29b-41d4-a716-446655440000',
+          '550e8400-e29b-41d4-a716-446655440001',
+        ], // Should use actual user IDs
       );
       expect(result).toEqual(mockMessage);
     });
@@ -629,13 +680,29 @@ describe('MessagesService', () => {
         .mockReturnValue(mockQueryBuilder as any);
 
       const mockUsers = [
-        { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user2' } as User,
-        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'user3' } as User,
+        {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          username: 'user2',
+        } as User,
+        {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          username: 'user3',
+        } as User,
       ];
       jest
         .spyOn(usersRepository, 'find')
-        .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440000', username: 'user2' } as User]) // Found by ID
-        .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440001', username: 'user3' } as User]); // Found by username
+        .mockResolvedValueOnce([
+          {
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            username: 'user2',
+          } as User,
+        ]) // Found by ID
+        .mockResolvedValueOnce([
+          {
+            id: '550e8400-e29b-41d4-a716-446655440001',
+            username: 'user3',
+          } as User,
+        ]); // Found by username
 
       const createMessageDto = {
         ...mockCreateMessageDto,
@@ -653,7 +720,10 @@ describe('MessagesService', () => {
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001'], // Should use actual user IDs
+        [
+          '550e8400-e29b-41d4-a716-446655440000',
+          '550e8400-e29b-41d4-a716-446655440001',
+        ], // Should use actual user IDs
       );
       expect(result).toEqual(mockMessage);
     });
@@ -769,6 +839,11 @@ describe('MessagesService', () => {
                 name: 'GIF',
                 saveOnServer: false,
               }),
+              expect.objectContaining({
+                mediaType: MediaType.ICON,
+                name: 'Test Bucket Icon',
+                url: 'https://example.com/bucket-icon.png',
+              }),
             ]),
           }),
         );
@@ -791,7 +866,7 @@ describe('MessagesService', () => {
                 mediaType: MediaType.ICON,
                 name: 'Test Bucket Icon',
                 saveOnServer: false,
-                url: 'bucket-icon.png',
+                url: 'https://example.com/bucket-icon.png',
               }),
             ]),
           }),
