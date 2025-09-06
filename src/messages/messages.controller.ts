@@ -2,12 +2,11 @@ import {
   Body,
   Controller,
   Get,
-  Logger,
   Post,
   Query,
   UploadedFile,
   UseGuards,
-  UseInterceptors,
+  UseInterceptors
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -36,8 +35,6 @@ import { MessagesService } from './messages.service';
 @ApiTags('Messages')
 @ApiBearerAuth()
 export class MessagesController {
-  private readonly logger = new Logger(MessagesController.name);
-
   constructor(private readonly messagesService: MessagesService) {}
 
   @Post()
@@ -60,7 +57,6 @@ export class MessagesController {
   @ApiBody({
     description: 'Message data (optional when using other sources)',
     type: CreateMessageDto,
-    // schema: CreateMessageApiBodySchema as any,
     required: false,
   })
   @ApiResponse({
@@ -76,9 +72,6 @@ export class MessagesController {
     @GetUser('id') userId: string,
     @CombineMessageSources() input: CreateMessageDto,
   ) {
-    this.logger.log(
-      `Creating message for user ${userId} with flexible data sources`,
-    );
     const result = await this.messagesService.create(input, userId);
     return result;
   }
@@ -152,8 +145,6 @@ export class MessagesController {
     @GetUser('id') userId: string,
     @Query() input: CreateMessageDto,
   ) {
-    this.logger.log(`Sending message via GET for user ${userId}`);
-
     const result = await this.messagesService.create(input, userId);
     return result;
   }

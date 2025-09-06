@@ -129,10 +129,6 @@ export class IOSPushService {
         tapAction: message.tapAction,
       };
 
-      this.logger.log(
-        `🔍 iOS: Building encrypted payload with tapAction: ${message.tapAction ? JSON.stringify(message.tapAction) : 'NULL'}`,
-      );
-
       const enc = await encryptWithPublicKey(
         JSON.stringify(sensitive),
         device.publicKey,
