@@ -45,15 +45,7 @@ dist/
 build/
 *.tsbuildinfo
 
-# Keys and certificates (SECURITY)
 keys/*.p8
-keys/*.pem
-keys/*.json
-keys/*.key
-keys/*.crt
-keys/*.p12
-keys/apn-key.p8
-!keys/README.md
 
 # Uploads
 uploads/
