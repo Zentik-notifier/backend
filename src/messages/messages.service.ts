@@ -42,7 +42,7 @@ export class MessagesService {
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
-  ) {}
+  ) { }
 
   private isUuid(identifier: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -71,7 +71,7 @@ export class MessagesService {
         )
         .where(
           'bucket.id = :bucketId AND ' +
-            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketId: bucketIdOrName, userId },
         )
         .getOne();
@@ -90,7 +90,7 @@ export class MessagesService {
         )
         .where(
           'bucket.name = :bucketName AND ' +
-            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketName: bucketIdOrName, userId },
         )
         .getOne();
@@ -212,7 +212,7 @@ export class MessagesService {
       .filter(Boolean);
 
     // Automatically add bucket icon as attachment if bucket has an icon
-    if (bucket.icon) {
+    if (bucket.icon && bucket.icon.startsWith('http')) {
       const bucketIconAttachment = await this.addBucketIconAttachment(
         bucket,
         processedAttachments,
