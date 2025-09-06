@@ -4,6 +4,8 @@
  * Node.js script for backend deployment automation (version bump + git push + Railway deploy)
  * Usage: node scripts/deploy.js [patch|minor|major]
  * Default: patch
+ * 
+ * Note: This script must be run from the backend/ directory
  */
 
 const fs = require('fs');
@@ -79,7 +81,7 @@ if (!fs.existsSync(packagePath)) {
 }
 
 // Check if we're in a git repository
-if (!fs.existsSync(path.join(process.cwd(), '..', '.git'))) {
+if (!fs.existsSync(path.join(process.cwd(), '.git'))) {
     printError('.git directory not found. Make sure you are in a git repository');
     process.exit(1);
 }
@@ -201,28 +203,28 @@ async function runDeployProcess() {
 
         // Check if project is linked
         try {
-            await runCommand('railway', ['status'], { cwd: '..' });
+            await runCommand('railway', ['status']);
         } catch (error) {
             printWarning('No Railway project linked. Attempting to link...');
             printInfo('Please follow the prompts to link your Railway project:');
-            await runCommand('railway', ['link'], { cwd: '..' });
+            await runCommand('railway', ['link']);
         }
 
         // Trigger deployment (detached mode)
-        await runCommand('railway', ['up', '--detach'], { cwd: '..' });
+        await runCommand('railway', ['up', '--detach']);
 
         printSuccess('Railway deployment triggered successfully!');
 
         // Step 2: Git add and commit
         printInfo('Step 2/3: Committing changes to git...');
-        await runCommand('git', ['add', 'backend/package.json'], { cwd: '..' });
-        await runCommand('git', ['commit', '-m', `"chore: bump backend version to v${newVersion}"`], { cwd: '..' });
+        await runCommand('git', ['add', 'package.json']);
+        await runCommand('git', ['commit', '-m', `"chore: bump backend version to v${newVersion}"`]);
 
         printSuccess('Changes committed to git');
 
         // Step 3: Git push
         printInfo('Step 3/3: Pushing to git repository...');
-        await runCommand('git', ['push'], { cwd: '..' });
+        await runCommand('git', ['push']);
 
         printSuccess('Changes pushed to git repository');
 
