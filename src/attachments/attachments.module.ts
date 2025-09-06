@@ -13,11 +13,11 @@ import { ConfigInjectorInterceptor } from './interceptors/config-injector.interc
   imports: [TypeOrmModule.forFeature([Attachment]), AuthModule],
   controllers: [AttachmentsController],
   providers: [
-    AttachmentsService, 
+    AttachmentsService,
     AttachmentsCleanupScheduler,
     AttachmentsDisabledGuard,
     ConfigInjectorInterceptor,
-    AttachmentsConfigService
+    AttachmentsConfigService,
   ],
   exports: [AttachmentsService, AttachmentsConfigService],
 })

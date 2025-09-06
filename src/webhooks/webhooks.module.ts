@@ -8,7 +8,11 @@ import { WebhooksResolver } from './webhooks.resolver';
 import { WebhooksService } from './webhooks.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserWebhook]), AuthModule, EntityPermissionModule],
+  imports: [
+    TypeOrmModule.forFeature([UserWebhook]),
+    AuthModule,
+    EntityPermissionModule,
+  ],
   controllers: [WebhooksController],
   providers: [WebhooksService, WebhooksResolver],
   exports: [WebhooksService],

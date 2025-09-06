@@ -2,7 +2,7 @@ import {
   BadRequestException,
   Injectable,
   Logger,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,7 +14,10 @@ import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
-import { MediaType, NotificationActionType } from '../notifications/notifications.types';
+import {
+  MediaType,
+  NotificationActionType,
+} from '../notifications/notifications.types';
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
 import {
   CreateMessageDto,
@@ -39,13 +42,19 @@ export class MessagesService {
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
-  ) { }
+  ) {}
 
   // Validation and transformation are handled by global ValidationPipe + DTO transforms
 
-  private async findBucketByIdOrName(bucketIdOrName: string, userId: string): Promise<Bucket> {
+  private async findBucketByIdOrName(
+    bucketIdOrName: string,
+    userId: string,
+  ): Promise<Bucket> {
     // First try to find by ID (if it's a valid UUID format)
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bucketIdOrName);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        bucketIdOrName,
+      );
 
     let bucket: Bucket | null = null;
 
@@ -62,7 +71,7 @@ export class MessagesService {
         )
         .where(
           'bucket.id = :bucketId AND ' +
-          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketId: bucketIdOrName, userId },
         )
         .getOne();
@@ -81,7 +90,7 @@ export class MessagesService {
         )
         .where(
           'bucket.name = :bucketName AND ' +
-          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketName: bucketIdOrName, userId },
         )
         .getOne();
@@ -96,7 +105,9 @@ export class MessagesService {
     return bucket;
   }
 
-  private async findUsersByIdsOrUsernames(userIdsOrUsernames: string[]): Promise<User[]> {
+  private async findUsersByIdsOrUsernames(
+    userIdsOrUsernames: string[],
+  ): Promise<User[]> {
     if (!userIdsOrUsernames || userIdsOrUsernames.length === 0) {
       return [];
     }
@@ -107,8 +118,10 @@ export class MessagesService {
     });
 
     // Find users not found by ID and try to find them by username
-    const foundUserIds = users.map(user => user.id);
-    const notFoundIdentifiers = userIdsOrUsernames.filter(id => !foundUserIds.includes(id));
+    const foundUserIds = users.map((user) => user.id);
+    const notFoundIdentifiers = userIdsOrUsernames.filter(
+      (id) => !foundUserIds.includes(id),
+    );
 
     if (notFoundIdentifiers.length > 0) {
       const usersByUsername = await this.usersRepository.find({
@@ -118,8 +131,12 @@ export class MessagesService {
     }
 
     // Check if all requested users were found
-    const foundIdentifiers = users.map(user => user.id).concat(users.map(user => user.username));
-    const notFound = userIdsOrUsernames.filter(identifier => !foundIdentifiers.includes(identifier));
+    const foundIdentifiers = users
+      .map((user) => user.id)
+      .concat(users.map((user) => user.username));
+    const notFound = userIdsOrUsernames.filter(
+      (identifier) => !foundIdentifiers.includes(identifier),
+    );
 
     if (notFound.length > 0) {
       throw new NotFoundException(
@@ -138,23 +155,26 @@ export class MessagesService {
     this.logger.log(
       `Creating message for bucketId=${createMessageDto.bucketId} by user=${requesterId}`,
     );
-    const bucket = await this.findBucketByIdOrName(createMessageDto.bucketId, requesterId);
+    const bucket = await this.findBucketByIdOrName(
+      createMessageDto.bucketId,
+      requesterId,
+    );
 
     // Process userIds - convert usernames to user IDs if needed
     let processedUserIds: string[] = [];
     if (createMessageDto.userIds && createMessageDto.userIds.length > 0) {
-      const users = await this.findUsersByIdsOrUsernames(createMessageDto.userIds);
-      processedUserIds = users.map(user => user.id);
+      const users = await this.findUsersByIdsOrUsernames(
+        createMessageDto.userIds,
+      );
+      processedUserIds = users.map((user) => user.id);
     }
 
     // Process attachments before creating the message
-    let processedAttachments: NotificationAttachmentDto[] = [];
+    const processedAttachments: NotificationAttachmentDto[] = [];
     let attachmentUuids: string[] = [];
 
     // Process URL-based attachments (imageUrl, videoUrl, gifUrl)
-    const urlAttachments = await this.processUrlAttachments(
-      createMessageDto,
-    );
+    const urlAttachments = await this.processUrlAttachments(createMessageDto);
     processedAttachments.push(...urlAttachments);
 
     // Process tapUrl to set tapAction
@@ -324,7 +344,6 @@ export class MessagesService {
         name: 'Video',
         saveOnServer: false,
       });
-
     }
 
     if (createMessageDto.gifUrl) {
@@ -334,7 +353,6 @@ export class MessagesService {
         name: 'GIF',
         saveOnServer: false,
       });
-
     }
 
     return urlAttachments;

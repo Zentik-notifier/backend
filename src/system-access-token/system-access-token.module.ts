@@ -9,10 +9,7 @@ import { SystemAccessTokenResolver } from './system-access-token.resolver';
 import { SystemAccessTokenService } from './system-access-token.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SystemAccessToken, User]),
-    AuthModule,
-  ],
+  imports: [TypeOrmModule.forFeature([SystemAccessToken, User]), AuthModule],
   providers: [
     SystemAccessTokenService,
     SystemAccessTokenResolver,

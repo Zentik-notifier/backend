@@ -86,9 +86,15 @@ describe('AttachmentsController', () => {
         stream: {} as any,
       };
 
-      mockAttachmentsService.uploadAttachment.mockResolvedValue(mockAttachment as Attachment);
+      mockAttachmentsService.uploadAttachment.mockResolvedValue(
+        mockAttachment as Attachment,
+      );
 
-      const result = await controller.uploadAttachment('user-1', uploadDto, mockFile);
+      const result = await controller.uploadAttachment(
+        'user-1',
+        uploadDto,
+        mockFile,
+      );
 
       expect(result).toEqual(mockAttachment);
       expect(attachmentsService.uploadAttachment).toHaveBeenCalledWith(
@@ -104,7 +110,9 @@ describe('AttachmentsController', () => {
         filename: 'test-image.jpg',
       };
 
-      expect(() => controller.uploadAttachment('user-1', uploadDto, null as any)).toThrow('No file uploaded');
+      expect(() =>
+        controller.uploadAttachment('user-1', uploadDto, null as any),
+      ).toThrow('No file uploaded');
     });
   });
 
@@ -116,7 +124,9 @@ describe('AttachmentsController', () => {
         mediaType: MediaType.IMAGE,
       };
 
-      mockAttachmentsService.downloadAndSaveFromUrl.mockResolvedValue(mockAttachment as Attachment);
+      mockAttachmentsService.downloadAndSaveFromUrl.mockResolvedValue(
+        mockAttachment as Attachment,
+      );
 
       const result = await controller.downloadFromUrl('user-1', downloadDto);
 
@@ -132,12 +142,17 @@ describe('AttachmentsController', () => {
 
   describe('findOne', () => {
     it('should return an attachment by ID', async () => {
-      mockAttachmentsService.findOne.mockResolvedValue(mockAttachment as Attachment);
+      mockAttachmentsService.findOne.mockResolvedValue(
+        mockAttachment as Attachment,
+      );
 
       const result = await controller.findOne('attachment-1', 'user-1');
 
       expect(result).toEqual(mockAttachment);
-      expect(attachmentsService.findOne).toHaveBeenCalledWith('attachment-1', 'user-1');
+      expect(attachmentsService.findOne).toHaveBeenCalledWith(
+        'attachment-1',
+        'user-1',
+      );
     });
   });
 
@@ -149,7 +164,10 @@ describe('AttachmentsController', () => {
       const result = await controller.findByMessage('message-1', 'user-1');
 
       expect(result).toEqual(mockAttachments);
-      expect(attachmentsService.findByMessage).toHaveBeenCalledWith('message-1', 'user-1');
+      expect(attachmentsService.findByMessage).toHaveBeenCalledWith(
+        'message-1',
+        'user-1',
+      );
     });
   });
 
@@ -159,7 +177,10 @@ describe('AttachmentsController', () => {
 
       await controller.remove('attachment-1', 'user-1');
 
-      expect(attachmentsService.remove).toHaveBeenCalledWith('attachment-1', 'user-1');
+      expect(attachmentsService.remove).toHaveBeenCalledWith(
+        'attachment-1',
+        'user-1',
+      );
     });
   });
 });

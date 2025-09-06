@@ -181,15 +181,15 @@ describe('MessagesService', () => {
     bucketsRepository = module.get<Repository<Bucket>>(
       getRepositoryToken(Bucket),
     );
-    usersRepository = module.get<Repository<User>>(
-      getRepositoryToken(User),
-    );
+    usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
     attachmentsService = module.get<AttachmentsService>(AttachmentsService);
     pushOrchestrator = module.get<PushNotificationOrchestratorService>(
       PushNotificationOrchestratorService,
     );
     configService = module.get<ConfigService>(ConfigService);
-    entityPermissionService = module.get<EntityPermissionService>(EntityPermissionService);
+    entityPermissionService = module.get<EntityPermissionService>(
+      EntityPermissionService,
+    );
   });
 
   it('should be defined', () => {
@@ -232,7 +232,10 @@ describe('MessagesService', () => {
       ];
       jest.spyOn(usersRepository, 'find').mockResolvedValue(mockUsers);
 
-      const result = await service.create(createMessageDtoWithUserIds, 'user-1');
+      const result = await service.create(
+        createMessageDtoWithUserIds,
+        'user-1',
+      );
 
       expect(bucketsRepository.createQueryBuilder).toHaveBeenCalled();
       expect(messagesRepository.create).toHaveBeenCalledWith({
@@ -251,7 +254,7 @@ describe('MessagesService', () => {
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        ['user-1', 'user-2', 'user-3']
+        ['user-1', 'user-2', 'user-3'],
       );
       expect(result).toEqual(mockMessage);
     });
@@ -262,7 +265,7 @@ describe('MessagesService', () => {
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        []
+        [],
       );
       expect(result).toEqual(mockMessage);
     });
@@ -274,7 +277,10 @@ describe('MessagesService', () => {
         collapseId: 'collapse-456',
       };
 
-      const result = await service.create(createMessageDtoWithGroupAndCollapse, 'user-1');
+      const result = await service.create(
+        createMessageDtoWithGroupAndCollapse,
+        'user-1',
+      );
 
       expect(messagesRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -288,13 +294,13 @@ describe('MessagesService', () => {
               url: 'bucket-icon.png',
             }),
           ]),
-        })
+        }),
       );
       expect(messagesRepository.save).toHaveBeenCalled();
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        []
+        [],
       );
       expect(result).toEqual(mockMessage);
     });
@@ -374,7 +380,9 @@ describe('MessagesService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(mockBucket),
       };
-      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(bucketsRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
       // Use a valid UUID format
       const validUuid = 'c593ab42-92ff-409c-8bbf-3df51360aedc';
@@ -382,7 +390,7 @@ describe('MessagesService', () => {
 
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'bucket.id = :bucketId AND (bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
-        { bucketId: validUuid, userId: 'user-1' }
+        { bucketId: validUuid, userId: 'user-1' },
       );
       expect(result).toEqual(mockBucket);
     });
@@ -394,28 +402,42 @@ describe('MessagesService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(mockBucket),
       };
-      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(bucketsRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
-      const result = await service['findBucketByIdOrName']('Test Bucket', 'user-1');
+      const result = await service['findBucketByIdOrName'](
+        'Test Bucket',
+        'user-1',
+      );
 
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'bucket.name = :bucketName AND (bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
-        { bucketName: 'Test Bucket', userId: 'user-1' }
+        { bucketName: 'Test Bucket', userId: 'user-1' },
       );
       expect(result).toEqual(mockBucket);
     });
 
     it('should find public bucket by name', async () => {
-      const publicBucket = { ...mockBucket, isPublic: true, user: { id: 'user-2' } };
+      const publicBucket = {
+        ...mockBucket,
+        isPublic: true,
+        user: { id: 'user-2' },
+      };
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         leftJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(publicBucket),
       };
-      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(bucketsRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
-      const result = await service['findBucketByIdOrName']('Public Bucket', 'user-1');
+      const result = await service['findBucketByIdOrName'](
+        'Public Bucket',
+        'user-1',
+      );
 
       expect(result).toEqual(publicBucket);
     });
@@ -427,10 +449,14 @@ describe('MessagesService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(null),
       };
-      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(bucketsRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
-      await expect(service['findBucketByIdOrName']('nonexistent', 'user-1')).rejects.toThrow(
-        'Bucket with ID or name \'nonexistent\' not found or you do not have access to it'
+      await expect(
+        service['findBucketByIdOrName']('nonexistent', 'user-1'),
+      ).rejects.toThrow(
+        "Bucket with ID or name 'nonexistent' not found or you do not have access to it",
       );
     });
   });
@@ -443,7 +469,10 @@ describe('MessagesService', () => {
       ];
       jest.spyOn(usersRepository, 'find').mockResolvedValue(mockUsers as any);
 
-      const result = await service['findUsersByIdsOrUsernames'](['user-1', 'user-2']);
+      const result = await service['findUsersByIdsOrUsernames']([
+        'user-1',
+        'user-2',
+      ]);
 
       expect(usersRepository.find).toHaveBeenCalledWith({
         where: { id: In(['user-1', 'user-2']) },
@@ -454,12 +483,16 @@ describe('MessagesService', () => {
     it('should find users by usernames when IDs not found', async () => {
       const mockUsersById = [{ id: 'user-1', username: 'user1' }];
       const mockUsersByUsername = [{ id: 'user-2', username: 'user2' }];
-      
-      jest.spyOn(usersRepository, 'find')
+
+      jest
+        .spyOn(usersRepository, 'find')
         .mockResolvedValueOnce(mockUsersById as any)
         .mockResolvedValueOnce(mockUsersByUsername as any);
 
-      const result = await service['findUsersByIdsOrUsernames'](['user-1', 'user2']);
+      const result = await service['findUsersByIdsOrUsernames']([
+        'user-1',
+        'user2',
+      ]);
 
       expect(result).toEqual([...mockUsersById, ...mockUsersByUsername]);
     });
@@ -467,9 +500,9 @@ describe('MessagesService', () => {
     it('should throw NotFoundException when users not found', async () => {
       jest.spyOn(usersRepository, 'find').mockResolvedValue([]);
 
-      await expect(service['findUsersByIdsOrUsernames'](['nonexistent'])).rejects.toThrow(
-        'Users with IDs or usernames not found: nonexistent'
-      );
+      await expect(
+        service['findUsersByIdsOrUsernames'](['nonexistent']),
+      ).rejects.toThrow('Users with IDs or usernames not found: nonexistent');
     });
 
     it('should return empty array when no userIds provided', async () => {
@@ -486,7 +519,9 @@ describe('MessagesService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(mockBucket),
       };
-      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(bucketsRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
       const createMessageDto = {
         ...mockCreateMessageDto,
@@ -497,12 +532,12 @@ describe('MessagesService', () => {
 
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'bucket.name = :bucketName AND (bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
-        { bucketName: 'Test Bucket', userId: 'user-1' }
+        { bucketName: 'Test Bucket', userId: 'user-1' },
       );
       expect(messagesRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           bucketId: 'bucket-1', // Should use the actual bucket ID
-        })
+        }),
       );
       expect(result).toEqual(mockMessage);
     });
@@ -512,7 +547,8 @@ describe('MessagesService', () => {
         { id: 'user-2', username: 'user2' },
         { id: 'user-3', username: 'user3' },
       ];
-      jest.spyOn(usersRepository, 'find')
+      jest
+        .spyOn(usersRepository, 'find')
         .mockResolvedValueOnce([]) // No users found by ID
         .mockResolvedValueOnce(mockUsers as any); // Found by username
 
@@ -526,7 +562,7 @@ describe('MessagesService', () => {
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        ['user-2', 'user-3'] // Should use actual user IDs
+        ['user-2', 'user-3'], // Should use actual user IDs
       );
       expect(result).toEqual(mockMessage);
     });
@@ -538,13 +574,16 @@ describe('MessagesService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(mockBucket),
       };
-      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(bucketsRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
       const mockUsers = [
         { id: 'user-2', username: 'user2' } as User,
         { id: 'user-3', username: 'user3' } as User,
       ];
-      jest.spyOn(usersRepository, 'find')
+      jest
+        .spyOn(usersRepository, 'find')
         .mockResolvedValueOnce([{ id: 'user-2', username: 'user2' } as User]) // Found by ID
         .mockResolvedValueOnce([{ id: 'user-3', username: 'user3' } as User]); // Found by username
 
@@ -559,12 +598,12 @@ describe('MessagesService', () => {
       expect(messagesRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           bucketId: 'bucket-1', // Should use the actual bucket ID
-        })
+        }),
       );
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        ['user-2', 'user-3'] // Should use actual user IDs
+        ['user-2', 'user-3'], // Should use actual user IDs
       );
       expect(result).toEqual(mockMessage);
     });
@@ -592,7 +631,7 @@ describe('MessagesService', () => {
                 saveOnServer: false,
               }),
             ]),
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -617,7 +656,7 @@ describe('MessagesService', () => {
                 saveOnServer: false,
               }),
             ]),
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -642,7 +681,7 @@ describe('MessagesService', () => {
                 saveOnServer: false,
               }),
             ]),
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -681,7 +720,7 @@ describe('MessagesService', () => {
                 saveOnServer: false,
               }),
             ]),
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -705,7 +744,7 @@ describe('MessagesService', () => {
                 url: 'bucket-icon.png',
               }),
             ]),
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -744,7 +783,7 @@ describe('MessagesService', () => {
                 saveOnServer: false,
               }),
             ]),
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -767,7 +806,7 @@ describe('MessagesService', () => {
               type: NotificationActionType.NAVIGATE,
               value: 'https://example.com/navigate-here',
             },
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -790,7 +829,7 @@ describe('MessagesService', () => {
         expect(messagesRepository.create).toHaveBeenCalledWith(
           expect.objectContaining({
             tapAction: existingTapAction,
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -817,7 +856,7 @@ describe('MessagesService', () => {
               type: NotificationActionType.NAVIGATE,
               value: 'https://example.com/navigate-here',
             },
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -834,7 +873,7 @@ describe('MessagesService', () => {
         expect(messagesRepository.create).toHaveBeenCalledWith(
           expect.objectContaining({
             tapAction: undefined,
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -880,7 +919,7 @@ describe('MessagesService', () => {
               type: NotificationActionType.NAVIGATE,
               value: 'https://example.com/navigate-here',
             },
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });
@@ -936,7 +975,7 @@ describe('MessagesService', () => {
               type: NotificationActionType.NAVIGATE,
               value: 'https://example.com/navigate-here',
             },
-          })
+          }),
         );
         expect(result).toEqual(mockMessage);
       });

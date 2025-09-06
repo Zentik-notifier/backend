@@ -14,9 +14,20 @@ describe('AppController', () => {
       controllers: [AppController],
       providers: [
         AppService,
-        { provide: OAuthProvidersService, useValue: { findEnabledProvidersPublic: jest.fn().mockResolvedValue([]) } },
-        { provide: EmailService, useValue: { isEmailEnabled: jest.fn().mockReturnValue(true) } },
-        { provide: AccessTokenService, useValue: { validateAccessToken: jest.fn() } },
+        {
+          provide: OAuthProvidersService,
+          useValue: {
+            findEnabledProvidersPublic: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: EmailService,
+          useValue: { isEmailEnabled: jest.fn().mockReturnValue(true) },
+        },
+        {
+          provide: AccessTokenService,
+          useValue: { validateAccessToken: jest.fn() },
+        },
       ],
     })
       .overrideGuard(JwtOrAccessTokenGuard)

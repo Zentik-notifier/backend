@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as webpush from 'web-push';
@@ -32,7 +37,7 @@ export class UsersService {
     @InjectRepository(SystemAccessToken)
     private readonly systemAccessTokensRepository: Repository<SystemAccessToken>,
     private readonly eventTrackingService: EventTrackingService,
-  ) { }
+  ) {}
 
   async findOne(userId: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -198,7 +203,10 @@ export class UsersService {
     await this.eventTrackingService.trackDeviceUnregister(userId, deviceId);
   }
 
-  async removeDeviceByToken(userId: string, deviceToken: string): Promise<void> {
+  async removeDeviceByToken(
+    userId: string,
+    deviceToken: string,
+  ): Promise<void> {
     const device = await this.userDevicesRepository.findOne({
       where: {
         user: { id: userId },
@@ -319,7 +327,9 @@ export class UsersService {
     await this.bucketsRepository.delete({ user: { id: userId } });
 
     // Delete all system access tokens requested by this user
-    await this.systemAccessTokensRepository.delete({ requesterId: userId } as any);
+    await this.systemAccessTokensRepository.delete({
+      requesterId: userId,
+    } as any);
 
     // Track account delete event
     await this.eventTrackingService.trackAccountDelete(userId);

@@ -43,7 +43,9 @@ export class WebhooksController {
     @Param('id') id: string,
     @GetUser('id') userId: string,
   ): Promise<UserWebhook> {
-    console.log(`📱 NSE Action: Get webhook - webhookId=${id} userId=${userId}`);
+    console.log(
+      `📱 NSE Action: Get webhook - webhookId=${id} userId=${userId}`,
+    );
     return this.webhooksService.getWebhookById(id, userId);
   }
 }

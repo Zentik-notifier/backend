@@ -54,7 +54,11 @@ export class GraphQLSubscriptionService {
     });
   }
 
-  async publishBucketUpdatedToAllUsers(bucket: any, userId: string, allUserIds: string[]) {
+  async publishBucketUpdatedToAllUsers(
+    bucket: any,
+    userId: string,
+    allUserIds: string[],
+  ) {
     // Publish to all users who have access to this bucket
     for (const targetUserId of allUserIds) {
       await this.pubSub.publish(SubscriptionEvents.BUCKET_UPDATED, {
@@ -71,7 +75,11 @@ export class GraphQLSubscriptionService {
     });
   }
 
-  async publishUserBucketUpdated(userBucket: any, bucketId: string, userId: string) {
+  async publishUserBucketUpdated(
+    userBucket: any,
+    bucketId: string,
+    userId: string,
+  ) {
     await this.pubSub.publish(SubscriptionEvents.USER_BUCKET_UPDATED, {
       userBucketUpdated: userBucket,
       bucketId,
@@ -79,7 +87,11 @@ export class GraphQLSubscriptionService {
     });
   }
 
-  async publishEntityPermissionUpdated(permission: any, bucketId: string, userId: string) {
+  async publishEntityPermissionUpdated(
+    permission: any,
+    bucketId: string,
+    userId: string,
+  ) {
     await this.pubSub.publish(SubscriptionEvents.ENTITY_PERMISSION_UPDATED, {
       entityPermissionUpdated: permission,
       bucketId,
@@ -119,11 +131,15 @@ export class GraphQLSubscriptionService {
   }
 
   userBucketUpdated() {
-    return this.pubSub.asyncIterableIterator(SubscriptionEvents.USER_BUCKET_UPDATED);
+    return this.pubSub.asyncIterableIterator(
+      SubscriptionEvents.USER_BUCKET_UPDATED,
+    );
   }
 
   entityPermissionUpdated() {
-    return this.pubSub.asyncIterableIterator(SubscriptionEvents.ENTITY_PERMISSION_UPDATED);
+    return this.pubSub.asyncIterableIterator(
+      SubscriptionEvents.ENTITY_PERMISSION_UPDATED,
+    );
   }
 
   // User subscription events

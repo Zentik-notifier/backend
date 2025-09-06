@@ -58,10 +58,13 @@ describe('Attachments Disabled (e2e)', () => {
         .field('title', 'Test Message')
         .field('bucketId', 'test-bucket')
         .field('deliveryType', 'PUSH')
-        .field('attachmentOptions', JSON.stringify({
-          mediaType: 'text/plain',
-          name: 'test.txt'
-        }))
+        .field(
+          'attachmentOptions',
+          JSON.stringify({
+            mediaType: 'text/plain',
+            name: 'test.txt',
+          }),
+        )
         .expect(403)
         .expect((res) => {
           expect(res.body.message).toBe('Attachments are currently disabled');
@@ -93,10 +96,13 @@ describe('Attachments Disabled (e2e)', () => {
         .field('title', 'Test Message')
         .field('bucketId', 'test-bucket')
         .field('deliveryType', 'PUSH')
-        .field('attachmentOptions', JSON.stringify({
-          mediaType: 'text/plain',
-          name: 'test.txt'
-        }))
+        .field(
+          'attachmentOptions',
+          JSON.stringify({
+            mediaType: 'text/plain',
+            name: 'test.txt',
+          }),
+        )
         .expect(401); // Should fail due to auth, not attachments disabled
     });
   });
@@ -124,10 +130,13 @@ describe('Attachments Disabled (e2e)', () => {
         .field('title', 'Test Message')
         .field('bucketId', 'test-bucket')
         .field('deliveryType', 'PUSH')
-        .field('attachmentOptions', JSON.stringify({
-          mediaType: 'text/plain',
-          name: 'test.txt'
-        }))
+        .field(
+          'attachmentOptions',
+          JSON.stringify({
+            mediaType: 'text/plain',
+            name: 'test.txt',
+          }),
+        )
         .expect(403)
         .expect((res) => {
           expect(res.body.message).toBe('Attachments are currently disabled');

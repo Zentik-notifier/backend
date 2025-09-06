@@ -7,7 +7,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { SystemAccessTokenService } from './system-access-token.service';

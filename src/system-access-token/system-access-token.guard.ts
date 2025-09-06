@@ -21,7 +21,9 @@ export class SystemAccessTokenGuard implements CanActivate {
     const authHeader = request.headers?.authorization as string | undefined;
 
     if (!authHeader || !authHeader.startsWith('Bearer sat_')) {
-      this.logger.error('Missing or invalid system access token format in request');
+      this.logger.error(
+        'Missing or invalid system access token format in request',
+      );
       throw new UnauthorizedException('Missing or invalid system access token');
     }
 

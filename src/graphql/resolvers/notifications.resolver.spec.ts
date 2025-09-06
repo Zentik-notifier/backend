@@ -60,7 +60,8 @@ describe('NotificationsResolver', () => {
       .compile();
 
     resolver = module.get<NotificationsResolver>(NotificationsResolver);
-    notificationsService = module.get<NotificationsService>(NotificationsService);
+    notificationsService =
+      module.get<NotificationsService>(NotificationsService);
 
     jest.clearAllMocks();
   });
@@ -82,7 +83,9 @@ describe('NotificationsResolver', () => {
         },
       ];
 
-      mockNotificationsService.getNotificationServices.mockResolvedValue(mockResponse);
+      mockNotificationsService.getNotificationServices.mockResolvedValue(
+        mockResponse,
+      );
 
       const result = await resolver.notificationServices();
 

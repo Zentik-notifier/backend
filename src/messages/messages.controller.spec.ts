@@ -462,7 +462,8 @@ describe('MessagesController', () => {
           body: `This is a ${testCase.priority} priority message`,
           bucketId: 'bucket-1',
           deliveryType: testCase.deliveryType,
-          sound: testCase.deliveryType === 'CRITICAL' ? 'urgent.wav' : 'normal.wav',
+          sound:
+            testCase.deliveryType === 'CRITICAL' ? 'urgent.wav' : 'normal.wav',
         };
 
         mockMessagesService.create.mockResolvedValue(mockMessage as Message);
@@ -479,7 +480,7 @@ describe('MessagesController', () => {
 
     it('should create a message with various media types', async () => {
       const mediaTypes = ['IMAGE', 'VIDEO', 'GIF', 'AUDIO', 'ICON'] as const;
-      
+
       for (const mediaType of mediaTypes) {
         const createMessageDto: CreateMessageDto = {
           title: `${mediaType} Media Message`,
@@ -510,14 +511,14 @@ describe('MessagesController', () => {
     it('should create a message with various action types', async () => {
       const actionTypes = [
         'NAVIGATE',
-        'BACKGROUND_CALL', 
+        'BACKGROUND_CALL',
         'MARK_AS_READ',
         'SNOOZE',
         'OPEN_NOTIFICATION',
         'WEBHOOK',
-        'DELETE'
+        'DELETE',
       ] as const;
-      
+
       for (const actionType of actionTypes) {
         const createMessageDto: CreateMessageDto = {
           title: `${actionType} Action Message`,
@@ -963,6 +964,4 @@ describe('MessagesController', () => {
       );
     });
   });
-
-
 });

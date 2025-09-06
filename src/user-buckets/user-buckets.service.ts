@@ -1,16 +1,16 @@
 import {
-    ConflictException,
-    Injectable,
-    NotFoundException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { UserBucket } from '../entities/user-bucket.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import {
-    CreateUserBucketDto,
-    SnoozeScheduleInput,
-    UpdateUserBucketDto,
+  CreateUserBucketDto,
+  SnoozeScheduleInput,
+  UpdateUserBucketDto,
 } from './dto';
 
 @Injectable()
@@ -46,7 +46,10 @@ export class UserBucketsService {
     const savedUserBucket = await this.userBucketRepository.save(userBucket);
 
     // Track bucket sharing event
-    await this.eventTrackingService.trackBucketSharing(userId, createUserBucketDto.bucketId);
+    await this.eventTrackingService.trackBucketSharing(
+      userId,
+      createUserBucketDto.bucketId,
+    );
 
     return savedUserBucket;
   }
@@ -146,10 +149,13 @@ export class UserBucketsService {
 
   async remove(id: string, userId: string): Promise<void> {
     const userBucket = await this.findOne(id, userId);
-    
+
     // Track bucket unsharing event before removal
-    await this.eventTrackingService.trackBucketUnsharing(userId, userBucket.bucketId);
-    
+    await this.eventTrackingService.trackBucketUnsharing(
+      userId,
+      userBucket.bucketId,
+    );
+
     await this.userBucketRepository.remove(userBucket);
   }
 
@@ -158,7 +164,7 @@ export class UserBucketsService {
     if (userBucket) {
       // Track bucket unsharing event before removal
       await this.eventTrackingService.trackBucketUnsharing(userId, bucketId);
-      
+
       await this.userBucketRepository.remove(userBucket);
     }
   }

@@ -40,8 +40,8 @@ export class CreateBucketDto {
   color?: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
-    required: false, 
+  @ApiProperty({
+    required: false,
     description: 'Whether the bucket is protected from deletion',
     default: false,
   })
@@ -49,8 +49,8 @@ export class CreateBucketDto {
   isProtected?: boolean;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
-    required: false, 
+  @ApiProperty({
+    required: false,
     description: 'Whether the bucket is publicly accessible',
     default: false,
   })

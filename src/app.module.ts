@@ -41,8 +41,12 @@ import { WebhooksModule } from './webhooks/webhooks.module';
         const ttlMs = Number(config.get('RATE_LIMIT_TTL_MS') ?? 60_000);
         const limit = Number(config.get('RATE_LIMIT_LIMIT') ?? 100);
         const maybeBlock = config.get('RATE_LIMIT_BLOCK_MS');
-        const blockMs = typeof maybeBlock === 'string' || typeof maybeBlock === 'number' ? Number(maybeBlock) : undefined;
-        const common = blockMs && !Number.isNaN(blockMs) ? { blockDuration: blockMs } : {};
+        const blockMs =
+          typeof maybeBlock === 'string' || typeof maybeBlock === 'number'
+            ? Number(maybeBlock)
+            : undefined;
+        const common =
+          blockMs && !Number.isNaN(blockMs) ? { blockDuration: blockMs } : {};
         return [
           {
             ttl: Number.isNaN(ttlMs) ? 60_000 : ttlMs,

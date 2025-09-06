@@ -103,7 +103,9 @@ export class AccessTokenService {
     });
 
     if (!token) {
-      throw new NotFoundException('Access token not found or does not belong to you');
+      throw new NotFoundException(
+        'Access token not found or does not belong to you',
+      );
     }
 
     // Delete the token

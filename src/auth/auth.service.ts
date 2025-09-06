@@ -22,7 +22,11 @@ import {
   SetPasswordDto,
   UpdateProfileDto,
 } from './dto';
-import { LoginResponse, RefreshTokenResponse, RegisterResponse } from './dto/auth.dto';
+import {
+  LoginResponse,
+  RefreshTokenResponse,
+  RegisterResponse,
+} from './dto/auth.dto';
 import { EmailService } from './email.service';
 import { SessionService } from './session.service';
 
@@ -51,7 +55,7 @@ export class AuthService {
     private sessionService: SessionService,
     private emailService: EmailService,
     private eventTrackingService: EventTrackingService,
-  ) { }
+  ) {}
 
   async register(
     registerDto: RegisterDto,
@@ -110,7 +114,9 @@ export class AuthService {
       try {
         const emailResult = await this.requestEmailConfirmation(
           email,
-          ((localeInput as unknown as Locale) || (context?.locale as Locale) || 'en-EN'),
+          (localeInput as unknown as Locale) ||
+            (context?.locale as Locale) ||
+            'en-EN',
         );
         if (emailResult.sent) {
           this.logger.debug(`Email confirmation sent to ${email}`);
@@ -137,13 +143,19 @@ export class AuthService {
 
     if (!emailEnabled) {
       // Genera token e sessione come nel login
-      const { accessToken, refreshToken, tokenId } = await this.generateTokens(savedUser);
+      const { accessToken, refreshToken, tokenId } =
+        await this.generateTokens(savedUser);
       const expiresAt = this.calculateRefreshTokenExpiration();
-      await this.sessionService.createSession(savedUser.id, tokenId, expiresAt, {
-        ipAddress: context?.ipAddress,
-        userAgent: context?.userAgent,
-        loginProvider: 'local',
-      });
+      await this.sessionService.createSession(
+        savedUser.id,
+        tokenId,
+        expiresAt,
+        {
+          ipAddress: context?.ipAddress,
+          userAgent: context?.userAgent,
+          loginProvider: 'local',
+        },
+      );
       const { password: __, ...userWithoutPassword2 } = savedUser;
       return {
         message,
@@ -189,7 +201,9 @@ export class AuthService {
       this.logger.warn(
         `Login failed for user ${user.id} - email not confirmed`,
       );
-      throw new UnauthorizedException('Please confirm your email before logging in. Check your inbox for a confirmation email.');
+      throw new UnauthorizedException(
+        'Please confirm your email before logging in. Check your inbox for a confirmation email.',
+      );
     }
 
     this.logger.log(`User login successful: ${user.id} (${user.email})`);
@@ -763,15 +777,15 @@ export class AuthService {
         this.logger.log(`✅ User created: ${user.id}`);
         // Send welcome email for newly created OAuth users
         try {
-          const inferredLocale: Locale = (((providerData as any)?.locale as Locale) || 'en-EN') as Locale;
+          const inferredLocale: Locale =
+            (providerData?.locale as Locale) || 'en-EN';
           // this.logger.debug(`📧 OAuth new user: sending welcome with locale='${inferredLocale}' provider=${provider}`);
           await this.emailService.sendWelcomeEmail(
             user.email,
             user.username ?? user.email.split('@')[0],
             inferredLocale,
           );
-        } catch (welcomeErr) {
-        }
+        } catch (welcomeErr) {}
       } catch (error) {
         this.logger.error(`❌ Failed to create user: ${error.message}`);
         if (error.code === '23505') {
@@ -924,19 +938,28 @@ export class AuthService {
 
       if (!user) {
         // Don't reveal if user exists
-        this.logger.log(`Password reset requested for non-existent email: ${email}`);
+        this.logger.log(
+          `Password reset requested for non-existent email: ${email}`,
+        );
         return true;
       }
 
       // Check rate limiting: minimum 1 minute between requests
       if (user.resetTokenRequestedAt) {
-        const timeSinceLastRequest = Date.now() - user.resetTokenRequestedAt.getTime();
+        const timeSinceLastRequest =
+          Date.now() - user.resetTokenRequestedAt.getTime();
         const minInterval = 60 * 1000; // 1 minute in milliseconds
 
         if (timeSinceLastRequest < minInterval) {
-          const remainingTime = Math.ceil((minInterval - timeSinceLastRequest) / 1000);
-          this.logger.warn(`Password reset rate limit exceeded for user ${user.id}: ${remainingTime}s remaining`);
-          throw new BadRequestException(`Please wait ${remainingTime} seconds before requesting another password reset`);
+          const remainingTime = Math.ceil(
+            (minInterval - timeSinceLastRequest) / 1000,
+          );
+          this.logger.warn(
+            `Password reset rate limit exceeded for user ${user.id}: ${remainingTime}s remaining`,
+          );
+          throw new BadRequestException(
+            `Please wait ${remainingTime} seconds before requesting another password reset`,
+          );
         }
       }
 
@@ -955,24 +978,37 @@ export class AuthService {
           resetToken,
           (locale as Locale) || 'en-EN',
         );
-        this.logger.log(`Password reset email with 6-character code sent to user ${user.id}`);
+        this.logger.log(
+          `Password reset email with 6-character code sent to user ${user.id}`,
+        );
         return true;
       } catch (emailError) {
-        this.logger.error(`Failed to send password reset email with 6-character code to user ${user.id}: ${emailError.message}`);
+        this.logger.error(
+          `Failed to send password reset email with 6-character code to user ${user.id}: ${emailError.message}`,
+        );
 
         // On email failure, clear the token but NEVER reset the request date
         // This prevents spam while maintaining the rate limit
         user.resetToken = null;
         await this.usersRepository.save(user);
 
-        throw new InternalServerErrorException('Failed to send password reset email with 6-character code. Please try again later.');
+        throw new InternalServerErrorException(
+          'Failed to send password reset email with 6-character code. Please try again later.',
+        );
       }
     } catch (error) {
-      if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof InternalServerErrorException
+      ) {
         throw error;
       }
-      this.logger.error(`Password reset request with 6-character code failed for email ${email}: ${error.message}`);
-      throw new InternalServerErrorException('Failed to process password reset request. Please try again later.');
+      this.logger.error(
+        `Password reset request with 6-character code failed for email ${email}: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to process password reset request. Please try again later.',
+      );
     }
   }
 
@@ -980,14 +1016,19 @@ export class AuthService {
    * Reset password using reset token
    * Token must be used within 24 hours of request
    */
-  async resetPassword(resetToken: string, newPassword: string): Promise<boolean> {
+  async resetPassword(
+    resetToken: string,
+    newPassword: string,
+  ): Promise<boolean> {
     try {
       this.logger.log(`Password reset attempt with token: ${resetToken}`);
 
       // First validate the token using the dedicated validation method
       const isTokenValid = await this.validateResetToken(resetToken);
       if (!isTokenValid) {
-        this.logger.warn(`Password reset failed: invalid or expired token - ${resetToken}`);
+        this.logger.warn(
+          `Password reset failed: invalid or expired token - ${resetToken}`,
+        );
         throw new BadRequestException('Invalid or expired reset code');
       }
 
@@ -997,7 +1038,9 @@ export class AuthService {
       });
 
       if (!user) {
-        this.logger.warn(`Password reset failed: user not found for valid token - ${resetToken}`);
+        this.logger.warn(
+          `Password reset failed: user not found for valid token - ${resetToken}`,
+        );
         throw new BadRequestException('Invalid reset code');
       }
 
@@ -1011,14 +1054,20 @@ export class AuthService {
 
       await this.usersRepository.save(user);
 
-      this.logger.log(`Password reset successful for user ${user.id} using validated token: ${resetToken}`);
+      this.logger.log(
+        `Password reset successful for user ${user.id} using validated token: ${resetToken}`,
+      );
       return true;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error(`Password reset with validated token failed: ${error.message}`);
-      throw new InternalServerErrorException('Failed to reset password. Please try again later.');
+      this.logger.error(
+        `Password reset with validated token failed: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to reset password. Please try again later.',
+      );
     }
   }
 
@@ -1048,12 +1097,16 @@ export class AuthService {
       });
 
       if (!user) {
-        this.logger.warn(`Reset token validation failed: token not found - ${resetToken}`);
+        this.logger.warn(
+          `Reset token validation failed: token not found - ${resetToken}`,
+        );
         return false;
       }
 
       if (!user.resetTokenRequestedAt) {
-        this.logger.warn(`Reset token validation failed: no request time for user ${user.id} - ${resetToken}`);
+        this.logger.warn(
+          `Reset token validation failed: no request time for user ${user.id} - ${resetToken}`,
+        );
         return false;
       }
 
@@ -1062,14 +1115,21 @@ export class AuthService {
       const maxTokenAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
       if (tokenAge > maxTokenAge) {
-        this.logger.warn(`Reset token validation failed: token expired for user ${user.id} - ${resetToken} (age: ${Math.round(tokenAge / 1000 / 60)} minutes)`);
+        this.logger.warn(
+          `Reset token validation failed: token expired for user ${user.id} - ${resetToken} (age: ${Math.round(tokenAge / 1000 / 60)} minutes)`,
+        );
         return false;
       }
 
-      this.logger.log(`Reset token validation successful for user ${user.id} - ${resetToken} (age: ${Math.round(tokenAge / 1000 / 60)} minutes)`);
+      this.logger.log(
+        `Reset token validation successful for user ${user.id} - ${resetToken} (age: ${Math.round(tokenAge / 1000 / 60)} minutes)`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Reset token validation error: ${error.message}`, error.stack);
+      this.logger.error(
+        `Reset token validation error: ${error.message}`,
+        error.stack,
+      );
       return false;
     }
   }
@@ -1230,17 +1290,24 @@ export class AuthService {
     };
   }
 
-  async requestEmailConfirmation(email: string, locale: Locale = 'en-EN'): Promise<{ sent: boolean; reason?: string }> {
+  async requestEmailConfirmation(
+    email: string,
+    locale: Locale = 'en-EN',
+  ): Promise<{ sent: boolean; reason?: string }> {
     const user = await this.usersRepository.findOne({ where: { email } });
     if (!user) {
       // Don't reveal if user exists or not
-      this.logger.debug(`Email confirmation requested for non-existent email: ${email}`);
+      this.logger.debug(
+        `Email confirmation requested for non-existent email: ${email}`,
+      );
       return { sent: false, reason: 'Email not found' };
     }
 
     if (user.emailConfirmed) {
       // Email already confirmed
-      this.logger.debug(`Email confirmation requested for already confirmed email: ${email}`);
+      this.logger.debug(
+        `Email confirmation requested for already confirmed email: ${email}`,
+      );
       return { sent: false, reason: 'Email already confirmed' };
     }
 
@@ -1257,16 +1324,29 @@ export class AuthService {
 
     // Send confirmation email
     try {
-      await this.emailService.sendEmailConfirmation(email, confirmationCode, locale);
-      this.logger.debug(`Email confirmation with 6-character code sent to ${email}`);
+      await this.emailService.sendEmailConfirmation(
+        email,
+        confirmationCode,
+        locale,
+      );
+      this.logger.debug(
+        `Email confirmation with 6-character code sent to ${email}`,
+      );
       return { sent: true };
     } catch (error) {
-      this.logger.warn(`Failed to send email confirmation to ${email}: ${error.message}`);
-      throw new InternalServerErrorException('Failed to send confirmation email');
+      this.logger.warn(
+        `Failed to send email confirmation to ${email}: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to send confirmation email',
+      );
     }
   }
 
-  async confirmEmail(code: string, locale?: string): Promise<{ confirmed: boolean; reason?: string }> {
+  async confirmEmail(
+    code: string,
+    locale?: string,
+  ): Promise<{ confirmed: boolean; reason?: string }> {
     const user = await this.usersRepository.findOne({
       where: { emailConfirmationToken: code },
     });
@@ -1280,7 +1360,8 @@ export class AuthService {
       return { confirmed: false, reason: 'Invalid code' };
     }
 
-    const tokenAge = Date.now() - user.emailConfirmationTokenRequestedAt.getTime();
+    const tokenAge =
+      Date.now() - user.emailConfirmationTokenRequestedAt.getTime();
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
     if (tokenAge > maxAge) {
@@ -1302,8 +1383,10 @@ export class AuthService {
     this.logger.log(`Email confirmed for user: ${user.id} (${user.email})`);
     // Send welcome email after successful confirmation (best UX timing)
     try {
-      const inferredLocale: Locale = ((locale as Locale) || 'en-EN') as Locale;
-      this.logger.debug(`📧 confirmEmail: sending welcome with locale='${inferredLocale}' for user=${user.id}`);
+      const inferredLocale: Locale = (locale as Locale) || 'en-EN';
+      this.logger.debug(
+        `📧 confirmEmail: sending welcome with locale='${inferredLocale}' for user=${user.id}`,
+      );
       await this.emailService.sendWelcomeEmail(
         user.email,
         user.username ?? user.email.split('@')[0],
@@ -1311,7 +1394,9 @@ export class AuthService {
       );
       this.logger.debug(`Welcome email sent to ${user.email}`);
     } catch (err) {
-      this.logger.warn(`Failed to send welcome email to ${user.email}: ${err?.message}`);
+      this.logger.warn(
+        `Failed to send welcome email to ${user.email}: ${err?.message}`,
+      );
     }
     return { confirmed: true };
   }

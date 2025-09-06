@@ -1,14 +1,17 @@
-import { BadRequestException, Injectable, Logger, UseGuards } from '@nestjs/common';
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
-  AuthService
-} from '../../auth/auth.service';
+  BadRequestException,
+  Injectable,
+  Logger,
+  UseGuards,
+} from '@nestjs/common';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { AuthService } from '../../auth/auth.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import {
   ConfirmEmailDto,
   EmailConfirmationResponseDto,
   EmailStatusResponseDto,
-  RequestEmailConfirmationDto
+  RequestEmailConfirmationDto,
 } from '../../auth/dto';
 import {
   LoginDto,
@@ -19,7 +22,7 @@ import {
   RegisterDto,
   RegisterResponse,
   RequestPasswordResetDto,
-  ResetPasswordDto
+  ResetPasswordDto,
 } from '../../auth/dto/auth.dto';
 import { EmailService } from '../../auth/email.service';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
@@ -39,11 +42,12 @@ export class AuthResolver {
     private readonly eventTrackingService: EventTrackingService,
     private readonly oauthProvidersService: OAuthProvidersService,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   @Query(() => PublicAppConfig)
   async publicAppConfig(): Promise<PublicAppConfig> {
-    const providers = await this.oauthProvidersService.findEnabledProvidersPublic();
+    const providers =
+      await this.oauthProvidersService.findEnabledProvidersPublic();
     const emailEnabled = this.emailService.isEmailEnabled();
     return { oauthProviders: providers, emailEnabled };
   }
@@ -70,7 +74,9 @@ export class AuthResolver {
         await this.eventTrackingService.trackLogout(userId);
         this.logger.debug(`Logout event tracked for user: ${userId}`);
       } catch (trackingError) {
-        this.logger.warn(`Failed to track logout event for user ${userId}: ${trackingError.message}`);
+        this.logger.warn(
+          `Failed to track logout event for user ${userId}: ${trackingError.message}`,
+        );
       }
     } catch (error) {
       this.logger.warn(
@@ -81,7 +87,9 @@ export class AuthResolver {
       try {
         await this.eventTrackingService.trackLogout(userId);
       } catch (trackingError) {
-        this.logger.warn(`Failed to track logout event in error handler: ${trackingError.message}`);
+        this.logger.warn(
+          `Failed to track logout event in error handler: ${trackingError.message}`,
+        );
       }
     }
 
@@ -94,7 +102,7 @@ export class AuthResolver {
       return await this.authService.login(input, {});
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`);
-      
+
       // Re-throw the error to let GraphQL handle it
       throw error;
     }
@@ -127,16 +135,23 @@ export class AuthResolver {
     @Args('input') input: RequestPasswordResetDto,
   ): Promise<PasswordResetResponseDto> {
     try {
-      const success = await this.authService.requestPasswordReset(input.email, input.locale);
+      const success = await this.authService.requestPasswordReset(
+        input.email,
+        input.locale,
+      );
       return {
         success,
-        message: 'If an account with that email exists, a 6-character reset code has been sent to your email.',
+        message:
+          'If an account with that email exists, a 6-character reset code has been sent to your email.',
       };
     } catch (error) {
       this.logger.error(`Password reset request failed: ${error.message}`);
 
       // Handle rate limiting specifically
-      if (error instanceof BadRequestException && error.message.includes('Please wait')) {
+      if (
+        error instanceof BadRequestException &&
+        error.message.includes('Please wait')
+      ) {
         return {
           success: false,
           message: error.message,
@@ -145,7 +160,8 @@ export class AuthResolver {
 
       return {
         success: false,
-        message: 'Failed to process password reset request. Please try again later.',
+        message:
+          'Failed to process password reset request. Please try again later.',
       };
     }
   }
@@ -167,10 +183,14 @@ export class AuthResolver {
     @Args('input') input: ResetPasswordDto,
   ): Promise<PasswordResetResponseDto> {
     try {
-      const success = await this.authService.resetPassword(input.resetToken, input.newPassword);
+      const success = await this.authService.resetPassword(
+        input.resetToken,
+        input.newPassword,
+      );
       return {
         success,
-        message: 'Password has been reset successfully using the 6-character code. You can now login with your new password.',
+        message:
+          'Password has been reset successfully using the 6-character code. You can now login with your new password.',
       };
     } catch (error) {
       this.logger.error(`Password reset failed: ${error.message}`);
@@ -186,7 +206,10 @@ export class AuthResolver {
     @Args('input') input: RequestEmailConfirmationDto,
   ): Promise<EmailConfirmationResponseDto> {
     try {
-      const result = await this.authService.requestEmailConfirmation(input.email, input.locale as Locale);
+      const result = await this.authService.requestEmailConfirmation(
+        input.email,
+        input.locale as Locale,
+      );
       if (result.sent) {
         return {
           success: true,
@@ -207,16 +230,20 @@ export class AuthResolver {
     }
   }
 
-    @Mutation(() => EmailConfirmationResponseDto)
+  @Mutation(() => EmailConfirmationResponseDto)
   async confirmEmail(
     @Args('input') input: ConfirmEmailDto,
   ): Promise<EmailConfirmationResponseDto> {
     try {
-      const result = await this.authService.confirmEmail(input.code, input.locale as any);
+      const result = await this.authService.confirmEmail(
+        input.code,
+        input.locale as any,
+      );
       if (result.confirmed) {
         return {
           success: true,
-          message: 'Email confirmed successfully. You can now login to your account.',
+          message:
+            'Email confirmed successfully. You can now login to your account.',
         };
       } else {
         return {
@@ -241,9 +268,7 @@ export class AuthResolver {
       const confirmed = await this.authService.isEmailConfirmed(email);
       return {
         confirmed,
-        message: confirmed 
-          ? 'Email is confirmed' 
-          : 'Email is not confirmed',
+        message: confirmed ? 'Email is confirmed' : 'Email is not confirmed',
       };
     } catch (error) {
       this.logger.error(`Email status check failed: ${error.message}`);

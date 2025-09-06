@@ -42,8 +42,9 @@ export class AppController {
           emailEnabled: this.emailService.isEmailEnabled(),
         };
       }
-      
-      const providers = await this.oauthProvidersService.findEnabledProvidersPublic();
+
+      const providers =
+        await this.oauthProvidersService.findEnabledProvidersPublic();
       const emailEnabled = this.emailService.isEmailEnabled();
       return {
         oauthProviders: providers,

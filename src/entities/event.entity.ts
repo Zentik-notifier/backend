@@ -1,5 +1,10 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 export enum EventType {
   LOGIN = 'LOGIN',

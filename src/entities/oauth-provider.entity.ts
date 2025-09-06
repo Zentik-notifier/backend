@@ -1,11 +1,11 @@
 import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import {
-    Column,
-    CreateDateColumn,
-    Entity,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 // OAuth Provider Type Enum

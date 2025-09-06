@@ -96,8 +96,6 @@ describe('NotificationsController', () => {
     expect(controller).toBeDefined();
   });
 
-
-
   describe('markAsRead', () => {
     it('should mark notification as read', async () => {
       const mockNotification = { id: '1', readAt: new Date() };
@@ -126,7 +124,9 @@ describe('NotificationsController', () => {
         },
       ];
 
-      mockNotificationsService.getNotificationServices.mockResolvedValue(mockResponse);
+      mockNotificationsService.getNotificationServices.mockResolvedValue(
+        mockResponse,
+      );
 
       const result = await controller.getNotificationServices();
 

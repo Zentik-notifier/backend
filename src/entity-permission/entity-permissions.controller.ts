@@ -7,7 +7,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ResourceType } from 'src/auth/dto/auth.dto';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { EntityPermission } from '../entities/entity-permission.entity';
@@ -74,8 +79,6 @@ export class EntityPermissionsController {
       expiresAt,
     );
 
-
-
     return permission;
   }
 
@@ -98,8 +101,6 @@ export class EntityPermissionsController {
       userIdentifier,
       userId,
     );
-
-
 
     return { message: 'Permissions revoked successfully' };
   }

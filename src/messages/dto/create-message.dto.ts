@@ -52,7 +52,9 @@ export class NotificationAttachmentDto {
     description: 'Save attachment to server when URL is provided',
   })
   @IsOptional()
-  @IsAttachmentsEnabled({ message: 'Attachments are currently disabled, cannot save to server' })
+  @IsAttachmentsEnabled({
+    message: 'Attachments are currently disabled, cannot save to server',
+  })
   saveOnServer?: boolean;
 }
 
@@ -235,40 +237,47 @@ export class CreateMessageDto {
   locale?: string;
 
   @Field()
-  @ApiProperty({ 
-    description: 'Bucket ID or name. If a name is provided, the system will find the corresponding bucket by name.'
+  @ApiProperty({
+    description:
+      'Bucket ID or name. If a name is provided, the system will find the corresponding bucket by name.',
   })
   @IsString()
   bucketId: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional group ID for notification grouping, falls back to bucketId if not provided'
+    description:
+      'Optional group ID for notification grouping, falls back to bucketId if not provided',
   })
   @IsOptional()
   @IsString()
   groupId?: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID'
+    description:
+      'Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID',
   })
   @IsOptional()
   @IsString()
   collapseId?: string;
 
   @Field(() => [String], { nullable: true })
-  @ApiProperty({ 
-    type: [String], 
+  @ApiProperty({
+    type: [String],
     required: false,
-    description: 'Optional array of user IDs or usernames to filter notifications to specific users only. If usernames are provided, the system will find the corresponding users by username.'
+    description:
+      'Optional array of user IDs or usernames to filter notifications to specific users only. If usernames are provided, the system will find the corresponding users by username.',
   })
   @IsOptional()
   @Transform(({ value }) => {
     if (typeof value === 'string') {
-      return value.split(',').map(id => id.trim()).filter(Boolean);
+      return value
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
     }
     return value || [];
   })
@@ -277,36 +286,40 @@ export class CreateMessageDto {
   userIds?: string[];
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional image URL. If provided, will automatically create an image attachment.'
+    description:
+      'Optional image URL. If provided, will automatically create an image attachment.',
   })
   @IsOptional()
   @IsString()
   imageUrl?: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional video URL. If provided, will automatically create a video attachment.'
+    description:
+      'Optional video URL. If provided, will automatically create a video attachment.',
   })
   @IsOptional()
   @IsString()
   videoUrl?: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional GIF URL. If provided, will automatically create a GIF attachment.'
+    description:
+      'Optional GIF URL. If provided, will automatically create a GIF attachment.',
   })
   @IsOptional()
   @IsString()
   gifUrl?: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional tap URL. If provided, will automatically set the tapAction to NAVIGATE with this URL.'
+    description:
+      'Optional tap URL. If provided, will automatically set the tapAction to NAVIGATE with this URL.',
   })
   @IsOptional()
   @IsString()

@@ -1,7 +1,11 @@
-import { registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
+import {
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+} from 'class-validator';
 
 export function IsAttachmentsEnabled(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isAttachmentsEnabled',
       target: object.constructor,
@@ -10,7 +14,8 @@ export function IsAttachmentsEnabled(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: any, args: ValidationArguments) {
           if (value === true) {
-            const attachmentsConfigService = (args.object as any).attachmentsConfigService;
+            const attachmentsConfigService = (args.object as any)
+              .attachmentsConfigService;
             if (attachmentsConfigService) {
               return attachmentsConfigService.isEnabled;
             }

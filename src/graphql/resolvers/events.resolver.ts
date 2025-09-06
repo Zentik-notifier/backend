@@ -20,7 +20,9 @@ export class EventsResolver {
   }
 
   @Query(() => [Event])
-  async eventsByType(@Args('type', { type: () => EventType }) type: EventType): Promise<Event[]> {
+  async eventsByType(
+    @Args('type', { type: () => EventType }) type: EventType,
+  ): Promise<Event[]> {
     return this.eventsService.findByType(type);
   }
 

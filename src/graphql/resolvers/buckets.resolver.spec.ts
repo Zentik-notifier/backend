@@ -183,12 +183,18 @@ describe('BucketsResolver', () => {
 
   describe('updateBucket', () => {
     it('should update a bucket successfully and publish subscription', async () => {
-      const updatedBucket = { ...mockBucket, ...mockUpdateBucketDto, user: { id: 'user-1' } };
+      const updatedBucket = {
+        ...mockBucket,
+        ...mockUpdateBucketDto,
+        user: { id: 'user-1' },
+      };
       mockBucketsService.update.mockResolvedValue(updatedBucket as Bucket);
       mockEntityPermissionService.getResourcePermissions.mockResolvedValue([
         { user: { id: 'user-1' } },
       ] as EntityPermission[]);
-      mockSubscriptionService.publishBucketUpdatedToAllUsers.mockResolvedValue(undefined);
+      mockSubscriptionService.publishBucketUpdatedToAllUsers.mockResolvedValue(
+        undefined,
+      );
 
       const result = await resolver.updateBucket(
         'bucket-1',
@@ -202,11 +208,9 @@ describe('BucketsResolver', () => {
         'user-1',
         mockUpdateBucketDto,
       );
-      expect(subscriptionService.publishBucketUpdatedToAllUsers).toHaveBeenCalledWith(
-        updatedBucket,
-        'user-1',
-        ['user-1'],
-      );
+      expect(
+        subscriptionService.publishBucketUpdatedToAllUsers,
+      ).toHaveBeenCalledWith(updatedBucket, 'user-1', ['user-1']);
     });
   });
 
@@ -259,13 +263,19 @@ describe('BucketsResolver', () => {
       mockEntityPermissionService.grantPermissions.mockResolvedValue(
         mockEntityPermission as EntityPermission,
       );
-      mockBucketsService.findOne.mockResolvedValue(mockBucketWithUser as Bucket);
+      mockBucketsService.findOne.mockResolvedValue(
+        mockBucketWithUser as Bucket,
+      );
       mockEntityPermissionService.getResourcePermissions.mockResolvedValue([
         { user: { id: 'user-1' } },
         { user: { id: 'user-2' } },
       ] as EntityPermission[]);
-      mockSubscriptionService.publishBucketUpdatedToAllUsers.mockResolvedValue(undefined);
-      mockSubscriptionService.publishEntityPermissionUpdated.mockResolvedValue(undefined);
+      mockSubscriptionService.publishBucketUpdatedToAllUsers.mockResolvedValue(
+        undefined,
+      );
+      mockSubscriptionService.publishEntityPermissionUpdated.mockResolvedValue(
+        undefined,
+      );
 
       const result = await resolver.shareBucket(shareInput, 'user-1');
 
@@ -278,11 +288,12 @@ describe('BucketsResolver', () => {
         'user-1',
         undefined,
       );
-      expect(subscriptionService.publishBucketUpdatedToAllUsers).toHaveBeenCalledWith(
-        mockBucketWithUser,
+      expect(
+        subscriptionService.publishBucketUpdatedToAllUsers,
+      ).toHaveBeenCalledWith(mockBucketWithUser, 'user-1', [
         'user-1',
-        ['user-1', 'user-2'],
-      );
+        'user-2',
+      ]);
     });
   });
 
@@ -300,11 +311,15 @@ describe('BucketsResolver', () => {
       };
 
       mockEntityPermissionService.revokePermissions.mockResolvedValue(true);
-      mockBucketsService.findOne.mockResolvedValue(mockBucketWithUser as Bucket);
+      mockBucketsService.findOne.mockResolvedValue(
+        mockBucketWithUser as Bucket,
+      );
       mockEntityPermissionService.getResourcePermissions.mockResolvedValue([
         { user: { id: 'user-1' } },
       ] as EntityPermission[]);
-      mockSubscriptionService.publishBucketUpdatedToAllUsers.mockResolvedValue(undefined);
+      mockSubscriptionService.publishBucketUpdatedToAllUsers.mockResolvedValue(
+        undefined,
+      );
 
       const result = await resolver.unshareBucket(revokeInput, 'user-1');
 
@@ -315,11 +330,9 @@ describe('BucketsResolver', () => {
         { userId: 'user-2' },
         'user-1',
       );
-      expect(subscriptionService.publishBucketUpdatedToAllUsers).toHaveBeenCalledWith(
-        mockBucketWithUser,
-        'user-1',
-        ['user-1'],
-      );
+      expect(
+        subscriptionService.publishBucketUpdatedToAllUsers,
+      ).toHaveBeenCalledWith(mockBucketWithUser, 'user-1', ['user-1']);
     });
   });
 

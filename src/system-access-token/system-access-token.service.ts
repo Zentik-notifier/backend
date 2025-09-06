@@ -25,7 +25,9 @@ export class SystemAccessTokenService {
   ) {
     // Validate that the requester user exists if provided
     if (requesterId) {
-      const user = await this.userRepository.findOne({ where: { id: requesterId } });
+      const user = await this.userRepository.findOne({
+        where: { id: requesterId },
+      });
       if (!user) {
         throw new BadRequestException(`User with ID ${requesterId} not found`);
       }
@@ -69,7 +71,9 @@ export class SystemAccessTokenService {
   ): Promise<SystemAccessToken | null> {
     try {
       if (!bearerToken || !bearerToken.startsWith('sat_')) {
-        this.logger.warn('System token validation failed: invalid token format');
+        this.logger.warn(
+          'System token validation failed: invalid token format',
+        );
         return null;
       }
 
@@ -84,20 +88,26 @@ export class SystemAccessTokenService {
 
         // Check expiration
         if (token.expiresAt && token.expiresAt < new Date()) {
-          this.logger.warn(`System token ${token.id} has expired (expiresAt: ${token.expiresAt})`);
+          this.logger.warn(
+            `System token ${token.id} has expired (expiresAt: ${token.expiresAt})`,
+          );
           return null;
         }
 
         // Check calls threshold (only if maxCalls > 0)
         if (token.maxCalls > 0 && token.calls >= token.maxCalls) {
-          this.logger.warn(`System token ${token.id} has exceeded maximum calls (${token.calls}/${token.maxCalls})`);
+          this.logger.warn(
+            `System token ${token.id} has exceeded maximum calls (${token.calls}/${token.maxCalls})`,
+          );
           return null;
         }
 
         return token;
       }
 
-      this.logger.warn('System token validation failed: no matching token found');
+      this.logger.warn(
+        'System token validation failed: no matching token found',
+      );
       return null;
     } catch (err) {
       this.logger.error('System token validation error:', err);
@@ -109,9 +119,14 @@ export class SystemAccessTokenService {
   async incrementCalls(id: string): Promise<void> {
     try {
       await this.systemTokenRepository.increment({ id }, 'calls', 1);
-      this.logger.debug(`Incremented call count for system access token: ${id}`);
+      this.logger.debug(
+        `Incremented call count for system access token: ${id}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to increment call count for system access token: ${id}`, error);
+      this.logger.error(
+        `Failed to increment call count for system access token: ${id}`,
+        error,
+      );
       throw error;
     }
   }

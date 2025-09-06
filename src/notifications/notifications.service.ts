@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
@@ -28,11 +33,7 @@ export class NotificationsService {
     private readonly firebasePushService: FirebasePushService,
     private readonly webPushService: WebPushService,
     private readonly configService: ConfigService,
-  ) { }
-
-
-
-
+  ) {}
 
   async findByUser(userId: string): Promise<Notification[]> {
     const notifications = await this.notificationsRepository
@@ -104,7 +105,10 @@ export class NotificationsService {
     deviceToken: string,
   ): Promise<{ updatedCount: number }> {
     const target = await this.findOne(id, userId);
-    const device = await this.usersService.findDeviceByUserToken(userId, deviceToken);
+    const device = await this.usersService.findDeviceByUserToken(
+      userId,
+      deviceToken,
+    );
     if (!device) {
       this.logger.warn(
         `updateReceivedUpTo: device not found for user=${userId} token=${deviceToken?.slice(0, 8) ?? 'undefined'}...`,
@@ -120,13 +124,18 @@ export class NotificationsService {
       .set({ receivedAt: now })
       .where('"userId" = :userId', { userId })
       .andWhere('"userDeviceId" = :userDeviceId', { userDeviceId: deviceId })
-      .andWhere('( "createdAt" <= :createdAt OR "id" = :targetId )', { createdAt: target.createdAt, targetId: target.id })
+      .andWhere('( "createdAt" <= :createdAt OR "id" = :targetId )', {
+        createdAt: target.createdAt,
+        targetId: target.id,
+      })
       .andWhere('"receivedAt" IS NULL');
 
     const result = await qb.execute();
     const updatedCount = result.affected || 0;
     if (updatedCount) {
-      this.logger.debug(`Updated receivedAt for ${updatedCount} notifications on device=${deviceId} (up to ${target.id}) for user ${userId}`);
+      this.logger.debug(
+        `Updated receivedAt for ${updatedCount} notifications on device=${deviceId} (up to ${target.id}) for user ${userId}`,
+      );
     }
 
     return { updatedCount };
@@ -191,7 +200,10 @@ export class NotificationsService {
   /**
    * Find notifications by user device
    */
-  async findByUserDevice(userDeviceId: string, userId: string): Promise<Notification[]> {
+  async findByUserDevice(
+    userDeviceId: string,
+    userId: string,
+  ): Promise<Notification[]> {
     // Verify device ownership
     const device = await this.usersService.findDeviceById(userDeviceId);
     if (!device || device.userId !== userId) {
@@ -240,10 +252,14 @@ export class NotificationsService {
     const services: NotificationServiceInfo[] = [];
 
     // Check if push notification services are properly initialized
-    const pushServicesInitialized = await this.checkPushServicesInitialization();
+    const pushServicesInitialized =
+      await this.checkPushServicesInitialization();
 
     // iOS Platform
-    const apnEnabled = this.configService.get<string>('APN_PUSH_ENABLED', 'true');
+    const apnEnabled = this.configService.get<string>(
+      'APN_PUSH_ENABLED',
+      'true',
+    );
     if (apnEnabled === 'true' && pushServicesInitialized) {
       services.push({
         devicePlatform: DevicePlatform.IOS,
@@ -257,7 +273,10 @@ export class NotificationsService {
     }
 
     // Android Platform
-    const firebaseEnabled = this.configService.get<string>('FIREBASE_PUSH_ENABLED', 'true');
+    const firebaseEnabled = this.configService.get<string>(
+      'FIREBASE_PUSH_ENABLED',
+      'true',
+    );
     if (firebaseEnabled === 'true' && pushServicesInitialized) {
       services.push({
         devicePlatform: DevicePlatform.ANDROID,
@@ -271,7 +290,10 @@ export class NotificationsService {
     }
 
     // Web Platform
-    const webPushEnabled = this.configService.get<string>('WEB_PUSH_ENABLED', 'true');
+    const webPushEnabled = this.configService.get<string>(
+      'WEB_PUSH_ENABLED',
+      'true',
+    );
     if (webPushEnabled === 'true' && pushServicesInitialized) {
       services.push({
         devicePlatform: DevicePlatform.WEB,
@@ -293,24 +315,45 @@ export class NotificationsService {
   private async checkPushServicesInitialization(): Promise<boolean> {
     try {
       // Check if services are enabled via environment variables
-      const firebaseEnabled = this.configService.get<boolean>('FIREBASE_PUSH_ENABLED', true);
-      const apnEnabled = this.configService.get<boolean>('APN_PUSH_ENABLED', true);
-      const webPushEnabled = this.configService.get<boolean>('WEB_PUSH_ENABLED', true);
+      const firebaseEnabled = this.configService.get<boolean>(
+        'FIREBASE_PUSH_ENABLED',
+        true,
+      );
+      const apnEnabled = this.configService.get<boolean>(
+        'APN_PUSH_ENABLED',
+        true,
+      );
+      const webPushEnabled = this.configService.get<boolean>(
+        'WEB_PUSH_ENABLED',
+        true,
+      );
 
       // Check iOS push service initialization (only if APN is enabled)
-      if (apnEnabled && this.iosPushService && (this.iosPushService as any).provider) {
+      if (
+        apnEnabled &&
+        this.iosPushService &&
+        (this.iosPushService as any).provider
+      ) {
         // iOS service is initialized if provider exists
         return true;
       }
 
       // Check Firebase push service initialization (only if Firebase is enabled)
-      if (firebaseEnabled && this.firebasePushService && (this.firebasePushService as any).app) {
+      if (
+        firebaseEnabled &&
+        this.firebasePushService &&
+        (this.firebasePushService as any).app
+      ) {
         // Firebase service is initialized if app exists
         return true;
       }
 
       // Check Web push service initialization (only if Web Push is enabled)
-      if (webPushEnabled && this.webPushService && (this.webPushService as any).configured) {
+      if (
+        webPushEnabled &&
+        this.webPushService &&
+        (this.webPushService as any).configured
+      ) {
         // Web push service is initialized if configured is true
         return true;
       }

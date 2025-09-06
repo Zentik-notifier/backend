@@ -14,9 +14,18 @@ export function generateAutomaticActions(
   const actions: NotificationAction[] = [];
   const locale = (message.locale || 'en-EN') as Locale;
 
-  const deleteAction = localeService.getTranslatedText(locale, 'notifications.actions.delete');
-  const markAsRead = localeService.getTranslatedText(locale, 'notifications.actions.markAsRead');
-  const open = localeService.getTranslatedText(locale, 'notifications.actions.open');
+  const deleteAction = localeService.getTranslatedText(
+    locale,
+    'notifications.actions.delete',
+  );
+  const markAsRead = localeService.getTranslatedText(
+    locale,
+    'notifications.actions.markAsRead',
+  );
+  const open = localeService.getTranslatedText(
+    locale,
+    'notifications.actions.open',
+  );
 
   const icons = {
     [DevicePlatform.IOS]: {
@@ -73,7 +82,11 @@ export function generateAutomaticActions(
 
   if (message.snoozes && message.snoozes.length > 0) {
     message.snoozes.forEach((snoozeMinutes) => {
-      const snooze = localeService.getTranslatedText(locale, 'notifications.actions.snooze', { minutes: String(snoozeMinutes) });
+      const snooze = localeService.getTranslatedText(
+        locale,
+        'notifications.actions.snooze',
+        { minutes: String(snoozeMinutes) },
+      );
 
       actions.push({
         type: NotificationActionType.SNOOZE,

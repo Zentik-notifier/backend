@@ -114,9 +114,7 @@ export class EntityPermissionService {
 
     // Prevent self-sharing
     if (user.id === granterUserId) {
-      throw new ForbiddenException(
-        'You cannot share a resource with yourself',
-      );
+      throw new ForbiddenException('You cannot share a resource with yourself');
     }
 
     const granter = await this.userRepository.findOne({
@@ -142,17 +140,23 @@ export class EntityPermissionService {
       if (expiresAt !== undefined) {
         permission.expiresAt = expiresAt;
       }
-      const savedPermission = await this.entityPermissionRepository.save(permission);
-      
+      const savedPermission =
+        await this.entityPermissionRepository.save(permission);
+
       // Track bucket sharing event if it's a bucket resource
       if (resourceType === ResourceType.BUCKET) {
         try {
-          await this.eventTrackingService.trackBucketSharing(granterUserId, resourceId);
+          await this.eventTrackingService.trackBucketSharing(
+            granterUserId,
+            resourceId,
+          );
         } catch (trackingError) {
-          this.logger.warn(`Failed to track bucket sharing event: ${trackingError.message}`);
+          this.logger.warn(
+            `Failed to track bucket sharing event: ${trackingError.message}`,
+          );
         }
       }
-      
+
       return savedPermission;
     } else {
       // Create new permission
@@ -164,17 +168,23 @@ export class EntityPermissionService {
         permissions,
         expiresAt,
       });
-      const savedPermission = await this.entityPermissionRepository.save(permission);
-      
+      const savedPermission =
+        await this.entityPermissionRepository.save(permission);
+
       // Track bucket sharing event if it's a bucket resource
       if (resourceType === ResourceType.BUCKET) {
         try {
-          await this.eventTrackingService.trackBucketSharing(granterUserId, resourceId);
+          await this.eventTrackingService.trackBucketSharing(
+            granterUserId,
+            resourceId,
+          );
         } catch (trackingError) {
-          this.logger.warn(`Failed to track bucket sharing event: ${trackingError.message}`);
+          this.logger.warn(
+            `Failed to track bucket sharing event: ${trackingError.message}`,
+          );
         }
       }
-      
+
       return savedPermission;
     }
   }
@@ -215,12 +225,17 @@ export class EntityPermissionService {
       // Track bucket unsharing event if it's a bucket resource
       if (resourceType === ResourceType.BUCKET) {
         try {
-          await this.eventTrackingService.trackBucketUnsharing(revokerUserId, resourceId);
+          await this.eventTrackingService.trackBucketUnsharing(
+            revokerUserId,
+            resourceId,
+          );
         } catch (trackingError) {
-          this.logger.warn(`Failed to track bucket unsharing event: ${trackingError.message}`);
+          this.logger.warn(
+            `Failed to track bucket unsharing event: ${trackingError.message}`,
+          );
         }
       }
-      
+
       await this.entityPermissionRepository.remove(permission);
     }
   }

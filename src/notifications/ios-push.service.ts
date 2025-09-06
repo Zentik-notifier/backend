@@ -27,9 +27,7 @@ export class IOSPushService {
   private readonly logger = new Logger(IOSPushService.name);
   private provider: apn.Provider | null = null;
 
-  constructor(
-    private localeService: LocaleService,
-  ) {
+  constructor(private localeService: LocaleService) {
     this.initializeProvider();
   }
 
@@ -57,9 +55,9 @@ export class IOSPushService {
       'mutable-content': 1,
       'content-available': 1,
     };
-    apsPayload['thread-id'] = !message.collapseId ?
-      message.groupId || notification.message.bucketId :
-      undefined;
+    apsPayload['thread-id'] = !message.collapseId
+      ? message.groupId || notification.message.bucketId
+      : undefined;
 
     // Add collapse ID if present
     if (message.collapseId) {
@@ -131,7 +129,9 @@ export class IOSPushService {
         tapAction: message.tapAction,
       };
 
-      this.logger.log(`🔍 iOS: Building encrypted payload with tapAction: ${message.tapAction ? JSON.stringify(message.tapAction) : 'NULL'}`);
+      this.logger.log(
+        `🔍 iOS: Building encrypted payload with tapAction: ${message.tapAction ? JSON.stringify(message.tapAction) : 'NULL'}`,
+      );
 
       const enc = await encryptWithPublicKey(
         JSON.stringify(sensitive),
@@ -165,15 +165,25 @@ export class IOSPushService {
       // Enhanced logging for diagnostics
       this.logger.log(`=== APNs Configuration Diagnostics ===`);
       this.logger.log(`Environment: ${process.env.NODE_ENV || 'undefined'}`);
-      this.logger.log(`APN_PRODUCTION: ${process.env.APN_PRODUCTION} (parsed as: ${isProduction})`);
-      this.logger.log(`APN_KEY_ID: ${keyId ? `${keyId.substring(0, 4)}...` : 'undefined'}`);
-      this.logger.log(`APN_TEAM_ID: ${teamId ? `${teamId.substring(0, 4)}...` : 'undefined'}`);
+      this.logger.log(
+        `APN_PRODUCTION: ${process.env.APN_PRODUCTION} (parsed as: ${isProduction})`,
+      );
+      this.logger.log(
+        `APN_KEY_ID: ${keyId ? `${keyId.substring(0, 4)}...` : 'undefined'}`,
+      );
+      this.logger.log(
+        `APN_TEAM_ID: ${teamId ? `${teamId.substring(0, 4)}...` : 'undefined'}`,
+      );
       this.logger.log(`APN_BUNDLE_ID: ${bundleId || 'undefined'}`);
       this.logger.log(`APN_PRIVATE_KEY_PATH: ${keyPath || 'undefined'}`);
 
       if (!keyId || !teamId || !keyPath) {
-        this.logger.warn('APNs configured in mock mode for development - missing required config');
-        this.logger.warn(`Missing: ${!keyId ? 'APN_KEY_ID ' : ''}${!teamId ? 'APN_TEAM_ID ' : ''}${!keyPath ? 'APN_PRIVATE_KEY_PATH' : ''}`);
+        this.logger.warn(
+          'APNs configured in mock mode for development - missing required config',
+        );
+        this.logger.warn(
+          `Missing: ${!keyId ? 'APN_KEY_ID ' : ''}${!teamId ? 'APN_TEAM_ID ' : ''}${!keyPath ? 'APN_PRIVATE_KEY_PATH' : ''}`,
+        );
         return;
       }
 
@@ -200,12 +210,18 @@ export class IOSPushService {
       try {
         const keyContent = fs.readFileSync(keyPath, 'utf8');
         if (!keyContent.includes('-----BEGIN PRIVATE KEY-----')) {
-          this.logger.error('Invalid APN private key format - missing BEGIN PRIVATE KEY header');
+          this.logger.error(
+            'Invalid APN private key format - missing BEGIN PRIVATE KEY header',
+          );
           return;
         }
-        this.logger.log(`APNs private key file loaded successfully (${keyContent.length} bytes)`);
+        this.logger.log(
+          `APNs private key file loaded successfully (${keyContent.length} bytes)`,
+        );
       } catch (keyError) {
-        this.logger.error(`Error reading APN private key file: ${keyError.message}`);
+        this.logger.error(
+          `Error reading APN private key file: ${keyError.message}`,
+        );
         return;
       }
 
@@ -218,16 +234,23 @@ export class IOSPushService {
         production: isProduction,
       };
 
-      this.logger.log(`Initializing APNs provider for ${isProduction ? 'PRODUCTION' : 'SANDBOX'} environment`);
+      this.logger.log(
+        `Initializing APNs provider for ${isProduction ? 'PRODUCTION' : 'SANDBOX'} environment`,
+      );
 
       this.provider = new apn.Provider(options);
-      this.logger.log(`✅ APNs provider initialized successfully for ${isProduction ? 'PRODUCTION' : 'SANDBOX'}`);
+      this.logger.log(
+        `✅ APNs provider initialized successfully for ${isProduction ? 'PRODUCTION' : 'SANDBOX'}`,
+      );
     } catch (error) {
       this.logger.error('❌ Failed to initialize APNs provider:', error);
-      this.logger.error('Error details:', JSON.stringify({
-        message: error.message,
-        stack: error.stack,
-      }));
+      this.logger.error(
+        'Error details:',
+        JSON.stringify({
+          message: error.message,
+          stack: error.stack,
+        }),
+      );
     }
   }
 
@@ -293,21 +316,37 @@ export class IOSPushService {
           if (result.failed && result.failed.length > 0) {
             // Enhanced error logging for APN issues
             result.failed.forEach((failedResult) => {
-              this.logger.error(`❌ APN Error for token ${token.substring(0, 8)}...:`);
+              this.logger.error(
+                `❌ APN Error for token ${token.substring(0, 8)}...:`,
+              );
               this.logger.error(`  Status: ${failedResult.status}`);
-              this.logger.error(`  Response: ${JSON.stringify(failedResult.response)}`);
+              this.logger.error(
+                `  Response: ${JSON.stringify(failedResult.response)}`,
+              );
 
               // Special handling for BadEnvironmentKeyInToken
               if (failedResult.status === 'BadEnvironmentKeyInToken') {
-                this.logger.error(`🔥 CRITICAL: BadEnvironmentKeyInToken detected!`);
-                this.logger.error(`  This means the APN environment configuration is wrong.`);
-                this.logger.error(`  Current config: APN_PRODUCTION=${process.env.APN_PRODUCTION} (${process.env.APN_PRODUCTION === 'true' ? 'PRODUCTION' : 'SANDBOX'})`);
-                this.logger.error(`  Your p8 key might be configured for a different environment.`);
-                this.logger.error(`  If your app is in production, ensure APN_PRODUCTION=true and your p8 key is for production.`);
+                this.logger.error(
+                  `🔥 CRITICAL: BadEnvironmentKeyInToken detected!`,
+                );
+                this.logger.error(
+                  `  This means the APN environment configuration is wrong.`,
+                );
+                this.logger.error(
+                  `  Current config: APN_PRODUCTION=${process.env.APN_PRODUCTION} (${process.env.APN_PRODUCTION === 'true' ? 'PRODUCTION' : 'SANDBOX'})`,
+                );
+                this.logger.error(
+                  `  Your p8 key might be configured for a different environment.`,
+                );
+                this.logger.error(
+                  `  If your app is in production, ensure APN_PRODUCTION=true and your p8 key is for production.`,
+                );
               }
             });
           } else {
-            this.logger.log(`✅ Successfully sent notification to ${token.substring(0, 8)}...`);
+            this.logger.log(
+              `✅ Successfully sent notification to ${token.substring(0, 8)}...`,
+            );
           }
         } catch (error: any) {
           this.logger.error(`Error sending notification to ${token}:`, error);

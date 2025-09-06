@@ -29,7 +29,9 @@ describe('AttachmentsDisabledGuard', () => {
     }).compile();
 
     guard = module.get<AttachmentsDisabledGuard>(AttachmentsDisabledGuard);
-    attachmentsConfigService = module.get<AttachmentsConfigService>(AttachmentsConfigService);
+    attachmentsConfigService = module.get<AttachmentsConfigService>(
+      AttachmentsConfigService,
+    );
   });
 
   it('should be defined', () => {
@@ -41,7 +43,7 @@ describe('AttachmentsDisabledGuard', () => {
       get: jest.fn().mockReturnValue(false),
       configurable: true,
     });
-    
+
     const result = guard.canActivate(mockExecutionContext);
     expect(result).toBe(true);
   });
@@ -51,8 +53,12 @@ describe('AttachmentsDisabledGuard', () => {
       get: jest.fn().mockReturnValue(true),
       configurable: true,
     });
-    
-    expect(() => guard.canActivate(mockExecutionContext)).toThrow(ForbiddenException);
-    expect(() => guard.canActivate(mockExecutionContext)).toThrow('Attachments are currently disabled');
+
+    expect(() => guard.canActivate(mockExecutionContext)).toThrow(
+      ForbiddenException,
+    );
+    expect(() => guard.canActivate(mockExecutionContext)).toThrow(
+      'Attachments are currently disabled',
+    );
   });
 });

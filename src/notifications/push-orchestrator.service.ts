@@ -115,7 +115,11 @@ export class PushNotificationOrchestratorService {
   /**
    * Create notifications for all authorized users and send push notifications
    */
-  async create(message: Message, requesterId: string, userIds?: string[]): Promise<Notification[]> {
+  async create(
+    message: Message,
+    requesterId: string,
+    userIds?: string[],
+  ): Promise<Notification[]> {
     // Get authorized users for the bucket
     let authorizedUsers =
       await this.entityPermissionService.getBucketAuthorizedUserIds(
@@ -124,8 +128,12 @@ export class PushNotificationOrchestratorService {
 
     // Filter by specific userIds if provided
     if (userIds && userIds.length > 0) {
-      authorizedUsers = authorizedUsers.filter(userId => userIds.includes(userId));
-      this.logger.log(`Filtered to ${authorizedUsers.length} users from provided userIds: ${userIds.join(', ')}`);
+      authorizedUsers = authorizedUsers.filter((userId) =>
+        userIds.includes(userId),
+      );
+      this.logger.log(
+        `Filtered to ${authorizedUsers.length} users from provided userIds: ${userIds.join(', ')}`,
+      );
     }
 
     if (authorizedUsers.length === 0) {

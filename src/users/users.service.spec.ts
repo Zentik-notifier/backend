@@ -9,9 +9,10 @@ import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 import {
-  DevicePlatform, RegisterDeviceDto,
+  DevicePlatform,
+  RegisterDeviceDto,
   UpdateDeviceTokenDto,
-  UpdateUserDeviceDto
+  UpdateUserDeviceDto,
 } from './dto';
 import { UsersService } from './users.service';
 import { UserRole } from './users.types';
@@ -394,7 +395,9 @@ describe('UsersService', () => {
         where: { id: 'device-1', user: { id: 'user-1' } },
       });
       expect(userDevicesRepository.remove).toHaveBeenCalledWith(mockUserDevice);
-      expect(mockEventTrackingService.trackDeviceUnregister).toHaveBeenCalledWith('user-1', 'device-1');
+      expect(
+        mockEventTrackingService.trackDeviceUnregister,
+      ).toHaveBeenCalledWith('user-1', 'device-1');
     });
 
     it('should throw NotFoundException when device not found', async () => {
@@ -411,9 +414,9 @@ describe('UsersService', () => {
         .spyOn(userDevicesRepository, 'findOne')
         .mockResolvedValue(deviceNotOwned as UserDevice);
 
-      await expect(
-        service.removeDevice('user-1', 'device-1'),
-      ).rejects.toThrow('Access denied: device not owned by user');
+      await expect(service.removeDevice('user-1', 'device-1')).rejects.toThrow(
+        'Access denied: device not owned by user',
+      );
     });
   });
 
@@ -533,7 +536,9 @@ describe('UsersService', () => {
       expect(bucketsRepository.delete).toHaveBeenCalledWith({
         user: { id: 'user-1' },
       });
-      expect(mockSystemAccessTokensRepository.delete).toHaveBeenCalledWith({ requesterId: 'user-1' });
+      expect(mockSystemAccessTokensRepository.delete).toHaveBeenCalledWith({
+        requesterId: 'user-1',
+      });
     });
 
     it('should throw NotFoundException when user not found', async () => {

@@ -271,11 +271,13 @@ describe('BucketsService', () => {
 
     it('should throw ForbiddenException when updating protected bucket without owner permissions', async () => {
       const protectedBucket = { ...mockBucket, isProtected: true };
-      jest.spyOn(bucketsRepository, 'findOne').mockResolvedValue(protectedBucket as Bucket);
+      jest
+        .spyOn(bucketsRepository, 'findOne')
+        .mockResolvedValue(protectedBucket as Bucket);
 
-      await expect(service.update('bucket-1', 'user-2', mockUpdateBucketDto)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.update('bucket-1', 'user-2', mockUpdateBucketDto),
+      ).rejects.toThrow(ForbiddenException);
       expect(bucketsRepository.save).not.toHaveBeenCalled();
     });
   });
@@ -338,7 +340,9 @@ describe('BucketsService', () => {
 
     it('should throw ForbiddenException if bucket is protected', async () => {
       const protectedBucket = { ...mockBucket, isProtected: true };
-      jest.spyOn(bucketsRepository, 'findOne').mockResolvedValue(protectedBucket as Bucket);
+      jest
+        .spyOn(bucketsRepository, 'findOne')
+        .mockResolvedValue(protectedBucket as Bucket);
 
       await expect(service.remove('bucket-1', 'user-1')).rejects.toThrow(
         ForbiddenException,
@@ -468,5 +472,4 @@ describe('BucketsService', () => {
       expect(service.findOne).toHaveBeenCalledWith('bucket-1', 'user-1');
     });
   });
-
 });

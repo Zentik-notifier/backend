@@ -264,9 +264,7 @@ describe('AccessTokenService', () => {
     });
 
     it('should throw NotFoundException when token not found or does not belong to user', async () => {
-      jest
-        .spyOn(accessTokenRepository, 'findOne')
-        .mockResolvedValue(null);
+      jest.spyOn(accessTokenRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
         service.revokeAccessToken('user-1', 'nonexistent-token'),
@@ -280,9 +278,7 @@ describe('AccessTokenService', () => {
 
   describe('revokeAllAccessTokens', () => {
     it('should revoke all access tokens successfully', async () => {
-      jest
-        .spyOn(accessTokenRepository, 'count')
-        .mockResolvedValue(3);
+      jest.spyOn(accessTokenRepository, 'count').mockResolvedValue(3);
       jest
         .spyOn(accessTokenRepository, 'delete')
         .mockResolvedValue({ affected: 3 } as any);
@@ -299,9 +295,7 @@ describe('AccessTokenService', () => {
     });
 
     it('should return false when user has no tokens to revoke', async () => {
-      jest
-        .spyOn(accessTokenRepository, 'count')
-        .mockResolvedValue(0);
+      jest.spyOn(accessTokenRepository, 'count').mockResolvedValue(0);
 
       const result = await service.revokeAllAccessTokens('user-1');
 

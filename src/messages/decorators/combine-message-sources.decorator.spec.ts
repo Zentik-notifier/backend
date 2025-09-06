@@ -1,13 +1,17 @@
-
 describe('CombineMessageSources Decorator Logic', () => {
   // Testa la logica interna del decoratore direttamente
-  const combineMessageSources = (body: any = {}, query: any = {}, params: any = {}, headers: any = {}) => {
+  const combineMessageSources = (
+    body: any = {},
+    query: any = {},
+    params: any = {},
+    headers: any = {},
+  ) => {
     // Start with body data as base
     const messageData: any = { ...body };
 
     // Override with query parameters (query takes precedence over body)
     if (query) {
-      Object.keys(query).forEach(key => {
+      Object.keys(query).forEach((key) => {
         if (query[key] !== undefined && query[key] !== null) {
           messageData[key] = query[key];
         }
@@ -16,7 +20,7 @@ describe('CombineMessageSources Decorator Logic', () => {
 
     // Override with path parameters (params take precedence over query and body)
     if (params) {
-      Object.keys(params).forEach(key => {
+      Object.keys(params).forEach((key) => {
         if (params[key] !== undefined && params[key] !== null) {
           messageData[key] = params[key];
         }
@@ -26,8 +30,12 @@ describe('CombineMessageSources Decorator Logic', () => {
     // Override with header values (headers take highest precedence)
     // Only process headers that start with 'x-message-'
     if (headers) {
-      Object.keys(headers).forEach(key => {
-        if (key.startsWith('x-message-') && headers[key] !== undefined && headers[key] !== null) {
+      Object.keys(headers).forEach((key) => {
+        if (
+          key.startsWith('x-message-') &&
+          headers[key] !== undefined &&
+          headers[key] !== null
+        ) {
           // Remove 'x-message-' prefix and convert to camelCase
           const cleanKey = key.replace('x-message-', '');
           messageData[cleanKey] = headers[key];
@@ -37,10 +45,16 @@ describe('CombineMessageSources Decorator Logic', () => {
 
     // Handle special transformations for specific fields
     if (messageData.snoozes && typeof messageData.snoozes === 'string') {
-      messageData.snoozes = messageData.snoozes.split(',').map(v => parseInt(v.trim(), 10)).filter(v => !isNaN(v));
+      messageData.snoozes = messageData.snoozes
+        .split(',')
+        .map((v) => parseInt(v.trim(), 10))
+        .filter((v) => !isNaN(v));
     }
 
-    if (messageData.attachments && typeof messageData.attachments === 'string') {
+    if (
+      messageData.attachments &&
+      typeof messageData.attachments === 'string'
+    ) {
       try {
         messageData.attachments = JSON.parse(messageData.attachments);
       } catch (e) {
@@ -67,13 +81,13 @@ describe('CombineMessageSources Decorator Logic', () => {
     // Handle boolean transformations
     const booleanFields = [
       'addMarkAsReadAction',
-      'addOpenNotificationAction', 
+      'addOpenNotificationAction',
       'addDeleteAction',
       'saveOnServer',
-      'destructive'
+      'destructive',
     ];
 
-    booleanFields.forEach(field => {
+    booleanFields.forEach((field) => {
       if (messageData[field] !== undefined && messageData[field] !== null) {
         if (typeof messageData[field] === 'string') {
           messageData[field] = messageData[field].toLowerCase() === 'true';
@@ -88,14 +102,17 @@ describe('CombineMessageSources Decorator Logic', () => {
     it('should prioritize headers over query params, query over body', () => {
       const body = { title: 'Body Title', subtitle: 'Body Subtitle' };
       const query = { subtitle: 'Query Subtitle', sound: 'query-sound.wav' };
-      const headers = { 'x-message-subtitle': 'Header Subtitle', 'x-message-sound': 'header-sound.wav' };
+      const headers = {
+        'x-message-subtitle': 'Header Subtitle',
+        'x-message-sound': 'header-sound.wav',
+      };
       const params = {};
 
       const result = combineMessageSources(body, query, params, headers);
 
       expect(result.title).toBe('Body Title');
       expect(result.subtitle).toBe('Header Subtitle'); // Header dovrebbe sovrascrivere query
-      expect(result.sound).toBe('header-sound.wav');   // Header dovrebbe sovrascrivere query
+      expect(result.sound).toBe('header-sound.wav'); // Header dovrebbe sovrascrivere query
     });
 
     it('should prioritize query params over body', () => {
@@ -108,7 +125,7 @@ describe('CombineMessageSources Decorator Logic', () => {
 
       expect(result.title).toBe('Body Title');
       expect(result.subtitle).toBe('Query Subtitle'); // Query dovrebbe sovrascrivere body
-      expect(result.sound).toBe('query-sound.wav');   // Query dovrebbe sovrascrivere body
+      expect(result.sound).toBe('query-sound.wav'); // Query dovrebbe sovrascrivere body
     });
 
     it('should use body as base when no other sources provided', () => {
@@ -132,7 +149,7 @@ describe('CombineMessageSources Decorator Logic', () => {
       const headers = {
         'x-message-subtitle': 'Header Subtitle',
         'x-message-sound': 'header-sound.wav',
-        'authorization': 'Bearer token',
+        authorization: 'Bearer token',
         'content-type': 'application/json',
         'x-other-header': 'Other Value',
       };
@@ -249,7 +266,13 @@ describe('CombineMessageSources Decorator Logic', () => {
       const body = { title: 'Body Title' };
       const query = {
         actions: JSON.stringify([
-          { type: 'NAVIGATE', value: 'https://example.com', destructive: 'false', icon: 'link', title: 'Open Link' },
+          {
+            type: 'NAVIGATE',
+            value: 'https://example.com',
+            destructive: 'false',
+            icon: 'link',
+            title: 'Open Link',
+          },
         ]),
       };
       const params = {};
@@ -258,7 +281,13 @@ describe('CombineMessageSources Decorator Logic', () => {
       const result = combineMessageSources(body, query, params, headers);
 
       expect(result.actions).toEqual([
-        { type: 'NAVIGATE', value: 'https://example.com', destructive: 'false', icon: 'link', title: 'Open Link' },
+        {
+          type: 'NAVIGATE',
+          value: 'https://example.com',
+          destructive: 'false',
+          icon: 'link',
+          title: 'Open Link',
+        },
       ]);
     });
 
@@ -434,7 +463,13 @@ describe('CombineMessageSources Decorator Logic', () => {
         'x-message-locale': 'en-US',
         'x-message-addMarkAsReadAction': 'true',
         'x-message-actions': JSON.stringify([
-          { type: 'NAVIGATE', value: 'https://example.com', destructive: 'false', icon: 'link', title: 'Open Link' },
+          {
+            type: 'NAVIGATE',
+            value: 'https://example.com',
+            destructive: 'false',
+            icon: 'link',
+            title: 'Open Link',
+          },
         ]),
         'x-message-tapAction': JSON.stringify({
           type: 'OPEN_NOTIFICATION',
@@ -461,7 +496,13 @@ describe('CombineMessageSources Decorator Logic', () => {
       expect(result.locale).toBe('en-US');
       expect(result.addMarkAsReadAction).toBe(true);
       expect(result.actions).toEqual([
-        { type: 'NAVIGATE', value: 'https://example.com', destructive: 'false', icon: 'link', title: 'Open Link' },
+        {
+          type: 'NAVIGATE',
+          value: 'https://example.com',
+          destructive: 'false',
+          icon: 'link',
+          title: 'Open Link',
+        },
       ]);
       expect(result.tapAction).toEqual({
         type: 'OPEN_NOTIFICATION',
@@ -473,18 +514,29 @@ describe('CombineMessageSources Decorator Logic', () => {
     });
 
     it('should handle data override scenarios correctly', () => {
-      const body = { title: 'Body Title', subtitle: 'Body Subtitle', sound: 'body-sound.wav' };
-      const query = { subtitle: 'Query Subtitle', sound: 'query-sound.wav', locale: 'en-US' };
+      const body = {
+        title: 'Body Title',
+        subtitle: 'Body Subtitle',
+        sound: 'body-sound.wav',
+      };
+      const query = {
+        subtitle: 'Query Subtitle',
+        sound: 'query-sound.wav',
+        locale: 'en-US',
+      };
       const params = {};
-      const headers = { 'x-message-subtitle': 'Header Subtitle', 'x-message-locale': 'it-IT' };
+      const headers = {
+        'x-message-subtitle': 'Header Subtitle',
+        'x-message-locale': 'it-IT',
+      };
 
       const result = combineMessageSources(body, query, params, headers);
 
       // Verifica la precedenza: headers > query > body
-      expect(result.title).toBe('Body Title');           // Solo in body
-      expect(result.subtitle).toBe('Header Subtitle');   // Header sovrascrive query
-      expect(result.sound).toBe('query-sound.wav');      // Query sovrascrive body
-      expect(result.locale).toBe('it-IT');               // Header sovrascrive query
+      expect(result.title).toBe('Body Title'); // Solo in body
+      expect(result.subtitle).toBe('Header Subtitle'); // Header sovrascrive query
+      expect(result.sound).toBe('query-sound.wav'); // Query sovrascrive body
+      expect(result.locale).toBe('it-IT'); // Header sovrascrive query
     });
   });
 });

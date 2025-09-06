@@ -12,7 +12,13 @@ import { UsersService } from './users.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserDevice, Bucket, Notification, SystemAccessToken]),
+    TypeOrmModule.forFeature([
+      User,
+      UserDevice,
+      Bucket,
+      Notification,
+      SystemAccessToken,
+    ]),
     AuthModule,
     EventsModule,
   ],

@@ -44,7 +44,10 @@ export class AttachmentsController {
     type: Attachment,
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Attachments are currently disabled' })
+  @ApiResponse({
+    status: 403,
+    description: 'Attachments are currently disabled',
+  })
   uploadAttachment(
     @GetUser('id') userId: string,
     @Body() uploadAttachmentDto: UploadAttachmentDto,

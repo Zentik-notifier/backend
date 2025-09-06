@@ -15,8 +15,10 @@ export class AttachmentsCleanupScheduler implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    const cleanupJobsEnabled = this.configService.get<string>('ATTACHMENTS_DELETE_JOB_ENABLED') !== 'false';
-    
+    const cleanupJobsEnabled =
+      this.configService.get<string>('ATTACHMENTS_DELETE_JOB_ENABLED') !==
+      'false';
+
     if (!cleanupJobsEnabled) {
       this.logger.log('Attachments cleanup cron disabled');
       return;

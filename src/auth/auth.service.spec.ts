@@ -1,7 +1,7 @@
 import {
-    BadRequestException,
-    ConflictException,
-    UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -16,11 +16,11 @@ import { EventTrackingService } from '../events/event-tracking.service';
 import { UserRole } from '../users/users.types';
 import { AuthService } from './auth.service';
 import {
-    ChangePasswordDto,
-    LoginDto,
-    RegisterDto,
-    SetPasswordDto,
-    UpdateProfileDto,
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  SetPasswordDto,
+  UpdateProfileDto,
 } from './dto';
 import { EmailService } from './email.service';
 import { SessionService } from './session.service';
@@ -170,40 +170,46 @@ describe('AuthService', () => {
     configService = module.get<ConfigService>(ConfigService);
 
     jest.clearAllMocks();
-    
+
     // bcrypt and uuid mocks will be configured per test
-    
+
     // Configure config service mock
-    mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-      const config = {
-        'EMAIL_HOST': 'smtp.gmail.com',
-        'EMAIL_PORT': 587,
-        'EMAIL_SECURE': false,
-        'EMAIL_USER': 'test@example.com',
-        'EMAIL_PASS': 'test-password',
-        'EMAIL_FROM': 'noreply@test.com',
-      };
-      return config[key] || defaultValue;
-    });
-    
+    mockConfigService.get.mockImplementation(
+      (key: string, defaultValue?: any) => {
+        const config = {
+          EMAIL_HOST: 'smtp.gmail.com',
+          EMAIL_PORT: 587,
+          EMAIL_SECURE: false,
+          EMAIL_USER: 'test@example.com',
+          EMAIL_PASS: 'test-password',
+          EMAIL_FROM: 'noreply@test.com',
+        };
+        return config[key] || defaultValue;
+      },
+    );
+
     // Configure locale service mock
-    mockLocaleService.getTranslatedText.mockImplementation((locale: string, key: string) => {
-      return key; // Return the key as-is for testing
-    });
-    
+    mockLocaleService.getTranslatedText.mockImplementation(
+      (locale: string, key: string) => {
+        return key; // Return the key as-is for testing
+      },
+    );
+
     // Configure email service mock
     mockEmailService.sendEmail.mockResolvedValue(true);
     mockEmailService.sendWelcomeEmail.mockResolvedValue(true);
     mockEmailService.sendPasswordResetEmail.mockResolvedValue(true);
-    
+
     // Configure JWT service mock
     mockJwtService.sign.mockReturnValue('mock-jwt-token');
     mockJwtService.signAsync.mockResolvedValue('mock-jwt-token');
-    
+
     // Configure session service mock
-    mockSessionService.createSession.mockResolvedValue(mockUserSession as UserSession);
+    mockSessionService.createSession.mockResolvedValue(
+      mockUserSession as UserSession,
+    );
     mockSessionService.validateSession.mockResolvedValue(true);
-    
+
     // Repository mocks will be configured per test
   });
 

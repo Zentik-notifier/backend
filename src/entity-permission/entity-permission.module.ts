@@ -9,7 +9,12 @@ import { EntityPermissionService } from './entity-permission.service';
 import { EntityPermissionsController } from './entity-permissions.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EntityPermission, User]), AuthModule, UsersModule, EventsModule],
+  imports: [
+    TypeOrmModule.forFeature([EntityPermission, User]),
+    AuthModule,
+    UsersModule,
+    EventsModule,
+  ],
   controllers: [EntityPermissionsController],
   providers: [EntityPermissionService],
   exports: [EntityPermissionService],

@@ -10,7 +10,11 @@ import { UserBucketsResolver } from './user-buckets.resolver';
 import { UserBucketsService } from './user-buckets.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserBucket, User, Bucket]), AuthModule, EventsModule],
+  imports: [
+    TypeOrmModule.forFeature([UserBucket, User, Bucket]),
+    AuthModule,
+    EventsModule,
+  ],
   controllers: [UserBucketsController],
   providers: [UserBucketsService, UserBucketsResolver],
   exports: [UserBucketsService],

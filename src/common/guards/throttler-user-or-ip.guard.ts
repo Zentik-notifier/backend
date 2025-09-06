@@ -2,11 +2,11 @@ import { ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import {
-    ThrottlerGuard,
-    ThrottlerModuleOptions,
-    ThrottlerStorage,
-    getOptionsToken,
-    getStorageToken,
+  ThrottlerGuard,
+  ThrottlerModuleOptions,
+  ThrottlerStorage,
+  getOptionsToken,
+  getStorageToken,
 } from '@nestjs/throttler';
 
 @Injectable()
@@ -27,18 +27,23 @@ export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
 
     // Prefer user id if present (authenticated routes)
     const maybeUser: any = (req as any)?.user;
-    const userId: string | undefined = maybeUser?.id || maybeUser?._id || maybeUser?.userId;
+    const userId: string | undefined =
+      maybeUser?.id || maybeUser?._id || maybeUser?.userId;
     if (userId) {
       return `user:${String(userId)}`;
     }
 
     // Otherwise, fall back to client IP (public routes)
     const trustProxy = this.getBooleanEnv('RATE_LIMIT_TRUST_PROXY', false);
-    const fwdHeader = (this.configService.get<string>('RATE_LIMIT_FORWARD_HEADER') || 'x-forwarded-for').toLowerCase();
+    const fwdHeader = (
+      this.configService.get<string>('RATE_LIMIT_FORWARD_HEADER') ||
+      'x-forwarded-for'
+    ).toLowerCase();
 
     let ip = '';
     if (trustProxy) {
-      const headerVal = (req.headers?.[fwdHeader] || req.headers?.['x-forwarded-for']) as string | string[] | undefined;
+      const headerVal = (req.headers?.[fwdHeader] ||
+        req.headers?.['x-forwarded-for']) as string | string[] | undefined;
       if (Array.isArray(headerVal)) {
         ip = headerVal[0] || '';
       } else if (typeof headerVal === 'string' && headerVal.length > 0) {
@@ -55,7 +60,10 @@ export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
     return `ip:${ip || 'unknown'}`;
   }
 
-  protected getRequestResponse(context: ExecutionContext): { req: Record<string, any>; res: Record<string, any> } {
+  protected getRequestResponse(context: ExecutionContext): {
+    req: Record<string, any>;
+    res: Record<string, any>;
+  } {
     // Use base implementation to extract req/res
     let { req, res } = super.getRequestResponse(context);
 
@@ -66,7 +74,8 @@ export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
     // Normalize a compatible header setter for throttler internals
     if (typeof (res as any).header !== 'function') {
       if (typeof (res as any).setHeader === 'function') {
-        (res as any).header = (name: string, value: any) => (res as any).setHeader(name, value);
+        (res as any).header = (name: string, value: any) =>
+          (res as any).setHeader(name, value);
       } else {
         (res as any).header = () => {};
       }
@@ -85,5 +94,3 @@ export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
     return defaultValue;
   }
 }
-
-

@@ -1,11 +1,5 @@
 import { Injectable, Logger, UseGuards } from '@nestjs/common';
-import {
-  Args,
-  Mutation,
-  Query,
-  Resolver,
-  Subscription
-} from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import { AuthService } from '../../auth/auth.service';
 import { ChangePasswordDto, UpdateProfileDto } from '../../auth/dto';
 import { AdminOnlyGuard } from '../../auth/guards/admin-only.guard';
@@ -51,7 +45,7 @@ export class UsersResolver {
     @CurrentUser('id') userId: string,
     @Args('input') input: UpdateProfileDto,
   ): Promise<Omit<User, 'password'>> {
-    console.log("🔄 Updating profile:", { userId, input });
+    console.log('🔄 Updating profile:', { userId, input });
     const updatedUser = await this.authService.updateProfile(userId, input);
 
     // Publish the user profile updated event

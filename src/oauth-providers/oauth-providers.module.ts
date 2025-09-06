@@ -9,7 +9,11 @@ import { OAuthProvidersResolver } from './oauth-providers.resolver';
 import { OAuthProvidersService } from './oauth-providers.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OAuthProvider]), forwardRef(() => AuthModule), CommonModule],
+  imports: [
+    TypeOrmModule.forFeature([OAuthProvider]),
+    forwardRef(() => AuthModule),
+    CommonModule,
+  ],
   controllers: [OAuthProvidersController],
   providers: [
     OAuthProvidersService,

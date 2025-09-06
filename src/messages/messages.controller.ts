@@ -7,7 +7,7 @@ import {
   Query,
   UploadedFile,
   UseGuards,
-  UseInterceptors
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -31,7 +31,6 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { CombineMessageSources } from './decorators/combine-message-sources.decorator';
 import { MessagesService } from './messages.service';
 
-
 @UseGuards(JwtOrAccessTokenGuard)
 @Controller('messages')
 @ApiTags('Messages')
@@ -48,11 +47,16 @@ export class MessagesController {
       ttl: () => Number(process.env.RATE_LIMIT_MESSAGES_TTL_MS ?? 1000),
     },
   })
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create a message and send notifications',
-    description: 'Supports multiple content types and data sources. Data can be combined from body, query parameters, path parameters, and headers (x-message-*). Headers take highest precedence, followed by path params, query params, and body.'
+    description:
+      'Supports multiple content types and data sources. Data can be combined from body, query parameters, path parameters, and headers (x-message-*). Headers take highest precedence, followed by path params, query params, and body.',
   })
-  @ApiConsumes('application/json', 'application/x-www-form-urlencoded', 'text/plain')
+  @ApiConsumes(
+    'application/json',
+    'application/x-www-form-urlencoded',
+    'text/plain',
+  )
   @ApiBody({
     description: 'Message data (optional when using other sources)',
     type: CreateMessageDto,
@@ -69,10 +73,12 @@ export class MessagesController {
     description: 'Invalid data or missing required fields',
   })
   async create(
-    @GetUser('id') userId: string, 
-    @CombineMessageSources() input: CreateMessageDto
+    @GetUser('id') userId: string,
+    @CombineMessageSources() input: CreateMessageDto,
   ) {
-    this.logger.log(`Creating message for user ${userId} with flexible data sources`);
+    this.logger.log(
+      `Creating message for user ${userId} with flexible data sources`,
+    );
     const result = await this.messagesService.create(input, userId);
     return result;
   }
@@ -98,7 +104,10 @@ export class MessagesController {
     description: 'Message created successfully with attachment',
     type: Message,
   })
-  @ApiResponse({ status: 403, description: 'Attachments are currently disabled' })
+  @ApiResponse({
+    status: 403,
+    description: 'Attachments are currently disabled',
+  })
   async createWithAttachment(
     @GetUser('id') userId: string,
     @UploadedFile() file: Express.Multer.File,
@@ -120,9 +129,10 @@ export class MessagesController {
       ttl: () => Number(process.env.RATE_LIMIT_MESSAGES_TTL_MS ?? 1000),
     },
   })
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Send a message via GET request',
-    description: 'Create and send a message using GET parameters. Requires access token authentication (Bearer zat_...).'
+    description:
+      'Create and send a message using GET parameters. Requires access token authentication (Bearer zat_...).',
   })
   @ApiResponse({
     status: 200,

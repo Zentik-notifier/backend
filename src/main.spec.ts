@@ -1,4 +1,8 @@
-import { BadRequestException, INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ValidationPipe Configuration', () => {

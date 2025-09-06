@@ -74,7 +74,9 @@ describe('DynamicOAuthRegistryService', () => {
       ],
     }).compile();
 
-    service = module.get<DynamicOAuthRegistryService>(DynamicOAuthRegistryService);
+    service = module.get<DynamicOAuthRegistryService>(
+      DynamicOAuthRegistryService,
+    );
     mockOAuthProvidersService = module.get(OAuthProvidersService);
     mockAuthService = module.get(AuthService);
     mockModuleRef = module.get(ModuleRef);
@@ -90,8 +92,12 @@ describe('DynamicOAuthRegistryService', () => {
   describe('updateProvider', () => {
     beforeEach(() => {
       // Mock the private methods by making them accessible
-      jest.spyOn(service as any, 'unregisterProvider').mockResolvedValue(undefined);
-      jest.spyOn(service as any, 'registerProvider').mockResolvedValue(undefined);
+      jest
+        .spyOn(service as any, 'unregisterProvider')
+        .mockResolvedValue(undefined);
+      jest
+        .spyOn(service as any, 'registerProvider')
+        .mockResolvedValue(undefined);
       jest.spyOn(service as any, 'getProviderConfig').mockReturnValue({
         clientId: 'new-client-id',
         clientSecret: 'new-client-secret',
@@ -109,14 +115,16 @@ describe('DynamicOAuthRegistryService', () => {
 
       await service.updateProvider(mockProvider);
 
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith('github');
+      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
+        'github',
+      );
       expect(service['unregisterProvider']).toHaveBeenCalledWith('github');
       expect(service['registerProvider']).not.toHaveBeenCalled();
     });
 
     it('should skip update if configuration has not changed', async () => {
       mockOAuthProvidersService.isProviderEnabled.mockResolvedValue(true);
-      
+
       // Mock current configuration to be the same as new configuration
       const currentConfig = {
         clientId: 'new-client-id',
@@ -131,19 +139,21 @@ describe('DynamicOAuthRegistryService', () => {
 
       // Mock the registeredProviders map to return current config
       (service as any).registeredProviders = new Map([
-        ['github', { config: currentConfig }]
+        ['github', { config: currentConfig }],
       ]);
 
       await service.updateProvider(mockProvider);
 
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith('github');
+      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
+        'github',
+      );
       expect(service['unregisterProvider']).not.toHaveBeenCalled();
       expect(service['registerProvider']).not.toHaveBeenCalled();
     });
 
     it('should update provider if configuration has changed', async () => {
       mockOAuthProvidersService.isProviderEnabled.mockResolvedValue(true);
-      
+
       // Mock current configuration to be different from new configuration
       const currentConfig = {
         clientId: 'old-client-id',
@@ -158,25 +168,29 @@ describe('DynamicOAuthRegistryService', () => {
 
       // Mock the registeredProviders map to return current config
       (service as any).registeredProviders = new Map([
-        ['github', { config: currentConfig }]
+        ['github', { config: currentConfig }],
       ]);
 
       await service.updateProvider(mockProvider);
 
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith('github');
+      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
+        'github',
+      );
       expect(service['unregisterProvider']).toHaveBeenCalledWith('github');
       expect(service['registerProvider']).toHaveBeenCalledWith(mockProvider);
     });
 
     it('should update provider if it is not currently registered', async () => {
       mockOAuthProvidersService.isProviderEnabled.mockResolvedValue(true);
-      
+
       // Mock the registeredProviders map to be empty
       (service as any).registeredProviders = new Map();
 
       await service.updateProvider(mockProvider);
 
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith('github');
+      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
+        'github',
+      );
       expect(service['unregisterProvider']).toHaveBeenCalledWith('github');
       expect(service['registerProvider']).toHaveBeenCalledWith(mockProvider);
     });

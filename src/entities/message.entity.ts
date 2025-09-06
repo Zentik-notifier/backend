@@ -186,17 +186,19 @@ export class Message {
   bucketId: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional group ID for notification grouping, falls back to bucketId if not provided'
+    description:
+      'Optional group ID for notification grouping, falls back to bucketId if not provided',
   })
   @Column({ nullable: true })
   groupId?: string;
 
   @Field({ nullable: true })
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
-    description: 'Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID'
+    description:
+      'Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID',
   })
   @Column({ nullable: true })
   collapseId?: string;

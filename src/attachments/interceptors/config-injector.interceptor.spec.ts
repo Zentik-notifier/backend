@@ -21,8 +21,12 @@ describe('ConfigInjectorInterceptor', () => {
       ],
     }).compile();
 
-    interceptor = module.get<ConfigInjectorInterceptor>(ConfigInjectorInterceptor);
-    attachmentsConfigService = module.get<AttachmentsConfigService>(AttachmentsConfigService);
+    interceptor = module.get<ConfigInjectorInterceptor>(
+      ConfigInjectorInterceptor,
+    );
+    attachmentsConfigService = module.get<AttachmentsConfigService>(
+      AttachmentsConfigService,
+    );
   });
 
   it('should be defined', () => {
@@ -33,7 +37,7 @@ describe('ConfigInjectorInterceptor', () => {
     const mockRequest = {
       body: { test: 'data' },
     };
-    
+
     const mockExecutionContext = {
       switchToHttp: () => ({
         getRequest: () => mockRequest,
@@ -46,7 +50,9 @@ describe('ConfigInjectorInterceptor', () => {
 
     interceptor.intercept(mockExecutionContext, mockCallHandler);
 
-    expect((mockRequest.body as any).attachmentsConfigService).toBe(attachmentsConfigService);
+    expect((mockRequest.body as any).attachmentsConfigService).toBe(
+      attachmentsConfigService,
+    );
   });
 
   it('should handle request without body', () => {

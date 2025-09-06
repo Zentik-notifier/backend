@@ -154,23 +154,21 @@ describe('NotificationsService', () => {
     jest.clearAllMocks();
 
     // Default configuration: all services enabled
-    mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-      switch (key) {
-        case 'FIREBASE_PUSH_ENABLED':
-          return defaultValue !== undefined ? defaultValue : true;
-        case 'APN_PUSH_ENABLED':
-          return defaultValue !== undefined ? defaultValue : true;
-        case 'WEB_PUSH_ENABLED':
-          return defaultValue !== undefined ? defaultValue : true;
-        default:
-          return defaultValue;
-      }
-    });
+    mockConfigService.get.mockImplementation(
+      (key: string, defaultValue?: any) => {
+        switch (key) {
+          case 'FIREBASE_PUSH_ENABLED':
+            return defaultValue !== undefined ? defaultValue : true;
+          case 'APN_PUSH_ENABLED':
+            return defaultValue !== undefined ? defaultValue : true;
+          case 'WEB_PUSH_ENABLED':
+            return defaultValue !== undefined ? defaultValue : true;
+          default:
+            return defaultValue;
+        }
+      },
+    );
   });
-
-
-
-
 
   describe('findByUser', () => {
     it('should return notifications for a specific user', async () => {
@@ -294,7 +292,9 @@ describe('NotificationsService', () => {
   describe('getNotificationServices', () => {
     it('should return notification services for all platforms when push services are initialized', async () => {
       // Mock the checkPushServicesInitialization to return true
-      jest.spyOn(service as any, 'checkPushServicesInitialization').mockResolvedValue(true);
+      jest
+        .spyOn(service as any, 'checkPushServicesInitialization')
+        .mockResolvedValue(true);
 
       const result = await service.getNotificationServices();
 
@@ -313,13 +313,15 @@ describe('NotificationsService', () => {
             devicePlatform: 'WEB',
             service: 'PUSH',
           }),
-        ])
+        ]),
       );
     });
 
     it('should return local notification services when push services are not initialized', async () => {
       // Mock the checkPushServicesInitialization to return false
-      jest.spyOn(service as any, 'checkPushServicesInitialization').mockResolvedValue(false);
+      jest
+        .spyOn(service as any, 'checkPushServicesInitialization')
+        .mockResolvedValue(false);
 
       const result = await service.getNotificationServices();
 
@@ -338,58 +340,70 @@ describe('NotificationsService', () => {
             devicePlatform: 'WEB',
             service: 'LOCAL',
           }),
-        ])
+        ]),
       );
     });
 
     it('should respect environment variable settings for APN', async () => {
       // Mock APN disabled
-      jest.spyOn(configService, 'get').mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'APN_PUSH_ENABLED') return false;
-        if (key === 'FIREBASE_PUSH_ENABLED') return true;
-        if (key === 'WEB_PUSH_ENABLED') return true;
-        return defaultValue;
-      });
+      jest
+        .spyOn(configService, 'get')
+        .mockImplementation((key: string, defaultValue?: any) => {
+          if (key === 'APN_PUSH_ENABLED') return false;
+          if (key === 'FIREBASE_PUSH_ENABLED') return true;
+          if (key === 'WEB_PUSH_ENABLED') return true;
+          return defaultValue;
+        });
 
-      jest.spyOn(service as any, 'checkPushServicesInitialization').mockResolvedValue(true);
+      jest
+        .spyOn(service as any, 'checkPushServicesInitialization')
+        .mockResolvedValue(true);
 
       const result = await service.getNotificationServices();
 
-      const iosService = result.find(s => s.devicePlatform === 'IOS');
+      const iosService = result.find((s) => s.devicePlatform === 'IOS');
       expect(iosService?.service).toBe('LOCAL');
     });
 
     it('should respect environment variable settings for Firebase', async () => {
       // Mock Firebase disabled
-      jest.spyOn(configService, 'get').mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'APN_PUSH_ENABLED') return true;
-        if (key === 'FIREBASE_PUSH_ENABLED') return false;
-        if (key === 'WEB_PUSH_ENABLED') return true;
-        return defaultValue;
-      });
+      jest
+        .spyOn(configService, 'get')
+        .mockImplementation((key: string, defaultValue?: any) => {
+          if (key === 'APN_PUSH_ENABLED') return true;
+          if (key === 'FIREBASE_PUSH_ENABLED') return false;
+          if (key === 'WEB_PUSH_ENABLED') return true;
+          return defaultValue;
+        });
 
-      jest.spyOn(service as any, 'checkPushServicesInitialization').mockResolvedValue(true);
+      jest
+        .spyOn(service as any, 'checkPushServicesInitialization')
+        .mockResolvedValue(true);
 
       const result = await service.getNotificationServices();
 
-      const androidService = result.find(s => s.devicePlatform === 'ANDROID');
+      const androidService = result.find((s) => s.devicePlatform === 'ANDROID');
       expect(androidService?.service).toBe('LOCAL');
     });
 
     it('should respect environment variable settings for Web Push', async () => {
       // Mock Web Push disabled
-      jest.spyOn(configService, 'get').mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'APN_PUSH_ENABLED') return true;
-        if (key === 'FIREBASE_PUSH_ENABLED') return true;
-        if (key === 'WEB_PUSH_ENABLED') return false;
-        return defaultValue;
-      });
+      jest
+        .spyOn(configService, 'get')
+        .mockImplementation((key: string, defaultValue?: any) => {
+          if (key === 'APN_PUSH_ENABLED') return true;
+          if (key === 'FIREBASE_PUSH_ENABLED') return true;
+          if (key === 'WEB_PUSH_ENABLED') return false;
+          return defaultValue;
+        });
 
-      jest.spyOn(service as any, 'checkPushServicesInitialization').mockResolvedValue(true);
+      jest
+        .spyOn(service as any, 'checkPushServicesInitialization')
+        .mockResolvedValue(true);
 
       const result = await service.getNotificationServices();
 
-      const webService = result.find(s => s.devicePlatform === 'WEB');
+      const webService = result.find((s) => s.devicePlatform === 'WEB');
       expect(webService?.service).toBe('LOCAL');
     });
   });

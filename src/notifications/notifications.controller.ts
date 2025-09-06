@@ -9,7 +9,7 @@ import {
   Patch,
   Post,
   SetMetadata,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -144,13 +144,19 @@ export class NotificationsController {
     summary: 'Mark all notifications older than the given one as received',
   })
   async updateReceived(
-    @Body() body: { id: string, deviceToken: string },
+    @Body() body: { id: string; deviceToken: string },
     @GetUser('id') userId: string,
   ) {
     if (!body || !body.id || !body.deviceToken) {
-      throw new BadRequestException(`Missing id or deviceToken in request body`);
+      throw new BadRequestException(
+        `Missing id or deviceToken in request body`,
+      );
     }
-    return this.notificationsService.updateReceivedUpTo(body.id, userId, body.deviceToken);
+    return this.notificationsService.updateReceivedUpTo(
+      body.id,
+      userId,
+      body.deviceToken,
+    );
   }
 
   @Patch(':id/received')
@@ -244,7 +250,8 @@ export class NotificationsController {
   @Get('notification-services')
   @ApiOperation({
     summary: 'Get all available notification services for all platforms',
-    description: 'Returns which notification services are available and enabled for each platform',
+    description:
+      'Returns which notification services are available and enabled for each platform',
   })
   @ApiResponse({
     status: 200,
@@ -270,11 +277,13 @@ export class NotificationsController {
     if (!body || !body.notification || !body.userDevice) {
       throw new BadRequestException('Missing notification or userDevice');
     }
-    
+
     if (sat) {
-      this.logger.log(`Processing external notification request using system access token: ${sat.id}`);
+      this.logger.log(
+        `Processing external notification request using system access token: ${sat.id}`,
+      );
     }
-    
+
     const notificationParsed = JSON.parse(body.notification);
     const userDeviceParsed = JSON.parse(body.userDevice);
     const result = await this.pushOrchestrator.sendPushToSingleDeviceStateless(
@@ -283,10 +292,14 @@ export class NotificationsController {
     );
 
     if (sat && result.success) {
-      this.logger.log(`Incrementing call count for system access token: ${sat.id}`);
+      this.logger.log(
+        `Incrementing call count for system access token: ${sat.id}`,
+      );
       await this.systemAccessTokenService.incrementCalls(sat.id);
     } else if (sat && !result.success) {
-      this.logger.warn(`External notification failed for system access token: ${sat.id}, not incrementing call count`);
+      this.logger.warn(
+        `External notification failed for system access token: ${sat.id}, not incrementing call count`,
+      );
     }
 
     return result;

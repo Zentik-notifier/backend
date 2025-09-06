@@ -11,7 +11,7 @@ export const CombineMessageSources = createParamDecorator(
 
     // Override with query parameters (query takes precedence over body)
     if (query) {
-      Object.keys(query).forEach(key => {
+      Object.keys(query).forEach((key) => {
         if (query[key] !== undefined && query[key] !== null) {
           messageData[key] = query[key];
         }
@@ -20,7 +20,7 @@ export const CombineMessageSources = createParamDecorator(
 
     // Override with path parameters (params take precedence over query and body)
     if (params) {
-      Object.keys(params).forEach(key => {
+      Object.keys(params).forEach((key) => {
         if (params[key] !== undefined && params[key] !== null) {
           messageData[key] = params[key];
         }
@@ -30,8 +30,12 @@ export const CombineMessageSources = createParamDecorator(
     // Override with header values (headers take highest precedence)
     // Only process headers that start with 'x-message-'
     if (headers) {
-      Object.keys(headers).forEach(key => {
-        if (key.startsWith('x-message-') && headers[key] !== undefined && headers[key] !== null) {
+      Object.keys(headers).forEach((key) => {
+        if (
+          key.startsWith('x-message-') &&
+          headers[key] !== undefined &&
+          headers[key] !== null
+        ) {
           // Remove 'x-message-' prefix and convert to camelCase
           const cleanKey = key.replace('x-message-', '');
           messageData[cleanKey] = headers[key];
@@ -41,10 +45,16 @@ export const CombineMessageSources = createParamDecorator(
 
     // Handle special transformations for specific fields
     if (messageData.snoozes && typeof messageData.snoozes === 'string') {
-      messageData.snoozes = messageData.snoozes.split(',').map(v => parseInt(v.trim(), 10)).filter(v => !isNaN(v));
+      messageData.snoozes = messageData.snoozes
+        .split(',')
+        .map((v) => parseInt(v.trim(), 10))
+        .filter((v) => !isNaN(v));
     }
 
-    if (messageData.attachments && typeof messageData.attachments === 'string') {
+    if (
+      messageData.attachments &&
+      typeof messageData.attachments === 'string'
+    ) {
       try {
         messageData.attachments = JSON.parse(messageData.attachments);
       } catch (e) {
@@ -71,13 +81,13 @@ export const CombineMessageSources = createParamDecorator(
     // Handle boolean transformations
     const booleanFields = [
       'addMarkAsReadAction',
-      'addOpenNotificationAction', 
+      'addOpenNotificationAction',
       'addDeleteAction',
       'saveOnServer',
-      'destructive'
+      'destructive',
     ];
 
-    booleanFields.forEach(field => {
+    booleanFields.forEach((field) => {
       if (messageData[field] !== undefined && messageData[field] !== null) {
         if (typeof messageData[field] === 'string') {
           messageData[field] = messageData[field].toLowerCase() === 'true';

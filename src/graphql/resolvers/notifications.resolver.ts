@@ -243,7 +243,7 @@ export class NotificationsResolver {
     @CurrentUser('id') userId: string,
   ): Promise<MassDeleteResult> {
     let deletedCount = 0;
-    
+
     for (const id of ids) {
       try {
         await this.notificationsService.remove(id, userId);
@@ -266,11 +266,17 @@ export class NotificationsResolver {
     @CurrentUser('id') userId: string,
   ): Promise<MassMarkResult> {
     let updatedCount = 0;
-    
+
     for (const id of ids) {
       try {
-        const notification = await this.notificationsService.markAsRead(id, userId);
-        await this.subscriptionService.publishNotificationUpdated(notification, userId);
+        const notification = await this.notificationsService.markAsRead(
+          id,
+          userId,
+        );
+        await this.subscriptionService.publishNotificationUpdated(
+          notification,
+          userId,
+        );
         updatedCount++;
       } catch (error) {
         this.logger.error(`Failed to mark notification ${id} as read:`, error);
@@ -289,14 +295,23 @@ export class NotificationsResolver {
     @CurrentUser('id') userId: string,
   ): Promise<MassMarkResult> {
     let updatedCount = 0;
-    
+
     for (const id of ids) {
       try {
-        const notification = await this.notificationsService.markAsUnread(id, userId);
-        await this.subscriptionService.publishNotificationUpdated(notification, userId);
+        const notification = await this.notificationsService.markAsUnread(
+          id,
+          userId,
+        );
+        await this.subscriptionService.publishNotificationUpdated(
+          notification,
+          userId,
+        );
         updatedCount++;
       } catch (error) {
-        this.logger.error(`Failed to mark notification ${id} as unread:`, error);
+        this.logger.error(
+          `Failed to mark notification ${id} as unread:`,
+          error,
+        );
       }
     }
 

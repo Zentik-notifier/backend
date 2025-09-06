@@ -144,8 +144,9 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
       );
 
       // Check if provider is currently enabled before deregistering
-      const isCurrentlyEnabled = await this.oauthProvidersService.isProviderEnabled(provider.providerId);
-      
+      const isCurrentlyEnabled =
+        await this.oauthProvidersService.isProviderEnabled(provider.providerId);
+
       if (!isCurrentlyEnabled) {
         this.logger.log(
           `⚠️ Provider ${provider.providerId} is not currently enabled, deregistering...`,
@@ -159,8 +160,11 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
       const currentConfig = this.registeredProviders.get(provider.providerId);
       if (currentConfig) {
         const newConfig = this.getProviderConfig(provider);
-        const hasConfigChanged = this.hasConfigurationChanged(currentConfig.config, newConfig);
-        
+        const hasConfigChanged = this.hasConfigurationChanged(
+          currentConfig.config,
+          newConfig,
+        );
+
         if (!hasConfigChanged) {
           this.logger.log(
             `ℹ️ Provider ${provider.providerId} configuration unchanged, skipping update`,
@@ -621,16 +625,14 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
     return this.urlBuilderService.buildOAuthCallbackUrl(provider.providerId);
   }
 
-  private hasConfigurationChanged(
-    currentConfig: any,
-    newConfig: any,
-  ): boolean {
+  private hasConfigurationChanged(currentConfig: any, newConfig: any): boolean {
     // Simple comparison for now, can be expanded with more detailed checks
     return (
       currentConfig.clientId !== newConfig.clientId ||
       currentConfig.clientSecret !== newConfig.clientSecret ||
       currentConfig.callbackUrl !== newConfig.callbackUrl ||
-      JSON.stringify(currentConfig.scopes) !== JSON.stringify(newConfig.scopes) ||
+      JSON.stringify(currentConfig.scopes) !==
+        JSON.stringify(newConfig.scopes) ||
       currentConfig.authorizationUrl !== newConfig.authorizationUrl ||
       currentConfig.tokenUrl !== newConfig.tokenUrl ||
       currentConfig.userInfoUrl !== newConfig.userInfoUrl ||

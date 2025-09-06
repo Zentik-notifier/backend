@@ -10,7 +10,7 @@ import {
   Post,
   Request,
   Res,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -38,7 +38,12 @@ import {
   SetPasswordDto,
   UpdateProfileDto,
 } from './dto';
-import { LoginResponse, ProfileResponse, RefreshTokenResponse, RegisterResponse } from './dto/auth.dto';
+import {
+  LoginResponse,
+  ProfileResponse,
+  RefreshTokenResponse,
+  RegisterResponse,
+} from './dto/auth.dto';
 import { JwtOrAccessTokenGuard } from './guards/jwt-or-access-token.guard';
 import { OAuthProviderGuard } from './guards/oauth-provider.guard';
 import { SessionService } from './session.service';
@@ -102,7 +107,7 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     };
 
-   return await this.authService.login(loginDto, context);
+    return await this.authService.login(loginDto, context);
   }
 
   @Post('refresh')
@@ -151,7 +156,7 @@ export class AuthController {
         this.logger.warn('OAuth providers service not available');
         return { providers: [] };
       }
-      
+
       const providers =
         await this.oauthProvidersService.findEnabledProvidersPublic();
 
@@ -438,7 +443,10 @@ export class AuthController {
     @Body() input: RequestPasswordResetDto,
   ): Promise<MessageResponse> {
     try {
-      const success = await this.authService.requestPasswordReset(input.email, input.locale);
+      const success = await this.authService.requestPasswordReset(
+        input.email,
+        input.locale,
+      );
       return {
         message: success
           ? 'If an account with that email exists, a 6-character reset code has been sent to your email.'
@@ -500,7 +508,10 @@ export class AuthController {
     @Body() input: ResetPasswordDto,
   ): Promise<MessageResponse> {
     try {
-      const success = await this.authService.resetPassword(input.resetToken, input.newPassword);
+      const success = await this.authService.resetPassword(
+        input.resetToken,
+        input.newPassword,
+      );
       return {
         message: success
           ? 'Password has been reset successfully using the 6-character code. You can now login with your new password.'
@@ -545,20 +556,24 @@ export class AuthController {
         await this.eventTrackingService.trackLogout(userId);
         this.logger.debug(`Logout event tracked for user: ${userId}`);
       } catch (trackingError) {
-        this.logger.warn(`Failed to track logout event for user ${userId}: ${trackingError.message}`);
+        this.logger.warn(
+          `Failed to track logout event for user ${userId}: ${trackingError.message}`,
+        );
       }
 
       return { message: 'Logout successful' };
     } catch (error) {
       this.logger.warn(`Error during logout processing: ${error.message}`);
-      
+
       // Still try to track logout even if session revocation failed
       try {
         await this.eventTrackingService.trackLogout(userId);
       } catch (trackingError) {
-        this.logger.warn(`Failed to track logout event in error handler: ${trackingError.message}`);
+        this.logger.warn(
+          `Failed to track logout event in error handler: ${trackingError.message}`,
+        );
       }
-      
+
       return { message: 'Logout processed' };
     }
   }
@@ -591,7 +606,10 @@ export class AuthController {
     @Body() input: RequestEmailConfirmationDto,
   ): Promise<MessageResponse> {
     try {
-      const result = await this.authService.requestEmailConfirmation(input.email, input.locale as Locale);
+      const result = await this.authService.requestEmailConfirmation(
+        input.email,
+        input.locale as Locale,
+      );
       if (result.sent) {
         return {
           message: 'Email confirmation sent successfully.',
@@ -619,14 +637,13 @@ export class AuthController {
     status: 400,
     description: 'Bad request - invalid or expired code',
   })
-  async confirmEmail(
-    @Body() input: ConfirmEmailDto,
-  ): Promise<MessageResponse> {
+  async confirmEmail(@Body() input: ConfirmEmailDto): Promise<MessageResponse> {
     try {
       const result = await this.authService.confirmEmail(input.code);
       if (result.confirmed) {
         return {
-          message: 'Email confirmed successfully. You can now login to your account.',
+          message:
+            'Email confirmed successfully. You can now login to your account.',
         };
       } else {
         return {
@@ -660,9 +677,7 @@ export class AuthController {
       const confirmed = await this.authService.isEmailConfirmed(email);
       return {
         confirmed,
-        message: confirmed 
-          ? 'Email is confirmed' 
-          : 'Email is not confirmed',
+        message: confirmed ? 'Email is confirmed' : 'Email is not confirmed',
       };
     } catch (error) {
       this.logger.error(`Email status check failed: ${error.message}`);

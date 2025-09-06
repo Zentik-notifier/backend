@@ -55,8 +55,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     OAuthProvider,
   ],
   // migrations: [__sdirname + '/../database/migrations/*.ts'],
-  synchronize:
-    process.env.DB_SYNCHRONIZE === 'true',
+  synchronize: process.env.DB_SYNCHRONIZE === 'true',
   dropSchema: process.env.DB_DROP_SCHEMA === 'true',
   logging:
     process.env.DB_LOGGING === 'true' || process.env.LOG_LEVEL === 'debug',

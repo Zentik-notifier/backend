@@ -58,7 +58,10 @@ export class BucketsResolver {
     @CurrentUser('id') userId: string,
   ): Promise<UserBucket | null> {
     try {
-      return await this.userBucketsService.findByBucketAndUser(bucket.id, userId);
+      return await this.userBucketsService.findByBucketAndUser(
+        bucket.id,
+        userId,
+      );
     } catch {
       return null;
     }
@@ -106,10 +109,17 @@ export class BucketsResolver {
     const bucket = await this.bucketsService.update(id, userId, input as any);
 
     // Get all users who have access to this bucket
-    const allUserIds = await this.getAllUsersWithBucketAccess(bucket.id, userId);
-    
+    const allUserIds = await this.getAllUsersWithBucketAccess(
+      bucket.id,
+      userId,
+    );
+
     // Publish to all users who have access
-    await this.subscriptionService.publishBucketUpdatedToAllUsers(bucket, userId, allUserIds);
+    await this.subscriptionService.publishBucketUpdatedToAllUsers(
+      bucket,
+      userId,
+      allUserIds,
+    );
 
     return bucket;
   }
@@ -130,32 +140,39 @@ export class BucketsResolver {
   /**
    * Get all users who have access to a bucket (owner + shared users)
    */
-  private async getAllUsersWithBucketAccess(bucketId: string, requesterId: string): Promise<string[]> {
+  private async getAllUsersWithBucketAccess(
+    bucketId: string,
+    requesterId: string,
+  ): Promise<string[]> {
     try {
       // Get the bucket to find the owner
       const bucket = await this.bucketsService.findOne(bucketId, requesterId);
       const userIds = new Set<string>();
-      
+
       // Add the bucket owner
       userIds.add(bucket.user.id);
-      
+
       // Get all users who have permissions on this bucket
-      const permissions = await this.entityPermissionService.getResourcePermissions(
-        ResourceType.BUCKET,
-        bucketId,
-        requesterId,
-      );
-      
+      const permissions =
+        await this.entityPermissionService.getResourcePermissions(
+          ResourceType.BUCKET,
+          bucketId,
+          requesterId,
+        );
+
       // Add all users who have permissions
-      permissions.forEach(permission => {
+      permissions.forEach((permission) => {
         if (permission.user?.id) {
           userIds.add(permission.user.id);
         }
       });
-      
+
       return Array.from(userIds);
     } catch (error) {
-      this.logger.error(`Error getting users with bucket access: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error getting users with bucket access: ${error.message}`,
+        error.stack,
+      );
       // Fallback to just the requester if there's an error
       return [requesterId];
     }
@@ -196,13 +213,23 @@ export class BucketsResolver {
     );
 
     // Get all users who have access to this bucket
-    const allUserIds = await this.getAllUsersWithBucketAccess(input.resourceId, userId);
-    
+    const allUserIds = await this.getAllUsersWithBucketAccess(
+      input.resourceId,
+      userId,
+    );
+
     // Get the updated bucket to publish the update
-    const updatedBucket = await this.bucketsService.findOne(input.resourceId, userId);
-    
+    const updatedBucket = await this.bucketsService.findOne(
+      input.resourceId,
+      userId,
+    );
+
     // Publish bucket update to all users who have access
-    await this.subscriptionService.publishBucketUpdatedToAllUsers(updatedBucket, userId, allUserIds);
+    await this.subscriptionService.publishBucketUpdatedToAllUsers(
+      updatedBucket,
+      userId,
+      allUserIds,
+    );
 
     // Notify subscribers about permission changes for this bucket
     await this.subscriptionService.publishEntityPermissionUpdated(
@@ -233,14 +260,21 @@ export class BucketsResolver {
     );
 
     // Get all users who still have access to this bucket
-    const allUserIds = await this.getAllUsersWithBucketAccess(input.resourceId, userId);
-    
+    const allUserIds = await this.getAllUsersWithBucketAccess(
+      input.resourceId,
+      userId,
+    );
+
     // After revoke, publish a bucket update to all users who still have access
     const updatedBucket = await this.bucketsService.findOne(
       input.resourceId,
       userId,
     );
-    await this.subscriptionService.publishBucketUpdatedToAllUsers(updatedBucket, userId, allUserIds);
+    await this.subscriptionService.publishBucketUpdatedToAllUsers(
+      updatedBucket,
+      userId,
+      allUserIds,
+    );
     return true;
   }
 

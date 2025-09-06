@@ -21,10 +21,7 @@ import {
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { OAuthProvider, OAuthProviderType } from '../entities';
-import {
-  CreateOAuthProviderDto,
-  UpdateOAuthProviderDto
-} from './dto/index';
+import { CreateOAuthProviderDto, UpdateOAuthProviderDto } from './dto/index';
 import { OAuthProvidersService } from './oauth-providers.service';
 
 @ApiTags('OAuth Providers')

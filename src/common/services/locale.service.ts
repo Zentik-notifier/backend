@@ -37,13 +37,15 @@ export class LocaleService {
       }
 
       if (!localesDir) {
-        this.logger.warn(`Locales directory not found in any of these paths: ${possiblePaths.join(', ')}`);
+        this.logger.warn(
+          `Locales directory not found in any of these paths: ${possiblePaths.join(', ')}`,
+        );
         return;
       }
 
       // Read all JSON files in the locales directory
       const files = fs.readdirSync(localesDir);
-      const jsonFiles = files.filter(file => file.endsWith('.json'));
+      const jsonFiles = files.filter((file) => file.endsWith('.json'));
 
       for (const file of jsonFiles) {
         try {
@@ -54,7 +56,9 @@ export class LocaleService {
           this.translations.set(locale as Locale, data);
           this.logger.log(`Loaded translations for locale: ${locale}`);
         } catch (fileError) {
-          this.logger.error(`Failed to load translations from ${file}: ${fileError.message}`);
+          this.logger.error(
+            `Failed to load translations from ${file}: ${fileError.message}`,
+          );
         }
       }
 
@@ -63,13 +67,18 @@ export class LocaleService {
         this.logger.warn('Default English translations not found');
       }
 
-      this.logger.log(`Successfully loaded ${this.translations.size} locale(s): ${Array.from(this.translations.keys()).join(', ')}`);
+      this.logger.log(
+        `Successfully loaded ${this.translations.size} locale(s): ${Array.from(this.translations.keys()).join(', ')}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to load translations: ${error.message}`);
     }
   }
 
-  private replacePlaceholders(text: string, placeholders: Record<string, string>): string {
+  private replacePlaceholders(
+    text: string,
+    placeholders: Record<string, string>,
+  ): string {
     let result = text;
     for (const [key, value] of Object.entries(placeholders)) {
       result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
@@ -77,8 +86,13 @@ export class LocaleService {
     return result;
   }
 
-  getTranslatedText(locale: Locale, key: TranslationKeyPath, placeholders: Record<string, string> = {}): string {
-    const translations = this.translations.get(locale) || this.translations.get('en-EN');
+  getTranslatedText(
+    locale: Locale,
+    key: TranslationKeyPath,
+    placeholders: Record<string, string> = {},
+  ): string {
+    const translations =
+      this.translations.get(locale) || this.translations.get('en-EN');
     const stringKey = key as string;
     if (!translations) {
       this.logger.warn(`Translations not found for locale: ${locale}`);
@@ -92,7 +106,9 @@ export class LocaleService {
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
       } else {
-        this.logger.warn(`Translation key not found: ${stringKey} for locale: ${locale}`);
+        this.logger.warn(
+          `Translation key not found: ${stringKey} for locale: ${locale}`,
+        );
         return stringKey;
       }
     }

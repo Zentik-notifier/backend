@@ -78,27 +78,30 @@ export class User {
   updatedAt: Date;
 
   @Field(() => String, { nullable: true })
-  @ApiProperty({required: false })
+  @ApiProperty({ required: false })
   @Column({ type: 'text', nullable: true })
   resetToken: string | null;
 
   @Field(() => Date, { nullable: true })
-  @ApiProperty({required: false })
+  @ApiProperty({ required: false })
   @Column({ type: 'timestamp', nullable: true })
   resetTokenRequestedAt: Date | null;
 
   @Field(() => String, { nullable: true })
-  @ApiProperty({required: false })
+  @ApiProperty({ required: false })
   @Column({ type: 'text', nullable: true })
   emailConfirmationToken: string | null;
 
   @Field(() => Date, { nullable: true })
-  @ApiProperty({required: false })
+  @ApiProperty({ required: false })
   @Column({ type: 'timestamp', nullable: true })
   emailConfirmationTokenRequestedAt: Date | null;
 
   @Field()
-  @ApiProperty({ example: false, description: 'Whether the user email is confirmed' })
+  @ApiProperty({
+    example: false,
+    description: 'Whether the user email is confirmed',
+  })
   @Column({ default: false })
   emailConfirmed: boolean;
 

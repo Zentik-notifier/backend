@@ -23,7 +23,11 @@ export class AccessTokenGuard implements CanActivate {
       token = authHeader.substring(7); // Remove 'Bearer '
     }
     // Fallback to query parameter
-    else if (tokenFromQuery && typeof tokenFromQuery === 'string' && tokenFromQuery.startsWith('zat_')) {
+    else if (
+      tokenFromQuery &&
+      typeof tokenFromQuery === 'string' &&
+      tokenFromQuery.startsWith('zat_')
+    ) {
       token = tokenFromQuery;
     }
 

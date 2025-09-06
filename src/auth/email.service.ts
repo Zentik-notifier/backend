@@ -41,7 +41,7 @@ export class EmailService {
 
   private initializeEmailProvider() {
     const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
-    
+
     if (resendApiKey) {
       this.provider = EmailProvider.RESEND;
       this.resend = new Resend(resendApiKey);
@@ -55,10 +55,11 @@ export class EmailService {
   private initializeSMTPTransporter() {
     const host = this.configService.get<string>('EMAIL_HOST', 'smtp.gmail.com');
     const port = this.configService.get<number>('EMAIL_PORT', 587);
-    const secure = this.configService.get<string>('EMAIL_SECURE', 'false') === 'true';
+    const secure =
+      this.configService.get<string>('EMAIL_SECURE', 'false') === 'true';
 
     // Provider-specific configurations
-    let emailConfig: any = {
+    const emailConfig: any = {
       host,
       port,
       secure,
@@ -89,17 +90,21 @@ export class EmailService {
     }
 
     if (emailConfig.auth.user && emailConfig.auth.pass) {
-      this.logger.log(`Initializing email transporter with config: ${JSON.stringify({
-        host: emailConfig.host,
-        port: emailConfig.port,
-        secure: emailConfig.secure,
-        tls: emailConfig.tls ? 'enabled' : 'disabled'
-      })}`);
+      this.logger.log(
+        `Initializing email transporter with config: ${JSON.stringify({
+          host: emailConfig.host,
+          port: emailConfig.port,
+          secure: emailConfig.secure,
+          tls: emailConfig.tls ? 'enabled' : 'disabled',
+        })}`,
+      );
 
       this.transporter = nodemailer.createTransport(emailConfig);
       this.logger.log('Email transporter initialized successfully');
     } else {
-      this.logger.warn('Email credentials not configured, email service will be disabled');
+      this.logger.warn(
+        'Email credentials not configured, email service will be disabled',
+      );
     }
   }
 
@@ -118,8 +123,13 @@ export class EmailService {
     }
 
     try {
-      const fromEmail = options.from || this.configService.get<string>('EMAIL_FROM', 'noreply@zentik.app');
-      const fromName = this.configService.get<string>('EMAIL_FROM_NAME', 'Zentik');
+      const fromEmail =
+        options.from ||
+        this.configService.get<string>('EMAIL_FROM', 'noreply@zentik.app');
+      const fromName = this.configService.get<string>(
+        'EMAIL_FROM_NAME',
+        'Zentik',
+      );
       const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
 
       const emailPayload: any = {
@@ -137,7 +147,7 @@ export class EmailService {
       if (options.text) {
         emailPayload.text = options.text;
       }
-      
+
       // If neither html nor text is provided, use a default
       if (!options.html && !options.text) {
         emailPayload.text = options.subject;
@@ -145,10 +155,14 @@ export class EmailService {
 
       const result = await this.resend.emails.send(emailPayload);
 
-      this.logger.log(`Email sent successfully via Resend to ${options.to}, id: ${result.data?.id}`);
+      this.logger.log(
+        `Email sent successfully via Resend to ${options.to}, id: ${result.data?.id}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send email via Resend to ${options.to}: ${error.message}`);
+      this.logger.error(
+        `Failed to send email via Resend to ${options.to}: ${error.message}`,
+      );
       this.logger.error(`Resend error details: ${JSON.stringify(error)}`);
       return false;
     }
@@ -162,11 +176,16 @@ export class EmailService {
 
     try {
       const mailOptions = {
-        from: options.from || (() => {
-          const fromEmail = this.configService.get<string>('EMAIL_FROM', 'noreply@zentik.app');
-          const fromName = this.configService.get<string>('EMAIL_FROM_NAME');
-          return fromName ? `${fromName} <${fromEmail}>` : fromEmail;
-        })(),
+        from:
+          options.from ||
+          (() => {
+            const fromEmail = this.configService.get<string>(
+              'EMAIL_FROM',
+              'noreply@zentik.app',
+            );
+            const fromName = this.configService.get<string>('EMAIL_FROM_NAME');
+            return fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+          })(),
         to: options.to,
         subject: options.subject,
         text: options.text,
@@ -177,29 +196,57 @@ export class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Email sent successfully via SMTP to ${options.to}, messageId: ${result.messageId}`);
+      this.logger.log(
+        `Email sent successfully via SMTP to ${options.to}, messageId: ${result.messageId}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send email via SMTP to ${options.to}: ${error.message}`);
-      this.logger.error(`SMTP error details: ${JSON.stringify({
-        code: error.code,
-        command: error.command,
-        responseCode: error.responseCode,
-        response: error.response,
-        stack: error.stack
-      })}`);
+      this.logger.error(
+        `Failed to send email via SMTP to ${options.to}: ${error.message}`,
+      );
+      this.logger.error(
+        `SMTP error details: ${JSON.stringify({
+          code: error.code,
+          command: error.command,
+          responseCode: error.responseCode,
+          response: error.response,
+          stack: error.stack,
+        })}`,
+      );
       return false;
     }
   }
 
-  async sendWelcomeEmail(email: string, username: string, locale: Locale = 'en-EN'): Promise<boolean> {
-
-    const subject = this.localeService.getTranslatedText(locale, 'email.welcome.subject');
-    const title = this.localeService.getTranslatedText(locale, 'email.welcome.title', { username: username });
-    const description = this.localeService.getTranslatedText(locale, 'email.welcome.description');
-    const instructions = this.localeService.getTranslatedText(locale, 'email.welcome.instructions');
-    const regards = this.localeService.getTranslatedText(locale, 'email.welcome.regards');
-    const team = this.localeService.getTranslatedText(locale, 'email.welcome.team');
+  async sendWelcomeEmail(
+    email: string,
+    username: string,
+    locale: Locale = 'en-EN',
+  ): Promise<boolean> {
+    const subject = this.localeService.getTranslatedText(
+      locale,
+      'email.welcome.subject',
+    );
+    const title = this.localeService.getTranslatedText(
+      locale,
+      'email.welcome.title',
+      { username: username },
+    );
+    const description = this.localeService.getTranslatedText(
+      locale,
+      'email.welcome.description',
+    );
+    const instructions = this.localeService.getTranslatedText(
+      locale,
+      'email.welcome.instructions',
+    );
+    const regards = this.localeService.getTranslatedText(
+      locale,
+      'email.welcome.regards',
+    );
+    const team = this.localeService.getTranslatedText(
+      locale,
+      'email.welcome.team',
+    );
 
     const html = `
       <h1>${title}</h1>
@@ -216,17 +263,51 @@ export class EmailService {
     });
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string, locale: Locale = 'en-EN'): Promise<boolean> {
-    const title = this.localeService.getTranslatedText(locale, 'email.passwordReset.title');
-    const description = this.localeService.getTranslatedText(locale, 'email.passwordReset.description');
-    const codeInstructions = this.localeService.getTranslatedText(locale, 'email.passwordReset.codeInstructions');
-    const important = this.localeService.getTranslatedText(locale, 'email.passwordReset.important');
-    const instructions1 = this.localeService.getTranslatedText(locale, 'email.passwordReset.instructions1');
-    const instructions2 = this.localeService.getTranslatedText(locale, 'email.passwordReset.instructions2');
-    const instructions3 = this.localeService.getTranslatedText(locale, 'email.passwordReset.instructions3');
-    const regards = this.localeService.getTranslatedText(locale, 'email.passwordReset.regards');
-    const team = this.localeService.getTranslatedText(locale, 'email.passwordReset.team');
-    const subject = this.localeService.getTranslatedText(locale, 'email.passwordReset.subject');
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+    locale: Locale = 'en-EN',
+  ): Promise<boolean> {
+    const title = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.title',
+    );
+    const description = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.description',
+    );
+    const codeInstructions = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.codeInstructions',
+    );
+    const important = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.important',
+    );
+    const instructions1 = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.instructions1',
+    );
+    const instructions2 = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.instructions2',
+    );
+    const instructions3 = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.instructions3',
+    );
+    const regards = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.regards',
+    );
+    const team = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.team',
+    );
+    const subject = this.localeService.getTranslatedText(
+      locale,
+      'email.passwordReset.subject',
+    );
 
     const html = `
       <h1>${title}</h1>
@@ -269,7 +350,11 @@ ${team}`;
     });
   }
 
-  async sendNotificationEmail(email: string, notificationTitle: string, notificationBody: string): Promise<boolean> {
+  async sendNotificationEmail(
+    email: string,
+    notificationTitle: string,
+    notificationBody: string,
+  ): Promise<boolean> {
     const subject = `New Notification: ${notificationTitle}`;
     const html = `
       <h2>New Notification</h2>
@@ -288,16 +373,47 @@ ${team}`;
     });
   }
 
-  async sendEmailConfirmation(email: string, confirmationToken: string, locale: Locale = 'en-EN'): Promise<boolean> {
-    const subject = this.localeService.getTranslatedText(locale, 'email.confirmation.subject');
-    const title = this.localeService.getTranslatedText(locale, 'email.confirmation.title');
-    const description = this.localeService.getTranslatedText(locale, 'email.confirmation.description');
-    const codeInstructions = this.localeService.getTranslatedText(locale, 'email.confirmation.codeInstructions');
-    const important = this.localeService.getTranslatedText(locale, 'email.confirmation.important');
-    const instructions1 = this.localeService.getTranslatedText(locale, 'email.confirmation.instructions1');
-    const instructions2 = this.localeService.getTranslatedText(locale, 'email.confirmation.instructions2');
-    const regards = this.localeService.getTranslatedText(locale, 'email.confirmation.regards');
-    const team = this.localeService.getTranslatedText(locale, 'email.confirmation.team');
+  async sendEmailConfirmation(
+    email: string,
+    confirmationToken: string,
+    locale: Locale = 'en-EN',
+  ): Promise<boolean> {
+    const subject = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.subject',
+    );
+    const title = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.title',
+    );
+    const description = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.description',
+    );
+    const codeInstructions = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.codeInstructions',
+    );
+    const important = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.important',
+    );
+    const instructions1 = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.instructions1',
+    );
+    const instructions2 = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.instructions2',
+    );
+    const regards = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.regards',
+    );
+    const team = this.localeService.getTranslatedText(
+      locale,
+      'email.confirmation.team',
+    );
 
     const html = `
       <h1>${title}</h1>
@@ -339,17 +455,21 @@ ${team}`;
   }
 
   isEmailEnabled(): boolean {
-    const emailEnabled = this.configService.get<string>('EMAIL_ENABLED', 'true') ?? 'true';
+    const emailEnabled =
+      this.configService.get<string>('EMAIL_ENABLED', 'true') ?? 'true';
     const isEnabled = emailEnabled.toLowerCase() === 'true';
-    
+
     if (!isEnabled) {
       return false;
     }
-    
+
     // Check if at least one provider is configured
     const hasResend = !!this.configService.get<string>('RESEND_API_KEY');
-    const hasSmtp = !!(this.configService.get<string>('EMAIL_USER') && this.configService.get<string>('EMAIL_PASS'));
-    
+    const hasSmtp = !!(
+      this.configService.get<string>('EMAIL_USER') &&
+      this.configService.get<string>('EMAIL_PASS')
+    );
+
     return hasResend || hasSmtp;
   }
 

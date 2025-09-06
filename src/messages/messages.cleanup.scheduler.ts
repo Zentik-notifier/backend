@@ -12,10 +12,11 @@ export class MessagesCleanupScheduler implements OnModuleInit {
     private readonly messagesService: MessagesService,
     private readonly configService: ConfigService,
     private readonly schedulerRegistry: SchedulerRegistry,
-  ) { }
+  ) {}
 
   onModuleInit() {
-    const cleanupJobsEnabled = this.configService.get<string>('MESSAGES_DELETE_JOB_ENABLED') !== 'false';
+    const cleanupJobsEnabled =
+      this.configService.get<string>('MESSAGES_DELETE_JOB_ENABLED') !== 'false';
 
     if (!cleanupJobsEnabled) {
       this.logger.log('Messages cleanup cron disabled');

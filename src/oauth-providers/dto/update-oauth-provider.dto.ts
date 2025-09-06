@@ -1,14 +1,14 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import {
-    IsArray,
-    IsBoolean,
-    IsEnum,
-    IsOptional,
-    IsString,
-    IsUrl,
-    Matches,
-    ValidateIf,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  ValidateIf,
 } from 'class-validator';
 import { OAuthProviderType } from '../../entities';
 

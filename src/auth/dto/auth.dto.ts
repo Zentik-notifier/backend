@@ -1,4 +1,9 @@
-import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import {
+  Field,
+  InputType,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -71,15 +76,25 @@ export class RegisterResponse {
   @Field(() => User)
   user: Omit<User, 'password'>;
 
-  @ApiProperty({ description: 'If true, the client must guide the user through email confirmation', example: true })
+  @ApiProperty({
+    description:
+      'If true, the client must guide the user through email confirmation',
+    example: true,
+  })
   @Field()
   emailConfirmationRequired: boolean;
 
-  @ApiProperty({ required: false, example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  @ApiProperty({
+    required: false,
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
   @Field({ nullable: true })
   accessToken?: string;
 
-  @ApiProperty({ required: false, example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  @ApiProperty({
+    required: false,
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
   @Field({ nullable: true })
   refreshToken?: string;
 }
@@ -432,7 +447,7 @@ export class RequestPasswordResetDto {
     description: 'Preferred language for email content (e.g., en-EN, it-IT)',
     required: false,
     default: 'en-EN',
-    example: 'en-EN'
+    example: 'en-EN',
   })
   @IsOptional()
   @IsString()
@@ -451,7 +466,7 @@ export class ResetPasswordDto {
   @ApiProperty({
     description: 'New password',
     minLength: 8,
-    example: 'newSecurePassword123'
+    example: 'newSecurePassword123',
   })
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters' })
