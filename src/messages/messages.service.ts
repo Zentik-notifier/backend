@@ -382,9 +382,6 @@ export class MessagesService {
       (att) => att.mediaType === MediaType.ICON,
     );
     if (hasIconAttachment) {
-      this.logger.debug(
-        `Bucket ${bucket.id} icon not added - ICON attachment already present`,
-      );
       return null;
     }
 
