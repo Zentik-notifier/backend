@@ -189,7 +189,7 @@ async function runDeployProcess() {
         printInfo('Starting automated backend deployment process...');
 
         // Step 1: Trigger Railway deploy
-        printInfo('Step 3/3: Triggering Railway deployment...');
+        printInfo('Step 1/3: Triggering Railway deployment...');
 
         // Check if railway CLI is available
         try {
@@ -214,14 +214,14 @@ async function runDeployProcess() {
         printSuccess('Railway deployment triggered successfully!');
 
         // Step 2: Git add and commit
-        printInfo('Step 1/3: Committing changes to git...');
+        printInfo('Step 2/3: Committing changes to git...');
         await runCommand('git', ['add', 'backend/package.json'], { cwd: '..' });
         await runCommand('git', ['commit', '-m', `"chore: bump backend version to v${newVersion}"`], { cwd: '..' });
 
         printSuccess('Changes committed to git');
 
         // Step 3: Git push
-        printInfo('Step 2/3: Pushing to git repository...');
+        printInfo('Step 3/3: Pushing to git repository...');
         await runCommand('git', ['push'], { cwd: '..' });
 
         printSuccess('Changes pushed to git repository');
