@@ -464,25 +464,25 @@ describe('MessagesService', () => {
   describe('findUsersByIdsOrUsernames', () => {
     it('should find users by IDs', async () => {
       const mockUsers = [
-        { id: 'user-1', username: 'user1' },
-        { id: 'user-2', username: 'user2' },
+        { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user1' },
+        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'user2' },
       ];
       jest.spyOn(usersRepository, 'find').mockResolvedValue(mockUsers as any);
 
       const result = await service['findUsersByIdsOrUsernames']([
-        'user-1',
-        'user-2',
+        '550e8400-e29b-41d4-a716-446655440000',
+        '550e8400-e29b-41d4-a716-446655440001',
       ]);
 
       expect(usersRepository.find).toHaveBeenCalledWith({
-        where: { id: In(['user-1', 'user-2']) },
+        where: { id: In(['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']) },
       });
       expect(result).toEqual(mockUsers);
     });
 
     it('should find users by usernames when IDs not found', async () => {
-      const mockUsersById = [{ id: 'user-1', username: 'user1' }];
-      const mockUsersByUsername = [{ id: 'user-2', username: 'user2' }];
+      const mockUsersById = [{ id: '550e8400-e29b-41d4-a716-446655440000', username: 'user1' }];
+      const mockUsersByUsername = [{ id: '550e8400-e29b-41d4-a716-446655440001', username: 'user2' }];
 
       jest
         .spyOn(usersRepository, 'find')
@@ -490,10 +490,17 @@ describe('MessagesService', () => {
         .mockResolvedValueOnce(mockUsersByUsername as any);
 
       const result = await service['findUsersByIdsOrUsernames']([
-        'user-1',
-        'user2',
+        '550e8400-e29b-41d4-a716-446655440000', // valid UUID
+        'user2',  // username
       ]);
 
+      expect(usersRepository.find).toHaveBeenCalledTimes(2);
+      expect(usersRepository.find).toHaveBeenNthCalledWith(1, {
+        where: { id: In(['550e8400-e29b-41d4-a716-446655440000']) },
+      });
+      expect(usersRepository.find).toHaveBeenNthCalledWith(2, {
+        where: { username: In(['user2']) },
+      });
       expect(result).toEqual([...mockUsersById, ...mockUsersByUsername]);
     });
 
@@ -508,6 +515,50 @@ describe('MessagesService', () => {
     it('should return empty array when no userIds provided', async () => {
       const result = await service['findUsersByIdsOrUsernames']([]);
       expect(result).toEqual([]);
+    });
+
+    it('should find users with mixed IDs and usernames', async () => {
+      const mockUsersById = [{ id: '550e8400-e29b-41d4-a716-446655440000', username: 'user1' }];
+      const mockUsersByUsername = [{ id: '550e8400-e29b-41d4-a716-446655440001', username: 'user2' }];
+
+      jest
+        .spyOn(usersRepository, 'find')
+        .mockResolvedValueOnce(mockUsersById as any)
+        .mockResolvedValueOnce(mockUsersByUsername as any);
+
+      const result = await service['findUsersByIdsOrUsernames']([
+        '550e8400-e29b-41d4-a716-446655440000', // ID (valid UUID format)
+        'user2',  // username
+      ]);
+
+      expect(usersRepository.find).toHaveBeenCalledTimes(2);
+      expect(usersRepository.find).toHaveBeenNthCalledWith(1, {
+        where: { id: In(['550e8400-e29b-41d4-a716-446655440000']) },
+      });
+      expect(usersRepository.find).toHaveBeenNthCalledWith(2, {
+        where: { username: In(['user2']) },
+      });
+      expect(result).toEqual([...mockUsersById, ...mockUsersByUsername]);
+    });
+
+    it('should only search by username for non-UUID identifiers', async () => {
+      const mockUsersByUsername = [
+        { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user2' },
+        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'john_doe' }
+      ];
+
+      jest.spyOn(usersRepository, 'find').mockResolvedValueOnce(mockUsersByUsername as any);
+
+      const result = await service['findUsersByIdsOrUsernames']([
+        'user2',  // username (not UUID)
+        'john_doe', // username (not UUID)
+      ]);
+
+      expect(usersRepository.find).toHaveBeenCalledTimes(1);
+      expect(usersRepository.find).toHaveBeenCalledWith({
+        where: { username: In(['user2', 'john_doe']) },
+      });
+      expect(result).toEqual(mockUsersByUsername);
     });
   });
 
@@ -544,12 +595,11 @@ describe('MessagesService', () => {
 
     it('should create message with user usernames instead of IDs', async () => {
       const mockUsers = [
-        { id: 'user-2', username: 'user2' },
-        { id: 'user-3', username: 'user3' },
+        { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user2' },
+        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'user3' },
       ];
       jest
         .spyOn(usersRepository, 'find')
-        .mockResolvedValueOnce([]) // No users found by ID
         .mockResolvedValueOnce(mockUsers as any); // Found by username
 
       const createMessageDto = {
@@ -562,7 +612,7 @@ describe('MessagesService', () => {
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        ['user-2', 'user-3'], // Should use actual user IDs
+        ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001'], // Should use actual user IDs
       );
       expect(result).toEqual(mockMessage);
     });
@@ -579,18 +629,18 @@ describe('MessagesService', () => {
         .mockReturnValue(mockQueryBuilder as any);
 
       const mockUsers = [
-        { id: 'user-2', username: 'user2' } as User,
-        { id: 'user-3', username: 'user3' } as User,
+        { id: '550e8400-e29b-41d4-a716-446655440000', username: 'user2' } as User,
+        { id: '550e8400-e29b-41d4-a716-446655440001', username: 'user3' } as User,
       ];
       jest
         .spyOn(usersRepository, 'find')
-        .mockResolvedValueOnce([{ id: 'user-2', username: 'user2' } as User]) // Found by ID
-        .mockResolvedValueOnce([{ id: 'user-3', username: 'user3' } as User]); // Found by username
+        .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440000', username: 'user2' } as User]) // Found by ID
+        .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440001', username: 'user3' } as User]); // Found by username
 
       const createMessageDto = {
         ...mockCreateMessageDto,
         bucketId: 'Test Bucket', // Using name
-        userIds: ['user-2', 'user3'], // Mixed ID and username
+        userIds: ['550e8400-e29b-41d4-a716-446655440000', 'user3'], // Mixed ID and username
       };
 
       const result = await service.create(createMessageDto, 'user-1');
@@ -603,7 +653,7 @@ describe('MessagesService', () => {
       expect(pushOrchestrator.create).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
-        ['user-2', 'user-3'], // Should use actual user IDs
+        ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001'], // Should use actual user IDs
       );
       expect(result).toEqual(mockMessage);
     });

@@ -44,17 +44,17 @@ export class MessagesService {
     private readonly eventTrackingService: EventTrackingService,
   ) {}
 
-  // Validation and transformation are handled by global ValidationPipe + DTO transforms
+  private isUuid(identifier: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(identifier);
+  }
 
   private async findBucketByIdOrName(
     bucketIdOrName: string,
     userId: string,
   ): Promise<Bucket> {
     // First try to find by ID (if it's a valid UUID format)
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        bucketIdOrName,
-      );
+    const isUuid = this.isUuid(bucketIdOrName);
 
     let bucket: Bucket | null = null;
 
@@ -112,30 +112,38 @@ export class MessagesService {
       return [];
     }
 
-    // Try to find users by ID first
-    let users = await this.usersRepository.find({
-      where: { id: In(userIdsOrUsernames) },
-    });
+    // Separate UUIDs from usernames
+    const userIds = userIdsOrUsernames.filter((id) => this.isUuid(id));
+    const usernames = userIdsOrUsernames.filter((id) => !this.isUuid(id));
 
-    // Find users not found by ID and try to find them by username
-    const foundUserIds = users.map((user) => user.id);
-    const notFoundIdentifiers = userIdsOrUsernames.filter(
-      (id) => !foundUserIds.includes(id),
-    );
+    let users: User[] = [];
 
-    if (notFoundIdentifiers.length > 0) {
+    // Find users by ID first (only if we have valid UUIDs)
+    if (userIds.length > 0) {
+      const usersById = await this.usersRepository.find({
+        where: { id: In(userIds) },
+      });
+      users = [...users, ...usersById];
+    }
+
+    // Find users by username (only if we have usernames)
+    if (usernames.length > 0) {
       const usersByUsername = await this.usersRepository.find({
-        where: { username: In(notFoundIdentifiers) },
+        where: { username: In(usernames) },
       });
       users = [...users, ...usersByUsername];
     }
 
     // Check if all requested users were found
-    const foundIdentifiers = users
-      .map((user) => user.id)
-      .concat(users.map((user) => user.username));
+    // Create a set of all found identifiers (both IDs and usernames)
+    const foundIdentifiers = new Set<string>();
+    users.forEach((user) => {
+      foundIdentifiers.add(user.id);
+      foundIdentifiers.add(user.username);
+    });
+
     const notFound = userIdsOrUsernames.filter(
-      (identifier) => !foundIdentifiers.includes(identifier),
+      (identifier) => !foundIdentifiers.has(identifier),
     );
 
     if (notFound.length > 0) {
