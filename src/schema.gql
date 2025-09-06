@@ -1,0 +1,845 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AccessTokenListDto {
+  createdAt: DateTime!
+  expiresAt: DateTime
+  id: String!
+  isExpired: Boolean!
+  lastUsed: DateTime
+  name: String!
+}
+
+type AccessTokenResponseDto {
+  createdAt: DateTime!
+  expiresAt: DateTime
+  id: String!
+  name: String!
+  token: String!
+}
+
+type Attachment {
+  createdAt: DateTime!
+  filename: String!
+  filepath: String!
+  id: ID!
+  mediaType: MediaType
+  messageId: String
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+}
+
+type Bucket {
+  color: String
+  createdAt: DateTime!
+  description: String
+  icon: String
+  id: ID!
+  isProtected: Boolean
+  isPublic: Boolean
+  isSnoozed: Boolean!
+  messages: [Message!]
+  name: String!
+  permissions: [EntityPermission!]!
+  updatedAt: DateTime!
+  user: User!
+  userBucket: UserBucket
+  userBuckets: [UserBucket!]
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+}
+
+input ConfirmEmailDto {
+  code: String!
+  locale: String
+}
+
+input CreateAccessTokenDto {
+  expiresAt: DateTime
+  name: String!
+  scopes: [String!]
+}
+
+input CreateBucketDto {
+  color: String
+  description: String
+  icon: String
+  isProtected: Boolean
+  isPublic: Boolean
+  name: String!
+}
+
+input CreateMessageDto {
+  actions: [NotificationActionDto!]
+  addDeleteAction: Boolean
+  addMarkAsReadAction: Boolean
+  addOpenNotificationAction: Boolean
+  attachments: [NotificationAttachmentDto!]
+  body: String
+  bucketId: String!
+  collapseId: String
+  deliveryType: NotificationDeliveryType!
+  gifUrl: String
+  groupId: String
+  imageUrl: String
+  locale: String
+  snoozes: [Float!]
+  sound: String
+  subtitle: String
+  tapAction: NotificationActionDto
+  tapUrl: String
+  title: String!
+  userIds: [String!]
+  videoUrl: String
+}
+
+input CreateOAuthProviderDto {
+  additionalConfig: String
+  authorizationUrl: String
+  callbackUrl: String
+  clientId: String!
+  clientSecret: String!
+  color: String
+  iconUrl: String
+  isEnabled: Boolean
+  name: String!
+  profileFields: [String!]
+  providerId: String!
+  scopes: [String!]!
+  textColor: String
+  tokenUrl: String
+  type: OAuthProviderType!
+  userInfoUrl: String
+}
+
+input CreateUserBucketDto {
+  bucketId: String!
+  snoozeUntil: String
+  snoozes: [SnoozeScheduleInput!]
+}
+
+input CreateWebhookDto {
+  body: JSON
+  headers: [WebhookHeaderDto!]!
+  method: HttpMethod!
+  name: String!
+  url: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input DeviceInfoDto {
+  deviceModel: String
+  deviceName: String
+  osVersion: String
+  platform: String
+}
+
+"""Platform types for devices"""
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+type EmailConfirmationResponseDto {
+  message: String!
+  success: Boolean!
+}
+
+type EmailStatusResponseDto {
+  confirmed: Boolean!
+  message: String!
+}
+
+type EntityPermission {
+  createdAt: DateTime!
+  expiresAt: DateTime
+  grantedBy: User
+  id: ID!
+  permissions: [Permission!]!
+  resourceId: String!
+  resourceType: String!
+  updatedAt: DateTime!
+  user: User!
+}
+
+type Event {
+  createdAt: DateTime!
+  id: String!
+  objectId: String
+  type: EventType!
+  userId: String
+}
+
+"""Tipo di evento tracciato"""
+enum EventType {
+  ACCOUNT_DELETE
+  BUCKET_SHARING
+  BUCKET_UNSHARING
+  DEVICE_REGISTER
+  DEVICE_UNREGISTER
+  LOGIN
+  LOGIN_OAUTH
+  LOGOUT
+  MESSAGE
+  NOTIFICATION
+  PUSH_PASSTHROUGH
+  REGISTER
+}
+
+input GetResourcePermissionsInput {
+  resourceId: String!
+  resourceType: ResourceType!
+}
+
+input GrantEntityPermissionInput {
+  expiresAt: String
+  permissions: [Permission!]!
+  resourceId: String!
+  resourceType: ResourceType!
+  userEmail: String
+  userId: String
+  username: String
+}
+
+"""HTTP methods for webhooks"""
+enum HttpMethod {
+  DELETE
+  GET
+  PATCH
+  POST
+  PUT
+}
+
+"""JSON custom scalar type"""
+scalar JSON
+
+input LoginDto {
+  deviceInfo: DeviceInfoDto
+  email: String
+  password: String!
+  username: String
+}
+
+type LoginResponse {
+  accessToken: String!
+  message: String
+  refreshToken: String!
+  user: User!
+}
+
+type MarkAllAsReadResult {
+  success: Boolean!
+  updatedCount: Float!
+}
+
+type MassDeleteResult {
+  deletedCount: Float!
+  success: Boolean!
+}
+
+type MassMarkResult {
+  success: Boolean!
+  updatedCount: Float!
+}
+
+enum MediaType {
+  AUDIO
+  GIF
+  ICON
+  IMAGE
+  VIDEO
+}
+
+type Message {
+  actions: [NotificationAction!]
+  addDeleteAction: Boolean
+  addMarkAsReadAction: Boolean
+  addOpenNotificationAction: Boolean
+  attachmentUuids: [String!]
+  attachments: [MessageAttachment!]
+  body: String
+  bucket: Bucket!
+  bucketId: String!
+  collapseId: String
+  createdAt: DateTime!
+  deliveryType: NotificationDeliveryType!
+  fileAttachments: [Attachment!]
+  groupId: String
+  id: ID!
+  locale: String
+  snoozes: [Float!]
+  sound: String
+  subtitle: String
+  tapAction: NotificationAction
+  title: String!
+  updatedAt: DateTime!
+}
+
+type MessageAttachment {
+  attachmentUuid: String
+  mediaType: MediaType!
+  name: String
+  saveOnServer: Boolean
+  url: String
+}
+
+type Mutation {
+  changePassword(input: ChangePasswordInput!): Boolean!
+  cleanupExpiredPermissions: Float!
+  confirmEmail(input: ConfirmEmailDto!): EmailConfirmationResponseDto!
+  createAccessToken(input: CreateAccessTokenDto!): AccessTokenResponseDto!
+  createBucket(input: CreateBucketDto!): Bucket!
+
+  """
+  Create a new message and send notifications to bucket users (returns the created message).
+  """
+  createMessage(input: CreateMessageDto!): Message!
+  createOAuthProvider(input: CreateOAuthProviderDto!): OAuthProvider!
+  createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String): SystemAccessTokenDto!
+  createUserBucket(createUserBucketInput: CreateUserBucketDto!): UserBucket!
+  createWebhook(input: CreateWebhookDto!): UserWebhook!
+  deleteAccount: Boolean!
+  deleteBucket(id: String!): Boolean!
+  deleteNotification(id: String!): Boolean!
+  deleteOAuthProvider(id: String!): Boolean!
+  deleteWebhook(id: ID!): Boolean!
+  deviceReportNotificationReceived(id: String!): Notification!
+  grantEntityPermission(input: GrantEntityPermissionInput!): EntityPermission!
+  login(input: LoginDto!): LoginResponse!
+  logout: String!
+  markAllNotificationsAsRead: MarkAllAsReadResult!
+  markNotificationAsRead(id: String!): Notification!
+  markNotificationAsReceived(id: String!, userDeviceId: String!): Notification!
+  markNotificationAsUnread(id: String!): Notification!
+  massDeleteNotifications(ids: [String!]!): MassDeleteResult!
+  massMarkNotificationsAsRead(ids: [String!]!): MassMarkResult!
+  massMarkNotificationsAsUnread(ids: [String!]!): MassMarkResult!
+  refreshAccessToken(refreshToken: String!): RefreshTokenResponse!
+  register(input: RegisterDto!): RegisterResponse!
+  registerDevice(input: RegisterDeviceDto!): UserDevice!
+  removeDevice(deviceId: String!): Boolean!
+  removeDeviceByToken(deviceToken: String!): Boolean!
+  removeUserBucket(id: String!): Boolean!
+  requestEmailConfirmation(input: RequestEmailConfirmationDto!): EmailConfirmationResponseDto!
+  requestPasswordReset(input: RequestPasswordResetDto!): PasswordResetResponseDto!
+  resetPassword(input: ResetPasswordDto!): PasswordResetResponseDto!
+  revokeAccessToken(tokenId: String!): Boolean!
+  revokeAllAccessTokens: Boolean!
+  revokeAllOtherSessions: Boolean!
+  revokeEntityPermission(input: RevokeEntityPermissionInput!): Boolean!
+  revokeSession(sessionId: String!): Boolean!
+  revokeSystemToken(id: String!): Boolean!
+  setBucketSnooze(bucketId: String!, snoozeUntil: String): UserBucket!
+  setPassword(input: ChangePasswordInput!): Boolean!
+  shareBucket(input: GrantEntityPermissionInput!): EntityPermission!
+  toggleOAuthProvider(id: String!): OAuthProvider!
+  unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
+  updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
+  updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket!
+  updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
+  updateOAuthProvider(id: String!, input: UpdateOAuthProviderDto!): OAuthProvider!
+  updateProfile(input: UpdateProfileInput!): User!
+  updateReceivedNotifications(id: String!): UpdateReceivedResult!
+  updateUserBucket(id: String!, updateUserBucketInput: UpdateUserBucketDto!): UserBucket!
+  updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
+  updateUserRole(input: UpdateUserRoleInput!): User!
+  updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
+  validateResetToken(resetToken: String!): Boolean!
+}
+
+type Notification {
+  createdAt: DateTime!
+  error: String
+  id: ID!
+  message: Message!
+  readAt: DateTime
+  receivedAt: DateTime
+  sentAt: DateTime
+  updatedAt: DateTime!
+  user: User!
+  userDevice: UserDevice
+  userDeviceId: String
+  userId: String!
+}
+
+type NotificationAction {
+  destructive: Boolean
+  icon: String
+  title: String
+  type: NotificationActionType!
+  value: String!
+}
+
+input NotificationActionDto {
+  destructive: Boolean
+  icon: String
+  title: String
+  type: NotificationActionType!
+  value: String!
+}
+
+enum NotificationActionType {
+  BACKGROUND_CALL
+  DELETE
+  MARK_AS_READ
+  NAVIGATE
+  OPEN_NOTIFICATION
+  SNOOZE
+  WEBHOOK
+}
+
+input NotificationAttachmentDto {
+  attachmentUuid: String
+  mediaType: MediaType!
+  name: String
+  saveOnServer: Boolean
+  url: String
+}
+
+enum NotificationDeliveryType {
+  CRITICAL
+  NORMAL
+  SILENT
+}
+
+type NotificationServiceInfo {
+  devicePlatform: DevicePlatform!
+  service: NotificationServiceType!
+}
+
+"""Type of notification service (Push or Local)"""
+enum NotificationServiceType {
+  LOCAL
+  PUSH
+}
+
+type OAuthProvider {
+  additionalConfig: String
+  authorizationUrl: String
+  callbackUrl: String
+  clientId: String!
+  clientSecret: String!
+  color: String
+  createdAt: DateTime!
+  iconUrl: String
+  id: ID!
+  isEnabled: Boolean!
+  name: String!
+  profileFields: [String!]
+  providerId: String!
+  scopes: [String!]!
+  textColor: String
+  tokenUrl: String
+  type: OAuthProviderType!
+  updatedAt: DateTime!
+  userInfoUrl: String
+}
+
+type OAuthProviderPublicDto {
+  color: String
+  iconUrl: String
+  id: String!
+  name: String!
+  providerId: String!
+  textColor: String
+  type: OAuthProviderType!
+}
+
+"""Type of OAuth provider (GitHub, Google, or custom)"""
+enum OAuthProviderType {
+  CUSTOM
+  GITHUB
+  GOOGLE
+}
+
+type PasswordResetResponseDto {
+  message: String!
+  success: Boolean!
+}
+
+"""Permission enum for bucket access"""
+enum Permission {
+  ADMIN
+  DELETE
+  READ
+  WRITE
+}
+
+type PublicAppConfig {
+  emailEnabled: Boolean!
+  oauthProviders: [OAuthProviderPublicDto!]!
+}
+
+type Query {
+  allOAuthProviders: [OAuthProvider!]!
+  bucket(id: String!): Bucket!
+  bucketPermissions(bucketId: String!): [EntityPermission!]!
+  buckets: [Bucket!]!
+  checkEmailStatus(email: String!): EmailStatusResponseDto!
+  enabledOAuthProviders: [OAuthProviderPublicDto!]!
+  eventCount: Float!
+  events: [Event!]!
+  eventsByObject(objectId: String!): [Event!]!
+  eventsByType(type: EventType!): [Event!]!
+  eventsByUser(userId: String!): [Event!]!
+  getBackendVersion: String!
+  getResourcePermissions(input: GetResourcePermissionsInput!): [EntityPermission!]!
+  getUserAccessTokens: [AccessTokenListDto!]!
+  getUserBucket(bucketId: String!): UserBucket
+  getUserSessions: [SessionInfoDto!]!
+  healthcheck: String!
+  isBucketSnoozed(bucketId: String!): Boolean!
+  listSystemTokens: [SystemAccessTokenDto!]!
+  me: User!
+  notification(id: String!): Notification!
+  notificationServices: [NotificationServiceInfo!]!
+  notifications: [Notification!]!
+  oauthProvider(id: String!): OAuthProvider!
+  publicAppConfig: PublicAppConfig!
+  snoozedBucketIds: [String!]!
+  userBucket(id: String!): UserBucket!
+  userBuckets: [UserBucket!]!
+  userDevice: UserDevice
+  userDevices: [UserDevice!]!
+  userWebhooks: [UserWebhook!]!
+  users: [User!]!
+  webhook(id: ID!): UserWebhook!
+}
+
+type RefreshTokenResponse {
+  accessToken: String!
+  message: String
+  refreshToken: String!
+}
+
+input RegisterDeviceDto {
+  deviceModel: String
+  deviceName: String
+  deviceToken: String
+  onlyLocal: Boolean
+  osVersion: String
+  platform: DevicePlatform!
+  publicKey: String
+  subscriptionFields: WebPushSubscriptionFieldsInput
+}
+
+input RegisterDto {
+  email: String!
+  firstName: String
+  lastName: String
+  locale: String
+  password: String!
+  username: String!
+}
+
+type RegisterResponse {
+  accessToken: String
+  emailConfirmationRequired: Boolean!
+  message: String!
+  refreshToken: String
+  user: User!
+}
+
+input RequestEmailConfirmationDto {
+  email: String!
+  locale: String
+}
+
+input RequestPasswordResetDto {
+  email: String!
+  locale: String
+}
+
+input ResetPasswordDto {
+  newPassword: String!
+  resetToken: String!
+}
+
+"""Type of resource for permissions"""
+enum ResourceType {
+  BUCKET
+  USER_WEBHOOK
+}
+
+input RevokeEntityPermissionInput {
+  resourceId: String!
+  resourceType: ResourceType!
+  userEmail: String
+  userId: String
+  username: String
+}
+
+type SessionInfoDto {
+  browser: String
+  createdAt: DateTime!
+  deviceName: String
+  expiresAt: DateTime!
+  id: ID!
+  ipAddress: String
+  isActive: Boolean!
+  isCurrent: Boolean!
+  lastActivity: DateTime!
+  location: String
+  loginProvider: String
+  operatingSystem: String
+}
+
+type SnoozeSchedule {
+  days: [String!]!
+  isEnabled: Boolean!
+  timeFrom: String!
+  timeTill: String!
+}
+
+input SnoozeScheduleInput {
+  days: [String!]!
+  isEnabled: Boolean!
+  timeFrom: String!
+  timeTill: String!
+}
+
+type Subscription {
+  bucketCreated: Bucket!
+  bucketDeleted: String!
+  bucketUpdated: Bucket!
+  entityPermissionUpdated(bucketId: String): EntityPermission!
+  notificationCreated: Notification!
+  notificationDeleted: String!
+  notificationUpdated: Notification!
+  userBucketUpdated(bucketId: String): UserBucket!
+  userPasswordChanged: Boolean!
+  userProfileUpdated: User!
+}
+
+type SystemAccessTokenDto {
+  calls: Float!
+  createdAt: DateTime!
+  description: String
+  expiresAt: DateTime
+  id: String!
+  maxCalls: Float!
+  rawToken: String
+  requester: User
+  updatedAt: DateTime!
+}
+
+input UpdateBucketDto {
+  color: String
+  description: String
+  icon: String
+  isProtected: Boolean
+  isPublic: Boolean
+  name: String
+}
+
+input UpdateDeviceTokenDto {
+  newDeviceToken: String!
+  oldDeviceToken: String!
+}
+
+input UpdateOAuthProviderDto {
+  additionalConfig: String
+  authorizationUrl: String
+  callbackUrl: String
+  clientId: String
+  clientSecret: String
+  color: String
+  iconUrl: String
+  isEnabled: Boolean
+  name: String
+  profileFields: [String!]
+  providerId: String
+  scopes: [String!]
+  textColor: String
+  tokenUrl: String
+  type: OAuthProviderType
+  userInfoUrl: String
+}
+
+input UpdateProfileInput {
+  avatar: String
+  firstName: String
+  lastName: String
+}
+
+type UpdateReceivedResult {
+  success: Boolean!
+  updatedCount: Float!
+}
+
+input UpdateUserBucketDto {
+  bucketId: String
+  snoozeUntil: String
+  snoozes: [SnoozeScheduleInput!]
+}
+
+input UpdateUserDeviceInput {
+  deviceId: String!
+  deviceModel: String
+  deviceName: String
+  deviceToken: String
+  osVersion: String
+  subscriptionFields: WebPushSubscriptionFieldsInput
+}
+
+input UpdateUserRoleInput {
+  role: UserRole!
+  userId: String!
+}
+
+input UpdateWebhookDto {
+  body: JSON
+  headers: [WebhookHeaderDto!]
+  method: HttpMethod
+  name: String
+  url: String
+}
+
+type User {
+  accessTokens: [UserAccessToken!]
+  avatar: String
+  buckets: [Bucket!]
+  createdAt: DateTime!
+  devices: [UserDevice!]
+  email: String!
+  emailConfirmationToken: String
+  emailConfirmationTokenRequestedAt: DateTime
+  emailConfirmed: Boolean!
+  firstName: String
+  hasPassword: Boolean!
+  id: ID!
+  identities: [UserIdentity!]
+  lastName: String
+  resetToken: String
+  resetTokenRequestedAt: DateTime
+  role: UserRole!
+  sessions: [UserSession!]
+  updatedAt: DateTime!
+  userBuckets: [UserBucket!]
+  username: String!
+  webhooks: [UserWebhook!]
+}
+
+type UserAccessToken {
+  createdAt: DateTime!
+  expiresAt: DateTime
+  id: String!
+  isExpired: Boolean!
+  lastUsed: DateTime
+  name: String!
+  scopes: [String!]
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+}
+
+type UserBucket {
+  bucket: Bucket!
+  bucketId: String!
+  createdAt: DateTime!
+  id: ID!
+  snoozeUntil: DateTime
+  snoozes: [SnoozeSchedule!]
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+}
+
+type UserDevice {
+  createdAt: DateTime!
+  deviceModel: String
+  deviceName: String
+  deviceToken: String
+  id: ID!
+  lastUsed: DateTime!
+  onlyLocal: Boolean!
+  osVersion: String
+  platform: String!
+  privateKey: String
+  publicKey: String
+  subscriptionFields: WebPushSubscriptionFields
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+}
+
+type UserIdentity {
+  avatarUrl: String
+  createdAt: DateTime!
+  email: String
+  id: ID!
+  provider: String!
+  providerId: String!
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+}
+
+"""User role enum"""
+enum UserRole {
+  ADMIN
+  MODERATOR
+  USER
+}
+
+type UserSession {
+  browser: String
+  createdAt: DateTime!
+  deviceName: String
+  expiresAt: DateTime!
+  id: ID!
+  ipAddress: String
+  isActive: Boolean!
+  lastActivity: DateTime
+  loginProvider: String
+  operatingSystem: String
+  tokenId: String!
+  updatedAt: DateTime!
+  user: User!
+  userAgent: String
+  userId: String!
+}
+
+type UserWebhook {
+  body: JSON
+  createdAt: DateTime!
+  headers: [WebhookHeader!]!
+  id: ID!
+  method: HttpMethod!
+  name: String!
+  updatedAt: DateTime!
+  url: String!
+  user: User!
+}
+
+type WebPushSubscriptionFields {
+  auth: String
+  endpoint: String
+  p256dh: String
+}
+
+input WebPushSubscriptionFieldsInput {
+  auth: String
+  endpoint: String
+  p256dh: String
+}
+
+type WebhookHeader {
+  key: String!
+  value: String!
+}
+
+input WebhookHeaderDto {
+  key: String!
+  value: String!
+}

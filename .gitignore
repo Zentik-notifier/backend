@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Keys and certificates (SECURITY)
+keys/*.p8
+keys/*.pem
+keys/*.json
+keys/*.key
+keys/*.crt
+keys/*.p12
+keys/apn-key.p8
+!keys/README.md
+
+# Uploads
+uploads/
+temp/
+tmp/
+
+# Database
+*.sqlite
+*.db
+
+# Test files
+test-results/
+coverage/

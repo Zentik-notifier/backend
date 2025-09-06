@@ -1,0 +1,43 @@
+{
+  "email": {
+    "passwordReset": {
+      "subject": "Richiesta Reset Password - Zentik",
+      "title": "Richiesta Reset Password",
+      "description": "Hai richiesto un reset della password per il tuo account Zentik.",
+      "codeInstructions": "Usa il seguente codice di 6 caratteri per reimpostare la password:",
+      "important": "Importante:",
+      "instructions1": "Inserisci questo codice di 6 caratteri nel form di reset password nell'app Zentik",
+      "instructions2": "Questo codice scadrà tra 24 ore",
+      "instructions3": "Se non hai richiesto questo reset, ignora questa email",
+      "regards": "Cordiali saluti,",
+      "team": "Il Team Zentik"
+    },
+    "welcome": {
+      "subject": "Benvenuto su Zentik!",
+      "title": "Benvenuto su Zentik, {{username}}!",
+      "description": "Grazie per esserti registrato su Zentik. Siamo entusiasti di averti con noi!",
+      "instructions": "Ora puoi iniziare a gestire le tue notifiche e i tuoi bucket.",
+      "regards": "Cordiali saluti,",
+      "team": "Il Team Zentik"
+    },
+    "confirmation": {
+      "subject": "Conferma la tua Email - Zentik",
+      "title": "Conferma Email",
+      "description": "Conferma il tuo indirizzo email per completare la registrazione su Zentik.",
+      "codeInstructions": "Usa il seguente codice di conferma per verificare la tua email:",
+      "important": "Importante:",
+      "instructions1": "Inserisci questo codice di conferma nell'app Zentik per verificare la tua email",
+      "instructions2": "Questo codice scadrà tra 24 ore",
+      "regards": "Cordiali saluti,",
+      "team": "Il Team Zentik"
+    }
+  },
+  "notifications": {
+    "actions": {
+      "markAsRead": "Segna come letto",
+      "open": "Apri",
+      "delete": "Elimina",
+      "snooze": "Sospendi {{minutes}} minuti"
+    }
+  }
+}

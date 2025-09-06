@@ -1,0 +1,5539 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "AppController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "operationId": "AppController_getVersion",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/api/v1/public/app-config": {
+      "get": {
+        "operationId": "AppController_getPublicAppConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "summary": "User registration",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid credentials"
+          }
+        },
+        "summary": "Login user",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refreshToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshTokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid refresh token"
+          }
+        },
+        "summary": "Refresh access token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/providers": {
+      "get": {
+        "operationId": "AuthController_getEnabledProviders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of enabled OAuth providers with public info"
+          },
+          "500": {
+            "description": "Failed to retrieve OAuth providers"
+          }
+        },
+        "summary": "List enabled external auth providers from database",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/profile": {
+      "get": {
+        "operationId": "AuthController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user profile",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "patch": {
+        "operationId": "AuthController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update user profile",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid current password"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change password",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/set-password": {
+      "post": {
+        "operationId": "AuthController_setPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password set successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "User already has a password"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set password for OAuth users",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/my-identities": {
+      "get": {
+        "operationId": "AuthController_getMyIdentities",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User OAuth identities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserIdentity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get OAuth identities for current user",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/{provider}": {
+      "get": {
+        "operationId": "AuthController_startOAuth",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect to provider for authentication"
+          },
+          "400": {
+            "description": "Provider not found or disabled"
+          }
+        },
+        "summary": "Start OAuth flow for provider",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/{provider}/callback": {
+      "get": {
+        "operationId": "AuthController_providerCallback",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "OAuth callback for provider",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/request-password-reset": {
+      "post": {
+        "operationId": "AuthController_requestPasswordReset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestPasswordResetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset request processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid email or rate limited"
+          }
+        },
+        "summary": "Request password reset",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/validate-reset-token": {
+      "post": {
+        "operationId": "AuthController_validateResetToken",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Token validation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Validate reset token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid token or password"
+          }
+        },
+        "summary": "Reset password with token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Logout user",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/validate": {
+      "get": {
+        "operationId": "AuthController_validateToken",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Token is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Validate access token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/request-email-confirmation": {
+      "post": {
+        "operationId": "AuthController_requestEmailConfirmation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestEmailConfirmationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email confirmation requested successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Request email confirmation",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/confirm-email": {
+      "post": {
+        "operationId": "AuthController_confirmEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email confirmed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid or expired code"
+          }
+        },
+        "summary": "Confirm email with code",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/email-status/{email}": {
+      "get": {
+        "operationId": "AuthController_checkEmailStatus",
+        "parameters": [
+          {
+            "name": "email",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "confirmed": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check email confirmation status",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/access-tokens": {
+      "post": {
+        "operationId": "AccessTokenController_createAccessToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccessTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Access token created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new access token",
+        "tags": [
+          "Access Tokens"
+        ]
+      },
+      "get": {
+        "operationId": "AccessTokenController_getUserAccessTokens",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Access tokens retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessTokenListDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all access tokens for the current user",
+        "tags": [
+          "Access Tokens"
+        ]
+      },
+      "delete": {
+        "operationId": "AccessTokenController_revokeAllAccessTokens",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All access tokens revoked successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke all access tokens for the current user",
+        "tags": [
+          "Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/access-tokens/{tokenId}": {
+      "delete": {
+        "operationId": "AccessTokenController_revokeAccessToken",
+        "parameters": [
+          {
+            "name": "tokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access token revoked successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke a specific access token",
+        "tags": [
+          "Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/sessions": {
+      "get": {
+        "operationId": "SessionController_getUserSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionInfoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all active sessions for the current user",
+        "tags": [
+          "Sessions"
+        ]
+      },
+      "delete": {
+        "operationId": "SessionController_revokeAllOtherSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All other sessions revoked successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke all sessions except current one",
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "SessionController_revokeSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session revoked successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke a specific session",
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/api/v1/oauth-providers": {
+      "post": {
+        "operationId": "OAuthProvidersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOAuthProviderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OAuth provider created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProvider"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "409": {
+            "description": "Provider with same providerId already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new OAuth provider (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      },
+      "get": {
+        "operationId": "OAuthProvidersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of all OAuth providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OAuthProvider"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all OAuth providers (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      }
+    },
+    "/api/v1/oauth-providers/{id}": {
+      "get": {
+        "operationId": "OAuthProvidersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "OAuth provider ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth provider found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProvider"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "OAuth provider not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get OAuth provider by ID (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      },
+      "patch": {
+        "operationId": "OAuthProvidersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "OAuth provider ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOAuthProviderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth provider updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProvider"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "OAuth provider not found"
+          },
+          "409": {
+            "description": "Provider with same providerId already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update OAuth provider (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      },
+      "delete": {
+        "operationId": "OAuthProvidersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "OAuth provider ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OAuth provider deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "OAuth provider not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete OAuth provider (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      }
+    },
+    "/api/v1/oauth-providers/by-provider/{providerId}": {
+      "get": {
+        "operationId": "OAuthProvidersController_findByProviderId",
+        "parameters": [
+          {
+            "name": "providerId",
+            "required": true,
+            "in": "path",
+            "description": "OAuth provider identifier (e.g., github, google)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth provider found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProvider"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "OAuth provider not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get OAuth provider by provider ID (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      }
+    },
+    "/api/v1/oauth-providers/{id}/toggle": {
+      "patch": {
+        "operationId": "OAuthProvidersController_toggleEnabled",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "OAuth provider ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth provider status toggled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProvider"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "OAuth provider not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Toggle OAuth provider enabled status (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      }
+    },
+    "/api/v1/oauth-providers/{id}/config": {
+      "get": {
+        "operationId": "OAuthProvidersController_getProviderConfig",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "OAuth provider ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth provider configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "clientSecret": {
+                      "type": "string"
+                    },
+                    "callbackUrl": {
+                      "type": "string"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "GITHUB",
+                        "GOOGLE",
+                        "CUSTOM"
+                      ]
+                    },
+                    "authorizationUrl": {
+                      "type": "string"
+                    },
+                    "tokenUrl": {
+                      "type": "string"
+                    },
+                    "userInfoUrl": {
+                      "type": "string"
+                    },
+                    "profileFields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalConfig": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "OAuth provider not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get OAuth provider configuration for authentication (Admin only)",
+        "tags": [
+          "OAuth Providers"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "EventsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/api/v1/events/count": {
+      "get": {
+        "operationId": "EventsController_getEventCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/api/v1/events/by-type": {
+      "get": {
+        "operationId": "EventsController_findByType",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/api/v1/events/by-user": {
+      "get": {
+        "operationId": "EventsController_findByUserId",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/api/v1/events/by-object": {
+      "get": {
+        "operationId": "EventsController_findByObjectId",
+        "parameters": [
+          {
+            "name": "objectId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all notifications for the authenticated user",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark notification as read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/unread": {
+      "patch": {
+        "operationId": "NotificationsController_markAsUnread",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark notification as unread",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/mark-all-read": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All notifications marked as read successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all unread notifications as read for the authenticated user",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "delete": {
+        "operationId": "NotificationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/sent": {
+      "patch": {
+        "operationId": "NotificationsController_markAsSent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/update-received": {
+      "patch": {
+        "operationId": "NotificationsController_updateReceived",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all notifications older than the given one as received",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/received": {
+      "patch": {
+        "operationId": "NotificationsController_markAsReceived",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark notification as received by a specific device",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/device-received": {
+      "patch": {
+        "operationId": "NotificationsController_deviceReportReceived",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Device reports a notification as received using device token",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/notification-services": {
+      "get": {
+        "description": "Returns which notification services are available and enabled for each platform",
+        "operationId": "NotificationsController_getNotificationServices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Available notification services for all platforms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all available notification services for all platforms",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/notify-external": {
+      "post": {
+        "operationId": "NotificationsController_notifyExternal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalNotifyRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Push triggered"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a push notification externally via system access token (stateless)",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "operationId": "UsersController_getAllUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of all users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all users",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/{userId}/role": {
+      "patch": {
+        "operationId": "UsersController_updateUserRole",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User role updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update user role",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/{userId}": {
+      "get": {
+        "operationId": "UsersController_getUserById",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user by ID",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/devices": {
+      "post": {
+        "operationId": "UsersController_registerDevice",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Device registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDevice"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Register a device for push notifications",
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_getUserDevices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of user devices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserDevice"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get all registered devices for user",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/devices/{deviceId}": {
+      "delete": {
+        "operationId": "UsersController_removeDevice",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device removed successfully"
+          }
+        },
+        "summary": "Remove a registered device",
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateUserDevice",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDeviceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Device updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDevice"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found"
+          }
+        },
+        "summary": "Update device information",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/devices/token": {
+      "patch": {
+        "operationId": "UsersController_updateDeviceToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeviceTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Device token updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDevice"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update device token by previous token",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/account": {
+      "delete": {
+        "operationId": "UsersController_deleteAccount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User account deleted successfully"
+          }
+        },
+        "summary": "Delete user account and all associated data",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/entity-permissions/resource-permissions": {
+      "get": {
+        "operationId": "EntityPermissionsController_getResourcePermissions",
+        "parameters": [
+          {
+            "name": "resourceType",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resource permissions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntityPermission"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get permissions for a specific resource",
+        "tags": [
+          "Entity Permissions"
+        ]
+      }
+    },
+    "/api/v1/entity-permissions/grant": {
+      "post": {
+        "operationId": "EntityPermissionsController_grantPermissions",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantEntityPermissionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Permissions granted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityPermission"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Grant permissions to a user for a resource",
+        "tags": [
+          "Entity Permissions"
+        ]
+      }
+    },
+    "/api/v1/entity-permissions/revoke": {
+      "delete": {
+        "operationId": "EntityPermissionsController_revokePermissions",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeEntityPermissionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permissions revoked successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke permissions from a user for a resource",
+        "tags": [
+          "Entity Permissions"
+        ]
+      }
+    },
+    "/api/v1/entity-permissions/cleanup-expired": {
+      "post": {
+        "operationId": "EntityPermissionsController_cleanupExpiredPermissions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Expired permissions cleaned up successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clean up expired permissions",
+        "tags": [
+          "Entity Permissions"
+        ]
+      }
+    },
+    "/api/v1/user-buckets": {
+      "post": {
+        "operationId": "UserBucketsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserBucketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User bucket created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserBucket"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User bucket relationship already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new user bucket relationship",
+        "tags": [
+          "User Buckets"
+        ]
+      },
+      "get": {
+        "operationId": "UserBucketsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of user buckets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserBucket"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all user buckets for the current user",
+        "tags": [
+          "User Buckets"
+        ]
+      }
+    },
+    "/api/v1/user-buckets/{id}": {
+      "get": {
+        "operationId": "UserBucketsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User bucket found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserBucket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a specific user bucket by ID",
+        "tags": [
+          "User Buckets"
+        ]
+      },
+      "patch": {
+        "operationId": "UserBucketsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserBucketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User bucket updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserBucket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a user bucket",
+        "tags": [
+          "User Buckets"
+        ]
+      },
+      "delete": {
+        "operationId": "UserBucketsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User bucket deleted successfully"
+          },
+          "404": {
+            "description": "User bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a user bucket",
+        "tags": [
+          "User Buckets"
+        ]
+      }
+    },
+    "/api/v1/user-buckets/bucket/{bucketId}/snooze-status": {
+      "get": {
+        "operationId": "UserBucketsController_getSnoozeStatus",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snooze status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check if a bucket is snoozed for the current user",
+        "tags": [
+          "User Buckets"
+        ]
+      }
+    },
+    "/api/v1/user-buckets/bucket/{bucketId}/snooze": {
+      "post": {
+        "operationId": "UserBucketsController_setBucketSnooze",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bucket snooze set successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserBucket"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Bucket snooze created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserBucket"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set bucket snooze for the current user",
+        "tags": [
+          "User Buckets"
+        ]
+      }
+    },
+    "/api/v1/user-buckets/snoozed-bucket-ids": {
+      "get": {
+        "operationId": "UserBucketsController_getSnoozedBucketIds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of snoozed bucket IDs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all snoozed bucket IDs for the current user",
+        "tags": [
+          "User Buckets"
+        ]
+      }
+    },
+    "/api/v1/messages": {
+      "post": {
+        "description": "Supports multiple content types and data sources. Data can be combined from body, query parameters, path parameters, and headers (x-message-*). Headers take highest precedence, followed by path params, query params, and body.",
+        "operationId": "MessagesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": false,
+          "description": "Message data (optional when using other sources)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageDto"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageDto"
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notifications created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid data or missing required fields"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a message and send notifications",
+        "tags": [
+          "Messages"
+        ]
+      },
+      "get": {
+        "description": "Create and send a message using GET parameters. Requires access token authentication (Bearer zat_...).",
+        "operationId": "MessagesController_sendMessage",
+        "parameters": [
+          {
+            "name": "title",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subtitle",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachments",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/NotificationAttachmentDto"
+              }
+            }
+          },
+          {
+            "name": "actions",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/NotificationActionDto"
+              }
+            }
+          },
+          {
+            "name": "tapAction",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/NotificationActionDto"
+            }
+          },
+          {
+            "name": "sound",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryType",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SILENT",
+                "NORMAL",
+                "CRITICAL"
+              ]
+            }
+          },
+          {
+            "name": "addMarkAsReadAction",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "addOpenNotificationAction",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "addDeleteAction",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "snoozes",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bucketId",
+            "required": true,
+            "in": "query",
+            "description": "Bucket ID or name. If a name is provided, the system will find the corresponding bucket by name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "description": "Optional group ID for notification grouping, falls back to bucketId if not provided",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "collapseId",
+            "required": false,
+            "in": "query",
+            "description": "Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userIds",
+            "required": false,
+            "in": "query",
+            "description": "Optional array of user IDs or usernames to filter notifications to specific users only. If usernames are provided, the system will find the corresponding users by username.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "imageUrl",
+            "required": false,
+            "in": "query",
+            "description": "Optional image URL. If provided, will automatically create an image attachment.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "videoUrl",
+            "required": false,
+            "in": "query",
+            "description": "Optional video URL. If provided, will automatically create a video attachment.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gifUrl",
+            "required": false,
+            "in": "query",
+            "description": "Optional GIF URL. If provided, will automatically create a GIF attachment.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tapUrl",
+            "required": false,
+            "in": "query",
+            "description": "Optional tap URL. If provided, will automatically set the tapAction to NAVIGATE with this URL.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters"
+          },
+          "401": {
+            "description": "Invalid or missing access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a message via GET request",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/messages/with-attachment": {
+      "post": {
+        "operationId": "MessagesController_createWithAttachment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageWithAttachmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message created successfully with attachment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Attachments are currently disabled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a message with an uploaded attachment and send notifications",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/system-access-tokens": {
+      "post": {
+        "operationId": "SystemAccessTokenController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create system access token",
+        "tags": [
+          "System Access Tokens"
+        ]
+      },
+      "get": {
+        "operationId": "SystemAccessTokenController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "System Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/system-access-tokens/{id}": {
+      "delete": {
+        "operationId": "SystemAccessTokenController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "System Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/attachments/upload": {
+      "post": {
+        "operationId": "AttachmentsController_uploadAttachment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadAttachmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attachment uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "403": {
+            "description": "Attachments are currently disabled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a new attachment (independent of message)",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
+    "/api/v1/attachments/download-from-url": {
+      "post": {
+        "operationId": "AttachmentsController_downloadFromUrl",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadFromUrlDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attachment downloaded and saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download and save attachment from URL",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
+    "/api/v1/attachments/{id}": {
+      "get": {
+        "operationId": "AttachmentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Attachment not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a specific attachment by ID",
+        "tags": [
+          "Attachments"
+        ]
+      },
+      "delete": {
+        "operationId": "AttachmentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment deleted successfully"
+          },
+          "404": {
+            "description": "Attachment not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an attachment",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
+    "/api/v1/attachments/{id}/download": {
+      "get": {
+        "operationId": "AttachmentsController_downloadFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File downloaded successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Attachment not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download attachment file (requires authentication)",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
+    "/api/v1/attachments/{id}/download/public": {
+      "get": {
+        "operationId": "AttachmentsController_downloadFilePublic",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File downloaded successfully"
+          },
+          "404": {
+            "description": "Attachment not found"
+          }
+        },
+        "summary": "Download attachment file (public access)",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
+    "/api/v1/attachments/message/{messageId}": {
+      "get": {
+        "operationId": "AttachmentsController_findByMessage",
+        "parameters": [
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of attachments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Attachment"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all attachments for a specific message",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
+    "/api/v1/buckets": {
+      "post": {
+        "operationId": "BucketsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBucketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bucket created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bucket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "One or more devices not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new bucket with optional device associations",
+        "tags": [
+          "Buckets"
+        ]
+      },
+      "get": {
+        "operationId": "BucketsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of buckets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Bucket"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all buckets for the authenticated user",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
+    "/api/v1/buckets/{id}": {
+      "get": {
+        "operationId": "BucketsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bucket details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bucket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a specific bucket by ID",
+        "tags": [
+          "Buckets"
+        ]
+      },
+      "patch": {
+        "operationId": "BucketsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBucketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bucket updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bucket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bucket not found or one or more devices not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a bucket and its device associations",
+        "tags": [
+          "Buckets"
+        ]
+      },
+      "delete": {
+        "operationId": "BucketsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bucket deleted successfully"
+          },
+          "404": {
+            "description": "Bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a bucket",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
+    "/api/v1/buckets/{id}/notifications/count": {
+      "get": {
+        "operationId": "BucketsController_getNotificationsCount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the count of notifications for a bucket",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
+    "/api/v1/webhooks": {
+      "get": {
+        "operationId": "WebhooksController_getUserWebhooks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of webhooks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserWebhook"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all webhooks for the authenticated user",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/api/v1/webhooks/{id}": {
+      "get": {
+        "operationId": "WebhooksController_getWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserWebhook"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Webhook not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get webhook by ID",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Zentik API",
+    "description": "The Zentik notification API",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address for registration"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username for registration",
+            "minLength": 3,
+            "maxLength": 30
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for registration",
+            "minLength": 6,
+            "maxLength": 100
+          },
+          "firstName": {
+            "type": "string",
+            "description": "First name",
+            "maxLength": 50
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name",
+            "maxLength": 50
+          },
+          "locale": {
+            "type": "string",
+            "description": "Preferred locale for the user",
+            "example": "en-EN"
+          }
+        },
+        "required": [
+          "email",
+          "username",
+          "password"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-string"
+          },
+          "email": {
+            "type": "string",
+            "example": "john@example.com"
+          },
+          "username": {
+            "type": "string",
+            "example": "john_doe"
+          },
+          "hasPassword": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the user has a password set"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe"
+          },
+          "avatar": {
+            "type": "string",
+            "example": "https://example.com/avatar.jpg"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "moderator",
+              "admin"
+            ],
+            "default": "user"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "resetToken": {
+            "type": "object"
+          },
+          "resetTokenRequestedAt": {
+            "type": "object"
+          },
+          "emailConfirmationToken": {
+            "type": "object"
+          },
+          "emailConfirmationTokenRequestedAt": {
+            "type": "object"
+          },
+          "emailConfirmed": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the user email is confirmed"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "username",
+          "hasPassword",
+          "role",
+          "createdAt",
+          "updatedAt",
+          "emailConfirmed"
+        ]
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Registration completed successfully"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "emailConfirmationRequired": {
+            "type": "boolean",
+            "description": "If true, the client must guide the user through email confirmation",
+            "example": true
+          },
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "message",
+          "user",
+          "emailConfirmationRequired"
+        ]
+      },
+      "DeviceInfoDto": {
+        "type": "object",
+        "properties": {
+          "deviceName": {
+            "type": "string",
+            "example": "iPhone 15 Pro"
+          },
+          "deviceModel": {
+            "type": "string",
+            "example": "iPhone 15 Pro"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "IOS",
+              "ANDROID",
+              "WEB"
+            ],
+            "example": "ios"
+          },
+          "osVersion": {
+            "type": "string",
+            "example": "17.0.1"
+          }
+        }
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address for login (required if username not provided)"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username for login (required if email not provided)"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for login",
+            "minLength": 3
+          },
+          "deviceInfo": {
+            "description": "Device information for session tracking",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceInfoDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Login successful"
+          },
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token for authentication renewal"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "RefreshTokenResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Token refreshed successfully"
+          },
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ]
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User profile"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "First name",
+            "maxLength": 50
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name",
+            "maxLength": 50
+          },
+          "avatar": {
+            "type": "string",
+            "description": "Avatar URL",
+            "example": "https://example.com/avatar.jpg"
+          }
+        }
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "Current password for verification"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "New password to set",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Operation completed successfully"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "SetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "description": "New password to set",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "newPassword"
+        ]
+      },
+      "UserIdentity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-string"
+          },
+          "provider": {
+            "type": "string",
+            "example": "github"
+          },
+          "providerId": {
+            "type": "string",
+            "example": "123456"
+          },
+          "email": {
+            "type": "object",
+            "example": "octocat@example.com"
+          },
+          "avatarUrl": {
+            "type": "object",
+            "example": "https://avatars.githubusercontent.com/u/1"
+          },
+          "userId": {
+            "type": "string",
+            "example": "uuid-string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "providerId",
+          "userId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "RequestPasswordResetDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address for password reset"
+          },
+          "locale": {
+            "type": "string",
+            "description": "Preferred language for email content (e.g., en-EN, it-IT)",
+            "default": "en-EN",
+            "example": "en-EN"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "resetToken": {
+            "type": "string",
+            "description": "Reset token received via email"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "New password",
+            "minLength": 8,
+            "example": "newSecurePassword123"
+          }
+        },
+        "required": [
+          "resetToken",
+          "newPassword"
+        ]
+      },
+      "RequestEmailConfirmationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ConfirmEmailDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateAccessTokenDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name/description for the access token"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Expiration date for the token (optional, null for never expires)"
+          },
+          "scopes": {
+            "description": "Optional scopes/permissions for the token",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "AccessTokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The generated access token (only shown once)"
+          },
+          "id": {
+            "type": "string",
+            "description": "Token ID for management"
+          },
+          "name": {
+            "type": "string",
+            "description": "Token name/description"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Token expiration date"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Token creation date"
+          }
+        },
+        "required": [
+          "token",
+          "id",
+          "name",
+          "createdAt"
+        ]
+      },
+      "AccessTokenListDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Token ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Token name/description"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Token expiration date"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Token creation date"
+          },
+          "lastUsed": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last time the token was used"
+          },
+          "isExpired": {
+            "type": "boolean",
+            "description": "Whether the token is expired"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "isExpired"
+        ]
+      },
+      "SessionInfoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Session ID"
+          },
+          "deviceName": {
+            "type": "string",
+            "description": "Device name or description"
+          },
+          "operatingSystem": {
+            "type": "string",
+            "description": "Operating system"
+          },
+          "browser": {
+            "type": "string",
+            "description": "Browser name and version"
+          },
+          "ipAddress": {
+            "type": "string",
+            "description": "IP address"
+          },
+          "loginProvider": {
+            "type": "string",
+            "description": "OAuth provider used for login (e.g., github, google, local)"
+          },
+          "location": {
+            "type": "string",
+            "description": "Geographic location"
+          },
+          "lastActivity": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last activity timestamp"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Session creation timestamp"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Session expiration time"
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether this is the current session"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the session is active"
+          }
+        },
+        "required": [
+          "id",
+          "deviceName",
+          "operatingSystem",
+          "browser",
+          "ipAddress",
+          "loginProvider",
+          "location",
+          "lastActivity",
+          "createdAt",
+          "expiresAt",
+          "isCurrent",
+          "isActive"
+        ]
+      },
+      "OAuthProviderType": {
+        "type": "string",
+        "enum": [
+          "GITHUB",
+          "GOOGLE",
+          "CUSTOM"
+        ],
+        "description": "The type of provider (GitHub, Google, or custom)"
+      },
+      "CreateOAuthProviderDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the OAuth provider"
+          },
+          "providerId": {
+            "type": "string",
+            "description": "The unique identifier for the provider (e.g., github, google, custom)"
+          },
+          "type": {
+            "description": "The type of provider (GitHub, Google, or custom)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OAuthProviderType"
+              }
+            ]
+          },
+          "clientId": {
+            "type": "string",
+            "description": "The OAuth client ID"
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "The OAuth client secret"
+          },
+          "callbackUrl": {
+            "type": "string",
+            "description": "Custom callback URL (if not using default)"
+          },
+          "scopes": {
+            "description": "Array of OAuth scopes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Whether the provider is currently enabled"
+          },
+          "iconUrl": {
+            "type": "string",
+            "description": "Icon URL for the provider"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the provider (e.g., #FF5733)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#0a7ea4"
+          },
+          "textColor": {
+            "type": "string",
+            "description": "Hex color code for the provider text (e.g., #FFFFFF)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#FFFFFF"
+          },
+          "authorizationUrl": {
+            "type": "string",
+            "description": "Authorization URL for custom OAuth provider"
+          },
+          "tokenUrl": {
+            "type": "string",
+            "description": "Token URL for custom OAuth provider"
+          },
+          "userInfoUrl": {
+            "type": "string",
+            "description": "User info URL for custom OAuth provider"
+          },
+          "profileFields": {
+            "description": "Profile fields mapping for custom OAuth provider",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "additionalConfig": {
+            "type": "string",
+            "description": "Additional configuration as JSON string"
+          }
+        },
+        "required": [
+          "name",
+          "providerId",
+          "type",
+          "clientId",
+          "clientSecret",
+          "scopes"
+        ]
+      },
+      "OAuthProvider": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the OAuth provider"
+          },
+          "providerId": {
+            "type": "string",
+            "description": "The unique identifier for the provider (e.g., github, google, custom)"
+          },
+          "type": {
+            "description": "The type of provider (GitHub, Google, or custom)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OAuthProviderType"
+              }
+            ]
+          },
+          "clientId": {
+            "type": "string",
+            "description": "The OAuth client ID"
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "The OAuth client secret"
+          },
+          "callbackUrl": {
+            "type": "string",
+            "description": "Custom callback URL (if not using default)"
+          },
+          "scopes": {
+            "description": "Array of OAuth scopes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Whether the provider is currently enabled"
+          },
+          "iconUrl": {
+            "type": "string",
+            "description": "Icon URL for the provider"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the provider (e.g., #FF5733)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#0a7ea4"
+          },
+          "textColor": {
+            "type": "string",
+            "description": "Hex color code for the provider text (e.g., #FFFFFF)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#FFFFFF"
+          },
+          "authorizationUrl": {
+            "type": "string",
+            "description": "Authorization URL for custom OAuth provider"
+          },
+          "tokenUrl": {
+            "type": "string",
+            "description": "Token URL for custom OAuth provider"
+          },
+          "userInfoUrl": {
+            "type": "string",
+            "description": "User info URL for custom OAuth provider"
+          },
+          "profileFields": {
+            "description": "Profile fields mapping for custom OAuth provider",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "additionalConfig": {
+            "type": "string",
+            "description": "Additional configuration as JSON string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "providerId",
+          "type",
+          "clientId",
+          "clientSecret",
+          "callbackUrl",
+          "scopes",
+          "isEnabled",
+          "iconUrl",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateOAuthProviderDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the OAuth provider"
+          },
+          "providerId": {
+            "type": "string",
+            "description": "The unique identifier for the provider (e.g., github, google, custom)"
+          },
+          "type": {
+            "description": "The type of provider (GitHub, Google, or custom)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OAuthProviderType"
+              }
+            ]
+          },
+          "clientId": {
+            "type": "string",
+            "description": "The OAuth client ID"
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "The OAuth client secret"
+          },
+          "callbackUrl": {
+            "type": "string",
+            "description": "Custom callback URL (if not using default)"
+          },
+          "scopes": {
+            "description": "Array of OAuth scopes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Whether the provider is currently enabled"
+          },
+          "iconUrl": {
+            "type": "string",
+            "description": "Icon URL for the provider"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the provider (e.g., #FF5733)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#0a7ea4"
+          },
+          "textColor": {
+            "type": "string",
+            "description": "Hex color code for the provider text (e.g., #FFFFFF)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#FFFFFF"
+          },
+          "authorizationUrl": {
+            "type": "string",
+            "description": "Authorization URL for custom OAuth provider"
+          },
+          "tokenUrl": {
+            "type": "string",
+            "description": "Token URL for custom OAuth provider"
+          },
+          "userInfoUrl": {
+            "type": "string",
+            "description": "User info URL for custom OAuth provider"
+          },
+          "profileFields": {
+            "description": "Profile fields mapping for custom OAuth provider",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "additionalConfig": {
+            "type": "string",
+            "description": "Additional configuration as JSON string"
+          }
+        }
+      },
+      "SnoozeSchedule": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "description": "Days of the week when snooze is active",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timeFrom": {
+            "type": "string",
+            "description": "Start time for snooze period"
+          },
+          "timeTill": {
+            "type": "string",
+            "description": "End time for snooze period"
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Whether this snooze schedule is enabled"
+          }
+        },
+        "required": [
+          "days",
+          "timeFrom",
+          "timeTill",
+          "isEnabled"
+        ]
+      },
+      "UserBucket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/Bucket"
+          },
+          "bucketId": {
+            "type": "string"
+          },
+          "snoozeUntil": {
+            "type": "object",
+            "description": "Date until which notifications from this bucket are snoozed"
+          },
+          "snoozes": {
+            "description": "Array of snooze schedules for recurring snooze periods",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnoozeSchedule"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user",
+          "userId",
+          "bucket",
+          "bucketId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "EntityPermission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "Type of the resource (e.g., bucket, notification, user_webhook)"
+          },
+          "resourceId": {
+            "type": "string",
+            "description": "ID of the resource"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "grantedBy": {
+            "description": "User who granted these permissions",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              }
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "delete",
+                "admin"
+              ]
+            }
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Optional expiration date for the permissions"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "resourceType",
+          "resourceId",
+          "user",
+          "permissions",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Bucket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the bucket (e.g., #FF5733)"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "Whether the bucket is protected from deletion",
+            "default": false
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the bucket is publicly accessible",
+            "default": false
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "userBuckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserBucket"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityPermission"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "user",
+          "messages",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "fileAttachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "attachmentUuids": {
+            "description": "List of attachment UUIDs for this message",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tapAction": {
+            "type": "object"
+          },
+          "sound": {
+            "type": "string"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "SILENT",
+              "NORMAL",
+              "CRITICAL"
+            ]
+          },
+          "addMarkAsReadAction": {
+            "type": "boolean"
+          },
+          "addOpenNotificationAction": {
+            "type": "boolean"
+          },
+          "addDeleteAction": {
+            "type": "boolean"
+          },
+          "snoozes": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/Bucket"
+          },
+          "bucketId": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string",
+            "description": "Optional group ID for notification grouping, falls back to bucketId if not provided"
+          },
+          "collapseId": {
+            "type": "string",
+            "description": "Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "deliveryType",
+          "bucket",
+          "bucketId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UserDevice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "deviceToken": {
+            "type": "object"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "IOS",
+              "ANDROID",
+              "WEB"
+            ]
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceModel": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "object",
+            "description": "Public key for device-level encryption"
+          },
+          "privateKey": {
+            "type": "object",
+            "description": "Private key for device-level decryption"
+          },
+          "subscriptionFields": {
+            "type": "object",
+            "description": "Web Push subscription fields"
+          },
+          "onlyLocal": {
+            "type": "boolean",
+            "description": "Whether this device should only receive local notifications"
+          },
+          "lastUsed": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "platform",
+          "onlyLocal",
+          "lastUsed",
+          "createdAt",
+          "updatedAt",
+          "user"
+        ]
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "readAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "userDeviceId": {
+            "type": "string"
+          },
+          "userDevice": {
+            "$ref": "#/components/schemas/UserDevice"
+          }
+        },
+        "required": [
+          "id",
+          "message",
+          "createdAt",
+          "updatedAt",
+          "userId",
+          "user"
+        ]
+      },
+      "ExternalNotifyRequestDto": {
+        "type": "object",
+        "properties": {
+          "notification": {
+            "type": "string",
+            "description": "Stringified Notification JSON"
+          },
+          "userDevice": {
+            "type": "string",
+            "description": "Stringified UserDevice JSON"
+          }
+        },
+        "required": [
+          "notification",
+          "userDevice"
+        ]
+      },
+      "UpdateUserRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "moderator",
+              "admin"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "WebPushSubscriptionFieldsInput": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "p256dh": {
+            "type": "string"
+          },
+          "auth": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterDeviceDto": {
+        "type": "object",
+        "properties": {
+          "deviceToken": {
+            "type": "string",
+            "description": "Device token for push notifications",
+            "example": "a1b2..."
+          },
+          "platform": {
+            "type": "string",
+            "description": "Platform of the device",
+            "enum": [
+              "IOS",
+              "ANDROID",
+              "WEB"
+            ],
+            "example": "IOS"
+          },
+          "deviceName": {
+            "type": "string",
+            "description": "Device name or identifier",
+            "example": "John's iPhone"
+          },
+          "deviceModel": {
+            "type": "string",
+            "description": "Device model",
+            "example": "iPhone 15 Pro"
+          },
+          "osVersion": {
+            "type": "string",
+            "description": "OS version",
+            "example": "17.0.1"
+          },
+          "subscriptionFields": {
+            "description": "Web Push subscription JSON (endpoint, p256dh, auth)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebPushSubscriptionFieldsInput"
+              }
+            ]
+          },
+          "onlyLocal": {
+            "type": "boolean",
+            "description": "Whether this device should only receive local notifications",
+            "example": false,
+            "default": false
+          },
+          "publicKey": {
+            "type": "string",
+            "description": "Public key for device-level encryption (iOS devices should provide this)",
+            "example": "-----BEGIN PUBLIC KEY-----..."
+          }
+        },
+        "required": [
+          "platform"
+        ]
+      },
+      "UpdateDeviceTokenDto": {
+        "type": "object",
+        "properties": {
+          "oldDeviceToken": {
+            "type": "string",
+            "description": "Old device token to identify the device"
+          },
+          "newDeviceToken": {
+            "type": "string",
+            "description": "New device token to replace the old one"
+          }
+        },
+        "required": [
+          "oldDeviceToken",
+          "newDeviceToken"
+        ]
+      },
+      "UpdateUserDeviceDto": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string"
+          },
+          "deviceToken": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceModel": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "subscriptionFields": {
+            "$ref": "#/components/schemas/WebPushSubscriptionFieldsInput"
+          }
+        },
+        "required": [
+          "deviceId"
+        ]
+      },
+      "GrantEntityPermissionInput": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "enum": [
+              "bucket",
+              "user_webhook"
+            ]
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID (if provided, userEmail and username are ignored)"
+          },
+          "userEmail": {
+            "type": "string",
+            "description": "User email (used if userId is not provided)"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username (used if userId and userEmail are not provided)"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "delete",
+                "admin"
+              ]
+            }
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "resourceType",
+          "resourceId",
+          "permissions"
+        ]
+      },
+      "RevokeEntityPermissionInput": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "enum": [
+              "bucket",
+              "user_webhook"
+            ]
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID (if provided, userEmail and username are ignored)"
+          },
+          "userEmail": {
+            "type": "string",
+            "description": "User email (used if userId is not provided)"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username (used if userId and userEmail are not provided)"
+          }
+        },
+        "required": [
+          "resourceType",
+          "resourceId"
+        ]
+      },
+      "SnoozeScheduleInput": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "description": "Days of the week when snooze is active",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timeFrom": {
+            "type": "string",
+            "description": "Start time for snooze period"
+          },
+          "timeTill": {
+            "type": "string",
+            "description": "End time for snooze period"
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Whether this snooze schedule is enabled"
+          }
+        },
+        "required": [
+          "days",
+          "timeFrom",
+          "timeTill",
+          "isEnabled"
+        ]
+      },
+      "CreateUserBucketDto": {
+        "type": "object",
+        "properties": {
+          "bucketId": {
+            "type": "string",
+            "description": "ID of the bucket"
+          },
+          "snoozeUntil": {
+            "type": "string",
+            "description": "Date until which notifications from this bucket are snoozed"
+          },
+          "snoozes": {
+            "description": "Array of snooze schedules for recurring snooze periods",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnoozeScheduleInput"
+            }
+          }
+        },
+        "required": [
+          "bucketId"
+        ]
+      },
+      "UpdateUserBucketDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "MediaType": {
+        "type": "string",
+        "enum": [
+          "VIDEO",
+          "IMAGE",
+          "GIF",
+          "AUDIO",
+          "ICON"
+        ]
+      },
+      "NotificationAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "mediaType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MediaType"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "attachmentUuid": {
+            "type": "string"
+          },
+          "saveOnServer": {
+            "type": "boolean",
+            "description": "Save attachment to server when URL is provided"
+          }
+        },
+        "required": [
+          "mediaType"
+        ]
+      },
+      "NotificationActionType": {
+        "type": "string",
+        "enum": [
+          "NAVIGATE",
+          "BACKGROUND_CALL",
+          "MARK_AS_READ",
+          "SNOOZE",
+          "OPEN_NOTIFICATION",
+          "WEBHOOK",
+          "DELETE"
+        ]
+      },
+      "NotificationActionDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NotificationActionType"
+              }
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "destructive": {
+            "type": "boolean"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ]
+      },
+      "CreateMessageDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationAttachmentDto"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationActionDto"
+            }
+          },
+          "tapAction": {
+            "$ref": "#/components/schemas/NotificationActionDto"
+          },
+          "sound": {
+            "type": "string"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "SILENT",
+              "NORMAL",
+              "CRITICAL"
+            ]
+          },
+          "addMarkAsReadAction": {
+            "type": "boolean"
+          },
+          "addOpenNotificationAction": {
+            "type": "boolean"
+          },
+          "addDeleteAction": {
+            "type": "boolean"
+          },
+          "snoozes": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "bucketId": {
+            "type": "string",
+            "description": "Bucket ID or name. If a name is provided, the system will find the corresponding bucket by name."
+          },
+          "groupId": {
+            "type": "string",
+            "description": "Optional group ID for notification grouping, falls back to bucketId if not provided"
+          },
+          "collapseId": {
+            "type": "string",
+            "description": "Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID"
+          },
+          "userIds": {
+            "description": "Optional array of user IDs or usernames to filter notifications to specific users only. If usernames are provided, the system will find the corresponding users by username.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Optional image URL. If provided, will automatically create an image attachment."
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "Optional video URL. If provided, will automatically create a video attachment."
+          },
+          "gifUrl": {
+            "type": "string",
+            "description": "Optional GIF URL. If provided, will automatically create a GIF attachment."
+          },
+          "tapUrl": {
+            "type": "string",
+            "description": "Optional tap URL. If provided, will automatically set the tapAction to NAVIGATE with this URL."
+          }
+        },
+        "required": [
+          "title",
+          "deliveryType",
+          "bucketId"
+        ]
+      },
+      "AttachmentOptionsDto": {
+        "type": "object",
+        "properties": {
+          "mediaType": {
+            "description": "Type of media being uploaded",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MediaType"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Custom name for the attachment"
+          }
+        },
+        "required": [
+          "mediaType"
+        ]
+      },
+      "CreateMessageWithAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationAttachmentDto"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationActionDto"
+            }
+          },
+          "tapAction": {
+            "$ref": "#/components/schemas/NotificationActionDto"
+          },
+          "sound": {
+            "type": "string"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "SILENT",
+              "NORMAL",
+              "CRITICAL"
+            ]
+          },
+          "addMarkAsReadAction": {
+            "type": "boolean"
+          },
+          "addOpenNotificationAction": {
+            "type": "boolean"
+          },
+          "addDeleteAction": {
+            "type": "boolean"
+          },
+          "snoozes": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "bucketId": {
+            "type": "string",
+            "description": "Bucket ID or name. If a name is provided, the system will find the corresponding bucket by name."
+          },
+          "groupId": {
+            "type": "string",
+            "description": "Optional group ID for notification grouping, falls back to bucketId if not provided"
+          },
+          "collapseId": {
+            "type": "string",
+            "description": "Optional collapse ID for APNS collapse-id, used to replace notifications with the same collapse ID"
+          },
+          "userIds": {
+            "description": "Optional array of user IDs or usernames to filter notifications to specific users only. If usernames are provided, the system will find the corresponding users by username.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Optional image URL. If provided, will automatically create an image attachment."
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "Optional video URL. If provided, will automatically create a video attachment."
+          },
+          "gifUrl": {
+            "type": "string",
+            "description": "Optional GIF URL. If provided, will automatically create a GIF attachment."
+          },
+          "tapUrl": {
+            "type": "string",
+            "description": "Optional tap URL. If provided, will automatically set the tapAction to NAVIGATE with this URL."
+          },
+          "attachmentOptions": {
+            "description": "Options for the uploaded attachment",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AttachmentOptionsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "deliveryType",
+          "bucketId",
+          "attachmentOptions"
+        ]
+      },
+      "UploadAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "The filename of the attachment"
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "VIDEO",
+              "IMAGE",
+              "GIF",
+              "AUDIO",
+              "ICON"
+            ],
+            "description": "The media type of the attachment"
+          }
+        },
+        "required": [
+          "filename"
+        ]
+      },
+      "Attachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "filepath": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "VIDEO",
+              "IMAGE",
+              "GIF",
+              "AUDIO",
+              "ICON"
+            ]
+          },
+          "messageId": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "filepath",
+          "user",
+          "userId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DownloadFromUrlDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to download the attachment from"
+          },
+          "filename": {
+            "type": "string",
+            "description": "The filename for the downloaded attachment"
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "VIDEO",
+              "IMAGE",
+              "GIF",
+              "AUDIO",
+              "ICON"
+            ],
+            "description": "The media type of the attachment"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "CreateBucketDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the bucket"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Icon for the bucket"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the bucket"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the bucket (e.g., #FF5733)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#0a7ea4"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "Whether the bucket is protected from deletion",
+            "default": false
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the bucket is publicly accessible",
+            "default": false
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateBucketDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the bucket"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Icon for the bucket"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the bucket"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the bucket (e.g., #FF5733)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#0a7ea4"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "Whether the bucket is protected from deletion",
+            "default": false
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the bucket is publicly accessible",
+            "default": false
+          }
+        }
+      },
+      "WebhookHeader": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Header key"
+          },
+          "value": {
+            "type": "string",
+            "description": "Header value"
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ]
+      },
+      "UserWebhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookHeader"
+            }
+          },
+          "body": {
+            "type": "object",
+            "description": "Webhook body content as JSON object"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "method",
+          "url",
+          "headers",
+          "user",
+          "createdAt",
+          "updatedAt"
+        ]
+      }
+    }
+  }
+}

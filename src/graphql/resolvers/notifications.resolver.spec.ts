@@ -1,0 +1,93 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { PushNotificationOrchestratorService } from '../../notifications/push-orchestrator.service';
+import { UsersService } from '../../users/users.service';
+import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
+import { NotificationsResolver } from './notifications.resolver';
+
+describe('NotificationsResolver', () => {
+  let resolver: NotificationsResolver;
+  let notificationsService: NotificationsService;
+
+  const mockNotificationsService = {
+    findByUserDeviceToken: jest.fn(),
+    findOne: jest.fn(),
+    markAsRead: jest.fn(),
+    markAsUnread: jest.fn(),
+    markAllAsRead: jest.fn(),
+    remove: jest.fn(),
+    getNotificationServices: jest.fn(),
+  };
+
+  const mockUsersService = {
+    findDeviceById: jest.fn(),
+  };
+
+  const mockSubscriptionService = {
+    publishNotificationUpdated: jest.fn(),
+    publishNotificationDeleted: jest.fn(),
+  };
+
+  const mockPushOrchestrator = {
+    sendPushNotification: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        NotificationsResolver,
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
+        },
+        {
+          provide: UsersService,
+          useValue: mockUsersService,
+        },
+        {
+          provide: GraphQLSubscriptionService,
+          useValue: mockSubscriptionService,
+        },
+        {
+          provide: PushNotificationOrchestratorService,
+          useValue: mockPushOrchestrator,
+        },
+      ],
+    })
+      .overrideGuard(JwtOrAccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+
+    resolver = module.get<NotificationsResolver>(NotificationsResolver);
+    notificationsService = module.get<NotificationsService>(NotificationsService);
+
+    jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(resolver).toBeDefined();
+  });
+
+  describe('notificationServices', () => {
+    it('should return notification services for all platforms', async () => {
+      const mockResponse = [
+        {
+          devicePlatform: 'IOS',
+          service: 'PUSH',
+        },
+        {
+          devicePlatform: 'ANDROID',
+          service: 'LOCAL',
+        },
+      ];
+
+      mockNotificationsService.getNotificationServices.mockResolvedValue(mockResponse);
+
+      const result = await resolver.notificationServices();
+
+      expect(result).toEqual(mockResponse);
+      expect(notificationsService.getNotificationServices).toHaveBeenCalled();
+    });
+  });
+});

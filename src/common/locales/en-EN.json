@@ -1,0 +1,43 @@
+{
+  "email": {
+    "passwordReset": {
+      "subject": "Password Reset Request - Zentik",
+      "title": "Password Reset Request",
+      "description": "You requested a password reset for your Zentik account.",
+      "codeInstructions": "Use the following 6-character code to reset your password:",
+      "important": "Important:",
+      "instructions1": "Enter this 6-character code in the password reset form in the Zentik app",
+      "instructions2": "This code will expire in 24 hours",
+      "instructions3": "If you didn't request this reset, please ignore this email",
+      "regards": "Best regards,",
+      "team": "The Zentik Team"
+    },
+    "welcome": {
+      "subject": "Welcome to Zentik!",
+      "title": "Welcome to Zentik, {{username}}!",
+      "description": "Thank you for registering with Zentik. We're excited to have you on board!",
+      "instructions": "You can now start managing your notifications and buckets.",
+      "regards": "Best regards,",
+      "team": "The Zentik Team"
+    },
+    "confirmation": {
+      "subject": "Confirm Your Email - Zentik",
+      "title": "Email Confirmation",
+      "description": "Please confirm your email address to complete your Zentik registration.",
+      "codeInstructions": "Use the following confirmation code to verify your email:",
+      "important": "Important:",
+      "instructions1": "Enter this confirmation code in the Zentik app to verify your email",
+      "instructions2": "This code will expire in 24 hours",
+      "regards": "Best regards,",
+      "team": "The Zentik Team"
+    }
+  },
+  "notifications": {
+    "actions": {
+      "markAsRead": "Mark as Read",
+      "open": "Open",
+      "delete": "Delete",
+      "snooze": "Snooze {{minutes}} min"
+    }
+  }
+}
