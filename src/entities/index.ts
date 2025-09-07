@@ -5,6 +5,7 @@ export { Event, EventType } from './event.entity';
 export { Message } from './message.entity';
 export { Notification } from './notification.entity';
 export { OAuthProvider, OAuthProviderType } from './oauth-provider.entity';
+export { PropertyMapping, PropertyMappingItem } from './property-mapping.entity';
 export { UserAccessToken } from './user-access-token.entity';
 export { UserBucket } from './user-bucket.entity';
 export { UserDevice } from './user-device.entity';
