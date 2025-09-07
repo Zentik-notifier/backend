@@ -16,6 +16,7 @@ import { UserDevice } from './user-device.entity';
 import { UserIdentity } from './user-identity.entity';
 import { UserSession } from './user-session.entity';
 import { UserWebhook } from './user-webhook.entity';
+import { PropertyMapping } from './property-mapping.entity';
 
 @ObjectType()
 @Entity('users')
@@ -136,4 +137,8 @@ export class User {
   @Field(() => [UserIdentity], { nullable: true })
   @OneToMany(() => UserIdentity, (identity) => identity.user, { cascade: true })
   identities: UserIdentity[];
+
+  @Field(() => [PropertyMapping], { nullable: true })
+  @OneToMany(() => PropertyMapping, (propertyMapping) => propertyMapping.user, { cascade: true })
+  propertyMappings: PropertyMapping[];
 }

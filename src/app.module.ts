@@ -19,6 +19,7 @@ import { GraphqlModule } from './graphql/graphql.module';
 import { MessagesModule } from './messages/messages.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OAuthProvidersModule } from './oauth-providers/oauth-providers.module';
+import { PropertyMappingsModule } from './property-mappings/property-mappings.module';
 import { SystemAccessTokenModule } from './system-access-token/system-access-token.module';
 import { UserBucketsModule } from './user-buckets/user-buckets.module';
 import { UsersModule } from './users/users.module';
@@ -65,6 +66,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     MessagesModule,
     WebhooksModule,
     OAuthProvidersModule,
+    PropertyMappingsModule,
     UserBucketsModule,
     AttachmentsModule,
     EventsModule,

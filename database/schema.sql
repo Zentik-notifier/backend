@@ -4,6 +4,7 @@
 
 -- Drop tables if they exist (in correct order due to foreign keys)
 DROP TABLE IF EXISTS entity_permissions CASCADE;
+DROP TABLE IF EXISTS property_mappings CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
 DROP TABLE IF EXISTS user_buckets CASCADE;
@@ -258,6 +259,18 @@ CREATE TABLE entity_permissions (
     UNIQUE("resourceType", "resourceId", "userId")
 );
 
+-- Create property_mappings table
+CREATE TABLE property_mappings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    properties JSONB NOT NULL,
+    "samplePayload" JSONB,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Add constraints for oauth_providers table
 -- Ensure custom providers have required URLs
 ALTER TABLE oauth_providers 
@@ -301,6 +314,8 @@ CREATE INDEX idx_entity_permissions_user_id ON entity_permissions("userId");
 CREATE INDEX idx_entity_permissions_granted_by_id ON entity_permissions("grantedById");
 CREATE INDEX idx_entity_permissions_expires_at ON entity_permissions("expiresAt");
 CREATE INDEX idx_entity_permissions_resource_type_id ON entity_permissions("resourceType", "resourceId");
+CREATE INDEX idx_property_mappings_user_id ON property_mappings("userId");
+CREATE INDEX idx_property_mappings_name ON property_mappings(name);
 
 -- Create indexes for oauth_providers table
 CREATE INDEX idx_oauth_providers_type ON oauth_providers(type);
@@ -344,6 +359,9 @@ CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
  
 CREATE TRIGGER update_entity_permissions_updated_at BEFORE UPDATE ON entity_permissions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_property_mappings_updated_at BEFORE UPDATE ON property_mappings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_oauth_providers_updated_at BEFORE UPDATE ON oauth_providers
