@@ -45,6 +45,27 @@ interface ServarrPayload {
     size: number;
     customFormatScore: number;
   };
+  // Prowlarr specific fields
+  indexer?: {
+    id: number;
+    name: string;
+    implementation: string;
+    configContract: string;
+    enableRss: boolean;
+    enableInteractiveSearch: boolean;
+    enableAutomaticSearch: boolean;
+    priority: number;
+    downloadClientId: number;
+    protocol: string;
+    tags: number[];
+  };
+  indexerStatus?: {
+    id: number;
+    name: string;
+    status: string;
+    lastCheck: string;
+    lastError: string;
+  };
   eventType: string;
   instanceName: string;
   applicationUrl?: string;
@@ -61,7 +82,7 @@ export class ServarrParser implements IBuiltinParser {
   }
 
   get description(): string {
-    return 'Parser for Servarr applications (Radarr, Sonarr, etc.) - handles movie/TV show download and import events';
+    return 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, and indexer events';
   }
 
   validate(payload: any): boolean {
@@ -74,8 +95,8 @@ export class ServarrParser implements IBuiltinParser {
       return false;
     }
 
-    // Check if it's a movie or TV show event (with or without episodes)
-    if (!payload.movie && !payload.series && !payload.episodes) {
+    // Check if it's a movie, TV show event, or Prowlarr event
+    if (!payload.movie && !payload.series && !payload.episodes && !payload.indexer && !payload.indexerStatus) {
       return false;
     }
 
@@ -156,6 +177,29 @@ export class ServarrParser implements IBuiltinParser {
       };
     }
 
+    // Handle Prowlarr indexer events
+    if (payload.indexer) {
+      return {
+        type: 'indexer',
+        title: payload.indexer.name,
+        implementation: payload.indexer.implementation,
+        protocol: payload.indexer.protocol,
+        priority: payload.indexer.priority,
+        tags: payload.indexer.tags || [],
+      };
+    }
+
+    // Handle Prowlarr indexer status events
+    if (payload.indexerStatus) {
+      return {
+        type: 'indexerStatus',
+        title: payload.indexerStatus.name,
+        status: payload.indexerStatus.status,
+        lastCheck: payload.indexerStatus.lastCheck,
+        lastError: payload.indexerStatus.lastError,
+      };
+    }
+
     return {};
   }
 
@@ -198,6 +242,8 @@ export class ServarrParser implements IBuiltinParser {
       return `Movie via Radarr`;
     } else if (mediaInfo.type === 'series') {
       return `TV Show via Sonarr`;
+    } else if (mediaInfo.type === 'indexer' || mediaInfo.type === 'indexerStatus') {
+      return `Indexer via Prowlarr`;
     }
     return 'Servarr';
   }
@@ -249,6 +295,31 @@ export class ServarrParser implements IBuiltinParser {
     // Add tags if available
     if (mediaInfo.tags && mediaInfo.tags.length > 0) {
       message += `\nTags: ${mediaInfo.tags.join(', ')}`;
+    }
+
+    // Add Prowlarr specific information
+    if (mediaInfo.type === 'indexer') {
+      if (mediaInfo.implementation) {
+        message += `\nImplementation: ${mediaInfo.implementation}`;
+      }
+      if (mediaInfo.protocol) {
+        message += `\nProtocol: ${mediaInfo.protocol}`;
+      }
+      if (mediaInfo.priority !== undefined) {
+        message += `\nPriority: ${mediaInfo.priority}`;
+      }
+    }
+
+    if (mediaInfo.type === 'indexerStatus') {
+      if (mediaInfo.status) {
+        message += `\nStatus: ${mediaInfo.status}`;
+      }
+      if (mediaInfo.lastCheck) {
+        message += `\nLast Check: ${mediaInfo.lastCheck}`;
+      }
+      if (mediaInfo.lastError) {
+        message += `\nLast Error: ${mediaInfo.lastError}`;
+      }
     }
 
     // Add instance name

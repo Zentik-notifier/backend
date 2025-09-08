@@ -106,6 +106,34 @@ describe('ServarrParser', () => {
       expect(parser.validate(payload)).toBe(false);
     });
 
+    it('should return true for Prowlarr indexer payload', () => {
+      const payload = {
+        eventType: 'IndexerAdded',
+        instanceName: 'Prowlarr',
+        indexer: {
+          id: 1,
+          name: 'Test Indexer',
+          implementation: 'Newznab',
+        },
+      };
+
+      expect(parser.validate(payload)).toBe(true);
+    });
+
+    it('should return true for Prowlarr indexer status payload', () => {
+      const payload = {
+        eventType: 'IndexerStatusChanged',
+        instanceName: 'Prowlarr',
+        indexerStatus: {
+          id: 1,
+          name: 'Test Indexer',
+          status: 'Healthy',
+        },
+      };
+
+      expect(parser.validate(payload)).toBe(true);
+    });
+
     it('should return false for empty payload', () => {
       expect(parser.validate({})).toBe(false);
     });
@@ -374,6 +402,79 @@ describe('ServarrParser', () => {
       expect(result.body).toContain('Event Type: SeriesCustomEvent');
       expect(result.body).toContain('Application: http://sonarr.local');
       expect(result.body).toContain('Instance: Sonarr');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should handle Prowlarr indexer events', () => {
+      const payload = {
+        eventType: 'IndexerAdded',
+        instanceName: 'Prowlarr',
+        applicationUrl: 'http://prowlarr.local',
+        indexer: {
+          id: 1,
+          name: 'Test Indexer',
+          implementation: 'Newznab',
+          configContract: 'NewznabSettings',
+          enableRss: true,
+          enableInteractiveSearch: true,
+          enableAutomaticSearch: true,
+          priority: 25,
+          downloadClientId: 0,
+          protocol: 'usenet',
+          tags: [1, 2],
+        },
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('Indexeradded: Test Indexer');
+      expect(result.subtitle).toBe('Indexer via Prowlarr');
+      expect(result.body).toContain('Test Indexer');
+      expect(result.body).toContain('Implementation: Newznab');
+      expect(result.body).toContain('Protocol: usenet');
+      expect(result.body).toContain('Priority: 25');
+      expect(result.body).toContain('Instance: Prowlarr');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should handle Prowlarr indexer status events', () => {
+      const payload = {
+        eventType: 'IndexerStatusChanged',
+        instanceName: 'Prowlarr',
+        applicationUrl: 'http://prowlarr.local',
+        indexerStatus: {
+          id: 1,
+          name: 'Test Indexer',
+          status: 'Healthy',
+          lastCheck: '2023-01-01T12:00:00Z',
+          lastError: '',
+        },
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('Indexerstatuschanged: Test Indexer');
+      expect(result.subtitle).toBe('Indexer via Prowlarr');
+      expect(result.body).toContain('Test Indexer');
+      expect(result.body).toContain('Status: Healthy');
+      expect(result.body).toContain('Last Check: 2023-01-01T12:00:00Z');
+      expect(result.body).toContain('Instance: Prowlarr');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should handle minimal Prowlarr payload', () => {
+      const payload = {
+        eventType: 'Test',
+        instanceName: 'Prowlarr',
+        applicationUrl: '',
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('Test: Unknown');
+      expect(result.subtitle).toBe('Servarr');
+      expect(result.body).toContain('Instance: Prowlarr');
+      expect(result.body).toContain('Event Type: Test');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
   });
