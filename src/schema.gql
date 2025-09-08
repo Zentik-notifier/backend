@@ -117,6 +117,12 @@ input CreateOAuthProviderDto {
   userInfoUrl: String
 }
 
+input CreatePayloadMapperDto {
+  jsEvalFn: String!
+  name: String!
+  userId: String
+}
+
 input CreateUserBucketDto {
   bucketId: String!
   snoozeUntil: String
@@ -305,6 +311,7 @@ type Mutation {
   """
   createMessage(input: CreateMessageDto!): Message!
   createOAuthProvider(input: CreateOAuthProviderDto!): OAuthProvider!
+  createPayloadMapper(input: CreatePayloadMapperDto!): PayloadMapper!
   createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String): SystemAccessTokenDto!
   createUserBucket(createUserBucketInput: CreateUserBucketDto!): UserBucket!
   createWebhook(input: CreateWebhookDto!): UserWebhook!
@@ -312,6 +319,7 @@ type Mutation {
   deleteBucket(id: String!): Boolean!
   deleteNotification(id: String!): Boolean!
   deleteOAuthProvider(id: String!): Boolean!
+  deletePayloadMapper(id: String!): Boolean!
   deleteWebhook(id: ID!): Boolean!
   deviceReportNotificationReceived(id: String!): Notification!
   grantEntityPermission(input: GrantEntityPermissionInput!): EntityPermission!
@@ -348,6 +356,7 @@ type Mutation {
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket!
   updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
   updateOAuthProvider(id: String!, input: UpdateOAuthProviderDto!): OAuthProvider!
+  updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
   updateProfile(input: UpdateProfileInput!): User!
   updateReceivedNotifications(id: String!): UpdateReceivedResult!
   updateUserBucket(id: String!, updateUserBucketInput: UpdateUserBucketDto!): UserBucket!
@@ -467,6 +476,33 @@ type PasswordResetResponseDto {
   success: Boolean!
 }
 
+type PayloadMapper {
+  createdAt: DateTime!
+  id: ID!
+  jsEvalFn: String!
+  name: String!
+  updatedAt: DateTime!
+  user: User
+  userId: ID
+}
+
+"""Built-in payload mapper types"""
+enum PayloadMapperBuiltInType {
+  ZentikAuthentik
+  ZentikServarr
+}
+
+type PayloadMapperWithBuiltin {
+  builtInName: PayloadMapperBuiltInType
+  createdAt: DateTime!
+  id: ID!
+  jsEvalFn: String!
+  name: String!
+  updatedAt: DateTime!
+  user: User
+  userId: ID
+}
+
 """Permission enum for bucket access"""
 enum Permission {
   ADMIN
@@ -505,6 +541,8 @@ type Query {
   notificationServices: [NotificationServiceInfo!]!
   notifications: [Notification!]!
   oauthProvider(id: String!): OAuthProvider!
+  payloadMapper(id: String!): PayloadMapper!
+  payloadMappers: [PayloadMapperWithBuiltin!]!
   publicAppConfig: PublicAppConfig!
   snoozedBucketIds: [String!]!
   userBucket(id: String!): UserBucket!
@@ -664,6 +702,11 @@ input UpdateOAuthProviderDto {
   tokenUrl: String
   type: OAuthProviderType
   userInfoUrl: String
+}
+
+input UpdatePayloadMapperDto {
+  jsEvalFn: String
+  name: String
 }
 
 input UpdateProfileInput {

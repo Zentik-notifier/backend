@@ -2741,6 +2741,57 @@
         ]
       }
     },
+    "/api/v1/messages/transform": {
+      "post": {
+        "description": "Transform a payload using a builtin parser (e.g., Authentik) and create a message with the transformed data. Requires bucketId query parameter to specify the target bucket.",
+        "operationId": "MessagesController_transformAndCreate",
+        "parameters": [
+          {
+            "name": "parser",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bucketId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Message created successfully from transformed payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload, missing required parameters (parser, bucketId), or parser not found"
+          },
+          "404": {
+            "description": "Parser not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Transform payload using builtin parser and create message",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
     "/api/v1/system-access-tokens": {
       "post": {
         "operationId": "SystemAccessTokenController_create",
@@ -3056,6 +3107,117 @@
         "summary": "Get all attachments for a specific message",
         "tags": [
           "Attachments"
+        ]
+      }
+    },
+    "/api/v1/payload-mappers": {
+      "post": {
+        "operationId": "PayloadMapperController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePayloadMapperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payload Mappers"
+        ]
+      },
+      "get": {
+        "operationId": "PayloadMapperController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payload Mappers"
+        ]
+      }
+    },
+    "/api/v1/payload-mappers/{id}": {
+      "get": {
+        "operationId": "PayloadMapperController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payload Mappers"
+        ]
+      },
+      "patch": {
+        "operationId": "PayloadMapperController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePayloadMapperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payload Mappers"
+        ]
+      },
+      "delete": {
+        "operationId": "PayloadMapperController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payload Mappers"
         ]
       }
     },
@@ -5392,6 +5554,37 @@
         "required": [
           "url"
         ]
+      },
+      "CreatePayloadMapperDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "jsEvalFn": {
+            "type": "string",
+            "description": "JavaScript function as stringified code for payload mapping"
+          }
+        },
+        "required": [
+          "name",
+          "jsEvalFn"
+        ]
+      },
+      "UpdatePayloadMapperDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "jsEvalFn": {
+            "type": "string",
+            "description": "JavaScript function as stringified code for payload mapping"
+          }
+        }
       },
       "CreateBucketDto": {
         "type": "object",

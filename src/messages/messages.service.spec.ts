@@ -15,6 +15,7 @@ import {
   NotificationDeliveryType,
 } from '../notifications/notifications.types';
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
+import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
 import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesService } from './messages.service';
 
@@ -28,6 +29,7 @@ describe('MessagesService', () => {
   let pushOrchestrator: PushNotificationOrchestratorService;
   let configService: ConfigService;
   let entityPermissionService: EntityPermissionService;
+  let payloadMapperService: PayloadMapperService;
 
   const mockMessage: Partial<Message> = {
     id: 'msg-1',
@@ -168,6 +170,18 @@ describe('MessagesService', () => {
             hasPermissions: jest.fn().mockResolvedValue(true),
           },
         },
+        {
+          provide: PayloadMapperService,
+          useValue: {
+            transformPayload: jest.fn().mockResolvedValue({
+              title: 'Test Message',
+              subtitle: 'Test Subtitle',
+              body: 'Test Body',
+              deliveryType: NotificationDeliveryType.NORMAL,
+              bucketId: 'bucket-1',
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -190,6 +204,7 @@ describe('MessagesService', () => {
     entityPermissionService = module.get<EntityPermissionService>(
       EntityPermissionService,
     );
+    payloadMapperService = module.get<PayloadMapperService>(PayloadMapperService);
   });
 
   it('should be defined', () => {

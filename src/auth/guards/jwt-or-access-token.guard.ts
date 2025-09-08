@@ -22,12 +22,21 @@ export class JwtOrAccessTokenGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = this.getRequest(context);
     const authHeader = request.headers?.authorization;
+    const queryToken = request.query?.token;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token: string;
+
+    // Check for token in Authorization header first
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7); // Remove 'Bearer '
+    }
+    // Fallback to query parameter
+    else if (queryToken) {
+      token = queryToken;
+    }
+    else {
       throw new UnauthorizedException('No authentication token provided');
     }
-
-    const token = authHeader.substring(7); // Remove 'Bearer '
 
     // Allow system access tokens on routes that explicitly opt-in via metadata
     const allowSystemToken = this.reflector.get<boolean>(

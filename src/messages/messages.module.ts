@@ -16,6 +16,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { MessagesCleanupScheduler } from './messages.cleanup.scheduler';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
+import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MessagesService } from './messages.service';
     CommonModule,
     EventsModule,
     EntityPermissionModule,
+    PayloadMapperModule,
   ],
   controllers: [MessagesController],
   providers: [MessagesService, MessagesCleanupScheduler, MessagesResolver],

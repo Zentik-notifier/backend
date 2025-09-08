@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   UploadedFile,
@@ -35,7 +36,9 @@ import { MessagesService } from './messages.service';
 @ApiTags('Messages')
 @ApiBearerAuth()
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+  ) { }
 
   @Post()
   @Throttle({
@@ -148,4 +151,47 @@ export class MessagesController {
     const result = await this.messagesService.create(input, userId);
     return result;
   }
+
+  @Post('transform')
+  @Throttle({
+    messagesTransform: {
+      limit: () => Number(process.env.RATE_LIMIT_MESSAGES_RPS ?? 10),
+      ttl: () => Number(process.env.RATE_LIMIT_MESSAGES_TTL_MS ?? 1000),
+    },
+  })
+  @ApiOperation({
+    summary: 'Transform payload using builtin parser and create message',
+    description: 'Transform a payload using a builtin parser (e.g., Authentik) and create a message with the transformed data. Requires bucketId query parameter to specify the target bucket.',
+  })
+  @ApiConsumes('application/json')
+  @ApiResponse({
+    status: 201,
+    description: 'Message created successfully from transformed payload',
+    type: Message,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid payload, missing required parameters (parser, bucketId), or parser not found',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Parser not found',
+  })
+  async transformAndCreate(
+    @GetUser('id') userId: string,
+    @Query('parser') parserName: string,
+    @Query('bucketId') bucketId: string,
+    @Body() payload: any,
+  ) {
+    if (!parserName) {
+      throw new Error('Parameter "parser" is required');
+    }
+    if (!bucketId) {
+      throw new Error('Parameter "bucketId" is required');
+    }
+    console.log(parserName, JSON.stringify(payload));
+
+    return this.messagesService.transformAndCreate(parserName, payload, userId, bucketId);
+  }
+
 }

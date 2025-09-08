@@ -4,6 +4,7 @@
 
 -- Drop tables if they exist (in correct order due to foreign keys)
 DROP TABLE IF EXISTS entity_permissions CASCADE;
+DROP TABLE IF EXISTS payload_mappers CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
 DROP TABLE IF EXISTS user_buckets CASCADE;
@@ -32,7 +33,6 @@ CREATE TYPE http_method_enum AS ENUM ('GET', 'POST', 'PUT', 'PATCH', 'DELETE');
 CREATE TYPE user_role_enum AS ENUM ('user', 'admin');
 CREATE TYPE permission_enum AS ENUM ('read', 'write', 'delete', 'admin');
 CREATE TYPE resource_type_enum AS ENUM ('bucket', 'notification', 'user_webhook', 'user_access_token');
-CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'CUSTOM');
 CREATE TYPE event_type_enum AS ENUM ('LOGIN', 'LOGIN_OAUTH', 'LOGOUT', 'REGISTER', 'PUSH_PASSTHROUGH', 'MESSAGE', 'NOTIFICATION', 'BUCKET_SHARING', 'BUCKET_UNSHARING', 'DEVICE_REGISTER', 'DEVICE_UNREGISTER', 'ACCOUNT_DELETE');
 -- NOTE: ACCOUNT_DELETE added in code; ensure DB enum updated in migrations when applying
 
@@ -52,6 +52,16 @@ CREATE TABLE users (
     "emailConfirmationToken" VARCHAR(255),
     "emailConfirmationTokenRequestedAt" TIMESTAMP WITH TIME ZONE,
     "emailConfirmed" BOOLEAN DEFAULT FALSE NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create payload_mappers table
+CREATE TABLE payload_mappers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    "jsEvalFn" TEXT NOT NULL,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -271,6 +281,7 @@ CHECK (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_reset_token ON users("resetToken");
+CREATE INDEX idx_payload_mappers_user_id ON payload_mappers("userId");
 CREATE INDEX idx_user_access_tokens_user_id ON user_access_tokens("userId");
 CREATE INDEX idx_user_access_tokens_token_hash ON user_access_tokens("tokenHash");
 CREATE INDEX idx_user_access_tokens_expires_at ON user_access_tokens("expiresAt");
@@ -318,6 +329,9 @@ $$ language 'plpgsql';
 
 -- Create triggers to automatically update the updatedAt column
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_payload_mappers_updated_at BEFORE UPDATE ON payload_mappers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_user_access_tokens_updated_at BEFORE UPDATE ON user_access_tokens

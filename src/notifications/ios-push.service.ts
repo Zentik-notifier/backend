@@ -142,6 +142,15 @@ export class IOSPushService {
           title: 'Encrypted Notification',
         } as any;
       }
+    } else {
+      // No encryption path: include essential fields directly to ensure NSE/CE can access them
+      payload.notificationId = notification.id;
+      if (allActions && allActions.length > 0) {
+        payload.actions = allActions;
+      }
+      if (message.attachments && (message.attachments as any[]).length > 0) {
+        payload.attachmentData = message.attachments;
+      }
     }
 
     return {
@@ -319,6 +328,67 @@ export class IOSPushService {
               this.logger.error(
                 `  Response: ${JSON.stringify(failedResult.response)}`,
               );
+
+              // Retry strategy for PayloadTooLarge: resend without encryption
+              const statusCode = Number(failedResult.status);
+              const reason = (failedResult as any)?.response?.reason;
+              if (
+                (statusCode === 403 || statusCode === 413) &&
+                reason === 'PayloadTooLarge'
+              ) {
+                this.logger.warn(
+                  `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption...`,
+                );
+                (async () => {
+                  try {
+                    // Rebuild payload WITHOUT encryption by omitting device when building
+                    const retryBuild = await this.buildAPNsPayload(
+                      notification,
+                      automaticActions,
+                      undefined,
+                    );
+
+                    // Ensure actions and attachments are present in retry raw payload
+                    const retryNotification = new apn.Notification();
+                    retryNotification.rawPayload = retryBuild.payload;
+                    retryNotification.payload = retryBuild.customPayload;
+                    retryNotification.priority = retryBuild.customPayload
+                      .priority as number;
+                    retryNotification.topic =
+                      process.env.APN_BUNDLE_ID || 'com.apocaliss92.zentik';
+
+                    const retryResult = await this.provider!.send(
+                      retryNotification,
+                      token,
+                    );
+                    results.push({ token, result: retryResult });
+                    console.log(JSON.stringify(retryNotification));
+
+                    if (retryResult.failed && retryResult.failed.length > 0) {
+                      this.logger.error(
+                        `❌ Retry failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
+                          retryResult.failed,
+                        )}`,
+                      );
+                    } else {
+                      this.logger.log(
+                        `✅ Retry without encryption succeeded for ${token.substring(
+                          0,
+                          8,
+                        )}...`,
+                      );
+                    }
+                  } catch (retryError: any) {
+                    this.logger.error(
+                      `❌ Retry without encryption crashed for ${token.substring(
+                        0,
+                        8,
+                      )}...: ${retryError?.message}`,
+                    );
+                    results.push({ token, error: retryError?.message });
+                  }
+                })();
+              }
 
               // Special handling for BadEnvironmentKeyInToken
               if (failedResult.status === 'BadEnvironmentKeyInToken') {

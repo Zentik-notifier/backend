@@ -17,8 +17,10 @@ import { EventTrackingService } from '../events/event-tracking.service';
 import {
   MediaType,
   NotificationActionType,
+  NotificationDeliveryType,
 } from '../notifications/notifications.types';
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
+import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
 import {
   CreateMessageDto,
   CreateMessageWithAttachmentDto,
@@ -42,6 +44,7 @@ export class MessagesService {
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
+    private readonly payloadMapperService: PayloadMapperService,
   ) {}
 
   private isUuid(identifier: string): boolean {
@@ -690,5 +693,16 @@ export class MessagesService {
     const deleted = result.affected || 0;
     this.logger.log(`Deleted ${deleted} message(s) (filtered)`);
     return { deletedMessages: deleted };
+  }
+
+  /**
+   * Transform payload using parser and create message
+   */
+  async transformAndCreate(parserName: string, payload: any, userId: string, bucketId: string): Promise<Message> {
+    // Delegate to PayloadMapperService for parser identification and transformation
+    const transformedPayload = await this.payloadMapperService.transformPayload(parserName, payload, userId, bucketId);
+
+    // Create the message using the transformed payload
+    return this.create(transformedPayload, userId);
   }
 }
