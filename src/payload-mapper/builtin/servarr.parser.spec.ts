@@ -31,7 +31,7 @@ describe('ServarrParser', () => {
 
   describe('description', () => {
     it('should return correct description', () => {
-      expect(parser.description).toBe('Parser for Servarr applications (Radarr, Sonarr, etc.) - handles movie/TV show download and import events');
+      expect(parser.description).toBe('Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, and indexer events');
     });
   });
 

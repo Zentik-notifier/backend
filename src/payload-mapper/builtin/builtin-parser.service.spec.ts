@@ -105,7 +105,7 @@ describe('BuiltinParserService', () => {
       expect(parsers).toContainEqual({
         name: 'Servarr',
         type: PayloadMapperBuiltInType.ZentikServarr,
-        description: 'Parser for Servarr applications (Radarr, Sonarr, etc.) - handles movie/TV show download and import events',
+        description: 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, and indexer events',
       });
     });
   });
