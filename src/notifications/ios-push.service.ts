@@ -73,7 +73,8 @@ export class IOSPushService {
     // Configure delivery type based on notification.deliveryType
     if (message.deliveryType === NotificationDeliveryType.CRITICAL) {
       // Critical: Push con banner e alert critico
-      apsPayload['interruption-level'] = 'critical';
+      apsPayload['interruption-level'] = 'time-sensitive';
+      // apsPayload['interruption-level'] = 'critical';
       apsPayload['relevance-score'] = 1.0;
 
       // Use critical sound if no custom sound specified
