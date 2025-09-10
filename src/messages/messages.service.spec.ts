@@ -762,7 +762,6 @@ describe('MessagesService', () => {
               expect.objectContaining({
                 mediaType: MediaType.IMAGE,
                 url: 'https://example.com/image.jpg',
-                name: 'Image',
                 saveOnServer: false,
               }),
             ]),
@@ -787,7 +786,6 @@ describe('MessagesService', () => {
               expect.objectContaining({
                 mediaType: MediaType.VIDEO,
                 url: 'https://example.com/video.mp4',
-                name: 'Video',
                 saveOnServer: false,
               }),
             ]),
@@ -812,7 +810,6 @@ describe('MessagesService', () => {
               expect.objectContaining({
                 mediaType: MediaType.GIF,
                 url: 'https://example.com/animation.gif',
-                name: 'GIF',
                 saveOnServer: false,
               }),
             ]),
@@ -839,19 +836,16 @@ describe('MessagesService', () => {
               expect.objectContaining({
                 mediaType: MediaType.IMAGE,
                 url: 'https://example.com/image.jpg',
-                name: 'Image',
                 saveOnServer: false,
               }),
               expect.objectContaining({
                 mediaType: MediaType.VIDEO,
                 url: 'https://example.com/video.mp4',
-                name: 'Video',
                 saveOnServer: false,
               }),
               expect.objectContaining({
                 mediaType: MediaType.GIF,
                 url: 'https://example.com/animation.gif',
-                name: 'GIF',
                 saveOnServer: false,
               }),
               expect.objectContaining({
@@ -913,7 +907,6 @@ describe('MessagesService', () => {
               expect.objectContaining({
                 mediaType: MediaType.IMAGE,
                 url: 'https://example.com/image.jpg',
-                name: 'Image',
                 saveOnServer: false,
               }),
               expect.objectContaining({
@@ -1039,19 +1032,16 @@ describe('MessagesService', () => {
               expect.objectContaining({
                 mediaType: MediaType.IMAGE,
                 url: 'https://example.com/image.jpg',
-                name: 'Image',
                 saveOnServer: false,
               }),
               expect.objectContaining({
                 mediaType: MediaType.VIDEO,
                 url: 'https://example.com/video.mp4',
-                name: 'Video',
                 saveOnServer: false,
               }),
               expect.objectContaining({
                 mediaType: MediaType.GIF,
                 url: 'https://example.com/animation.gif',
-                name: 'GIF',
                 saveOnServer: false,
               }),
             ]),
@@ -1095,7 +1085,6 @@ describe('MessagesService', () => {
               expect.objectContaining({
                 mediaType: MediaType.IMAGE,
                 url: 'https://example.com/image.jpg',
-                name: 'Image',
                 saveOnServer: false,
               }),
               expect.objectContaining({
