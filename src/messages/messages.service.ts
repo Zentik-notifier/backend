@@ -344,7 +344,6 @@ export class MessagesService {
       urlAttachments.push({
         mediaType: MediaType.IMAGE,
         url: createMessageDto.imageUrl,
-        name: 'Image',
         saveOnServer: false,
       });
     }
@@ -353,7 +352,6 @@ export class MessagesService {
       urlAttachments.push({
         mediaType: MediaType.VIDEO,
         url: createMessageDto.videoUrl,
-        name: 'Video',
         saveOnServer: false,
       });
     }
@@ -362,7 +360,6 @@ export class MessagesService {
       urlAttachments.push({
         mediaType: MediaType.GIF,
         url: createMessageDto.gifUrl,
-        name: 'GIF',
         saveOnServer: false,
       });
     }
