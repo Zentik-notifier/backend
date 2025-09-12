@@ -1,6 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service';
+import { AttachmentsService } from './attachments/attachments.service';
 import { EmailService } from './auth/email.service';
 import { JwtOrAccessTokenGuard } from './auth/guards/jwt-or-access-token.guard';
 import { OAuthProvidersService } from './oauth-providers/oauth-providers.service';
@@ -12,7 +13,8 @@ export class AppController {
     private readonly appService: AppService,
     private readonly oauthProvidersService: OAuthProvidersService,
     private readonly emailService: EmailService,
-  ) {}
+    private readonly attachmentsService: AttachmentsService,
+  ) { }
 
   @Get('health')
   getHealth() {
@@ -36,26 +38,18 @@ export class AppController {
   @Get('public/app-config')
   async getPublicAppConfig() {
     try {
-      if (!this.oauthProvidersService) {
-        return {
-          oauthProviders: [],
-          emailEnabled: this.emailService.isEmailEnabled(),
-        };
-      }
-
       const providers =
         await this.oauthProvidersService.findEnabledProvidersPublic();
       const emailEnabled = this.emailService.isEmailEnabled();
+      const uploadEnabled = this.attachmentsService.isAttachmentsEnabled();
+
       return {
         oauthProviders: providers,
         emailEnabled,
+        uploadEnabled,
       };
     } catch (error) {
-      // Fallback in caso di errore
-      return {
-        oauthProviders: [],
-        emailEnabled: this.emailService.isEmailEnabled(),
-      };
+      throw error;
     }
   }
 }

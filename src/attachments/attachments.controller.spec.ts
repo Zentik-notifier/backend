@@ -6,7 +6,6 @@ import { AttachmentsDisabledGuard } from './attachments-disabled.guard';
 import { AttachmentsController } from './attachments.controller';
 import { AttachmentsService } from './attachments.service';
 import { DownloadFromUrlDto, UploadAttachmentDto } from './dto';
-import { ConfigInjectorInterceptor } from './interceptors/config-injector.interceptor';
 
 describe('AttachmentsController', () => {
   let controller: AttachmentsController;
@@ -52,8 +51,6 @@ describe('AttachmentsController', () => {
       .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(AttachmentsDisabledGuard)
       .useValue(mockAttachmentsDisabledGuard)
-      .overrideInterceptor(ConfigInjectorInterceptor)
-      .useValue(mockConfigInjectorInterceptor)
       .compile();
 
     controller = module.get<AttachmentsController>(AttachmentsController);

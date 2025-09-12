@@ -6,10 +6,14 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -100,5 +104,37 @@ export class BucketsController {
     @GetUser('id') userId: string,
   ) {
     return this.bucketsService.getNotificationsCount(id, userId);
+  }
+
+  @Post(':id/upload-icon')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload bucket icon' })
+  @ApiResponse({
+    status: 200,
+    description: 'Icon uploaded successfully',
+    type: Bucket,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Bucket not found',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid file or file too large',
+  })
+  uploadIcon(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+    return this.bucketsService.uploadIcon(id, userId, file);
   }
 }

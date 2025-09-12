@@ -2,7 +2,6 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.guard';
-import { ConfigInjectorInterceptor } from '../attachments/interceptors/config-injector.interceptor';
 import { AccessTokenService } from '../auth/access-token.service';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
@@ -84,8 +83,6 @@ describe('MessagesController', () => {
       .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(AttachmentsDisabledGuard)
       .useValue(mockAttachmentsDisabledGuard)
-      .overrideInterceptor(ConfigInjectorInterceptor)
-      .useValue(mockConfigInjectorInterceptor)
       .compile();
 
     controller = module.get<MessagesController>(MessagesController);

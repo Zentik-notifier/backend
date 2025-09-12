@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AttachmentsService } from './attachments/attachments.service';
 import { EmailService } from './auth/email.service';
 import { JwtOrAccessTokenGuard } from './auth/guards/jwt-or-access-token.guard';
 import { OAuthProvidersService } from './oauth-providers/oauth-providers.service';
@@ -27,6 +28,10 @@ describe('AppController', () => {
         {
           provide: AccessTokenService,
           useValue: { validateAccessToken: jest.fn() },
+        },
+        {
+          provide: AttachmentsService,
+          useValue: { isAttachmentsEnabled: jest.fn().mockReturnValue(true) },
         },
       ],
     })

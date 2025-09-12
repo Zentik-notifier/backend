@@ -25,7 +25,6 @@ import { Attachment } from '../entities/attachment.entity';
 import { AttachmentsDisabledGuard } from './attachments-disabled.guard';
 import { AttachmentsService } from './attachments.service';
 import { DownloadFromUrlDto, UploadAttachmentDto } from './dto';
-import { ConfigInjectorInterceptor } from './interceptors/config-injector.interceptor';
 
 @ApiTags('Attachments')
 @Controller('attachments')
@@ -35,7 +34,7 @@ export class AttachmentsController {
   @Post('upload')
   @UseGuards(JwtOrAccessTokenGuard, AttachmentsDisabledGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file'), ConfigInjectorInterceptor)
+  @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a new attachment (independent of message)' })
   @ApiResponse({

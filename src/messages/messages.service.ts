@@ -45,7 +45,7 @@ export class MessagesService {
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly payloadMapperService: PayloadMapperService,
-  ) {}
+  ) { }
 
   private isUuid(identifier: string): boolean {
     const uuidRegex =
@@ -75,7 +75,7 @@ export class MessagesService {
         )
         .where(
           'bucket.id = :bucketId AND ' +
-            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketId: bucketIdOrName, userId },
         )
         .getOne();
@@ -94,7 +94,7 @@ export class MessagesService {
         )
         .where(
           'bucket.name = :bucketName AND ' +
-            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketName: bucketIdOrName, userId },
         )
         .getOne();
@@ -179,6 +179,12 @@ export class MessagesService {
         createMessageDto.userIds,
       );
       processedUserIds = users.map((user) => user.id);
+    }
+
+    // Check if attachments are enabled when saveOnServer is requested
+    const attachmentsEnabled = this.configService.get<string>('ATTACHMENTS_ENABLED', 'true');
+    if (attachmentsEnabled.toLowerCase() !== 'true' && createMessageDto.attachments?.some(att => att.saveOnServer === true)) {
+      throw new BadRequestException('Attachments are currently disabled, cannot save to server');
     }
 
     // Process attachments before creating the message

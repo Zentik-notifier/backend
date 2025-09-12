@@ -322,4 +322,10 @@ export class AttachmentsService {
     }
     return { deletedAttachments: deleted };
   }
+
+  isAttachmentsEnabled(): boolean {
+    const attachmentsEnabled =
+      this.configService.get<string>('ATTACHMENTS_ENABLED', 'true') ?? 'true';
+    return attachmentsEnabled.toLowerCase() === 'true';
+  }
 }

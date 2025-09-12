@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository } from 'typeorm';
+import { AttachmentsService } from '../attachments/attachments.service';
 import { Bucket } from '../entities/bucket.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { BucketsService } from './buckets.service';
@@ -80,6 +81,16 @@ describe('BucketsService', () => {
           useValue: {
             hasPermissions: jest.fn().mockResolvedValue(true),
             checkPermission: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: AttachmentsService,
+          useValue: {
+            isAttachmentsEnabled: jest.fn().mockReturnValue(true),
+            uploadAttachment: jest.fn().mockResolvedValue({
+              id: 'attachment-id',
+              filepath: '/path/to/file',
+            }),
           },
         },
       ],

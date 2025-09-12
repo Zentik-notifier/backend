@@ -3452,6 +3452,51 @@
         ]
       }
     },
+    "/api/v1/buckets/{id}/upload-icon": {
+      "post": {
+        "operationId": "BucketsController_uploadIcon",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Icon uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bucket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file or file too large"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload bucket icon",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
     "/api/v1/webhooks": {
       "get": {
         "operationId": "WebhooksController_getUserWebhooks",

@@ -11,7 +11,6 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { IsAttachmentsEnabled } from '../../attachments/decorators/attachments-enabled.decorator';
 import { transformMultipartBoolean } from '../../common/utils/transformers';
 import {
   MediaType,
@@ -52,9 +51,7 @@ export class NotificationAttachmentDto {
     description: 'Save attachment to server when URL is provided',
   })
   @IsOptional()
-  @IsAttachmentsEnabled({
-    message: 'Attachments are currently disabled, cannot save to server',
-  })
+  @IsBoolean()
   saveOnServer?: boolean;
 }
 

@@ -503,4 +503,7 @@ export class PublicAppConfig {
 
   @Field()
   emailEnabled: boolean;
+
+  @Field()
+  uploadEnabled: boolean;
 }

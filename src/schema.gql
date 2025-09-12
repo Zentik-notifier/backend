@@ -514,6 +514,7 @@ enum Permission {
 type PublicAppConfig {
   emailEnabled: Boolean!
   oauthProviders: [OAuthProviderPublicDto!]!
+  uploadEnabled: Boolean!
 }
 
 type Query {

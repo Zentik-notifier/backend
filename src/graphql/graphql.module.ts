@@ -2,6 +2,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
+import { AttachmentsModule } from '../attachments/attachments.module';
 import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
 import { BucketsModule } from '../buckets/buckets.module';
@@ -69,6 +70,7 @@ const GRAPHQL_PATH = `${process.env.BACKEND_API_PREFIX}/graphql`;
     GraphQLSharedModule,
     OAuthProvidersModule,
     PayloadMapperModule,
+    AttachmentsModule,
   ],
   providers: [
     NotificationsResolver,

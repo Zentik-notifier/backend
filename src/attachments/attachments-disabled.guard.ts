@@ -4,16 +4,16 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { AttachmentsConfigService } from './attachments-config.service';
+import { AttachmentsService } from './attachments.service';
 
 @Injectable()
 export class AttachmentsDisabledGuard implements CanActivate {
   constructor(
-    private readonly attachmentsConfigService: AttachmentsConfigService,
+    private readonly attachmentsService: AttachmentsService,
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    if (this.attachmentsConfigService.isDisabled) {
+    if (!this.attachmentsService.isAttachmentsEnabled()) {
       throw new ForbiddenException('Attachments are currently disabled');
     }
 

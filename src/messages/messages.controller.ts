@@ -20,7 +20,6 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.guard';
-import { ConfigInjectorInterceptor } from '../attachments/interceptors/config-injector.interceptor';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
@@ -92,7 +91,7 @@ export class MessagesController {
       'Create a message with an uploaded attachment and send notifications',
   })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'), ConfigInjectorInterceptor)
+  @UseInterceptors(FileInterceptor('file'))
   @ApiBody({ type: CreateMessageWithAttachmentDto })
   // @ApiBody({ schema: CreateMessageWithAttachmentApiBodySchema as any })
   @ApiResponse({

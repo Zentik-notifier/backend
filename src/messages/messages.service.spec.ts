@@ -144,6 +144,11 @@ describe('MessagesService', () => {
               mediaType: MediaType.IMAGE,
             }),
             linkAttachmentToMessage: jest.fn().mockResolvedValue(undefined),
+            downloadAndSaveFromUrl: jest.fn().mockResolvedValue({
+              id: 'att-1',
+              filename: 'downloaded.jpg',
+              mediaType: MediaType.IMAGE,
+            }),
           },
         },
         {
@@ -1108,6 +1113,154 @@ describe('MessagesService', () => {
         );
         expect(result).toEqual(mockMessage);
       });
+    });
+  });
+
+  describe('attachments validation', () => {
+    it('should throw BadRequestException when saveOnServer is true but attachments are disabled', async () => {
+      // Mock config service to return attachments disabled
+      jest.spyOn(configService, 'get').mockReturnValue('false');
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Test Message',
+        body: 'Test Body',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        attachments: [
+          {
+            mediaType: MediaType.IMAGE,
+            url: 'https://example.com/image.jpg',
+            saveOnServer: true,
+          },
+        ],
+      };
+
+      await expect(service.create(createMessageDto, 'user-1')).rejects.toThrow(
+        'Attachments are currently disabled, cannot save to server',
+      );
+    });
+
+    it('should proceed normally when saveOnServer is true and attachments are enabled', async () => {
+      // Mock config service to return attachments enabled
+      jest.spyOn(configService, 'get').mockReturnValue('true');
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Test Message',
+        body: 'Test Body',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        attachments: [
+          {
+            mediaType: MediaType.IMAGE,
+            url: 'https://example.com/image.jpg',
+            saveOnServer: true,
+          },
+        ],
+      };
+
+      // Mock the bucket lookup
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      // Mock the message creation
+      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
+      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+
+      const result = await service.create(createMessageDto, 'user-1');
+      expect(result).toEqual(mockMessage);
+    });
+
+    it('should proceed normally when saveOnServer is false regardless of attachments setting', async () => {
+      // Mock config service to return attachments disabled
+      jest.spyOn(configService, 'get').mockReturnValue('false');
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Test Message',
+        body: 'Test Body',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        attachments: [
+          {
+            mediaType: MediaType.IMAGE,
+            url: 'https://example.com/image.jpg',
+            saveOnServer: false,
+          },
+        ],
+      };
+
+      // Mock the bucket lookup
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      // Mock the message creation
+      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
+      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+
+      const result = await service.create(createMessageDto, 'user-1');
+      expect(result).toEqual(mockMessage);
+    });
+
+    it('should proceed normally when no attachments are provided', async () => {
+      // Mock config service to return attachments disabled
+      jest.spyOn(configService, 'get').mockReturnValue('false');
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Test Message',
+        body: 'Test Body',
+        deliveryType: NotificationDeliveryType.NORMAL,
+      };
+
+      // Mock the bucket lookup
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      // Mock the message creation
+      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
+      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+
+      const result = await service.create(createMessageDto, 'user-1');
+      expect(result).toEqual(mockMessage);
+    });
+
+    it('should proceed normally when attachments array is empty', async () => {
+      // Mock config service to return attachments disabled
+      jest.spyOn(configService, 'get').mockReturnValue('false');
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Test Message',
+        body: 'Test Body',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        attachments: [],
+      };
+
+      // Mock the bucket lookup
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      // Mock the message creation
+      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
+      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+
+      const result = await service.create(createMessageDto, 'user-1');
+      expect(result).toEqual(mockMessage);
     });
   });
 });

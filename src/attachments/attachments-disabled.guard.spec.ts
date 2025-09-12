@@ -1,11 +1,11 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { AttachmentsConfigService } from './attachments-config.service';
+import { AttachmentsService } from './attachments.service';
 import { AttachmentsDisabledGuard } from './attachments-disabled.guard';
 
 describe('AttachmentsDisabledGuard', () => {
   let guard: AttachmentsDisabledGuard;
-  let attachmentsConfigService: AttachmentsConfigService;
+  let attachmentsService: AttachmentsService;
 
   const mockExecutionContext = {
     switchToHttp: () => ({
@@ -18,20 +18,16 @@ describe('AttachmentsDisabledGuard', () => {
       providers: [
         AttachmentsDisabledGuard,
         {
-          provide: AttachmentsConfigService,
+          provide: AttachmentsService,
           useValue: {
-            get isDisabled() {
-              return false;
-            },
+            isAttachmentsEnabled: jest.fn().mockReturnValue(true),
           },
         },
       ],
     }).compile();
 
     guard = module.get<AttachmentsDisabledGuard>(AttachmentsDisabledGuard);
-    attachmentsConfigService = module.get<AttachmentsConfigService>(
-      AttachmentsConfigService,
-    );
+    attachmentsService = module.get<AttachmentsService>(AttachmentsService);
   });
 
   it('should be defined', () => {
@@ -39,20 +35,14 @@ describe('AttachmentsDisabledGuard', () => {
   });
 
   it('should allow access when attachments are enabled', () => {
-    Object.defineProperty(attachmentsConfigService, 'isDisabled', {
-      get: jest.fn().mockReturnValue(false),
-      configurable: true,
-    });
+    jest.spyOn(attachmentsService, 'isAttachmentsEnabled').mockReturnValue(true);
 
     const result = guard.canActivate(mockExecutionContext);
     expect(result).toBe(true);
   });
 
   it('should throw ForbiddenException when attachments are disabled', () => {
-    Object.defineProperty(attachmentsConfigService, 'isDisabled', {
-      get: jest.fn().mockReturnValue(true),
-      configurable: true,
-    });
+    jest.spyOn(attachmentsService, 'isAttachmentsEnabled').mockReturnValue(false);
 
     expect(() => guard.canActivate(mockExecutionContext)).toThrow(
       ForbiddenException,

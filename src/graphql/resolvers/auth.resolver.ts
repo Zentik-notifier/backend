@@ -28,6 +28,7 @@ import { EmailService } from '../../auth/email.service';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
 import { SessionService } from '../../auth/session.service';
 import { Locale } from '../../common/types/i18n';
+import { AttachmentsService } from '../../attachments/attachments.service';
 import { EventTrackingService } from '../../events/event-tracking.service';
 import { OAuthProvidersService } from '../../oauth-providers/oauth-providers.service';
 
@@ -42,6 +43,7 @@ export class AuthResolver {
     private readonly eventTrackingService: EventTrackingService,
     private readonly oauthProvidersService: OAuthProvidersService,
     private readonly emailService: EmailService,
+    private readonly attachmentsService: AttachmentsService,
   ) {}
 
   @Query(() => PublicAppConfig)
@@ -49,7 +51,11 @@ export class AuthResolver {
     const providers =
       await this.oauthProvidersService.findEnabledProvidersPublic();
     const emailEnabled = this.emailService.isEmailEnabled();
-    return { oauthProviders: providers, emailEnabled };
+    return { 
+      oauthProviders: providers, 
+      emailEnabled,
+      uploadEnabled: this.attachmentsService.isAttachmentsEnabled(),
+    };
   }
 
   @Mutation(() => String)
