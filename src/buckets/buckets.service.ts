@@ -10,8 +10,6 @@ import { Repository } from 'typeorm';
 import { Bucket } from '../entities/bucket.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto/index';
-import { AttachmentsService } from '../attachments/attachments.service';
-import { MediaType } from 'src/notifications/notifications.types';
 
 @Injectable()
 export class BucketsService {
@@ -19,7 +17,6 @@ export class BucketsService {
     @InjectRepository(Bucket)
     private readonly bucketsRepository: Repository<Bucket>,
     private readonly entityPermissionService: EntityPermissionService,
-    private readonly attachmentsService: AttachmentsService,
   ) {}
 
   async create(
@@ -237,70 +234,4 @@ export class BucketsService {
     };
   }
 
-  async uploadIcon(
-    id: string,
-    userId: string,
-    file: Express.Multer.File,
-  ): Promise<Bucket> {
-    // Find the bucket
-    const bucket = await this.bucketsRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-
-    if (!bucket) {
-      throw new NotFoundException('Bucket not found');
-    }
-
-    // Check permissions
-    const isOwner = bucket.user.id === userId;
-    if (!isOwner) {
-      const hasPermission = await this.entityPermissionService.hasPermissions(
-        userId,
-        ResourceType.BUCKET,
-        id,
-        [Permission.ADMIN],
-      );
-
-      if (!hasPermission) {
-        throw new ForbiddenException(
-          'You do not have admin access to this bucket',
-        );
-      }
-    }
-
-    // Validate file type (only images allowed for icons)
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException(
-        `File type ${file.mimetype} is not allowed for bucket icons`,
-      );
-    }
-
-    // Validate file size (max 2MB for icons)
-    const maxFileSize = 2 * 1024 * 1024; // 2MB
-    if (file.size > maxFileSize) {
-      throw new BadRequestException(
-        `File size exceeds maximum allowed size of ${maxFileSize} bytes`,
-      );
-    }
-
-    try {
-      // Upload the file using attachments service
-      const attachment = await this.attachmentsService.uploadAttachment(
-        userId,
-        {
-          filename: `bucket-icon-${id}`,
-          mediaType: MediaType.ICON,
-        },
-        file,
-      );
-
-      // Update bucket with the new icon URL
-      bucket.icon = `/api/v1/attachments/${attachment.id}`;
-      return this.bucketsRepository.save(bucket);
-    } catch (error) {
-      throw new BadRequestException(`Failed to upload icon: ${error.message}`);
-    }
-  }
 }

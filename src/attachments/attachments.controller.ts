@@ -19,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Response } from 'express';
+import { resolve } from 'path';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { Attachment } from '../entities/attachment.entity';
@@ -55,6 +56,7 @@ export class AttachmentsController {
     if (!file) {
       throw new Error('No file uploaded');
     }
+    
     return this.attachmentsService.uploadAttachment(
       userId,
       uploadAttachmentDto,
@@ -121,7 +123,6 @@ export class AttachmentsController {
       `inline; filename="${attachment.filename}"`,
     );
 
-    // Send file
     res.sendFile(attachment.filepath);
   }
 
@@ -132,15 +133,23 @@ export class AttachmentsController {
   async downloadFilePublic(@Param('id') id: string, @Res() res: Response) {
     const attachment = await this.attachmentsService.findOnePublic(id);
 
-    // Set appropriate headers
     res.setHeader('Content-Type', this.getMimeType(attachment.filename));
     res.setHeader(
       'Content-Disposition',
       `inline; filename="${attachment.filename}"`,
     );
 
-    // Send file
-    res.sendFile(attachment.filepath);
+    const absolutePath = resolve(attachment.filepath);
+    
+    const fs = require('fs');
+    if (!fs.existsSync(absolutePath)) {
+      console.error(`[ERROR] File does not exist: ${absolutePath}`);
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    const stats = fs.statSync(absolutePath);
+    
+    res.sendFile(absolutePath);
   }
 
   private getMimeType(filename: string): string {

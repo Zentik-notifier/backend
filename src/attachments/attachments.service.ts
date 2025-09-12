@@ -30,9 +30,18 @@ export class AttachmentsService {
     const storagePath =
       this.configService.get<string>('ATTACHMENTS_STORAGE_PATH') ||
       './storage/attachments';
-    const attachmentsPath = join(storagePath, 'attachments');
-    await mkdir(attachmentsPath, { recursive: true });
-    return attachmentsPath;
+    await mkdir(storagePath, { recursive: true });
+    return storagePath;
+  }
+
+  private async getUserMediaTypePath(userId: string, mediaType: MediaType, attachmentId: string): Promise<string> {
+    const basePath = await this.getStoragePath();
+    const userPath = join(basePath, userId);
+    const mediaTypePath = join(userPath, mediaType.toLowerCase());
+    const attachmentPath = join(mediaTypePath, attachmentId);
+    
+    await mkdir(attachmentPath, { recursive: true });
+    return attachmentPath;
   }
 
   async uploadAttachment(
@@ -42,12 +51,29 @@ export class AttachmentsService {
   ): Promise<Attachment> {
     const { filename, mediaType } = uploadAttachmentDto;
 
-    // Generate unique filename with UUID
+    // Generate unique attachment ID
+    const attachmentId = uuidv4();
     const fileExtension = extname(filename);
-    const uniqueFilename = `${uuidv4()}${fileExtension}`;
+    const uniqueFilename = `${attachmentId}${fileExtension}`;
 
-    // Get storage path from configuration
-    const storagePath = await this.getStoragePath();
+    // Determine final media type
+    let finalMediaType = mediaType;
+    if (!mediaType) {
+      if (file.mimetype.startsWith('image/')) {
+        finalMediaType = MediaType.IMAGE;
+      } else if (file.mimetype.startsWith('video/')) {
+        finalMediaType = MediaType.VIDEO;
+      } else if (file.mimetype.startsWith('audio/')) {
+        finalMediaType = MediaType.AUDIO;
+      } else if (file.mimetype === 'application/pdf') {
+        finalMediaType = MediaType.ICON; // Use ICON as fallback for documents
+      } else {
+        finalMediaType = MediaType.ICON; // Default fallback for other file types
+      }
+    }
+
+    // Get user-specific media type path: /attachments/userid/mediatype/id/
+    const attachmentPath = await this.getUserMediaTypePath(userId, finalMediaType!, attachmentId);
 
     // Validate file size
     const maxFileSize =
@@ -80,34 +106,30 @@ export class AttachmentsService {
       );
     }
 
-    // Determine mediaType if not provided
-    let finalMediaType = mediaType;
-    if (!finalMediaType && file.mimetype) {
-      // Try to infer mediaType from mimetype
-      if (file.mimetype.startsWith('image/')) {
-        finalMediaType = MediaType.IMAGE;
-      } else if (file.mimetype.startsWith('video/')) {
-        finalMediaType = MediaType.VIDEO;
-      } else if (file.mimetype.startsWith('audio/')) {
-        finalMediaType = MediaType.AUDIO;
-      } else if (file.mimetype === 'application/pdf') {
-        finalMediaType = MediaType.ICON; // Use ICON as fallback for documents
-      } else {
-        finalMediaType = MediaType.ICON; // Default fallback for other file types
-      }
-    }
+    // Full file path: /attachments/userid/mediatype/id/filename
+    const filepath = join(attachmentPath, uniqueFilename);
 
-    // Full file path
-    const filepath = join(storagePath, uniqueFilename);
-
+    // Debug file buffer
+    this.logger.log(`[DEBUG] File buffer info: size=${file.buffer?.length || 0} originalSize=${file.size} mimetype=${file.mimetype}`);
+    
     // Write file to storage
     await writeFile(filepath, file.buffer);
     this.logger.log(
       `Attachment file saved on filesystem: path=${filepath} size=${file.size}B userId=${userId}`,
     );
+    
+    // Verify file was written correctly
+    const fs = require('fs');
+    if (fs.existsSync(filepath)) {
+      const stats = fs.statSync(filepath);
+      this.logger.log(`[DEBUG] File verification: exists=${fs.existsSync(filepath)} size=${stats.size} bytes`);
+    } else {
+      this.logger.error(`[ERROR] File was not created: ${filepath}`);
+    }
 
     // Create attachment record
     const attachment = this.attachmentsRepository.create({
+      id: attachmentId,
       filename,
       filepath,
       mediaType: finalMediaType,
@@ -168,14 +190,31 @@ export class AttachmentsService {
                 urlObj.pathname.split('/').pop() ||
                 'downloaded_file';
 
-              // Generate unique filename with UUID
+              // Generate unique attachment ID
+              const attachmentId = uuidv4();
               const fileExtension = extname(finalFilename);
-              const uniqueFilename = `${uuidv4()}${fileExtension}`;
+              const uniqueFilename = `${attachmentId}${fileExtension}`;
 
-              const storagePath = await this.getStoragePath();
+              // Determine final media type
+              let finalMediaType = mediaType;
+              if (!finalMediaType) {
+                // Try to infer from URL or filename
+                if (finalFilename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                  finalMediaType = MediaType.IMAGE;
+                } else if (finalFilename.match(/\.(mp4|webm|avi|mov)$/i)) {
+                  finalMediaType = MediaType.VIDEO;
+                } else if (finalFilename.match(/\.(mp3|wav|ogg|m4a)$/i)) {
+                  finalMediaType = MediaType.AUDIO;
+                } else {
+                  finalMediaType = MediaType.ICON; // Default fallback
+                }
+              }
 
-              // Full file path
-              const filepath = join(storagePath, uniqueFilename);
+              // Get user-specific media type path: /attachments/userid/mediatype/id/
+              const attachmentPath = await this.getUserMediaTypePath(userId, finalMediaType, attachmentId);
+
+              // Full file path: /attachments/userid/mediatype/id/filename
+              const filepath = join(attachmentPath, uniqueFilename);
 
               // Write file to storage
               await writeFile(filepath, buffer);
@@ -183,28 +222,9 @@ export class AttachmentsService {
                 `Attachment file saved on filesystem: path=${filepath} size=${buffer.length}B userId=${userId}`,
               );
 
-              // Determine mediaType if not provided
-              let finalMediaType = mediaType;
-              if (!finalMediaType) {
-                // Try to infer from file extension
-                const extension = extname(finalFilename).toLowerCase();
-                if (
-                  ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(extension)
-                ) {
-                  finalMediaType = MediaType.IMAGE;
-                } else if (
-                  ['.mp4', '.webm', '.avi', '.mov'].includes(extension)
-                ) {
-                  finalMediaType = MediaType.VIDEO;
-                } else if (['.mp3', '.wav', '.ogg'].includes(extension)) {
-                  finalMediaType = MediaType.AUDIO;
-                } else {
-                  finalMediaType = MediaType.ICON; // Default fallback
-                }
-              }
-
               // Create attachment record
               const attachment = this.attachmentsRepository.create({
+                id: attachmentId,
                 filename: finalFilename,
                 filepath,
                 mediaType: finalMediaType,
@@ -278,8 +298,9 @@ export class AttachmentsService {
     }
 
     // For public access, we only allow attachments that are linked to messages
+    // or are bucket icons (MediaType.ICON)
     // This provides some security by not exposing all user uploads
-    if (!attachment.messageId) {
+    if (!attachment.messageId && attachment.mediaType !== MediaType.ICON) {
       throw new NotFoundException('This attachment is not publicly accessible');
     }
 
