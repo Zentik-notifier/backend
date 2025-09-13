@@ -29,15 +29,7 @@ export class UserBucketsResolver {
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
     @InjectRepository(Bucket)
     private readonly bucketsRepository: Repository<Bucket>,
-  ) {}
-
-  @Mutation(() => UserBucket)
-  async createUserBucket(
-    @Args('createUserBucketInput') createUserBucketDto: CreateUserBucketDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.userBucketsService.create(user.id, createUserBucketDto);
-  }
+  ) { }
 
   @Mutation(() => UserBucket)
   async setBucketSnooze(
@@ -67,58 +59,12 @@ export class UserBucketsResolver {
     );
   }
 
-  @Query(() => [UserBucket], { name: 'userBuckets' })
-  findAll(@CurrentUser() user: User) {
-    return this.userBucketsService.findAllByUser(user.id);
-  }
-
-  @Query(() => UserBucket, { name: 'userBucket' })
-  findOne(
-    @Args('id', { type: () => String }) id: string,
-    @CurrentUser() user: User,
-  ) {
-    return this.userBucketsService.findOne(id, user.id);
-  }
-
-  @Query(() => UserBucket, { name: 'getUserBucket', nullable: true })
-  findByBucketId(
-    @Args('bucketId', { type: () => String }) bucketId: string,
-    @CurrentUser() user: User,
-  ) {
-    return this.userBucketsService.findOrCreateByBucketAndUser(
-      bucketId,
-      user.id,
-    );
-  }
-
   @Query(() => Boolean, { name: 'isBucketSnoozed' })
   getSnoozeStatus(
     @Args('bucketId', { type: () => String }) bucketId: string,
     @CurrentUser() user: User,
   ) {
     return this.userBucketsService.isSnoozed(bucketId, user.id);
-  }
-
-  @Query(() => [String], { name: 'snoozedBucketIds' })
-  getSnoozedBucketIds(@CurrentUser() user: User) {
-    return this.userBucketsService.getSnoozedBucketIds(user.id);
-  }
-
-  @Mutation(() => UserBucket)
-  async updateUserBucket(
-    @Args('id', { type: () => String }) id: string,
-    @Args('updateUserBucketInput') updateUserBucketDto: UpdateUserBucketDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.userBucketsService.update(id, user.id, updateUserBucketDto);
-  }
-
-  @Mutation(() => Boolean)
-  async removeUserBucket(
-    @Args('id', { type: () => String }) id: string,
-    @CurrentUser() user: User,
-  ) {
-    return this.userBucketsService.remove(id, user.id).then(() => true);
   }
 
   @ResolveField(() => User)

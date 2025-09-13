@@ -205,12 +205,4 @@ export class UserBucketsService {
     const userBucket = await this.findOrCreateByBucketAndUser(bucketId, userId);
     return this.update(userBucket.id, userId, { snoozes });
   }
-
-  async getSnoozedBucketIds(userId: string): Promise<string[]> {
-    const userBuckets = await this.findAllByUser(userId);
-    const snoozedBuckets = userBuckets.filter(
-      (ub) => ub.snoozeUntil && new Date() < ub.snoozeUntil,
-    );
-    return snoozedBuckets.map((ub) => ub.bucketId);
-  }
 }

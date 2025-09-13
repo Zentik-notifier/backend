@@ -123,12 +123,6 @@ input CreatePayloadMapperDto {
   userId: String
 }
 
-input CreateUserBucketDto {
-  bucketId: String!
-  snoozeUntil: String
-  snoozes: [SnoozeScheduleInput!]
-}
-
 input CreateWebhookDto {
   body: JSON
   headers: [WebhookHeaderDto!]!
@@ -313,7 +307,6 @@ type Mutation {
   createOAuthProvider(input: CreateOAuthProviderDto!): OAuthProvider!
   createPayloadMapper(input: CreatePayloadMapperDto!): PayloadMapper!
   createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String): SystemAccessTokenDto!
-  createUserBucket(createUserBucketInput: CreateUserBucketDto!): UserBucket!
   createWebhook(input: CreateWebhookDto!): UserWebhook!
   deleteAccount: Boolean!
   deleteBucket(id: String!): Boolean!
@@ -337,7 +330,6 @@ type Mutation {
   registerDevice(input: RegisterDeviceDto!): UserDevice!
   removeDevice(deviceId: String!): Boolean!
   removeDeviceByToken(deviceToken: String!): Boolean!
-  removeUserBucket(id: String!): Boolean!
   requestEmailConfirmation(input: RequestEmailConfirmationDto!): EmailConfirmationResponseDto!
   requestPasswordReset(input: RequestPasswordResetDto!): PasswordResetResponseDto!
   resetPassword(input: ResetPasswordDto!): PasswordResetResponseDto!
@@ -359,7 +351,6 @@ type Mutation {
   updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
   updateProfile(input: UpdateProfileInput!): User!
   updateReceivedNotifications(id: String!): UpdateReceivedResult!
-  updateUserBucket(id: String!, updateUserBucketInput: UpdateUserBucketDto!): UserBucket!
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
   updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
@@ -532,7 +523,6 @@ type Query {
   getBackendVersion: String!
   getResourcePermissions(input: GetResourcePermissionsInput!): [EntityPermission!]!
   getUserAccessTokens: [AccessTokenListDto!]!
-  getUserBucket(bucketId: String!): UserBucket
   getUserSessions: [SessionInfoDto!]!
   healthcheck: String!
   isBucketSnoozed(bucketId: String!): Boolean!
@@ -545,9 +535,6 @@ type Query {
   payloadMapper(id: String!): PayloadMapper!
   payloadMappers: [PayloadMapperWithBuiltin!]!
   publicAppConfig: PublicAppConfig!
-  snoozedBucketIds: [String!]!
-  userBucket(id: String!): UserBucket!
-  userBuckets: [UserBucket!]!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
   userWebhooks: [UserWebhook!]!
@@ -719,12 +706,6 @@ input UpdateProfileInput {
 type UpdateReceivedResult {
   success: Boolean!
   updatedCount: Float!
-}
-
-input UpdateUserBucketDto {
-  bucketId: String
-  snoozeUntil: String
-  snoozes: [SnoozeScheduleInput!]
 }
 
 input UpdateUserDeviceInput {
