@@ -10,7 +10,7 @@ import { mkdir, rm, writeFile } from 'fs/promises';
 import * as http from 'http';
 import * as https from 'https';
 import { extname, join } from 'path';
-import { LessThan, Repository } from 'typeorm';
+import { LessThan, Not, Repository } from 'typeorm';
 import { URL } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import { Attachment } from '../entities/attachment.entity';
@@ -330,7 +330,10 @@ export class AttachmentsService {
   ): Promise<{ deletedAttachments: number }> {
     const cutoff = new Date(Date.now() - maxAgeMs);
     const oldAttachments = await this.attachmentsRepository.find({
-      where: { createdAt: LessThan(cutoff) },
+      where: { 
+        createdAt: LessThan(cutoff),
+        mediaType: Not(MediaType.ICON) // Exclude icons from cleanup
+      },
     });
 
     let deleted = 0;
