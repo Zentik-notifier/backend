@@ -25,11 +25,11 @@ import { CreateBucketDto, UpdateBucketDto } from './dto';
 @ApiTags('Buckets')
 @Controller('buckets')
 export class BucketsController {
-  constructor(private readonly bucketsService: BucketsService) {}
+  constructor(private readonly bucketsService: BucketsService) { }
 
   @Post()
   @ApiOperation({
-    summary: 'Create a new bucket with optional device associations',
+    summary: 'Create a new bucket',
   })
   @ApiResponse({
     status: 201,
@@ -37,7 +37,6 @@ export class BucketsController {
     type: Bucket,
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 404, description: 'One or more devices not found' })
   create(
     @GetUser('id') userId: string,
     @Body() createBucketDto: CreateBucketDto,
@@ -61,7 +60,7 @@ export class BucketsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a bucket and its device associations' })
+  @ApiOperation({ summary: 'Update a bucket' })
   @ApiResponse({
     status: 200,
     description: 'Bucket updated successfully',
@@ -69,7 +68,7 @@ export class BucketsController {
   })
   @ApiResponse({
     status: 404,
-    description: 'Bucket not found or one or more devices not found',
+    description: 'Bucket not found',
   })
   update(
     @Param('id') id: string,

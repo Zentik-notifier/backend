@@ -17,7 +17,7 @@ export class BucketsService {
     @InjectRepository(Bucket)
     private readonly bucketsRepository: Repository<Bucket>,
     private readonly entityPermissionService: EntityPermissionService,
-  ) {}
+  ) { }
 
   async create(
     userId: string,
@@ -195,43 +195,12 @@ export class BucketsService {
     bucketId: string,
     userId: string,
   ): Promise<number> {
-    const bucket = await this.findOne(bucketId, userId);
+    await this.findOne(bucketId, userId);
+
     return this.bucketsRepository
       .createQueryBuilder('bucket')
       .leftJoinAndSelect('bucket.messages', 'message')
       .where('bucket.id = :bucketId', { bucketId })
       .getCount();
   }
-
-  async getBucketMessages(
-    bucketId: string,
-    userId: string,
-    options: {
-      page?: number;
-      limit?: number;
-      search?: string;
-    } = {},
-  ) {
-    // First verify user has access to the bucket
-    await this.findOne(bucketId, userId);
-
-    // Then get messages using the messages service
-    // We'll need to inject MessagesService or use a different approach
-    // For now, we'll return a simple message count
-    const messageCount = await this.bucketsRepository
-      .createQueryBuilder('bucket')
-      .leftJoinAndSelect('bucket.messages', 'message')
-      .where('bucket.id = :bucketId', { bucketId })
-      .getCount();
-
-    // Return a simple object that matches the expected structure
-    // The resolver will handle the conversion to DTO if needed
-    return {
-      messages: [],
-      total: messageCount,
-      page: options.page || 1,
-      limit: options.limit || 20,
-    };
-  }
-
 }

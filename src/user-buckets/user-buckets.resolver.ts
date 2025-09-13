@@ -105,7 +105,7 @@ export class UserBucketsResolver {
   }
 
   @Mutation(() => UserBucket)
-  updateUserBucket(
+  async updateUserBucket(
     @Args('id', { type: () => String }) id: string,
     @Args('updateUserBucketInput') updateUserBucketDto: UpdateUserBucketDto,
     @CurrentUser() user: User,
@@ -114,7 +114,7 @@ export class UserBucketsResolver {
   }
 
   @Mutation(() => Boolean)
-  removeUserBucket(
+  async removeUserBucket(
     @Args('id', { type: () => String }) id: string,
     @CurrentUser() user: User,
   ) {
