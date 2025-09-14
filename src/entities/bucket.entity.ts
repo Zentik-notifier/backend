@@ -73,14 +73,11 @@ export class Bucket {
   @OneToMany(() => Message, (message) => message.bucket)
   messages: Message[];
 
-  // devices relation removed
-
   @Field(() => [UserBucket], { nullable: true })
   @ApiProperty({ type: [UserBucket], required: false })
   @OneToMany(() => UserBucket, (userBucket) => userBucket.bucket)
   userBuckets?: UserBucket[];
 
-  // Virtual GraphQL field resolved per current user
   @Field(() => UserBucket, { nullable: true })
   userBucket?: UserBucket;
 
