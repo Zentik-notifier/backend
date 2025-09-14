@@ -19,6 +19,18 @@ import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard'
 import { Bucket } from '../entities/bucket.entity';
 import { BucketsService } from './buckets.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto';
+import { ApiProperty } from '@nestjs/swagger';
+
+class SetBucketSnoozeDto {
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: String,
+    example: '2025-09-14T12:34:56.000Z',
+    description: 'ISO date until which notifications are snoozed. Null to clear snooze.',
+  })
+  snoozeUntil?: string | null;
+}
 
 @UseGuards(JwtOrAccessTokenGuard)
 @ApiBearerAuth()
@@ -104,7 +116,6 @@ export class BucketsController {
   @Get(':id/snooze-status')
   @ApiOperation({
     summary: 'Check if a bucket is snoozed for the current user',
-    description: 'Migrated from /user-buckets/bucket/:bucketId/snooze-status (deprecated).',
   })
   @ApiResponse({
     status: 200,
@@ -121,7 +132,7 @@ export class BucketsController {
   @Post(':id/snooze')
   @ApiOperation({
     summary: 'Set bucket snooze for the current user',
-    description: 'Migrated from /user-buckets/bucket/:bucketId/snooze (deprecated).',
+    description: 'Pass a JSON body {"snoozeUntil": "<ISO date>"}. Use null or omit the field to clear.',
   })
   @ApiResponse({
     status: 200,
@@ -133,10 +144,10 @@ export class BucketsController {
   })
   setBucketSnooze(
     @Param('id') bucketId: string,
-    @Body('snoozeUntil') snoozeUntil: string | null,
+    @Body() body: SetBucketSnoozeDto,
     @GetUser('id') userId: string,
   ) {
-    return this.bucketsService.setBucketSnooze(bucketId, userId, snoozeUntil);
+    return this.bucketsService.setBucketSnooze(bucketId, userId, body?.snoozeUntil ?? null);
   }
 
 }

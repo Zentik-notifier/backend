@@ -276,7 +276,6 @@ export class BucketsResolver {
     return true;
   }
 
-  // --- Snooze (migrated from UserBucketsResolver) ---
   @Mutation(() => UserBucket, { deprecationReason: 'Usa Bucket.setBucketSnooze (questo sarà rimosso)' })
   async setBucketSnooze(
     @Args('bucketId', { type: () => String }) bucketId: string,

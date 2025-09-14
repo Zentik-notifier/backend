@@ -2726,7 +2726,6 @@
     },
     "/api/v1/buckets/{id}/snooze-status": {
       "get": {
-        "description": "Migrated from /user-buckets/bucket/:bucketId/snooze-status (deprecated).",
         "operationId": "BucketsController_getSnoozeStatus",
         "parameters": [
           {
@@ -2763,7 +2762,7 @@
     },
     "/api/v1/buckets/{id}/snooze": {
       "post": {
-        "description": "Migrated from /user-buckets/bucket/:bucketId/snooze (deprecated).",
+        "description": "Pass a JSON body {\"snoozeUntil\": \"<ISO date>\"}. Use null or omit the field to clear.",
         "operationId": "BucketsController_setBucketSnooze",
         "parameters": [
           {
@@ -2775,6 +2774,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetBucketSnoozeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Bucket snooze updated successfully"
@@ -5235,6 +5244,17 @@
             "type": "boolean",
             "description": "Whether the bucket is publicly accessible",
             "default": false
+          }
+        }
+      },
+      "SetBucketSnoozeDto": {
+        "type": "object",
+        "properties": {
+          "snoozeUntil": {
+            "type": "string",
+            "nullable": true,
+            "example": "2025-09-14T12:34:56.000Z",
+            "description": "ISO date until which notifications are snoozed. Null to clear snooze."
           }
         }
       },
