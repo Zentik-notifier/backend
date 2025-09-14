@@ -3,12 +3,15 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Bucket } from '../entities/bucket.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { EventTrackingService } from '../events/event-tracking.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto/index';
 
 @Injectable()
@@ -16,7 +19,10 @@ export class BucketsService {
   constructor(
     @InjectRepository(Bucket)
     private readonly bucketsRepository: Repository<Bucket>,
+    @InjectRepository(UserBucket)
+    private readonly userBucketRepository: Repository<UserBucket>,
     private readonly entityPermissionService: EntityPermissionService,
+    private readonly eventTrackingService: EventTrackingService,
   ) { }
 
   async create(
@@ -202,5 +208,100 @@ export class BucketsService {
       .leftJoinAndSelect('bucket.messages', 'message')
       .where('bucket.id = :bucketId', { bucketId })
       .getCount();
+  }
+
+  async createUserBucket(
+    userId: string,
+    params: { bucketId: string; snoozeUntil?: string | undefined; snoozes?: any[] },
+  ): Promise<UserBucket> {
+    const existing = await this.userBucketRepository.findOne({
+      where: { userId, bucketId: params.bucketId },
+    });
+    if (existing) {
+      throw new ConflictException('User bucket relationship already exists');
+    }
+    const userBucket = this.userBucketRepository.create({
+      bucketId: params.bucketId,
+      userId,
+      snoozeUntil: params.snoozeUntil ? new Date(params.snoozeUntil) : undefined,
+      snoozes: params.snoozes || [],
+    });
+    const savedUserBucket = await this.userBucketRepository.save(userBucket);
+    await this.eventTrackingService.trackBucketSharing(userId, params.bucketId);
+    return savedUserBucket;
+  }
+
+  async findUserBucketByBucketAndUser(
+    bucketId: string,
+    userId: string,
+  ): Promise<UserBucket | null> {
+    return this.userBucketRepository.findOne({
+      where: { bucketId, userId },
+      relations: ['bucket'],
+    });
+  }
+
+  async findUserBucketsByBucketAndUsers(
+    bucketId: string,
+    userIds: string[],
+  ): Promise<UserBucket[]> {
+    if (userIds.length === 0) return [];
+    return this.userBucketRepository.find({
+      where: { bucketId, userId: In(userIds) },
+      relations: ['bucket'],
+    });
+  }
+
+  async findOrCreateUserBucket(
+    bucketId: string,
+    userId: string,
+  ): Promise<UserBucket> {
+    let userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+    if (!userBucket) {
+      userBucket = await this.createUserBucket(userId, { bucketId });
+    }
+    return userBucket;
+  }
+
+  async isBucketSnoozed(bucketId: string, userId: string): Promise<boolean> {
+    const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+    if (!userBucket || !userBucket.snoozeUntil) return false;
+    return new Date() < userBucket.snoozeUntil;
+  }
+
+  async setBucketSnooze(
+    bucketId: string,
+    userId: string,
+    snoozeUntil: string | null,
+  ): Promise<UserBucket | null> {
+    if (snoozeUntil === null) {
+      const existing = await this.findUserBucketByBucketAndUser(bucketId, userId);
+      if (existing) {
+        existing.snoozeUntil = null;
+        return this.userBucketRepository.save(existing);
+      }
+      return this.createUserBucket(userId, { bucketId });
+    }
+    const userBucket = await this.findOrCreateUserBucket(bucketId, userId);
+    userBucket.snoozeUntil = new Date(snoozeUntil);
+    return this.userBucketRepository.save(userBucket);
+  }
+
+  async updateBucketSnoozes(
+    bucketId: string,
+    userId: string,
+    snoozes: any[],
+  ): Promise<UserBucket> {
+    const userBucket = await this.findOrCreateUserBucket(bucketId, userId);
+    userBucket.snoozes = snoozes || [];
+    return this.userBucketRepository.save(userBucket);
+  }
+
+  async removeUserBucket(bucketId: string, userId: string): Promise<void> {
+    const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+    if (userBucket) {
+      await this.eventTrackingService.trackBucketUnsharing(userId, bucketId);
+      await this.userBucketRepository.remove(userBucket);
+    }
   }
 }

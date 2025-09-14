@@ -21,7 +21,6 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { OAuthProvidersModule } from './oauth-providers/oauth-providers.module';
 import { PayloadMapperModule } from './payload-mapper/payload-mapper.module';
 import { SystemAccessTokenModule } from './system-access-token/system-access-token.module';
-import { UserBucketsModule } from './user-buckets/user-buckets.module';
 import { UsersModule } from './users/users.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 
@@ -67,7 +66,6 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     WebhooksModule,
     OAuthProvidersModule,
     PayloadMapperModule,
-    UserBucketsModule,
     AttachmentsModule,
     EventsModule,
   ],

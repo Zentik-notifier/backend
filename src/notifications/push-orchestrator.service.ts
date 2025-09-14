@@ -9,7 +9,7 @@ import { UserDevice } from '../entities/user-device.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
-import { UserBucketsService } from '../user-buckets/user-buckets.service';
+import { BucketsService } from '../buckets/buckets.service';
 import { DevicePlatform } from '../users/dto';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
@@ -40,7 +40,7 @@ export class PushNotificationOrchestratorService {
     private readonly subscriptionService: GraphQLSubscriptionService,
     private readonly webPushService: WebPushService,
     private readonly urlBuilderService: UrlBuilderService,
-    private readonly userBucketsService: UserBucketsService,
+    private readonly bucketsService: BucketsService,
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
   ) {}
@@ -182,7 +182,7 @@ export class PushNotificationOrchestratorService {
     }
 
     // Get all user-bucket relationships for this bucket and users to check snooze status efficiently
-    const userBuckets = await this.userBucketsService.findByBucketAndUsers(
+    const userBuckets = await this.bucketsService.findUserBucketsByBucketAndUsers(
       message.bucketId,
       authorizedUsers,
     );

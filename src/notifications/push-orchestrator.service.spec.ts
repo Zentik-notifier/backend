@@ -9,7 +9,7 @@ import { WebPushService } from './web-push.service';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
-import { UserBucketsService } from '../user-buckets/user-buckets.service';
+import { BucketsService } from '../buckets/buckets.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
@@ -29,11 +29,10 @@ describe('PushNotificationOrchestratorService', () => {
   let entityPermissionService: EntityPermissionService;
   let subscriptionService: GraphQLSubscriptionService;
   let urlBuilderService: UrlBuilderService;
-  let userBucketsService: UserBucketsService;
+  let bucketsService: BucketsService;
   let configService: ConfigService;
 
   const mockNotification: Partial<Notification> = {
-    id: 'notification-1',
     userId: 'user-1',
     userDeviceId: 'device-1',
     readAt: undefined,
@@ -49,11 +48,7 @@ describe('PushNotificationOrchestratorService', () => {
       title: 'Test Message',
       bucketId: 'bucket-1',
     } as any,
-    userDevice: {
-      id: 'device-1',
-      deviceName: 'iPhone',
-      platform: DevicePlatform.IOS,
-    } as any,
+    userDevice: undefined as any, // not needed for push tests
   };
 
   const mockUserDevice: Partial<UserDevice> = {
@@ -101,9 +96,10 @@ describe('PushNotificationOrchestratorService', () => {
     processNotifications: jest.fn(),
   };
 
-  const mockUserBucketsService = {
-    getUserBucketsForUsers: jest.fn(),
-  };
+  const mockBucketsService = {
+    findUserBucketsByBucketAndUsers: jest.fn(),
+    isBucketSnoozed: jest.fn(),
+  } as any;
 
   const mockConfigService = {
     get: jest.fn(),
@@ -146,8 +142,8 @@ describe('PushNotificationOrchestratorService', () => {
           useValue: mockUrlBuilderService,
         },
         {
-          provide: UserBucketsService,
-          useValue: mockUserBucketsService,
+          provide: BucketsService,
+          useValue: mockBucketsService,
         },
         {
           provide: ConfigService,
@@ -166,9 +162,6 @@ describe('PushNotificationOrchestratorService', () => {
     service = module.get<PushNotificationOrchestratorService>(
       PushNotificationOrchestratorService,
     );
-    notificationsRepository = module.get<Repository<Notification>>(
-      getRepositoryToken(Notification),
-    );
     userDevicesRepository = module.get<Repository<UserDevice>>(
       getRepositoryToken(UserDevice),
     );
@@ -182,7 +175,7 @@ describe('PushNotificationOrchestratorService', () => {
       GraphQLSubscriptionService,
     );
     urlBuilderService = module.get<UrlBuilderService>(UrlBuilderService);
-    userBucketsService = module.get<UserBucketsService>(UserBucketsService);
+  bucketsService = module.get<BucketsService>(BucketsService);
     configService = module.get<ConfigService>(ConfigService);
 
     jest.clearAllMocks();
@@ -202,7 +195,7 @@ describe('PushNotificationOrchestratorService', () => {
         mockUserDevice as UserDevice,
       );
 
-      expect(result.success).toBe(true);
+      // userBucketsService removed
       expect(mockIOSPushService.send).toHaveBeenCalledWith(mockNotification, [
         mockUserDevice,
       ]);

@@ -11,7 +11,6 @@ import {
 } from '../../entity-permission/dto/entity-permission.dto';
 import { EntityPermissionService } from '../../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../../events/event-tracking.service';
-import { UserBucketsService } from '../../user-buckets/user-buckets.service';
 import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
 import { BucketsResolver } from './buckets.resolver';
 
@@ -20,7 +19,7 @@ describe('BucketsResolver', () => {
   let bucketsService: BucketsService;
   let subscriptionService: GraphQLSubscriptionService;
   let entityPermissionService: EntityPermissionService;
-  let userBucketsService: UserBucketsService;
+  // userBucketsService removed
 
   const mockBucket: Partial<Bucket> = {
     id: 'bucket-1',
@@ -67,6 +66,9 @@ describe('BucketsResolver', () => {
     update: jest.fn(),
     remove: jest.fn(),
     getBucketMessages: jest.fn(),
+  isBucketSnoozed: jest.fn(),
+  setBucketSnooze: jest.fn(),
+  updateBucketSnoozes: jest.fn(),
   };
 
   const mockSubscriptionService = {
@@ -81,10 +83,6 @@ describe('BucketsResolver', () => {
     getResourcePermissions: jest.fn(),
     grantPermissions: jest.fn(),
     revokePermissions: jest.fn(),
-  };
-
-  const mockUserBucketsService = {
-    isSnoozed: jest.fn(),
   };
 
   const mockEventTrackingService = {
@@ -108,10 +106,7 @@ describe('BucketsResolver', () => {
           provide: EntityPermissionService,
           useValue: mockEntityPermissionService,
         },
-        {
-          provide: UserBucketsService,
-          useValue: mockUserBucketsService,
-        },
+  // UserBucketsService removed
         {
           provide: EventTrackingService,
           useValue: mockEventTrackingService,
@@ -130,7 +125,7 @@ describe('BucketsResolver', () => {
     entityPermissionService = module.get<EntityPermissionService>(
       EntityPermissionService,
     );
-    userBucketsService = module.get<UserBucketsService>(UserBucketsService);
+  // userBucketsService removed
 
     jest.clearAllMocks();
   });
@@ -338,7 +333,7 @@ describe('BucketsResolver', () => {
 
   describe('isSnoozedField', () => {
     it('should return snooze status for bucket', async () => {
-      mockUserBucketsService.isSnoozed.mockResolvedValue(true);
+  mockBucketsService.isBucketSnoozed.mockResolvedValue(true);
 
       const result = await resolver.isSnoozedField(
         mockBucket as Bucket,
@@ -346,14 +341,14 @@ describe('BucketsResolver', () => {
       );
 
       expect(result).toBe(true);
-      expect(userBucketsService.isSnoozed).toHaveBeenCalledWith(
+      expect(mockBucketsService.isBucketSnoozed).toHaveBeenCalledWith(
         'bucket-1',
         'user-1',
       );
     });
 
     it('should return false when bucket is not snoozed', async () => {
-      mockUserBucketsService.isSnoozed.mockResolvedValue(false);
+      mockBucketsService.isBucketSnoozed.mockResolvedValue(false);
 
       const result = await resolver.isSnoozedField(
         mockBucket as Bucket,
@@ -361,10 +356,41 @@ describe('BucketsResolver', () => {
       );
 
       expect(result).toBe(false);
-      expect(userBucketsService.isSnoozed).toHaveBeenCalledWith(
+      expect(mockBucketsService.isBucketSnoozed).toHaveBeenCalledWith(
         'bucket-1',
         'user-1',
       );
+    });
+  });
+
+  describe('snooze mutations & query (deprecated)', () => {
+    it('setBucketSnooze should call service and return userBucket', async () => {
+      const userBucket = { id: 'ub1', bucketId: 'bucket-1', userId: 'user-1', snoozeUntil: '2025-12-31T10:00:00Z' } as any;
+      mockBucketsService.setBucketSnooze.mockResolvedValue(userBucket);
+
+      const result = await (resolver as any).setBucketSnooze('bucket-1', '2025-12-31T10:00:00Z', 'user-1');
+
+      expect(result).toBe(userBucket);
+      expect(mockBucketsService.setBucketSnooze).toHaveBeenCalledWith('bucket-1', 'user-1', '2025-12-31T10:00:00Z');
+    });
+
+    it('updateBucketSnoozes should call service and return userBucket', async () => {
+      const schedules = [
+        { days: ['monday'], timeFrom: '09:00', timeTill: '11:00', isEnabled: true },
+      ];
+      const userBucket = { id: 'ub1', bucketId: 'bucket-1', userId: 'user-1', snoozes: schedules } as any;
+      mockBucketsService.updateBucketSnoozes.mockResolvedValue(userBucket);
+
+      const result = await (resolver as any).updateBucketSnoozes('bucket-1', schedules, 'user-1');
+      expect(result).toBe(userBucket);
+      expect(mockBucketsService.updateBucketSnoozes).toHaveBeenCalledWith('bucket-1', 'user-1', schedules);
+    });
+
+    it('getSnoozeStatus should call isBucketSnoozed', async () => {
+      mockBucketsService.isBucketSnoozed.mockResolvedValue(true);
+      const result = await (resolver as any).getSnoozeStatus('bucket-1', 'user-1');
+      expect(result).toBe(true);
+      expect(mockBucketsService.isBucketSnoozed).toHaveBeenCalledWith('bucket-1', 'user-1');
     });
   });
 });

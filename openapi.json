@@ -2117,88 +2117,6 @@
         ]
       }
     },
-    "/api/v1/user-buckets/bucket/{bucketId}/snooze-status": {
-      "get": {
-        "operationId": "UserBucketsController_getSnoozeStatus",
-        "parameters": [
-          {
-            "name": "bucketId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Snooze status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "boolean"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check if a bucket is snoozed for the current user",
-        "tags": [
-          "User Buckets"
-        ]
-      }
-    },
-    "/api/v1/user-buckets/bucket/{bucketId}/snooze": {
-      "post": {
-        "operationId": "UserBucketsController_setBucketSnooze",
-        "parameters": [
-          {
-            "name": "bucketId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bucket snooze set successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserBucket"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Bucket snooze created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserBucket"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Set bucket snooze for the current user",
-        "tags": [
-          "User Buckets"
-        ]
-      }
-    },
     "/api/v1/messages": {
       "post": {
         "description": "Supports multiple content types and data sources. Data can be combined from body, query parameters, path parameters, and headers (x-message-*). Headers take highest precedence, followed by path params, query params, and body.",
@@ -2578,13 +2496,33 @@
         ]
       }
     },
-    "/api/v1/system-access-tokens": {
+    "/api/v1/buckets": {
       "post": {
-        "operationId": "SystemAccessTokenController_create",
+        "operationId": "BucketsController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBucketDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Bucket created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bucket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
           }
         },
         "security": [
@@ -2592,17 +2530,27 @@
             "bearer": []
           }
         ],
-        "summary": "Create system access token",
+        "summary": "Create a new bucket",
         "tags": [
-          "System Access Tokens"
+          "Buckets"
         ]
       },
       "get": {
-        "operationId": "SystemAccessTokenController_list",
+        "operationId": "BucketsController_findAll",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of buckets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Bucket"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2610,14 +2558,15 @@
             "bearer": []
           }
         ],
+        "summary": "Get all buckets for the authenticated user",
         "tags": [
-          "System Access Tokens"
+          "Buckets"
         ]
       }
     },
-    "/api/v1/system-access-tokens/{id}": {
-      "delete": {
-        "operationId": "SystemAccessTokenController_revoke",
+    "/api/v1/buckets/{id}": {
+      "get": {
+        "operationId": "BucketsController_findOne",
         "parameters": [
           {
             "name": "id",
@@ -2630,7 +2579,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Bucket details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bucket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bucket not found"
           }
         },
         "security": [
@@ -2638,8 +2597,200 @@
             "bearer": []
           }
         ],
+        "summary": "Get a specific bucket by ID",
         "tags": [
-          "System Access Tokens"
+          "Buckets"
+        ]
+      },
+      "patch": {
+        "operationId": "BucketsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBucketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bucket updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bucket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a bucket",
+        "tags": [
+          "Buckets"
+        ]
+      },
+      "delete": {
+        "operationId": "BucketsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bucket deleted successfully"
+          },
+          "404": {
+            "description": "Bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a bucket",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
+    "/api/v1/buckets/{id}/notifications/count": {
+      "get": {
+        "operationId": "BucketsController_getNotificationsCount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bucket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the count of notifications for a bucket",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
+    "/api/v1/buckets/{id}/snooze-status": {
+      "get": {
+        "description": "Migrated from /user-buckets/bucket/:bucketId/snooze-status (deprecated).",
+        "operationId": "BucketsController_getSnoozeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snooze status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check if a bucket is snoozed for the current user",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
+    "/api/v1/buckets/{id}/snooze": {
+      "post": {
+        "description": "Migrated from /user-buckets/bucket/:bucketId/snooze (deprecated).",
+        "operationId": "BucketsController_setBucketSnooze",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bucket snooze updated successfully"
+          },
+          "201": {
+            "description": "Bucket snooze created successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set bucket snooze for the current user",
+        "tags": [
+          "Buckets"
         ]
       }
     },
@@ -2896,6 +3047,71 @@
         ]
       }
     },
+    "/api/v1/system-access-tokens": {
+      "post": {
+        "operationId": "SystemAccessTokenController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create system access token",
+        "tags": [
+          "System Access Tokens"
+        ]
+      },
+      "get": {
+        "operationId": "SystemAccessTokenController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "System Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/system-access-tokens/{id}": {
+      "delete": {
+        "operationId": "SystemAccessTokenController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "System Access Tokens"
+        ]
+      }
+    },
     "/api/v1/payload-mappers": {
       "post": {
         "operationId": "PayloadMapperController_create",
@@ -3004,234 +3220,6 @@
         },
         "tags": [
           "Payload Mappers"
-        ]
-      }
-    },
-    "/api/v1/buckets": {
-      "post": {
-        "operationId": "BucketsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateBucketDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Bucket created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Bucket"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a new bucket",
-        "tags": [
-          "Buckets"
-        ]
-      },
-      "get": {
-        "operationId": "BucketsController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "List of buckets",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Bucket"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get all buckets for the authenticated user",
-        "tags": [
-          "Buckets"
-        ]
-      }
-    },
-    "/api/v1/buckets/{id}": {
-      "get": {
-        "operationId": "BucketsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bucket details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Bucket"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Bucket not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get a specific bucket by ID",
-        "tags": [
-          "Buckets"
-        ]
-      },
-      "patch": {
-        "operationId": "BucketsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBucketDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Bucket updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Bucket"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Bucket not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a bucket",
-        "tags": [
-          "Buckets"
-        ]
-      },
-      "delete": {
-        "operationId": "BucketsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bucket deleted successfully"
-          },
-          "404": {
-            "description": "Bucket not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a bucket",
-        "tags": [
-          "Buckets"
-        ]
-      }
-    },
-    "/api/v1/buckets/{id}/notifications/count": {
-      "get": {
-        "operationId": "BucketsController_getNotificationsCount",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Notification count",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "count": {
-                      "type": "number"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Bucket not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get the count of notifications for a bucket",
-        "tags": [
-          "Buckets"
         ]
       }
     },
@@ -5181,6 +5169,75 @@
           "attachmentOptions"
         ]
       },
+      "CreateBucketDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the bucket"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Icon for the bucket"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the bucket"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the bucket (e.g., #FF5733)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#0a7ea4"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "Whether the bucket is protected from deletion",
+            "default": false
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the bucket is publicly accessible",
+            "default": false
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateBucketDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the bucket"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Icon for the bucket"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the bucket"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for the bucket (e.g., #FF5733)",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#0a7ea4"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "Whether the bucket is protected from deletion",
+            "default": false
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the bucket is publicly accessible",
+            "default": false
+          }
+        }
+      },
       "UploadAttachmentDto": {
         "type": "object",
         "properties": {
@@ -5309,75 +5366,6 @@
           "jsEvalFn": {
             "type": "string",
             "description": "JavaScript function as stringified code for payload mapping"
-          }
-        }
-      },
-      "CreateBucketDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The name of the bucket"
-          },
-          "icon": {
-            "type": "string",
-            "description": "Icon for the bucket"
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the bucket"
-          },
-          "color": {
-            "type": "string",
-            "description": "Hex color code for the bucket (e.g., #FF5733)",
-            "pattern": "^#[0-9A-Fa-f]{6}$",
-            "example": "#0a7ea4"
-          },
-          "isProtected": {
-            "type": "boolean",
-            "description": "Whether the bucket is protected from deletion",
-            "default": false
-          },
-          "isPublic": {
-            "type": "boolean",
-            "description": "Whether the bucket is publicly accessible",
-            "default": false
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "UpdateBucketDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The name of the bucket"
-          },
-          "icon": {
-            "type": "string",
-            "description": "Icon for the bucket"
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the bucket"
-          },
-          "color": {
-            "type": "string",
-            "description": "Hex color code for the bucket (e.g., #FF5733)",
-            "pattern": "^#[0-9A-Fa-f]{6}$",
-            "example": "#0a7ea4"
-          },
-          "isProtected": {
-            "type": "boolean",
-            "description": "Whether the bucket is protected from deletion",
-            "default": false
-          },
-          "isPublic": {
-            "type": "boolean",
-            "description": "Whether the bucket is publicly accessible",
-            "default": false
           }
         }
       },

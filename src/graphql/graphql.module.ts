@@ -12,7 +12,6 @@ import { MessagesModule } from '../messages/messages.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OAuthProvidersModule } from '../oauth-providers/oauth-providers.module';
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
-import { UserBucketsModule } from '../user-buckets/user-buckets.module';
 import { UsersModule } from '../users/users.module';
 import { GraphQLSharedModule } from './graphql-shared.module';
 import { AuthResolver } from './resolvers/auth.resolver';
@@ -66,7 +65,6 @@ const GRAPHQL_PATH = `${process.env.BACKEND_API_PREFIX}/graphql`;
     AuthModule,
     EntityPermissionModule,
     EventsModule,
-    UserBucketsModule,
     GraphQLSharedModule,
     OAuthProvidersModule,
     PayloadMapperModule,

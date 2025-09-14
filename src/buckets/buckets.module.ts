@@ -4,21 +4,23 @@ import { AttachmentsModule } from '../attachments/attachments.module';
 import { AuthModule } from '../auth/auth.module';
 import { Bucket } from '../entities/bucket.entity';
 import { User } from '../entities/user.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
-import { UserBucketsModule } from '../user-buckets/user-buckets.module';
+import { EventsModule } from '../events/events.module';
 import { BucketsController } from './buckets.controller';
 import { BucketsService } from './buckets.service';
+import { UserBucketResolver } from './user-bucket.resolver';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Bucket, User]),
+    TypeOrmModule.forFeature([Bucket, User, UserBucket]),
     AuthModule,
     EntityPermissionModule,
-    UserBucketsModule,
+    EventsModule,
     AttachmentsModule,
   ],
   controllers: [BucketsController],
-  providers: [BucketsService],
+  providers: [BucketsService, UserBucketResolver],
   exports: [BucketsService],
 })
 export class BucketsModule {}

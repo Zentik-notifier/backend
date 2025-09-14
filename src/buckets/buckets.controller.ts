@@ -101,4 +101,42 @@ export class BucketsController {
     return this.bucketsService.getNotificationsCount(id, userId);
   }
 
+  @Get(':id/snooze-status')
+  @ApiOperation({
+    summary: 'Check if a bucket is snoozed for the current user',
+    description: 'Migrated from /user-buckets/bucket/:bucketId/snooze-status (deprecated).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Snooze status',
+    schema: { type: 'boolean' },
+  })
+  getSnoozeStatus(
+    @Param('id') bucketId: string,
+    @GetUser('id') userId: string,
+  ) {
+    return this.bucketsService.isBucketSnoozed(bucketId, userId);
+  }
+
+  @Post(':id/snooze')
+  @ApiOperation({
+    summary: 'Set bucket snooze for the current user',
+    description: 'Migrated from /user-buckets/bucket/:bucketId/snooze (deprecated).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bucket snooze updated successfully',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Bucket snooze created successfully',
+  })
+  setBucketSnooze(
+    @Param('id') bucketId: string,
+    @Body('snoozeUntil') snoozeUntil: string | null,
+    @GetUser('id') userId: string,
+  ) {
+    return this.bucketsService.setBucketSnooze(bucketId, userId, snoozeUntil);
+  }
+
 }

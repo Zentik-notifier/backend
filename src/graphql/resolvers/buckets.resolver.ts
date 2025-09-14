@@ -11,7 +11,7 @@ import {
 import { ResourceType } from 'src/auth/dto/auth.dto';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
 import { BucketsService } from '../../buckets/buckets.service';
-import { CreateBucketDto, UpdateBucketDto } from '../../buckets/dto';
+import { CreateBucketDto, UpdateBucketDto, SnoozeScheduleInput } from '../../buckets/dto';
 import { Bucket } from '../../entities/bucket.entity';
 import { EntityPermission } from '../../entities/entity-permission.entity';
 import { UserBucket } from '../../entities/user-bucket.entity';
@@ -21,7 +21,6 @@ import {
 } from '../../entity-permission/dto/entity-permission.dto';
 import { EntityPermissionService } from '../../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../../events/event-tracking.service';
-import { UserBucketsService } from '../../user-buckets/user-buckets.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
 
@@ -35,7 +34,6 @@ export class BucketsResolver {
     private bucketsService: BucketsService,
     private subscriptionService: GraphQLSubscriptionService,
     private entityPermissionService: EntityPermissionService,
-    private userBucketsService: UserBucketsService,
     private eventTrackingService: EventTrackingService,
   ) {}
 
@@ -49,7 +47,7 @@ export class BucketsResolver {
     @Parent() bucket: Bucket,
     @CurrentUser('id') userId: string,
   ): Promise<boolean> {
-    return this.userBucketsService.isSnoozed(bucket.id, userId);
+    return this.bucketsService.isBucketSnoozed(bucket.id, userId);
   }
 
   @ResolveField(() => UserBucket, { name: 'userBucket', nullable: true })
@@ -58,7 +56,7 @@ export class BucketsResolver {
     @CurrentUser('id') userId: string,
   ): Promise<UserBucket | null> {
     try {
-      return await this.userBucketsService.findByBucketAndUser(
+      return await this.bucketsService.findUserBucketByBucketAndUser(
         bucket.id,
         userId,
       );
@@ -276,6 +274,35 @@ export class BucketsResolver {
       allUserIds,
     );
     return true;
+  }
+
+  // --- Snooze (migrated from UserBucketsResolver) ---
+  @Mutation(() => UserBucket, { deprecationReason: 'Usa Bucket.setBucketSnooze (questo sarà rimosso)' })
+  async setBucketSnooze(
+    @Args('bucketId', { type: () => String }) bucketId: string,
+    @Args('snoozeUntil', { type: () => String, nullable: true })
+    snoozeUntil: string | null,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.bucketsService.setBucketSnooze(bucketId, userId, snoozeUntil);
+  }
+
+  @Mutation(() => UserBucket, { deprecationReason: 'Usa future Bucket mutation (updateBucketSnoozes)' })
+  async updateBucketSnoozes(
+    @Args('bucketId', { type: () => String }) bucketId: string,
+    @Args('snoozes', { type: () => [SnoozeScheduleInput] })
+    snoozes: SnoozeScheduleInput[],
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.bucketsService.updateBucketSnoozes(bucketId, userId, snoozes);
+  }
+
+  @Query(() => Boolean, { name: 'isBucketSnoozed', deprecationReason: 'Usa field Bucket.isSnoozed' })
+  async getSnoozeStatus(
+    @Args('bucketId', { type: () => String }) bucketId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.bucketsService.isBucketSnoozed(bucketId, userId);
   }
 
   // Subscriptions - these still need Context for WebSocket filtering

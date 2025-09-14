@@ -11,8 +11,8 @@ import { EntityPermissionModule } from '../entity-permission/entity-permission.m
 import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
 import { MessagesModule } from '../messages/messages.module';
+import { BucketsModule } from '../buckets/buckets.module';
 import { SystemAccessTokenModule } from '../system-access-token/system-access-token.module';
-import { UserBucketsModule } from '../user-buckets/user-buckets.module';
 import { UsersModule } from '../users/users.module';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
@@ -36,8 +36,8 @@ import { WebPushService } from './web-push.service';
     EntityPermissionModule,
     EventsModule,
     GraphQLSharedModule,
-    UserBucketsModule,
     forwardRef(() => MessagesModule),
+  BucketsModule,
     SystemAccessTokenModule,
   ],
   controllers: [NotificationsController],

@@ -3,15 +3,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository } from 'typeorm';
-import { AttachmentsService } from '../attachments/attachments.service';
 import { Bucket } from '../entities/bucket.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { EventTrackingService } from '../events/event-tracking.service';
 import { BucketsService } from './buckets.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto';
 
 describe('BucketsService', () => {
   let service: BucketsService;
   let bucketsRepository: Repository<Bucket>;
+  let userBucketRepository: Repository<UserBucket>;
   let entityPermissionService: EntityPermissionService;
 
   const mockUser = {
@@ -77,6 +79,16 @@ describe('BucketsService', () => {
           },
         },
         {
+          provide: getRepositoryToken(UserBucket),
+          useValue: {
+            findOne: jest.fn().mockResolvedValue(null),
+            find: jest.fn().mockResolvedValue([]),
+            create: jest.fn().mockImplementation((d) => d),
+            save: jest.fn().mockImplementation((d) => ({ id: 'ub-1', ...d })),
+            remove: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: EntityPermissionService,
           useValue: {
             hasPermissions: jest.fn().mockResolvedValue(true),
@@ -84,25 +96,19 @@ describe('BucketsService', () => {
           },
         },
         {
-          provide: AttachmentsService,
+          provide: EventTrackingService,
           useValue: {
-            isAttachmentsEnabled: jest.fn().mockReturnValue(true),
-            uploadAttachment: jest.fn().mockResolvedValue({
-              id: 'attachment-id',
-              filepath: '/path/to/file',
-            }),
+            trackBucketSharing: jest.fn().mockResolvedValue(undefined),
+            trackBucketUnsharing: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
     }).compile();
 
     service = module.get<BucketsService>(BucketsService);
-    bucketsRepository = module.get<Repository<Bucket>>(
-      getRepositoryToken(Bucket),
-    );
-    entityPermissionService = module.get<EntityPermissionService>(
-      EntityPermissionService,
-    );
+    bucketsRepository = module.get<Repository<Bucket>>(getRepositoryToken(Bucket));
+    userBucketRepository = module.get<Repository<UserBucket>>(getRepositoryToken(UserBucket));
+    entityPermissionService = module.get<EntityPermissionService>(EntityPermissionService);
   });
 
   it('should be defined', () => {

@@ -339,13 +339,13 @@ type Mutation {
   revokeEntityPermission(input: RevokeEntityPermissionInput!): Boolean!
   revokeSession(sessionId: String!): Boolean!
   revokeSystemToken(id: String!): Boolean!
-  setBucketSnooze(bucketId: String!, snoozeUntil: String): UserBucket!
+  setBucketSnooze(bucketId: String!, snoozeUntil: String): UserBucket! @deprecated(reason: "Usa Bucket.setBucketSnooze (questo sarà rimosso)")
   setPassword(input: ChangePasswordInput!): Boolean!
   shareBucket(input: GrantEntityPermissionInput!): EntityPermission!
   toggleOAuthProvider(id: String!): OAuthProvider!
   unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
-  updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket!
+  updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
   updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
   updateOAuthProvider(id: String!, input: UpdateOAuthProviderDto!): OAuthProvider!
   updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
@@ -525,7 +525,7 @@ type Query {
   getUserAccessTokens: [AccessTokenListDto!]!
   getUserSessions: [SessionInfoDto!]!
   healthcheck: String!
-  isBucketSnoozed(bucketId: String!): Boolean!
+  isBucketSnoozed(bucketId: String!): Boolean! @deprecated(reason: "Usa field Bucket.isSnoozed")
   listSystemTokens: [SystemAccessTokenDto!]!
   me: User!
   notification(id: String!): Notification!
