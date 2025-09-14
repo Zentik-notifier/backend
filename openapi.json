@@ -1482,7 +1482,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Notification details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found"
           }
         },
         "security": [
@@ -1490,6 +1500,7 @@
             "bearer": []
           }
         ],
+        "summary": "Get a notification by ID",
         "tags": [
           "Notifications"
         ]
@@ -1508,7 +1519,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Notification deleted successfully"
+          },
+          "404": {
+            "description": "Notification not found"
           }
         },
         "security": [
@@ -1516,6 +1530,7 @@
             "bearer": []
           }
         ],
+        "summary": "Delete a notification",
         "tags": [
           "Notifications"
         ]
@@ -1536,7 +1551,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Notification marked as sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found"
           }
         },
         "security": [
@@ -1544,6 +1569,7 @@
             "bearer": []
           }
         ],
+        "summary": "Mark notification as sent (internal client acknowledgement)",
         "tags": [
           "Notifications"
         ]
@@ -1553,9 +1579,34 @@
       "patch": {
         "operationId": "NotificationsController_updateReceived",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateReceivedUpToDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Notifications updated count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updatedCount": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing id or deviceToken in request body"
           }
         },
         "security": [
@@ -1563,7 +1614,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mark all notifications older than the given one as received",
+        "summary": "Mark all notifications up to (and including) the given one as received for the resolved device",
         "tags": [
           "Notifications"
         ]
@@ -1582,9 +1633,35 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReceivedDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Notification marked as received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing userDeviceId in request body"
+          },
+          "403": {
+            "description": "Device not owned by user"
+          },
+          "404": {
+            "description": "Notification not found"
           }
         },
         "security": [
@@ -1592,7 +1669,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mark notification as received by a specific device",
+        "summary": "Mark notification as received by a specific user device (ID)",
         "tags": [
           "Notifications"
         ]
@@ -1611,9 +1688,32 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceReportReceivedDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Notification marked as received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing deviceToken in request body"
+          },
+          "404": {
+            "description": "Notification or Device not found"
           }
         },
         "security": [
@@ -1621,7 +1721,7 @@
             "bearer": []
           }
         ],
-        "summary": "Device reports a notification as received using device token",
+        "summary": "Mark notification as received by resolving a device from its token",
         "tags": [
           "Notifications"
         ]
@@ -1629,18 +1729,17 @@
     },
     "/api/v1/notifications/notification-services": {
       "get": {
-        "description": "Returns which notification services are available and enabled for each platform",
         "operationId": "NotificationsController_getNotificationServices",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Available notification services for all platforms",
+            "description": "List of services per platform",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object"
+                    "$ref": "#/components/schemas/NotificationServicesInfoDto"
                   }
                 }
               }
@@ -1652,7 +1751,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get all available notification services for all platforms",
+        "summary": "Get available notification services per platform",
         "tags": [
           "Notifications"
         ]
@@ -1664,17 +1763,43 @@
         "parameters": [],
         "requestBody": {
           "required": true,
+          "description": "External notification request",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExternalNotifyRequestDto"
+                "$ref": "#/components/schemas/ExternalNotifyRequestDocDto"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Push triggered"
+            "description": "Push dispatch result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "platform": {
+                      "type": "string"
+                    },
+                    "sentAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing notification or userDevice"
           }
         },
         "security": [
@@ -4650,16 +4775,94 @@
           "user"
         ]
       },
-      "ExternalNotifyRequestDto": {
+      "UpdateReceivedUpToDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Notification ID used as upper bound",
+            "example": "ntf_12345"
+          },
+          "deviceToken": {
+            "type": "string",
+            "description": "Device push token used to resolve the user device",
+            "example": "fcm_or_apns_token_string"
+          }
+        },
+        "required": [
+          "id",
+          "deviceToken"
+        ]
+      },
+      "MarkReceivedDto": {
+        "type": "object",
+        "properties": {
+          "userDeviceId": {
+            "type": "string",
+            "description": "User device ID that received the notification",
+            "example": "dvc_12345"
+          }
+        },
+        "required": [
+          "userDeviceId"
+        ]
+      },
+      "DeviceReportReceivedDto": {
+        "type": "object",
+        "properties": {
+          "deviceToken": {
+            "type": "string",
+            "description": "Device push token",
+            "example": "fcm_or_apns_token_string"
+          }
+        },
+        "required": [
+          "deviceToken"
+        ]
+      },
+      "NotificationServicesInfoDto": {
+        "type": "object",
+        "properties": {
+          "devicePlatform": {
+            "type": "string",
+            "example": "IOS",
+            "description": "Device platform"
+          },
+          "service": {
+            "type": "string",
+            "example": "PUSH",
+            "description": "Service type (PUSH or LOCAL)"
+          }
+        },
+        "required": [
+          "devicePlatform",
+          "service"
+        ]
+      },
+      "ExternalNotifyRequestDocDto": {
         "type": "object",
         "properties": {
           "notification": {
             "type": "string",
-            "description": "Stringified Notification JSON"
+            "description": "Notification payload as JSON string",
+            "example": "{\"title\":\"Hello\",\"body\":\"World\"}"
           },
           "userDevice": {
             "type": "string",
-            "description": "Stringified UserDevice JSON"
+            "description": "User device object as JSON string",
+            "example": "{\"deviceToken\":\"abc\",\"platform\":\"WEB\"}"
+          },
+          "apnsHeaders": {
+            "type": "string",
+            "nullable": true,
+            "description": "APNs headers override as JSON string",
+            "example": "{\"apns-push-type\":\"alert\"}"
+          },
+          "fcmOptions": {
+            "type": "string",
+            "nullable": true,
+            "description": "FCM options as JSON string",
+            "example": "{\"priority\":\"high\"}"
           }
         },
         "required": [
