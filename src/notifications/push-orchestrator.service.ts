@@ -14,6 +14,8 @@ import { DevicePlatform } from '../users/dto';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { WebPushService } from './web-push.service';
+import { UsersService } from '../users/users.service';
+import { UserSettingType } from '../entities/user-setting.entity';
 
 export interface PushResult {
   success: boolean;
@@ -43,6 +45,7 @@ export class PushNotificationOrchestratorService {
     private readonly bucketsService: BucketsService,
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
+    private readonly usersService: UsersService,
   ) {}
 
   /**
@@ -266,9 +269,38 @@ export class PushNotificationOrchestratorService {
             sentAt: new Date(),
           });
         } else if (result.error) {
-          await this.notificationsRepository.update(notif.id, {
-            error: result.error,
-          });
+          await this.notificationsRepository.update(notif.id, { error: result.error });
+          // Conditional retry for APNs PayloadTooLarge if user setting allows
+          if (
+            typeof result.error === 'string' &&
+            result.error.includes('PayloadTooLarge')
+          ) {
+            try {
+              const setting = await this.usersService.getUserSetting(
+                notif.userId,
+                UserSettingType.UnencryptOnBigPayload,
+                device.id,
+              );
+              const allowRetry = setting?.valueBool === true;
+              if (allowRetry) {
+                this.logger.warn(
+                  `Retrying push without encryption for notification ${notif.id} (user setting enabled)`,
+                );
+                const retry = await this.sendPushToSingleDeviceStateless(
+                  notif,
+                  { ...device, onlyLocal: device.onlyLocal } as any,
+                );
+                if (retry.success) {
+                  await this.notificationsRepository.update(notif.id, {
+                    sentAt: new Date(),
+                    error: null as any,
+                  });
+                }
+              }
+            } catch (e) {
+              this.logger.warn('Retry check failed, skipping retry');
+            }
+          }
         }
       } catch {}
     }

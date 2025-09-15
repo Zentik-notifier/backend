@@ -330,13 +330,14 @@ export class IOSPushService {
                 `  Response: ${JSON.stringify(failedResult.response)}`,
               );
 
-              // Retry strategy for PayloadTooLarge: resend without encryption
+              // Retry strategy for PayloadTooLarge: resend without encryption (guarded by user setting)
               const statusCode = Number(failedResult.status);
               const reason = (failedResult as any)?.response?.reason;
               if (
                 (statusCode === 403 || statusCode === 413) &&
                 reason === 'PayloadTooLarge'
               ) {
+                // NOTE: the decision to retry will be checked upstream by orchestrator per user setting
                 this.logger.warn(
                   `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption...`,
                 );

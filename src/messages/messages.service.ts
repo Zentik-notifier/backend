@@ -21,6 +21,8 @@ import {
 } from '../notifications/notifications.types';
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
 import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
+import { UsersService } from '../users/users.service';
+import { UserSettingType } from '../entities/user-setting.entity';
 import {
   CreateMessageDto,
   CreateMessageWithAttachmentDto,
@@ -45,6 +47,7 @@ export class MessagesService {
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly payloadMapperService: PayloadMapperService,
+    private readonly usersService: UsersService,
   ) { }
 
   private isUuid(identifier: string): boolean {
@@ -172,6 +175,20 @@ export class MessagesService {
       requesterId,
     );
 
+    // If locale missing, fallback from user settings
+    if (!createMessageDto.locale) {
+      try {
+        const lang = await this.usersService.getUserSetting(
+          requesterId,
+          UserSettingType.Language,
+          null,
+        );
+        if (lang?.valueText) {
+          createMessageDto.locale = lang.valueText as any;
+        }
+      } catch {}
+    }
+
     // Process userIds - convert usernames to user IDs if needed
     let processedUserIds: string[] = [];
     if (createMessageDto.userIds && createMessageDto.userIds.length > 0) {
@@ -221,14 +238,30 @@ export class MessagesService {
       .map((att) => att.attachmentUuid!)
       .filter(Boolean);
 
-    // Automatically add bucket icon as attachment if bucket has an icon
-    if (bucket.icon && bucket.icon.startsWith('http')) {
-      const bucketIconAttachment = await this.addBucketIconAttachment(
-        bucket,
-        processedAttachments,
-      );
-      if (bucketIconAttachment) {
-        processedAttachments.push(bucketIconAttachment);
+    // Automatically add bucket icon as attachment if requested and there are no other attachments
+    if (
+      processedAttachments.length === 0 &&
+      bucket.icon &&
+      bucket.icon.startsWith('http')
+    ) {
+      try {
+        const addIconSetting = await this.usersService.getUserSetting(
+          requesterId,
+          UserSettingType.AddIconOnNoMedias,
+          null,
+        );
+        const shouldAddIcon = addIconSetting?.valueBool === true;
+        if (shouldAddIcon) {
+          const bucketIconAttachment = await this.addBucketIconAttachment(
+            bucket,
+            processedAttachments,
+          );
+          if (bucketIconAttachment) {
+            processedAttachments.push(bucketIconAttachment);
+          }
+        }
+      } catch (e) {
+        this.logger.warn('Failed to read user settings for auto icon, skipping');
       }
     }
 
