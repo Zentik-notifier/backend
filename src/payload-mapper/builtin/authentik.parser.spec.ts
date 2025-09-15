@@ -237,6 +237,25 @@ describe('AuthentikParser', () => {
       expect(result.subtitle).toBe('test@example.com');
       expect(result.body).toBe('testuser');
     });
+
+    it('should parse updateAvailable event correctly', () => {
+      const payload = {
+        user_email: 'email-user@gmail.com',
+        user_username: 'username',
+        body: 'New version 2025.8.2 available!',
+        severity: 'notice',
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result).toEqual({
+        title: 'Update Available',
+        subtitle: 'email-user@gmail.com',
+        body: 'New version 2025.8.2 available!',
+        deliveryType: 'NORMAL',
+        bucketId: '',
+      });
+    });
   });
 
   describe('extractEventTypeFromBody', () => {
@@ -262,6 +281,12 @@ describe('AuthentikParser', () => {
       const body = 'User testuser performed some action: {"data": "value"}';
       const result = parser['extractEventTypeFromBody'](body);
       expect(result).toBe('unknown');
+    });
+
+    it('should extract updateAvailable from body', () => {
+      const body = 'New version 2025.8.2 available!';
+      const result = parser['extractEventTypeFromBody'](body);
+      expect(result).toBe('updateAvailable');
     });
   });
 
