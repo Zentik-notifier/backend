@@ -8,7 +8,7 @@ import { NotificationDeliveryType } from '../../notifications/notifications.type
 export class AuthentikParser implements IBuiltinParser {
   readonly name = 'Authentik';
   readonly builtInType = PayloadMapperBuiltInType.ZentikAuthentik;
-  readonly description = 'Parser for Authentik notifications - handles login, logout, registration and other events';
+  readonly description = 'Parser for Authentik notifications - handles login, logout, registration, update available and other events';
 
   parse(payload: any): CreateMessageDto {
     const eventType = this.extractEventTypeFromBody(payload.body);
@@ -62,8 +62,12 @@ export class AuthentikParser implements IBuiltinParser {
                      eventType;
     
     // For unmapped events, just return the event name
-    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout'].includes(eventType)) {
+    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(eventType)) {
       return `${eventName.charAt(0).toUpperCase()}${eventName.slice(1)} - Unmapped event`;
+    }
+    
+    if (eventType === 'updateAvailable') {
+      return 'Update Available';
     }
     
     return `${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}: ${user.username}`;
@@ -71,8 +75,12 @@ export class AuthentikParser implements IBuiltinParser {
 
   private getNotificationSubtitle(eventType: string, user: any): string {
     // For unmapped events, don't show subtitle
-    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout'].includes(eventType)) {
+    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(eventType)) {
       return '';
+    }
+    
+    if (eventType === 'updateAvailable') {
+      return user.email;
     }
     
     return user.email;
@@ -80,7 +88,12 @@ export class AuthentikParser implements IBuiltinParser {
 
   private getNotificationBody(eventType: string, user: any, context: any, originalBody?: string): string {
     // For unmapped events, return the original body directly
-    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout'].includes(eventType)) {
+    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(eventType)) {
+      return originalBody || 'No body content available';
+    }
+
+    // For updateAvailable events, return the original body directly
+    if (eventType === 'updateAvailable') {
       return originalBody || 'No body content available';
     }
 
@@ -137,6 +150,9 @@ export class AuthentikParser implements IBuiltinParser {
     }
     if (body.includes('logged out')) {
       return 'logout';
+    }
+    if (body.includes('New version') && body.includes('available')) {
+      return 'updateAvailable';
     }
     
     // Fallback to pattern matching for other formats
@@ -222,29 +238,24 @@ export class AuthentikParser implements IBuiltinParser {
       'loginSuccess': '✅',
       'loginFailed': '❌',
       'logout': '🚪',
+      'updateAvailable': '🔄',
     };
 
     return eventIcons[eventType] || '❓'; // Question mark for unmapped events
   }
 
-  private getEventColor(eventType: string): string {
-    const eventColors = {
-      'loginSuccess': '#4CAF50',   // Green for successful login
-      'loginFailed': '#F44336',     // Red for failed login
-      'logout': '#FF9800',          // Orange for logout
-    };
-
-    return eventColors[eventType] || '#9C27B0'; // Purple for unmapped events
-  }
-
   private getEventPriority(eventType: string): NotificationDeliveryType {
     const highPriorityEvents = ['loginFailed'];
     const lowPriorityEvents = ['logout'];
+    const normalPriorityEvents = ['updateAvailable'];
 
     if (highPriorityEvents.includes(eventType)) {
       return NotificationDeliveryType.CRITICAL;
     }
     if (lowPriorityEvents.includes(eventType)) {
+      return NotificationDeliveryType.NORMAL;
+    }
+    if (normalPriorityEvents.includes(eventType)) {
       return NotificationDeliveryType.NORMAL;
     }
     // For unmapped events, use normal priority
