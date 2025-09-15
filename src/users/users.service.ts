@@ -377,28 +377,7 @@ export class UsersService {
     return this.userSettingsRepository.find({ where, order: { createdAt: 'DESC' } });
   }
 
-  /**
-   * Get single user setting with precedence: exact user+device match first, then user-only (deviceId IS NULL)
-   */
-  async getUserSetting(
-    userId: string,
-    configType: UserSettingType,
-    deviceId?: string | null,
-  ): Promise<UserSetting | null> {
-    // Try user+device first when deviceId is provided
-    if (deviceId) {
-      const exact = await this.userSettingsRepository.findOne({
-        where: { userId, deviceId, configType },
-      });
-      if (exact) return exact;
-    }
-
-    // Fallback to user-only (deviceId IS NULL)
-    const userOnly = await this.userSettingsRepository.findOne({
-      where: { userId, deviceId: IsNull(), configType },
-    });
-    return userOnly || null;
-  }
+  // removed duplicate getUserSetting (see below)
 
   async upsertUserSetting(
     userId: string,
@@ -419,6 +398,24 @@ export class UsersService {
     if (value.valueText !== undefined) setting.valueText = value.valueText;
     if (value.valueBool !== undefined) setting.valueBool = value.valueBool;
     return this.userSettingsRepository.save(setting);
+  }
+
+  async getUserSetting(
+    userId: string,
+    configType: UserSettingType,
+    deviceId?: string | null,
+  ): Promise<UserSetting | null> {
+    if (deviceId) {
+      const exact = await this.userSettingsRepository.findOne({
+        where: { userId, deviceId, configType },
+      });
+      if (exact) return exact;
+    }
+
+    const userOnly = await this.userSettingsRepository.findOne({
+      where: { userId, deviceId: IsNull(), configType },
+    });
+    return userOnly || null;
   }
 
   /**

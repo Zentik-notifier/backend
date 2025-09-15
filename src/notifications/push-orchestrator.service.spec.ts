@@ -11,6 +11,8 @@ import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscrip
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { BucketsService } from '../buckets/buckets.service';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { UsersService } from '../users/users.service';
+import { UserSettingType } from '../entities/user-setting.entity';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { Message } from '../entities/message.entity';
@@ -154,6 +156,17 @@ describe('PushNotificationOrchestratorService', () => {
           useValue: {
             trackNotification: jest.fn(),
             trackPushPassthrough: jest.fn(),
+          },
+        },
+        {
+          provide: UsersService,
+          useValue: {
+            getUserSetting: jest.fn(async (userId: string, type: UserSettingType) => {
+              if (type === UserSettingType.UnencryptOnBigPayload) {
+                return { valueBool: true } as any;
+              }
+              return null;
+            }),
           },
         },
       ],

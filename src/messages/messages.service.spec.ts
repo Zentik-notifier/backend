@@ -16,6 +16,8 @@ import {
 } from '../notifications/notifications.types';
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
 import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
+import { UsersService } from '../users/users.service';
+import { UserSettingType } from '../entities/user-setting.entity';
 import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesService } from './messages.service';
 
@@ -87,6 +89,20 @@ describe('MessagesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessagesService,
+        {
+          provide: UsersService,
+          useValue: {
+            getUserSetting: jest.fn(async (userId: string, type: UserSettingType) => {
+              if (type === UserSettingType.AddIconOnNoMedias) {
+                return { valueBool: true } as any;
+              }
+              if (type === UserSettingType.Language) {
+                return { valueText: 'en-EN' } as any;
+              }
+              return null;
+            }),
+          },
+        },
         {
           provide: getRepositoryToken(Message),
           useValue: {
@@ -852,11 +868,6 @@ describe('MessagesService', () => {
                 mediaType: MediaType.GIF,
                 url: 'https://example.com/animation.gif',
                 saveOnServer: false,
-              }),
-              expect.objectContaining({
-                mediaType: MediaType.ICON,
-                name: 'Test Bucket Icon',
-                url: 'https://example.com/bucket-icon.png',
               }),
             ]),
           }),

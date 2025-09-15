@@ -7,6 +7,7 @@ import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { UserSetting } from '../entities/user-setting.entity';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 import {
   DevicePlatform,
@@ -103,6 +104,13 @@ describe('UsersService', () => {
     delete: jest.fn(),
   };
 
+  const mockUserSettingsRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+  };
+
   const mockSystemAccessTokensRepository = {
     findOne: jest.fn(),
     find: jest.fn(),
@@ -138,6 +146,10 @@ describe('UsersService', () => {
         {
           provide: getRepositoryToken(Notification),
           useValue: mockNotificationsRepository,
+        },
+        {
+          provide: getRepositoryToken(UserSetting),
+          useValue: mockUserSettingsRepository,
         },
         {
           provide: getRepositoryToken(SystemAccessToken),
