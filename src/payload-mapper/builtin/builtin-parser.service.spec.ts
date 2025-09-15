@@ -100,7 +100,7 @@ describe('BuiltinParserService', () => {
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZentikAuthentik,
-        description: 'Parser for Authentik notifications - handles login, logout, registration and other events',
+        description: 'Parser for Authentik notifications - handles login, logout, registration, update available and other events',
       });
       expect(parsers).toContainEqual({
         name: 'Servarr',
