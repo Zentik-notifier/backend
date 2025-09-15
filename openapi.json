@@ -2108,6 +2108,70 @@
         ]
       }
     },
+    "/api/v1/users/settings": {
+      "get": {
+        "operationId": "UsersController_getUserSettings",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSetting"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get user settings (optionally filtered by deviceId)",
+        "tags": [
+          "Users"
+        ]
+      },
+      "post": {
+        "operationId": "UsersController_upsertUserSetting",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertUserSettingInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User setting upserted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSetting"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Upsert a user setting",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/api/v1/entity-permissions/resource-permissions": {
       "get": {
         "operationId": "EntityPermissionsController_getResourcePermissions",
@@ -4998,6 +5062,77 @@
         },
         "required": [
           "deviceId"
+        ]
+      },
+      "UserSetting": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "object",
+            "nullable": true
+          },
+          "configType": {
+            "type": "string",
+            "enum": [
+              "Timezone",
+              "Language",
+              "UnencryptOnBigPayload",
+              "AddIconOnNoMedias"
+            ]
+          },
+          "valueText": {
+            "type": "object"
+          },
+          "valueBool": {
+            "type": "object"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "configType",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpsertUserSettingInput": {
+        "type": "object",
+        "properties": {
+          "configType": {
+            "type": "string",
+            "enum": [
+              "Timezone",
+              "Language",
+              "UnencryptOnBigPayload",
+              "AddIconOnNoMedias"
+            ]
+          },
+          "valueText": {
+            "type": "object"
+          },
+          "valueBool": {
+            "type": "object"
+          },
+          "deviceId": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "configType"
         ]
       },
       "GrantEntityPermissionInput": {

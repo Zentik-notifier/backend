@@ -4,6 +4,7 @@
 
 -- Drop tables if they exist (in correct order due to foreign keys)
 DROP TABLE IF EXISTS entity_permissions CASCADE;
+DROP TABLE IF EXISTS user_settings CASCADE;
 DROP TABLE IF EXISTS payload_mappers CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
@@ -25,6 +26,7 @@ DROP TYPE IF EXISTS user_role_enum CASCADE;
 DROP TYPE IF EXISTS permission_enum CASCADE;
 DROP TYPE IF EXISTS resource_type_enum CASCADE;
 DROP TYPE IF EXISTS event_type_enum CASCADE;
+DROP TYPE IF EXISTS user_setting_type_enum CASCADE;
 
 -- Create custom enum types
 CREATE TYPE device_platform_enum AS ENUM ('IOS', 'ANDROID', 'WEB');
@@ -35,6 +37,7 @@ CREATE TYPE permission_enum AS ENUM ('read', 'write', 'delete', 'admin');
 CREATE TYPE resource_type_enum AS ENUM ('bucket', 'notification', 'user_webhook', 'user_access_token');
 CREATE TYPE event_type_enum AS ENUM ('LOGIN', 'LOGIN_OAUTH', 'LOGOUT', 'REGISTER', 'PUSH_PASSTHROUGH', 'MESSAGE', 'NOTIFICATION', 'BUCKET_SHARING', 'BUCKET_UNSHARING', 'DEVICE_REGISTER', 'DEVICE_UNREGISTER', 'ACCOUNT_DELETE');
 -- NOTE: ACCOUNT_DELETE added in code; ensure DB enum updated in migrations when applying
+CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOnBigPayload', 'AddIconOnNoMedias');
 
 -- Create users table
 CREATE TABLE users (
@@ -204,6 +207,19 @@ CREATE TABLE user_devices (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create user_settings table for per-user and optional per-device configuration
+CREATE TABLE user_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "deviceId" UUID REFERENCES user_devices(id) ON DELETE SET NULL,
+    "configType" user_setting_type_enum NOT NULL,
+    "valueText" TEXT,
+    "valueBool" BOOLEAN,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE("userId", "deviceId", "configType")
+);
+
 -- Create user_webhooks table
 CREATE TABLE user_webhooks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -296,6 +312,9 @@ CREATE INDEX idx_user_devices_user_id ON user_devices("userId");
 CREATE INDEX idx_user_devices_device_token ON user_devices("deviceToken");
 CREATE INDEX idx_user_devices_platform ON user_devices(platform);
 CREATE INDEX idx_user_devices_only_local ON user_devices("onlyLocal");
+CREATE INDEX idx_user_settings_user_id ON user_settings("userId");
+CREATE INDEX idx_user_settings_device_id ON user_settings("deviceId");
+CREATE INDEX idx_user_settings_type ON user_settings("configType");
 CREATE INDEX idx_user_webhooks_user_id ON user_webhooks("userId");
 CREATE INDEX idx_user_webhooks_method ON user_webhooks(method);
 CREATE INDEX idx_notifications_user_id ON notifications("userId");

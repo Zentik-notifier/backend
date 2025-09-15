@@ -13,3 +13,4 @@ export { UserIdentity } from './user-identity.entity';
 export { UserSession } from './user-session.entity';
 export { HttpMethod, UserWebhook } from './user-webhook.entity';
 export { User } from './user.entity';
+export { UserSetting, UserSettingType } from './user-setting.entity';

@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -25,7 +26,9 @@ import {
   UpdateDeviceTokenDto,
   UpdateUserDeviceDto,
   UpdateUserRoleDto,
+  UpsertUserSettingInput,
 } from './dto';
+import { UserSetting } from '../entities/user-setting.entity';
 import { UsersService } from './users.service';
 
 @UseGuards(JwtOrAccessTokenGuard)
@@ -157,5 +160,30 @@ export class UsersController {
   })
   async deleteAccount(@GetUser('id') userId: string) {
     return this.usersService.deleteAccount(userId);
+  }
+
+  @Get('settings')
+  @ApiOperation({ summary: 'Get user settings (optionally filtered by deviceId)' })
+  @ApiResponse({ status: 200, description: 'User settings', type: [UserSetting] })
+  async getUserSettings(
+    @GetUser('id') userId: string,
+    @Query('deviceId') deviceId?: string,
+  ) {
+    return this.usersService.getUserSettings(userId, deviceId);
+  }
+
+  @Post('settings')
+  @ApiOperation({ summary: 'Upsert a user setting' })
+  @ApiResponse({ status: 200, description: 'User setting upserted', type: UserSetting })
+  async upsertUserSetting(
+    @GetUser('id') userId: string,
+    @Body() input: UpsertUserSettingInput,
+  ) {
+    return this.usersService.upsertUserSetting(
+      userId,
+      input.configType,
+      { valueText: input.valueText, valueBool: input.valueBool },
+      input.deviceId,
+    );
   }
 }

@@ -354,6 +354,7 @@ type Mutation {
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
   updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
+  upsertUserSetting(input: UpsertUserSettingInput!): UserSetting!
   validateResetToken(resetToken: String!): Boolean!
 }
 
@@ -537,6 +538,7 @@ type Query {
   publicAppConfig: PublicAppConfig!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
+  userSettings(deviceId: String): [UserSetting!]!
   userWebhooks: [UserWebhook!]!
   users: [User!]!
   webhook(id: ID!): UserWebhook!
@@ -730,6 +732,13 @@ input UpdateWebhookDto {
   url: String
 }
 
+input UpsertUserSettingInput {
+  configType: UserSettingType!
+  deviceId: String
+  valueBool: Boolean
+  valueText: String
+}
+
 type User {
   accessTokens: [UserAccessToken!]
   avatar: String
@@ -833,6 +842,30 @@ type UserSession {
   user: User!
   userAgent: String
   userId: String!
+}
+
+type UserSetting {
+  configType: UserSettingType!
+  createdAt: DateTime!
+  device: UserDevice
+  deviceId: String
+  id: ID!
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+
+  """Boolean value for the setting, when applicable"""
+  valueBool: Boolean
+
+  """String value for the setting, when applicable"""
+  valueText: String
+}
+
+enum UserSettingType {
+  AddIconOnNoMedias
+  Language
+  Timezone
+  UnencryptOnBigPayload
 }
 
 type UserWebhook {

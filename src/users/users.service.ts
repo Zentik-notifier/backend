@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import * as webpush from 'web-push';
 import { generateRSAKeyPair } from '../common/utils/cryptoUtils';
 import { Bucket } from '../entities/bucket.entity';
@@ -14,6 +14,7 @@ import { UserDevice } from '../entities/user-device.entity';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
+import { UserSetting, UserSettingType } from '../entities/user-setting.entity';
 import {
   DevicePlatform,
   RegisterDeviceDto,
@@ -36,6 +37,8 @@ export class UsersService {
     private readonly notificationsRepository: Repository<Notification>,
     @InjectRepository(SystemAccessToken)
     private readonly systemAccessTokensRepository: Repository<SystemAccessToken>,
+    @InjectRepository(UserSetting)
+    private readonly userSettingsRepository: Repository<UserSetting>,
     private readonly eventTrackingService: EventTrackingService,
   ) {}
 
@@ -360,6 +363,39 @@ export class UsersService {
       where: { id: deviceId },
       relations: ['user'],
     });
+  }
+
+  // User settings
+  async getUserSettings(
+    userId: string,
+    deviceId?: string | null,
+  ): Promise<UserSetting[]> {
+    const where: any = { userId };
+    if (deviceId !== undefined) {
+      where.deviceId = deviceId ?? null;
+    }
+    return this.userSettingsRepository.find({ where, order: { createdAt: 'DESC' } });
+  }
+
+  async upsertUserSetting(
+    userId: string,
+    configType: UserSettingType,
+    value: { valueText?: string | null; valueBool?: boolean | null },
+    deviceId?: string | null,
+  ): Promise<UserSetting> {
+    const where: any = { userId, configType };
+    where.deviceId = deviceId == null ? IsNull() : deviceId;
+    let setting = await this.userSettingsRepository.findOne({ where });
+    if (!setting) {
+      setting = this.userSettingsRepository.create({
+        userId,
+        deviceId: deviceId ?? null,
+        configType,
+      });
+    }
+    if (value.valueText !== undefined) setting.valueText = value.valueText;
+    if (value.valueBool !== undefined) setting.valueBool = value.valueBool;
+    return this.userSettingsRepository.save(setting);
   }
 
   /**

@@ -13,6 +13,8 @@ import {
   UpdateUserRoleInput,
 } from '../../users/dto';
 import { UsersService } from '../../users/users.service';
+import { UserSetting } from '../../entities/user-setting.entity';
+import { UpsertUserSettingInput } from '../../users/dto';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { DeviceToken } from '../decorators/device-token.decorator';
 import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
@@ -99,6 +101,27 @@ export class UsersResolver {
     @DeviceToken() deviceToken: string,
   ): Promise<UserDevice | null> {
     return this.usersService.findDeviceByUserToken(userId, deviceToken);
+  }
+
+  @Query(() => [UserSetting])
+  async userSettings(
+    @CurrentUser('id') userId: string,
+    @Args('deviceId', { nullable: true }) deviceId?: string,
+  ): Promise<UserSetting[]> {
+    return this.usersService.getUserSettings(userId, deviceId);
+  }
+
+  @Mutation(() => UserSetting)
+  async upsertUserSetting(
+    @CurrentUser('id') userId: string,
+    @Args('input') input: UpsertUserSettingInput,
+  ): Promise<UserSetting> {
+    return this.usersService.upsertUserSetting(
+      userId,
+      input.configType,
+      { valueText: input.valueText, valueBool: input.valueBool },
+      input.deviceId,
+    );
   }
 
   @Mutation(() => UserDevice)
