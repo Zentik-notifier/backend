@@ -212,38 +212,6 @@ export class AuthentikParser implements IBuiltinParser {
     }
   }
 
-  private extractDeviceFromUserAgent(userAgent: string): string {
-    if (!userAgent) return 'unknown device';
-    
-    // Extract browser
-    let browser = 'unknown browser';
-    if (userAgent.includes('Chrome')) browser = 'Chrome';
-    else if (userAgent.includes('Firefox')) browser = 'Firefox';
-    else if (userAgent.includes('Safari')) browser = 'Safari';
-    else if (userAgent.includes('Edge')) browser = 'Edge';
-    
-    // Extract OS
-    let os = 'unknown OS';
-    if (userAgent.includes('Windows')) os = 'Windows';
-    else if (userAgent.includes('Mac OS X')) os = 'macOS';
-    else if (userAgent.includes('Linux')) os = 'Linux';
-    else if (userAgent.includes('Android')) os = 'Android';
-    else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'iOS';
-    
-    return `${browser} on ${os}`;
-  }
-
-  private getEventIcon(eventType: string): string {
-    const eventIcons = {
-      'loginSuccess': '✅',
-      'loginFailed': '❌',
-      'logout': '🚪',
-      'updateAvailable': '🔄',
-    };
-
-    return eventIcons[eventType] || '❓'; // Question mark for unmapped events
-  }
-
   private getEventPriority(eventType: string): NotificationDeliveryType {
     const highPriorityEvents = ['loginFailed'];
     const lowPriorityEvents = ['logout'];
