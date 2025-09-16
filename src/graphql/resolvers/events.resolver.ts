@@ -3,11 +3,12 @@ import { Args, Query, Resolver } from '@nestjs/graphql';
 import { AdminOnlyGuard } from '../../auth/guards/admin-only.guard';
 import { Event, EventType } from '../../entities';
 import { EventsService } from '../../events/events.service';
+import { JwtOrAccessTokenGuard } from 'src/auth/guards/jwt-or-access-token.guard';
 
 @Resolver(() => Event)
-@UseGuards(AdminOnlyGuard)
+@UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
 export class EventsResolver {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(private readonly eventsService: EventsService) { }
 
   @Query(() => [Event])
   async events(): Promise<Event[]> {

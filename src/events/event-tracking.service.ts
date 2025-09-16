@@ -48,9 +48,10 @@ export class EventTrackingService {
     });
   }
 
-  async trackNotification(deviceId: string): Promise<void> {
+  async trackNotification(userId: string, deviceId: string): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.NOTIFICATION,
+      userId,
       objectId: deviceId,
     });
   }

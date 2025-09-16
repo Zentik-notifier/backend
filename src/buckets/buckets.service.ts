@@ -227,7 +227,6 @@ export class BucketsService {
       snoozes: params.snoozes || [],
     });
     const savedUserBucket = await this.userBucketRepository.save(userBucket);
-    await this.eventTrackingService.trackBucketSharing(userId, params.bucketId);
     return savedUserBucket;
   }
 

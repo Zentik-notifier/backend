@@ -165,7 +165,7 @@ export class PushNotificationOrchestratorService {
 
     // Track notification events for each device
     for (const device of targetDevices) {
-      await this.eventTrackingService.trackNotification(device.id);
+      await this.eventTrackingService.trackNotification(device.userId, device.id);
     }
 
     // Create one notification per device (user + device pair) - ALWAYS create notifications
