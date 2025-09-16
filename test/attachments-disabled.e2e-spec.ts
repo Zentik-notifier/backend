@@ -12,9 +12,6 @@ describe('Attachments Disabled (e2e)', () => {
     const mockJwtOrAccessTokenGuard = {
       canActivate: () => true,
     };
-    const mockJwtOrAccessTokenGuard = {
-      canActivate: () => true,
-    };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],

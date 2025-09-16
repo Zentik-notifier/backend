@@ -25,26 +25,17 @@ export class MockReceiverController {
   @Post('notify-external')
   @UseGuards(SystemAccessTokenGuard)
   async notifyExternal(@Body() body: ExternalNotifyRequestDto) {
-    if (!body || !body.notification || !body.userDevice) {
-      throw new BadRequestException('Missing notification or userDevice');
+    if (!body || !body.platform || !body.payload || !body.deviceData) {
+      throw new BadRequestException('Missing platform, payload or deviceData');
     }
 
-    // Parse the notification and userDevice to validate JSON
-    try {
-      const notification = JSON.parse(body.notification);
-      const userDevice = JSON.parse(body.userDevice);
-
-      // Simulate successful push notification delivery
-      return {
-        success: true,
-        notificationId: notification.id,
-        deviceToken: userDevice.deviceToken,
-      };
-    } catch (error) {
-      throw new BadRequestException(
-        'Invalid JSON in notification or userDevice',
-      );
-    }
+    // Simulate successful push notification delivery
+    return {
+      success: true,
+      platform: body.platform,
+      payload: body.payload,
+      deviceData: body.deviceData,
+    };
   }
 }
 

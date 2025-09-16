@@ -130,7 +130,6 @@ describe('Passthrough Notifications (e2e)', () => {
           tokenHash: tokenHash,
           maxCalls: 1000,
           calls: 0,
-          requester: 'Passthrough Test',
           description: 'Token for passthrough notifications',
           expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
         }),

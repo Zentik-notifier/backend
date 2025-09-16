@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
-import { Permission } from 'src/auth/dto/auth.dto';
+import { Permission } from '../auth/dto/auth.dto';
 import {
   Column,
   CreateDateColumn,

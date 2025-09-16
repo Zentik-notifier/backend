@@ -24,8 +24,8 @@ export class TestController {
   @Post('notify-external')
   @UseGuards(SystemAccessTokenGuard)
   async testNotifyExternal(@Body() body: ExternalNotifyRequestDto) {
-    if (!body || !body.notification || !body.userDevice) {
-      throw new BadRequestException('Missing notification or userDevice');
+    if (!body || !body.platform || !body.payload || !body.deviceData) {
+      throw new BadRequestException('Missing platform, payload or deviceData');
     }
 
     // Simulate successful processing

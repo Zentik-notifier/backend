@@ -11,6 +11,7 @@ import {
 import { NotificationsService } from '../../notifications/notifications.service';
 import { PushNotificationOrchestratorService } from '../../notifications/push-orchestrator.service';
 import { UsersService } from '../../users/users.service';
+import { EventsService } from '../../events/events.service';
 import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
 import { NotificationsResolver } from './notifications.resolver';
 
@@ -39,6 +40,11 @@ describe('NotificationsResolver', () => {
 
   const mockPushOrchestrator = {
     sendPushNotification: jest.fn(),
+  };
+
+  const mockEventsService = {
+    createEvent: jest.fn(),
+    getUserEvents: jest.fn(),
   };
 
   const mockDailyViewRepository = {
@@ -92,6 +98,10 @@ describe('NotificationsResolver', () => {
         {
           provide: PushNotificationOrchestratorService,
           useValue: mockPushOrchestrator,
+        },
+        {
+          provide: EventsService,
+          useValue: mockEventsService,
         },
         {
           provide: getRepositoryToken(EventsPerUserDailyView),
