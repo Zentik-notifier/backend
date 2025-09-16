@@ -1,5 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
+import { 
+  NotificationsPerUserDailyView,
+  NotificationsPerUserWeeklyView,
+  NotificationsPerUserMonthlyView,
+  NotificationsPerUserAllTimeView
+} from '../../entities/views/notifications-analytics.views';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { PushNotificationOrchestratorService } from '../../notifications/push-orchestrator.service';
 import { UsersService } from '../../users/users.service';
@@ -33,6 +41,38 @@ describe('NotificationsResolver', () => {
     sendPushNotification: jest.fn(),
   };
 
+  const mockDailyViewRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  const mockWeeklyViewRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  const mockMonthlyViewRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  const mockAllTimeViewRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -52,6 +92,22 @@ describe('NotificationsResolver', () => {
         {
           provide: PushNotificationOrchestratorService,
           useValue: mockPushOrchestrator,
+        },
+        {
+          provide: getRepositoryToken(NotificationsPerUserDailyView),
+          useValue: mockDailyViewRepository,
+        },
+        {
+          provide: getRepositoryToken(NotificationsPerUserWeeklyView),
+          useValue: mockWeeklyViewRepository,
+        },
+        {
+          provide: getRepositoryToken(NotificationsPerUserMonthlyView),
+          useValue: mockMonthlyViewRepository,
+        },
+        {
+          provide: getRepositoryToken(NotificationsPerUserAllTimeView),
+          useValue: mockAllTimeViewRepository,
         },
       ],
     })
@@ -93,4 +149,5 @@ describe('NotificationsResolver', () => {
       expect(notificationsService.getNotificationServices).toHaveBeenCalled();
     });
   });
+
 });
