@@ -3,11 +3,11 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
 import { 
-  NotificationsPerUserDailyView,
-  NotificationsPerUserWeeklyView,
-  NotificationsPerUserMonthlyView,
-  NotificationsPerUserAllTimeView
-} from '../../entities/views/notifications-analytics.views';
+  EventsPerUserDailyView,
+  EventsPerUserWeeklyView,
+  EventsPerUserMonthlyView,
+  EventsPerUserAllTimeView
+} from '../../entities/views/events-analytics.views';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { PushNotificationOrchestratorService } from '../../notifications/push-orchestrator.service';
 import { UsersService } from '../../users/users.service';
@@ -94,19 +94,19 @@ describe('NotificationsResolver', () => {
           useValue: mockPushOrchestrator,
         },
         {
-          provide: getRepositoryToken(NotificationsPerUserDailyView),
+          provide: getRepositoryToken(EventsPerUserDailyView),
           useValue: mockDailyViewRepository,
         },
         {
-          provide: getRepositoryToken(NotificationsPerUserWeeklyView),
+          provide: getRepositoryToken(EventsPerUserWeeklyView),
           useValue: mockWeeklyViewRepository,
         },
         {
-          provide: getRepositoryToken(NotificationsPerUserMonthlyView),
+          provide: getRepositoryToken(EventsPerUserMonthlyView),
           useValue: mockMonthlyViewRepository,
         },
         {
-          provide: getRepositoryToken(NotificationsPerUserAllTimeView),
+          provide: getRepositoryToken(EventsPerUserAllTimeView),
           useValue: mockAllTimeViewRepository,
         },
       ],

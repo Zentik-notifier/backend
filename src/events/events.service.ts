@@ -4,11 +4,13 @@ import { Repository } from 'typeorm';
 import { 
   Event, 
   EventType,
-  NotificationsPerBucketUserDailyView,
-  NotificationsPerBucketUserWeeklyView,
-  NotificationsPerBucketUserMonthlyView,
-  NotificationsPerBucketUserAllTimeView,
 } from '../entities';
+import {
+  EventsPerBucketUserDailyView,
+  EventsPerBucketUserWeeklyView,
+  EventsPerBucketUserMonthlyView,
+  EventsPerBucketUserAllTimeView,
+} from '../entities/views/events-analytics.views';
 import { CreateEventDto } from './dto';
 
 @Injectable()
@@ -16,14 +18,14 @@ export class EventsService {
   constructor(
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
-    @InjectRepository(NotificationsPerBucketUserDailyView)
-    private bucketUserDailyViewRepository: Repository<NotificationsPerBucketUserDailyView>,
-    @InjectRepository(NotificationsPerBucketUserWeeklyView)
-    private bucketUserWeeklyViewRepository: Repository<NotificationsPerBucketUserWeeklyView>,
-    @InjectRepository(NotificationsPerBucketUserMonthlyView)
-    private bucketUserMonthlyViewRepository: Repository<NotificationsPerBucketUserMonthlyView>,
-    @InjectRepository(NotificationsPerBucketUserAllTimeView)
-    private bucketUserAllTimeViewRepository: Repository<NotificationsPerBucketUserAllTimeView>,
+    @InjectRepository(EventsPerBucketUserDailyView)
+    private bucketUserDailyViewRepository: Repository<EventsPerBucketUserDailyView>,
+    @InjectRepository(EventsPerBucketUserWeeklyView)
+    private bucketUserWeeklyViewRepository: Repository<EventsPerBucketUserWeeklyView>,
+    @InjectRepository(EventsPerBucketUserMonthlyView)
+    private bucketUserMonthlyViewRepository: Repository<EventsPerBucketUserMonthlyView>,
+    @InjectRepository(EventsPerBucketUserAllTimeView)
+    private bucketUserAllTimeViewRepository: Repository<EventsPerBucketUserAllTimeView>,
   ) {}
 
   async createEvent(createEventDto: CreateEventDto): Promise<Event> {
@@ -62,8 +64,8 @@ export class EventsService {
     return this.eventsRepository.count();
   }
 
-  // Metodi per le viste materializzate delle notifiche per bucket per utente
-  async getNotificationsPerBucketUserDaily(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<NotificationsPerBucketUserDailyView[]> {
+  // Metodi per le viste materializzate degli eventi per bucket per utente
+  async getEventsPerBucketUserDaily(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<EventsPerBucketUserDailyView[]> {
     const queryBuilder = this.bucketUserDailyViewRepository
       .createQueryBuilder('view')
       .where('view.bucketId = :bucketId', { bucketId })
@@ -81,7 +83,7 @@ export class EventsService {
       .getMany();
   }
 
-  async getNotificationsPerBucketUserWeekly(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<NotificationsPerBucketUserWeeklyView[]> {
+  async getEventsPerBucketUserWeekly(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<EventsPerBucketUserWeeklyView[]> {
     const queryBuilder = this.bucketUserWeeklyViewRepository
       .createQueryBuilder('view')
       .where('view.bucketId = :bucketId', { bucketId })
@@ -99,7 +101,7 @@ export class EventsService {
       .getMany();
   }
 
-  async getNotificationsPerBucketUserMonthly(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<NotificationsPerBucketUserMonthlyView[]> {
+  async getEventsPerBucketUserMonthly(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<EventsPerBucketUserMonthlyView[]> {
     const queryBuilder = this.bucketUserMonthlyViewRepository
       .createQueryBuilder('view')
       .where('view.bucketId = :bucketId', { bucketId })
@@ -117,26 +119,26 @@ export class EventsService {
       .getMany();
   }
 
-  async getNotificationsPerBucketUserAllTime(bucketId: string, userId: string): Promise<NotificationsPerBucketUserAllTimeView | null> {
+  async getEventsPerBucketUserAllTime(bucketId: string, userId: string): Promise<EventsPerBucketUserAllTimeView[]> {
     return this.bucketUserAllTimeViewRepository
       .createQueryBuilder('view')
       .where('view.bucketId = :bucketId', { bucketId })
       .andWhere('view.userId = :userId', { userId })
-      .getOne();
+      .getMany();
   }
 
   // Metodo per ottenere tutte le statistiche per bucket per utente
-  async getBucketUserNotificationStats(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<{
-    daily: NotificationsPerBucketUserDailyView[];
-    weekly: NotificationsPerBucketUserWeeklyView[];
-    monthly: NotificationsPerBucketUserMonthlyView[];
-    allTime: NotificationsPerBucketUserAllTimeView | null;
+  async getBucketUserEventStats(bucketId: string, userId: string, startDate?: Date, endDate?: Date): Promise<{
+    daily: EventsPerBucketUserDailyView[];
+    weekly: EventsPerBucketUserWeeklyView[];
+    monthly: EventsPerBucketUserMonthlyView[];
+    allTime: EventsPerBucketUserAllTimeView[];
   }> {
     const [daily, weekly, monthly, allTime] = await Promise.all([
-      this.getNotificationsPerBucketUserDaily(bucketId, userId, startDate, endDate),
-      this.getNotificationsPerBucketUserWeekly(bucketId, userId, startDate, endDate),
-      this.getNotificationsPerBucketUserMonthly(bucketId, userId, startDate, endDate),
-      this.getNotificationsPerBucketUserAllTime(bucketId, userId),
+      this.getEventsPerBucketUserDaily(bucketId, userId, startDate, endDate),
+      this.getEventsPerBucketUserWeekly(bucketId, userId, startDate, endDate),
+      this.getEventsPerBucketUserMonthly(bucketId, userId, startDate, endDate),
+      this.getEventsPerBucketUserAllTime(bucketId, userId),
     ]);
 
     return {

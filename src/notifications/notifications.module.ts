@@ -8,11 +8,11 @@ import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { 
-  NotificationsPerUserDailyView,
-  NotificationsPerUserWeeklyView,
-  NotificationsPerUserMonthlyView,
-  NotificationsPerUserAllTimeView
-} from '../entities/views/notifications-analytics.views';
+  EventsPerUserDailyView,
+  EventsPerUserWeeklyView,
+  EventsPerUserMonthlyView,
+  EventsPerUserAllTimeView
+} from '../entities/views/events-analytics.views';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
 import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
@@ -36,10 +36,10 @@ import { NotificationsResolver } from '../graphql/resolvers/notifications.resolv
       Bucket,
       UserDevice,
       EntityPermission,
-      NotificationsPerUserDailyView,
-      NotificationsPerUserWeeklyView,
-      NotificationsPerUserMonthlyView,
-      NotificationsPerUserAllTimeView,
+      EventsPerUserDailyView,
+      EventsPerUserWeeklyView,
+      EventsPerUserMonthlyView,
+      EventsPerUserAllTimeView,
     ]),
     UsersModule,
     AuthModule,

@@ -4,10 +4,10 @@ import { AdminOnlyGuard } from '../../auth/guards/admin-only.guard';
 import {
   Event,
   EventType,
-  NotificationsPerBucketUserDailyView,
-  NotificationsPerBucketUserWeeklyView,
-  NotificationsPerBucketUserMonthlyView,
-  NotificationsPerBucketUserAllTimeView,
+  EventsPerBucketUserDailyView,
+  EventsPerBucketUserWeeklyView,
+  EventsPerBucketUserMonthlyView,
+  EventsPerBucketUserAllTimeView,
 } from '../../entities';
 import { EventsService } from '../../events/events.service';
 import { JwtOrAccessTokenGuard } from 'src/auth/guards/jwt-or-access-token.guard';
@@ -46,69 +46,69 @@ export class EventsResolver {
     return this.eventsService.findByObjectId(objectId);
   }
 
-  // Resolver per le statistiche delle notifiche per bucket per utente
-  @Query(() => [NotificationsPerBucketUserDailyView])
+  // Resolver per le statistiche degli eventi per bucket per utente
+  @Query(() => [EventsPerBucketUserDailyView])
   @UseGuards(JwtOrAccessTokenGuard)
-  async notificationsPerBucketUserDaily(
+  async eventsPerBucketUserDaily(
     @Args('bucketId') bucketId: string,
     @Args('userId') userId: string,
     @CurrentUser() currentUser: CurrentUserData,
     @Args('startDate', { nullable: true }) startDate?: Date,
     @Args('endDate', { nullable: true }) endDate?: Date,
-  ): Promise<NotificationsPerBucketUserDailyView[]> {
+  ): Promise<EventsPerBucketUserDailyView[]> {
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
+      throw new ForbiddenException('You can only access your own event statistics');
     }
 
-    return this.eventsService.getNotificationsPerBucketUserDaily(bucketId, userId, startDate, endDate);
+    return this.eventsService.getEventsPerBucketUserDaily(bucketId, userId, startDate, endDate);
   }
 
-  @Query(() => [NotificationsPerBucketUserWeeklyView])
+  @Query(() => [EventsPerBucketUserWeeklyView])
   @UseGuards(JwtOrAccessTokenGuard)
-  async notificationsPerBucketUserWeekly(
+  async eventsPerBucketUserWeekly(
     @Args('bucketId') bucketId: string,
     @Args('userId') userId: string,
     @CurrentUser() currentUser: CurrentUserData,
     @Args('startDate', { nullable: true }) startDate?: Date,
     @Args('endDate', { nullable: true }) endDate?: Date,
-  ): Promise<NotificationsPerBucketUserWeeklyView[]> {
+  ): Promise<EventsPerBucketUserWeeklyView[]> {
     // Admin può vedere tutto, non-admin solo i propri dati
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
+      throw new ForbiddenException('You can only access your own event statistics');
     }
 
-    return this.eventsService.getNotificationsPerBucketUserWeekly(bucketId, userId, startDate, endDate);
+    return this.eventsService.getEventsPerBucketUserWeekly(bucketId, userId, startDate, endDate);
   }
 
-  @Query(() => [NotificationsPerBucketUserMonthlyView])
+  @Query(() => [EventsPerBucketUserMonthlyView])
   @UseGuards(JwtOrAccessTokenGuard)
-  async notificationsPerBucketUserMonthly(
+  async eventsPerBucketUserMonthly(
     @Args('bucketId') bucketId: string,
     @Args('userId') userId: string,
     @CurrentUser() currentUser: CurrentUserData,
     @Args('startDate', { nullable: true }) startDate?: Date,
     @Args('endDate', { nullable: true }) endDate?: Date,
-  ): Promise<NotificationsPerBucketUserMonthlyView[]> {
+  ): Promise<EventsPerBucketUserMonthlyView[]> {
     // Admin può vedere tutto, non-admin solo i propri dati
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
+      throw new ForbiddenException('You can only access your own event statistics');
     }
 
-    return this.eventsService.getNotificationsPerBucketUserMonthly(bucketId, userId, startDate, endDate);
+    return this.eventsService.getEventsPerBucketUserMonthly(bucketId, userId, startDate, endDate);
   }
 
-  @Query(() => NotificationsPerBucketUserAllTimeView, { nullable: true })
+  @Query(() => [EventsPerBucketUserAllTimeView])
   @UseGuards(JwtOrAccessTokenGuard)
-  async notificationsPerBucketUserAllTime(
+  async eventsPerBucketUserAllTime(
     @Args('bucketId') bucketId: string,
     @Args('userId') userId: string,
     @CurrentUser() currentUser: CurrentUserData,
-  ): Promise<NotificationsPerBucketUserAllTimeView | null> {
+  ): Promise<EventsPerBucketUserAllTimeView[]> {
     // Admin può vedere tutto, non-admin solo i propri dati
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
+      throw new ForbiddenException('You can only access your own event statistics');
     }
 
-    return this.eventsService.getNotificationsPerBucketUserAllTime(bucketId, userId);
+    return this.eventsService.getEventsPerBucketUserAllTime(bucketId, userId);
   }
 }

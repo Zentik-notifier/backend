@@ -58,7 +58,7 @@ export class EventsController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     
-    return this.eventsService.getNotificationsPerBucketUserDaily(bucketId, userId, start, end);
+    return this.eventsService.getEventsPerBucketUserDaily(bucketId, userId, start, end);
   }
 
   @Get('bucket-user/weekly')
@@ -78,7 +78,7 @@ export class EventsController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     
-    return this.eventsService.getNotificationsPerBucketUserWeekly(bucketId, userId, start, end);
+    return this.eventsService.getEventsPerBucketUserWeekly(bucketId, userId, start, end);
   }
 
   @Get('bucket-user/monthly')
@@ -98,7 +98,7 @@ export class EventsController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     
-    return this.eventsService.getNotificationsPerBucketUserMonthly(bucketId, userId, start, end);
+    return this.eventsService.getEventsPerBucketUserMonthly(bucketId, userId, start, end);
   }
 
   @Get('bucket-user/all-time')
@@ -113,7 +113,7 @@ export class EventsController {
       throw new ForbiddenException('You can only access your own notification statistics');
     }
     
-    return this.eventsService.getNotificationsPerBucketUserAllTime(bucketId, userId);
+    return this.eventsService.getEventsPerBucketUserAllTime(bucketId, userId);
   }
 
   @Get('bucket-user/stats')
@@ -133,6 +133,6 @@ export class EventsController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     
-    return this.eventsService.getBucketUserNotificationStats(bucketId, userId, start, end);
+    return this.eventsService.getBucketUserEventStats(bucketId, userId, start, end);
   }
 }

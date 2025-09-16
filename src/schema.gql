@@ -197,6 +197,33 @@ enum EventType {
   REGISTER
 }
 
+type EventsPerBucketUserAllTimeView {
+  bucketId: String!
+  count: Float!
+  userId: String!
+}
+
+type EventsPerBucketUserDailyView {
+  bucketId: String!
+  count: Float!
+  periodStart: DateTime!
+  userId: String!
+}
+
+type EventsPerBucketUserMonthlyView {
+  bucketId: String!
+  count: Float!
+  periodStart: DateTime!
+  userId: String!
+}
+
+type EventsPerBucketUserWeeklyView {
+  bucketId: String!
+  count: Float!
+  periodStart: DateTime!
+  userId: String!
+}
+
 input GetResourcePermissionsInput {
   resourceId: String!
   resourceType: ResourceType!
@@ -425,33 +452,6 @@ enum NotificationServiceType {
   PUSH
 }
 
-type NotificationsPerBucketUserAllTimeView {
-  bucketId: String!
-  count: Float!
-  userId: String!
-}
-
-type NotificationsPerBucketUserDailyView {
-  bucketId: String!
-  count: Float!
-  periodStart: DateTime!
-  userId: String!
-}
-
-type NotificationsPerBucketUserMonthlyView {
-  bucketId: String!
-  count: Float!
-  periodStart: DateTime!
-  userId: String!
-}
-
-type NotificationsPerBucketUserWeeklyView {
-  bucketId: String!
-  count: Float!
-  periodStart: DateTime!
-  userId: String!
-}
-
 type OAuthProvider {
   additionalConfig: String
   authorizationUrl: String
@@ -549,6 +549,10 @@ type Query {
   eventsByObject(objectId: String!): [Event!]!
   eventsByType(type: EventType!): [Event!]!
   eventsByUser(userId: String!): [Event!]!
+  eventsPerBucketUserAllTime(bucketId: String!, userId: String!): [EventsPerBucketUserAllTimeView!]!
+  eventsPerBucketUserDaily(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [EventsPerBucketUserDailyView!]!
+  eventsPerBucketUserMonthly(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [EventsPerBucketUserMonthlyView!]!
+  eventsPerBucketUserWeekly(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [EventsPerBucketUserWeeklyView!]!
   getBackendVersion: String!
   getResourcePermissions(input: GetResourcePermissionsInput!): [EntityPermission!]!
   getUserAccessTokens: [AccessTokenListDto!]!
@@ -560,14 +564,11 @@ type Query {
   notification(id: String!): Notification!
   notificationServices: [NotificationServiceInfo!]!
   notifications: [Notification!]!
-  notificationsPerBucketUserAllTime(bucketId: String!, userId: String!): NotificationsPerBucketUserAllTimeView
-  notificationsPerBucketUserDaily(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [NotificationsPerBucketUserDailyView!]!
-  notificationsPerBucketUserMonthly(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [NotificationsPerBucketUserMonthlyView!]!
-  notificationsPerBucketUserWeekly(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [NotificationsPerBucketUserWeeklyView!]!
   oauthProvider(id: String!): OAuthProvider!
   payloadMapper(id: String!): PayloadMapper!
   payloadMappers: [PayloadMapperWithBuiltin!]!
   publicAppConfig: PublicAppConfig!
+  user(id: String!): User!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
   userNotificationStats(userId: String): UserNotificationStats!

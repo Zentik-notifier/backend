@@ -42,6 +42,12 @@ export class UsersResolver {
     return this.usersService.findAll();
   }
 
+  @Query(() => User)
+  @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
+  async user(@Args('id') id: string): Promise<Omit<User, 'password'>> {
+    return this.usersService.findOne(id);
+  }
+
   @Mutation(() => User)
   async updateProfile(
     @CurrentUser('id') userId: string,
