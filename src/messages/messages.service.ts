@@ -238,30 +238,37 @@ export class MessagesService {
       .map((att) => att.attachmentUuid!)
       .filter(Boolean);
 
-    // Automatically add bucket icon as attachment if requested and there are no other attachments
-    if (
-      processedAttachments.length === 0 &&
-      bucket.icon &&
-      bucket.icon.startsWith('http')
-    ) {
-      try {
-        const addIconSetting = await this.usersService.getUserSetting(
-          requesterId,
-          UserSettingType.AddIconOnNoMedias,
-          null,
-        );
-        const shouldAddIcon = addIconSetting?.valueBool === true;
-        if (shouldAddIcon) {
-          const bucketIconAttachment = await this.addBucketIconAttachment(
-            bucket,
-            processedAttachments,
+    // Add bucket icon as attachment when:
+    // - there is at least one attachment (always), OR
+    // - there are no attachments AND the user feature AddIconOnNoMedias is enabled
+    if (bucket.icon && bucket.icon.startsWith('http')) {
+      let shouldAddIcon = false;
+
+      if (processedAttachments.length > 0) {
+        // Always add icon when there is at least one other attachment
+        shouldAddIcon = true;
+      } else {
+        // No attachments -> check user feature flag
+        try {
+          const addIconSetting = await this.usersService.getUserSetting(
+            requesterId,
+            UserSettingType.AddIconOnNoMedias,
+            null,
           );
-          if (bucketIconAttachment) {
-            processedAttachments.push(bucketIconAttachment);
-          }
+          shouldAddIcon = addIconSetting?.valueBool === true;
+        } catch (e) {
+          this.logger.warn('Failed to read user settings for auto icon, skipping flag check');
         }
-      } catch (e) {
-        this.logger.warn('Failed to read user settings for auto icon, skipping');
+      }
+
+      if (shouldAddIcon) {
+        const bucketIconAttachment = await this.addBucketIconAttachment(
+          bucket,
+          processedAttachments,
+        );
+        if (bucketIconAttachment) {
+          processedAttachments.push(bucketIconAttachment);
+        }
       }
     }
 
