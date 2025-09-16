@@ -364,7 +364,6 @@ export class IOSPushService {
                       token,
                     );
                     results.push({ token, result: retryResult });
-                    console.log(JSON.stringify(retryNotification));
 
                     if (retryResult.failed && retryResult.failed.length > 0) {
                       this.logger.error(
@@ -441,6 +440,35 @@ export class IOSPushService {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * Send a prebuilt APNs payload as-is using controller-provided deviceData and payload.
+   * deviceData: { token: string; priority?: number }
+   * payload: { rawPayload, customPayload } | rawPayload
+   */
+  async sendPrebuilt(deviceData: { token: string }, payload: any): Promise<SendResult> {
+    if (!this.provider) {
+      this.logger.error('APNs provider not initialized');
+      throw new Error('APNs provider not initialized');
+    }
+    
+    const token = deviceData?.token;
+    
+    // Reconstruct apn.Notification from components
+    const notification_apn = new apn.Notification();
+    notification_apn.rawPayload = payload.rawPayload;
+    notification_apn.payload = payload.customPayload;
+    notification_apn.priority = payload.priority;
+    notification_apn.topic = payload.topic;
+    
+    this.logger.log(`Sending APN notification to token: ${token}`);
+    const result = await this.provider.send(notification_apn, token);
+    
+    this.logger.log(`APN send result: ${JSON.stringify({ failed: result.failed, sent: result.sent })}`);
+    
+    const ok = !result.failed || result.failed.length === 0;
+    return { success: ok, results: [{ token, result }] } as any;
   }
 
   async shutdown(): Promise<void> {

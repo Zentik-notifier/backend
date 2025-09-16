@@ -17,6 +17,7 @@ import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationServiceType } from './notifications.types';
 import { WebPushService } from './web-push.service';
+import { ExternalNotifyRequestDto, ExternalPlatform, ExternalDeviceDataIosDto, ExternalDeviceDataFcmDto, ExternalDeviceDataWebDto } from './dto/external-notify.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -25,8 +26,6 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationsRepository: Repository<Notification>,
-    @InjectRepository(UserDevice)
-    private readonly userDevicesRepository: Repository<UserDevice>,
     private readonly urlBuilderService: UrlBuilderService,
     private readonly usersService: UsersService,
     private readonly iosPushService: IOSPushService,
@@ -364,5 +363,40 @@ export class NotificationsService {
       this.logger.warn('Error checking push services initialization:', error);
       return false;
     }
+  }
+
+  /**
+   * Send prebuilt payloads (as-is) from passthrough entrypoint.
+   */
+  async sendPrebuilt(body: ExternalNotifyRequestDto): Promise<{ success: boolean; message?: string }> {
+    this.logger.log(`Processing sendPrebuilt for platform: ${body.platform}`);
+    
+    if (body.platform === ExternalPlatform.IOS) {
+      this.logger.log(`Sending iOS prebuilt notification to token: ${(body.deviceData as ExternalDeviceDataIosDto).token}`);
+      const res = await this.iosPushService.sendPrebuilt(
+        body.deviceData as ExternalDeviceDataIosDto,
+        body.payload,
+      );
+      this.logger.log(`iOS sendPrebuilt result: ${JSON.stringify(res)}`);
+      return { success: res.success };
+    }
+
+    if (body.platform === ExternalPlatform.ANDROID) {
+      const res = await this.firebasePushService.sendPrebuilt(
+        body.deviceData as ExternalDeviceDataFcmDto,
+        body.payload as any,
+      );
+      return { success: res.success };
+    }
+
+    if (body.platform === ExternalPlatform.WEB) {
+      const res = await this.webPushService.sendPrebuilt(
+        body.deviceData as ExternalDeviceDataWebDto,
+        body.payload as any,
+      );
+      return { success: res.success };
+    }
+
+    return { success: false, message: 'Unsupported platform' };
   }
 }

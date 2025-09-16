@@ -5,9 +5,12 @@ import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscrip
 import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
 import { UsersService } from '../users/users.service';
 import { IOSPushService } from './ios-push.service';
+import { FirebasePushService } from './firebase-push.service';
+import { WebPushService } from './web-push.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
+import { EventTrackingService } from '../events/event-tracking.service';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
@@ -42,8 +45,22 @@ describe('NotificationsController', () => {
     send: jest.fn(),
   };
 
+  const mockFirebasePushService = {
+    testConfiguration: jest.fn(),
+    send: jest.fn(),
+  };
+
+  const mockWebPushService = {
+    testConfiguration: jest.fn(),
+    send: jest.fn(),
+  };
+
   const mockAccessTokenService = {
     validateAccessToken: jest.fn(),
+  };
+
+  const mockEventTrackingService = {
+    trackPushPassthrough: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -71,12 +88,24 @@ describe('NotificationsController', () => {
           useValue: mockIOSPushService,
         },
         {
+          provide: FirebasePushService,
+          useValue: mockFirebasePushService,
+        },
+        {
+          provide: WebPushService,
+          useValue: mockWebPushService,
+        },
+        {
           provide: AccessTokenService,
           useValue: mockAccessTokenService,
         },
         {
           provide: UsersService,
           useValue: { findDeviceByUserToken: jest.fn() },
+        },
+        {
+          provide: EventTrackingService,
+          useValue: mockEventTrackingService,
         },
       ],
     })

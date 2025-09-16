@@ -2,21 +2,20 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { BucketsService } from '../buckets/buckets.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
+import { UserSettingType } from '../entities/user-setting.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
-import { BucketsService } from '../buckets/buckets.service';
 import { DevicePlatform } from '../users/dto';
+import { UsersService } from '../users/users.service';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { WebPushService } from './web-push.service';
-import { UsersService } from '../users/users.service';
-import { UserSettingType } from '../entities/user-setting.entity';
-import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
 
 export interface PushResult {
   success: boolean;
@@ -47,7 +46,6 @@ export class PushNotificationOrchestratorService {
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly usersService: UsersService,
-    private readonly systemAccessTokenService: SystemAccessTokenService,
   ) {}
 
   /**
@@ -396,7 +394,7 @@ export class PushNotificationOrchestratorService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const url = `${server.replace(/\/$/, '')}/notifications/notify-external`;
-      const payload = this.buildExternalPayload(notification, userDevice);
+      const payload = await this.buildExternalPayload(notification, userDevice);
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -405,7 +403,7 @@ export class PushNotificationOrchestratorService {
         },
         body: JSON.stringify(payload),
       });
-
+      
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         return { success: true };
@@ -419,10 +417,55 @@ export class PushNotificationOrchestratorService {
     }
   }
 
-  private buildExternalPayload(notification: Notification, device: UserDevice) {
+  private async buildExternalPayload(notification: Notification, device: UserDevice) {
+    if (device.platform === DevicePlatform.IOS) {
+      const { payload: rawPayload, customPayload } = await this.iosPushService.buildAPNsPayload(
+        notification,
+        [],
+        device,
+      );
+      const priority = notification.message.deliveryType === 'SILENT' ? 5 : 10;
+      
+      return {
+        platform: 'IOS',
+        payload: {
+          rawPayload,
+          customPayload,
+          priority,
+          topic: process.env.APN_BUNDLE_ID || 'com.apocaliss92.zentik',
+        },
+        deviceData: {
+          token: device.deviceToken,
+        },
+      };
+    }
+
+    if (device.platform === DevicePlatform.ANDROID) {
+      const msg = await this.firebasePushService.buildFirebaseMessage(
+        notification,
+        [device.deviceToken || ''],
+      );
+      return {
+        platform: 'ANDROID',
+        payload: msg,
+        deviceData: {
+          token: device.deviceToken,
+        },
+      };
+    }
+
+    // WEB
+    const webPayload = this.webPushService.buildWebPayload(notification);
     return {
-      notification: JSON.stringify(notification),
-      userDevice: JSON.stringify(device),
+      platform: 'WEB',
+      payload: webPayload,
+      deviceData: {
+        endpoint: device.subscriptionFields?.endpoint,
+        p256dh: device.subscriptionFields?.p256dh,
+        auth: device.subscriptionFields?.auth,
+        publicKey: device.publicKey,
+        privateKey: device.privateKey,
+      },
     };
   }
 }

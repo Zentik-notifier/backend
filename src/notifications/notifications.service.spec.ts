@@ -12,6 +12,7 @@ import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
 import { WebPushService } from './web-push.service';
+import { ExternalNotifyRequestDto, ExternalPlatform } from './dto/external-notify.dto';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -82,14 +83,17 @@ describe('NotificationsService', () => {
 
   const mockIOSPushService = {
     provider: null as any,
+    sendPrebuilt: jest.fn(),
   };
 
   const mockFirebasePushService = {
     app: null as any,
+    sendPrebuilt: jest.fn(),
   };
 
   const mockWebPushService = {
     configured: false,
+    sendPrebuilt: jest.fn(),
   };
 
   const mockConfigService = {
@@ -405,6 +409,271 @@ describe('NotificationsService', () => {
 
       const webService = result.find((s) => s.devicePlatform === 'WEB');
       expect(webService?.service).toBe('LOCAL');
+    });
+  });
+
+  describe('sendPrebuilt', () => {
+    it('should send iOS prebuilt notification successfully', async () => {
+      const iosPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.IOS,
+        payload: {
+          rawPayload: {
+            aps: {
+              alert: { title: 'Encrypted Notification' },
+              sound: 'default',
+              'mutable-content': 1,
+              'content-available': 1,
+            },
+            enc: 'encrypted_data_blob',
+          },
+          customPayload: { priority: 10 },
+          priority: 10,
+          topic: 'com.test.app',
+        },
+        deviceData: {
+          token: 'test_device_token_123',
+        },
+      };
+
+      mockIOSPushService.sendPrebuilt.mockResolvedValue({ success: true });
+
+      const result = await service.sendPrebuilt(iosPayload);
+
+      expect(result).toEqual({ success: true });
+      expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(
+        iosPayload.deviceData,
+        iosPayload.payload,
+      );
+    });
+
+    it('should send Android prebuilt notification successfully', async () => {
+      const androidPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.ANDROID,
+        payload: {
+          tokens: ['test_device_token_123'],
+          apns: {
+            payload: {
+              aps: {
+                alert: { title: 'Test Notification', body: 'Test Body' },
+                sound: 'default',
+              },
+            },
+          },
+          data: {
+            notificationId: 'test-notification-id',
+            actions: JSON.stringify([]),
+          },
+        },
+        deviceData: {
+          token: 'test_device_token_123',
+        },
+      };
+
+      mockFirebasePushService.sendPrebuilt.mockResolvedValue({ success: true });
+
+      const result = await service.sendPrebuilt(androidPayload);
+
+      expect(result).toEqual({ success: true });
+      expect(mockFirebasePushService.sendPrebuilt).toHaveBeenCalledWith(
+        androidPayload.deviceData,
+        androidPayload.payload,
+      );
+    });
+
+    it('should send Web Push prebuilt notification successfully', async () => {
+      const webPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.WEB,
+        payload: {
+          title: 'Test Web Notification',
+          body: 'Test Web Body',
+          url: '/',
+          notificationId: 'test-notification-id',
+          actions: [
+            {
+              action: 'OPEN',
+              title: 'Open',
+            },
+          ],
+        },
+        deviceData: {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+          p256dh: 'test_p256dh_key',
+          auth: 'test_auth_secret',
+          publicKey: 'test_vapid_public_key',
+          privateKey: 'test_vapid_private_key',
+        },
+      };
+
+      mockWebPushService.sendPrebuilt.mockResolvedValue({ success: true });
+
+      const result = await service.sendPrebuilt(webPayload);
+
+      expect(result).toEqual({ success: true });
+      expect(mockWebPushService.sendPrebuilt).toHaveBeenCalledWith(
+        webPayload.deviceData,
+        webPayload.payload,
+      );
+    });
+
+    it('should handle iOS notification failure', async () => {
+      const iosPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.IOS,
+        payload: {
+          rawPayload: { aps: { alert: { title: 'Test' } } },
+          customPayload: { priority: 10 },
+          priority: 10,
+          topic: 'com.test.app',
+        },
+        deviceData: {
+          token: 'test_device_token_123',
+        },
+      };
+
+      mockIOSPushService.sendPrebuilt.mockResolvedValue({ success: false });
+
+      const result = await service.sendPrebuilt(iosPayload);
+
+      expect(result).toEqual({ success: false });
+      expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(
+        iosPayload.deviceData,
+        iosPayload.payload,
+      );
+    });
+
+    it('should handle Android notification failure', async () => {
+      const androidPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.ANDROID,
+        payload: {
+          tokens: ['test_device_token_123'],
+          apns: { payload: { aps: { alert: { title: 'Test' } } } },
+          data: { notificationId: 'test-id' },
+        },
+        deviceData: {
+          token: 'test_device_token_123',
+        },
+      };
+
+      mockFirebasePushService.sendPrebuilt.mockResolvedValue({ success: false });
+
+      const result = await service.sendPrebuilt(androidPayload);
+
+      expect(result).toEqual({ success: false });
+      expect(mockFirebasePushService.sendPrebuilt).toHaveBeenCalledWith(
+        androidPayload.deviceData,
+        androidPayload.payload,
+      );
+    });
+
+    it('should handle Web Push notification failure', async () => {
+      const webPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.WEB,
+        payload: {
+          title: 'Test Web Notification',
+          body: 'Test Web Body',
+        },
+        deviceData: {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+          p256dh: 'test_p256dh_key',
+          auth: 'test_auth_secret',
+          publicKey: 'test_vapid_public_key',
+          privateKey: 'test_vapid_private_key',
+        },
+      };
+
+      mockWebPushService.sendPrebuilt.mockResolvedValue({ success: false });
+
+      const result = await service.sendPrebuilt(webPayload);
+
+      expect(result).toEqual({ success: false });
+      expect(mockWebPushService.sendPrebuilt).toHaveBeenCalledWith(
+        webPayload.deviceData,
+        webPayload.payload,
+      );
+    });
+
+    it('should return error for unsupported platform', async () => {
+      const unsupportedPayload = {
+        platform: 'UNSUPPORTED' as any,
+        payload: { test: 'data' },
+        deviceData: { token: 'test_token' },
+      };
+
+      const result = await service.sendPrebuilt(unsupportedPayload);
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Unsupported platform',
+      });
+    });
+
+    it('should handle iOS service throwing error', async () => {
+      const iosPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.IOS,
+        payload: {
+          rawPayload: { aps: { alert: { title: 'Test' } } },
+          customPayload: { priority: 10 },
+          priority: 10,
+          topic: 'com.test.app',
+        },
+        deviceData: {
+          token: 'test_device_token_123',
+        },
+      };
+
+      mockIOSPushService.sendPrebuilt.mockRejectedValue(
+        new Error('APNs provider not initialized'),
+      );
+
+      await expect(service.sendPrebuilt(iosPayload)).rejects.toThrow(
+        'APNs provider not initialized',
+      );
+    });
+
+    it('should handle Android service throwing error', async () => {
+      const androidPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.ANDROID,
+        payload: {
+          tokens: ['test_device_token_123'],
+          apns: { payload: { aps: { alert: { title: 'Test' } } } },
+          data: { notificationId: 'test-id' },
+        },
+        deviceData: {
+          token: 'test_device_token_123',
+        },
+      };
+
+      mockFirebasePushService.sendPrebuilt.mockRejectedValue(
+        new Error('Firebase not initialized'),
+      );
+
+      await expect(service.sendPrebuilt(androidPayload)).rejects.toThrow(
+        'Firebase not initialized',
+      );
+    });
+
+    it('should handle Web Push service throwing error', async () => {
+      const webPayload: ExternalNotifyRequestDto = {
+        platform: ExternalPlatform.WEB,
+        payload: {
+          title: 'Test Web Notification',
+          body: 'Test Web Body',
+        },
+        deviceData: {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+          p256dh: 'test_p256dh_key',
+          auth: 'test_auth_secret',
+          publicKey: 'test_vapid_public_key',
+          privateKey: 'test_vapid_private_key',
+        },
+      };
+
+      mockWebPushService.sendPrebuilt.mockRejectedValue(
+        new Error('Web Push not configured'),
+      );
+
+      await expect(service.sendPrebuilt(webPayload)).rejects.toThrow(
+        'Web Push not configured',
+      );
     });
   });
 });

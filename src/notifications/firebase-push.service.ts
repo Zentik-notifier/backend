@@ -194,7 +194,7 @@ export class FirebasePushService {
   /**
    * Build Firebase message payload from notification entity
    */
-  private async buildFirebaseMessage(
+  public async buildFirebaseMessage(
     notification: Notification,
     tokens: string[],
   ): Promise<admin.messaging.MulticastMessage> {
@@ -253,6 +253,43 @@ export class FirebasePushService {
     }
 
     return payload;
+  }
+
+  /**
+   * Send a prebuilt FCM multicast message as-is (passthrough server).
+   */
+  public async sendPrebuilt(
+    deviceData: { token: string },
+    payload: admin.messaging.MulticastMessage,
+  ): Promise<FirebaseMulticastResult> {
+    if (!this.app) {
+      return {
+        success: false,
+        successCount: 0,
+        failureCount: 1,
+        results: [{ token: deviceData?.token || 'unknown', success: false, error: 'Firebase not configured' }],
+      };
+    }
+
+    const tokens = Array.isArray(payload?.tokens) && payload.tokens.length > 0 ? payload.tokens : [deviceData.token];
+    const toSend: admin.messaging.MulticastMessage = { ...payload, tokens };
+    const response = await admin
+      .messaging(this.app)
+      .sendEachForMulticast(toSend);
+
+    const results = response.responses.map((r, idx) => ({
+      token: tokens[idx],
+      success: r.success,
+      error: r.success ? undefined : r.error?.message,
+      messageId: r.success ? r.messageId : undefined,
+    }));
+
+    return {
+      success: response.successCount > 0,
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      results,
+    };
   }
 
   /**

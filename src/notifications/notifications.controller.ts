@@ -24,8 +24,7 @@ import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscrip
 import { GetSystemAccessToken } from '../system-access-token/decorators/get-system-access-token.decorator';
 import { SystemAccessTokenGuard } from '../system-access-token/system-access-token.guard';
 import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
-import { UsersService } from '../users/users.service';
-import { ExternalNotifyRequestDto } from './dto/external-notify.dto';
+import { ExternalNotifyRequestDto, ExternalPlatform } from './dto/external-notify.dto';
 import { ApiBody } from '@nestjs/swagger';
 import {
   MarkReceivedDto,
@@ -34,8 +33,10 @@ import {
   ExternalNotifyRequestDocDto,
   NotificationServicesInfoDto,
 } from './dto';
-import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
+import { IOSPushService } from './ios-push.service';
+import { FirebasePushService } from './firebase-push.service';
+import { WebPushService } from './web-push.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
 import { EventTrackingService } from 'src/events/event-tracking.service';
 
@@ -52,7 +53,10 @@ export class NotificationsController {
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly systemAccessTokenService: SystemAccessTokenService,
     private readonly eventsTrackingService: EventTrackingService,
-  ) {}
+    private readonly iosPushService: IOSPushService,
+    private readonly firebasePushService: FirebasePushService,
+    private readonly webPushService: WebPushService,
+  ) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all notifications for the authenticated user' })
@@ -257,9 +261,14 @@ export class NotificationsController {
   @ApiBody({ description: 'External notification request', type: ExternalNotifyRequestDocDto })
   @ApiResponse({ status: 200, description: 'Push dispatch result', schema: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, platform: { type: 'string' }, sentAt: { type: 'string', format: 'date-time' } } } })
   @ApiResponse({ status: 400, description: 'Missing notification or userDevice' })
-  async notifyExternal(@Body() body: ExternalNotifyRequestDto, @GetSystemAccessToken() sat?: { id: string }) {
-    if (!body || !body.notification || !body.userDevice) {
-      throw new BadRequestException('Missing notification or userDevice');
+  async notifyExternal(
+    @Body()
+    body: ExternalNotifyRequestDto,
+    @GetSystemAccessToken()
+    sat?: { id: string }
+  ) {
+    if (!body || !body.platform) {
+      throw new BadRequestException('Missing platform');
     }
 
     if (sat) {
@@ -268,12 +277,7 @@ export class NotificationsController {
       );
     }
 
-    const notificationParsed = JSON.parse(body.notification);
-    const userDeviceParsed = JSON.parse(body.userDevice);
-    const result = await this.pushOrchestrator.sendPushToSingleDeviceStateless(
-      notificationParsed,
-      userDeviceParsed,
-    );
+    const result = await this.notificationsService.sendPrebuilt(body);
 
     if (sat && result.success) {
       this.logger.log(
@@ -282,7 +286,7 @@ export class NotificationsController {
       await this.systemAccessTokenService.incrementCalls(sat.id);
       try {
         await this.eventsTrackingService.trackPushPassthrough(sat.id);
-      } catch {}
+      } catch { }
     } else if (sat && !result.success) {
       this.logger.warn(
         `External notification failed for system access token: ${sat.id}, not incrementing call count`,

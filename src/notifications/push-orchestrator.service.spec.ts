@@ -76,14 +76,17 @@ describe('PushNotificationOrchestratorService', () => {
 
   const mockIOSPushService = {
     send: jest.fn(),
+    buildAPNsPayload: jest.fn(),
   };
 
   const mockFirebasePushService = {
     send: jest.fn(),
+    buildFirebaseMessage: jest.fn(),
   };
 
   const mockWebPushService = {
     send: jest.fn(),
+    buildWebPayload: jest.fn(),
   };
 
   const mockEntityPermissionService = {
@@ -296,6 +299,15 @@ describe('PushNotificationOrchestratorService', () => {
     });
 
     it('should send push notification via passthrough server successfully', async () => {
+      // Mock buildAPNsPayload to return valid data
+      mockIOSPushService.buildAPNsPayload.mockResolvedValue({
+        payload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data',
+        },
+        customPayload: { priority: 10 },
+      });
+
       const mockFetchResponse = {
         ok: true,
         json: jest.fn().mockResolvedValue({ success: true }),
@@ -317,15 +329,21 @@ describe('PushNotificationOrchestratorService', () => {
             'Content-Type': 'application/json',
             Authorization: 'Bearer passthrough-token-123',
           },
-          body: JSON.stringify({
-            notification: JSON.stringify(mockNotification),
-            userDevice: JSON.stringify(mockUserDevice),
-          }),
+          body: expect.any(String),
         },
       );
     });
 
     it('should handle passthrough server HTTP error', async () => {
+      // Mock buildAPNsPayload to return valid data
+      mockIOSPushService.buildAPNsPayload.mockResolvedValue({
+        payload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data',
+        },
+        customPayload: { priority: 10 },
+      });
+
       const mockFetchResponse = {
         ok: false,
         status: 500,
@@ -343,6 +361,15 @@ describe('PushNotificationOrchestratorService', () => {
     });
 
     it('should handle passthrough server network error', async () => {
+      // Mock buildAPNsPayload to return valid data
+      mockIOSPushService.buildAPNsPayload.mockResolvedValue({
+        payload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data',
+        },
+        customPayload: { priority: 10 },
+      });
+
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
       const result = await (service as any).dispatchPush(
@@ -354,16 +381,179 @@ describe('PushNotificationOrchestratorService', () => {
       expect(result.error).toBe('Network error');
     });
 
-    it('should build correct external payload for passthrough', async () => {
-      const payload = (service as any).buildExternalPayload(
+    it('should build correct external payload for iOS passthrough', async () => {
+      const iosDevice = {
+        ...mockUserDevice,
+        platform: DevicePlatform.IOS,
+        deviceToken: 'test_ios_token',
+        publicKey: JSON.stringify({
+          key_ops: ['encrypt'],
+          ext: true,
+          kty: 'RSA',
+          n: 'test_public_key_n',
+          e: 'AQAB',
+          alg: 'RSA-OAEP-256',
+        }),
+      };
+
+      mockIOSPushService.buildAPNsPayload.mockResolvedValue({
+        payload: {
+          aps: {
+            alert: { title: 'Encrypted Notification' },
+            sound: 'default',
+            'mutable-content': 1,
+            'content-available': 1,
+          },
+          enc: 'encrypted_data_blob',
+        },
+        customPayload: { priority: 10 },
+      });
+
+      const payload = await (service as any).buildExternalPayload(
         mockNotification as Notification,
-        mockUserDevice as UserDevice,
+        iosDevice as UserDevice,
       );
 
       expect(payload).toEqual({
-        notification: JSON.stringify(mockNotification),
-        userDevice: JSON.stringify(mockUserDevice),
+        platform: 'IOS',
+        payload: {
+          rawPayload: {
+            aps: {
+              alert: { title: 'Encrypted Notification' },
+              sound: 'default',
+              'mutable-content': 1,
+              'content-available': 1,
+            },
+            enc: 'encrypted_data_blob',
+          },
+          customPayload: { priority: 10 },
+          priority: 10,
+          topic: 'com.apocaliss92.zentik',
+        },
+        deviceData: {
+          token: 'test_ios_token',
+        },
       });
+
+      expect(mockIOSPushService.buildAPNsPayload).toHaveBeenCalledWith(
+        mockNotification,
+        [],
+        iosDevice,
+      );
+    });
+
+    it('should build correct external payload for Android passthrough', async () => {
+      const androidDevice = {
+        ...mockUserDevice,
+        platform: DevicePlatform.ANDROID,
+        deviceToken: 'test_android_token',
+      };
+
+      mockFirebasePushService.buildFirebaseMessage.mockResolvedValue({
+        tokens: ['test_android_token'],
+        apns: {
+          payload: {
+            aps: {
+              alert: { title: 'Test Notification', body: 'Test Body' },
+              sound: 'default',
+            },
+          },
+        },
+        data: {
+          notificationId: 'test-notification-id',
+          actions: JSON.stringify([]),
+        },
+      });
+
+      const payload = await (service as any).buildExternalPayload(
+        mockNotification as Notification,
+        androidDevice as UserDevice,
+      );
+
+      expect(payload).toEqual({
+        platform: 'ANDROID',
+        payload: {
+          tokens: ['test_android_token'],
+          apns: {
+            payload: {
+              aps: {
+                alert: { title: 'Test Notification', body: 'Test Body' },
+                sound: 'default',
+              },
+            },
+          },
+          data: {
+            notificationId: 'test-notification-id',
+            actions: JSON.stringify([]),
+          },
+        },
+        deviceData: {
+          token: 'test_android_token',
+        },
+      });
+
+      expect(mockFirebasePushService.buildFirebaseMessage).toHaveBeenCalledWith(
+        mockNotification,
+        ['test_android_token'],
+      );
+    });
+
+    it('should build correct external payload for Web passthrough', async () => {
+      const webDevice = {
+        ...mockUserDevice,
+        platform: DevicePlatform.WEB,
+        deviceToken: 'test_web_token',
+        subscriptionFields: {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+          p256dh: 'test_p256dh_key',
+          auth: 'test_auth_secret',
+        },
+        publicKey: 'test_vapid_public_key',
+        privateKey: 'test_vapid_private_key',
+      };
+
+      mockWebPushService.buildWebPayload.mockReturnValue({
+        title: 'Test Web Notification',
+        body: 'Test Web Body',
+        url: '/',
+        notificationId: 'test-notification-id',
+        actions: [
+          {
+            action: 'OPEN',
+            title: 'Open',
+          },
+        ],
+      });
+
+      const payload = await (service as any).buildExternalPayload(
+        mockNotification as Notification,
+        webDevice as UserDevice,
+      );
+
+      expect(payload).toEqual({
+        platform: 'WEB',
+        payload: {
+          title: 'Test Web Notification',
+          body: 'Test Web Body',
+          url: '/',
+          notificationId: 'test-notification-id',
+          actions: [
+            {
+              action: 'OPEN',
+              title: 'Open',
+            },
+          ],
+        },
+        deviceData: {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+          p256dh: 'test_p256dh_key',
+          auth: 'test_auth_secret',
+          publicKey: 'test_vapid_public_key',
+          privateKey: 'test_vapid_private_key',
+        },
+      });
+
+      expect(mockWebPushService.buildWebPayload).toHaveBeenCalledWith(mockNotification);
     });
   });
 });

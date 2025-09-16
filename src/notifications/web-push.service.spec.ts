@@ -1,0 +1,217 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { WebPushService } from './web-push.service';
+
+// Mock web-push
+jest.mock('web-push', () => ({
+  setVapidDetails: jest.fn(),
+  sendNotification: jest.fn(),
+}));
+
+describe('WebPushService', () => {
+  let service: WebPushService;
+  let mockWebPush: any;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [WebPushService],
+    }).compile();
+
+    service = module.get<WebPushService>(WebPushService);
+    
+    // Mock web-push
+    const webPush = require('web-push');
+    mockWebPush = webPush;
+    (service as any).webpush = webPush;
+
+    jest.clearAllMocks();
+  });
+
+  describe('sendPrebuilt', () => {
+    it('should send Web Push prebuilt notification successfully', async () => {
+      const deviceData = {
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        p256dh: 'test_p256dh_key',
+        auth: 'test_auth_secret',
+        publicKey: 'test_vapid_public_key',
+        privateKey: 'test_vapid_private_key',
+      };
+
+      const payload = JSON.stringify({
+        title: 'Test Web Notification',
+        body: 'Test Web Body',
+        url: '/',
+        notificationId: 'test-notification-id',
+        actions: [
+          {
+            action: 'OPEN',
+            title: 'Open',
+          },
+        ],
+      });
+
+      mockWebPush.sendNotification.mockResolvedValue(undefined);
+
+      const result = await service.sendPrebuilt(deviceData, payload);
+
+      expect(result.success).toBe(true);
+      expect(result.results).toHaveLength(1);
+      expect(result.results![0]).toEqual({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        success: true,
+      });
+
+      expect(mockWebPush.sendNotification).toHaveBeenCalledWith(
+        {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+          keys: {
+            p256dh: 'test_p256dh_key',
+            auth: 'test_auth_secret',
+          },
+        },
+        payload,
+        {
+          vapidDetails: {
+            subject: 'mailto:gianlucaruoccoios@gmail.com',
+            publicKey: 'test_vapid_public_key',
+            privateKey: 'test_vapid_private_key',
+          },
+        },
+      );
+    });
+
+    it('should handle Web Push notification failure', async () => {
+      const deviceData = {
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        p256dh: 'test_p256dh_key',
+        auth: 'test_auth_secret',
+        publicKey: 'test_vapid_public_key',
+        privateKey: 'test_vapid_private_key',
+      };
+
+      const payload = JSON.stringify({
+        title: 'Test Web Notification',
+        body: 'Test Web Body',
+      });
+
+      mockWebPush.sendNotification.mockRejectedValue(
+        new Error('Invalid subscription'),
+      );
+
+      const result = await service.sendPrebuilt(deviceData, payload);
+
+      expect(result.success).toBe(false);
+      expect(result.results).toHaveLength(1);
+      expect(result.results![0]).toEqual({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        success: false,
+        error: 'Invalid subscription',
+      });
+    });
+
+    it('should handle payload as object instead of string', async () => {
+      const deviceData = {
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        p256dh: 'test_p256dh_key',
+        auth: 'test_auth_secret',
+        publicKey: 'test_vapid_public_key',
+        privateKey: 'test_vapid_private_key',
+      };
+
+      const payload = {
+        title: 'Test Web Notification',
+        body: 'Test Web Body',
+        url: '/',
+        notificationId: 'test-notification-id',
+      };
+
+      mockWebPush.sendNotification.mockResolvedValue(undefined);
+
+      const result = await service.sendPrebuilt(deviceData, payload as any);
+
+      expect(result.success).toBe(true);
+      expect(mockWebPush.sendNotification).toHaveBeenCalledWith(
+        {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+          keys: {
+            p256dh: 'test_p256dh_key',
+            auth: 'test_auth_secret',
+          },
+        },
+        payload,
+        {
+          vapidDetails: {
+            subject: 'mailto:gianlucaruoccoios@gmail.com',
+            publicKey: 'test_vapid_public_key',
+            privateKey: 'test_vapid_private_key',
+          },
+        },
+      );
+    });
+
+    it('should use custom VAPID subject when provided', async () => {
+      const originalSubject = process.env.VAPID_SUBJECT;
+      process.env.VAPID_SUBJECT = 'mailto:custom@example.com';
+
+      const deviceData = {
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        p256dh: 'test_p256dh_key',
+        auth: 'test_auth_secret',
+        publicKey: 'test_vapid_public_key',
+        privateKey: 'test_vapid_private_key',
+      };
+
+      const payload = JSON.stringify({
+        title: 'Test Web Notification',
+        body: 'Test Web Body',
+      });
+
+      mockWebPush.sendNotification.mockResolvedValue(undefined);
+
+      const result = await service.sendPrebuilt(deviceData, payload);
+
+      expect(result.success).toBe(true);
+      expect(mockWebPush.sendNotification).toHaveBeenCalledWith(
+        expect.any(Object),
+        payload,
+        {
+          vapidDetails: {
+            subject: 'mailto:custom@example.com',
+            publicKey: 'test_vapid_public_key',
+            privateKey: 'test_vapid_private_key',
+          },
+        },
+      );
+
+      // Restore original subject
+      if (originalSubject) {
+        process.env.VAPID_SUBJECT = originalSubject;
+      } else {
+        delete process.env.VAPID_SUBJECT;
+      }
+    });
+
+    it('should handle web-push throwing error', async () => {
+      const deviceData = {
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        p256dh: 'test_p256dh_key',
+        auth: 'test_auth_secret',
+        publicKey: 'test_vapid_public_key',
+        privateKey: 'test_vapid_private_key',
+      };
+
+      const payload = JSON.stringify({
+        title: 'Test Web Notification',
+        body: 'Test Web Body',
+      });
+
+      mockWebPush.sendNotification.mockRejectedValue(
+        new Error('Web Push service error'),
+      );
+
+      const result = await service.sendPrebuilt(deviceData, payload);
+
+      expect(result.success).toBe(false);
+      expect(result.results![0].error).toBe('Web Push service error');
+    });
+  });
+});
