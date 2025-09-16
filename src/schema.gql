@@ -570,6 +570,7 @@ type Query {
   publicAppConfig: PublicAppConfig!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
+  userNotificationStats(userId: String): UserNotificationStats!
   userSettings(deviceId: String): [UserSetting!]!
   userWebhooks: [UserWebhook!]!
   users: [User!]!
@@ -849,6 +850,13 @@ type UserIdentity {
   updatedAt: DateTime!
   user: User!
   userId: String!
+}
+
+type UserNotificationStats {
+  thisMonth: Float!
+  thisWeek: Float!
+  today: Float!
+  total: Float!
 }
 
 """User role enum"""

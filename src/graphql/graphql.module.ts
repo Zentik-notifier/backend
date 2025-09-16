@@ -19,7 +19,6 @@ import { BucketsResolver } from './resolvers/buckets.resolver';
 import { EntityPermissionsResolver } from './resolvers/entity-permissions.resolver';
 import { EventsResolver } from './resolvers/events.resolver';
 import { MessagesResolver } from './resolvers/messages.resolver';
-import { NotificationsResolver } from './resolvers/notifications.resolver';
 import { PayloadMapperResolver } from '../payload-mapper/payload-mapper.resolver';
 import { UsersResolver } from './resolvers/users.resolver';
 
@@ -71,7 +70,6 @@ const GRAPHQL_PATH = `${process.env.BACKEND_API_PREFIX}/graphql`;
     AttachmentsModule,
   ],
   providers: [
-    NotificationsResolver,
     AuthResolver,
     MessagesResolver,
     BucketsResolver,

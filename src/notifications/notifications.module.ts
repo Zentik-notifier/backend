@@ -7,6 +7,12 @@ import { EntityPermission } from '../entities/entity-permission.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
+import { 
+  NotificationsPerUserDailyView,
+  NotificationsPerUserWeeklyView,
+  NotificationsPerUserMonthlyView,
+  NotificationsPerUserAllTimeView
+} from '../entities/views/notifications-analytics.views';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
 import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
@@ -20,6 +26,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
 import { WebPushService } from './web-push.service';
+import { NotificationsResolver } from '../graphql/resolvers/notifications.resolver';
 
 @Module({
   imports: [
@@ -29,6 +36,10 @@ import { WebPushService } from './web-push.service';
       Bucket,
       UserDevice,
       EntityPermission,
+      NotificationsPerUserDailyView,
+      NotificationsPerUserWeeklyView,
+      NotificationsPerUserMonthlyView,
+      NotificationsPerUserAllTimeView,
     ]),
     UsersModule,
     AuthModule,
@@ -47,6 +58,7 @@ import { WebPushService } from './web-push.service';
     FirebasePushService,
     WebPushService,
     PushNotificationOrchestratorService,
+    NotificationsResolver,
   ],
   exports: [
     NotificationsService,
