@@ -24,6 +24,10 @@ import {
   NotificationsPerSystemTokenWeeklyView,
   NotificationsPerSystemTokenMonthlyView,
   NotificationsPerSystemTokenAllTimeView,
+  NotificationsPerBucketUserDailyView,
+  NotificationsPerBucketUserWeeklyView,
+  NotificationsPerBucketUserMonthlyView,
+  NotificationsPerBucketUserAllTimeView,
 } from '../entities';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 
@@ -59,6 +63,10 @@ export const databaseConfig: TypeOrmModuleOptions = {
     NotificationsPerSystemTokenWeeklyView,
     NotificationsPerSystemTokenMonthlyView,
     NotificationsPerSystemTokenAllTimeView,
+    NotificationsPerBucketUserDailyView,
+    NotificationsPerBucketUserWeeklyView,
+    NotificationsPerBucketUserMonthlyView,
+    NotificationsPerBucketUserAllTimeView,
     Message,
     User,
     UserBucket,

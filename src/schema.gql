@@ -425,6 +425,33 @@ enum NotificationServiceType {
   PUSH
 }
 
+type NotificationsPerBucketUserAllTimeView {
+  bucketId: String!
+  count: Float!
+  userId: String!
+}
+
+type NotificationsPerBucketUserDailyView {
+  bucketId: String!
+  count: Float!
+  periodStart: DateTime!
+  userId: String!
+}
+
+type NotificationsPerBucketUserMonthlyView {
+  bucketId: String!
+  count: Float!
+  periodStart: DateTime!
+  userId: String!
+}
+
+type NotificationsPerBucketUserWeeklyView {
+  bucketId: String!
+  count: Float!
+  periodStart: DateTime!
+  userId: String!
+}
+
 type OAuthProvider {
   additionalConfig: String
   authorizationUrl: String
@@ -533,6 +560,10 @@ type Query {
   notification(id: String!): Notification!
   notificationServices: [NotificationServiceInfo!]!
   notifications: [Notification!]!
+  notificationsPerBucketUserAllTime(bucketId: String!, userId: String!): NotificationsPerBucketUserAllTimeView
+  notificationsPerBucketUserDaily(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [NotificationsPerBucketUserDailyView!]!
+  notificationsPerBucketUserMonthly(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [NotificationsPerBucketUserMonthlyView!]!
+  notificationsPerBucketUserWeekly(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [NotificationsPerBucketUserWeeklyView!]!
   oauthProvider(id: String!): OAuthProvider!
   payloadMapper(id: String!): PayloadMapper!
   payloadMappers: [PayloadMapperWithBuiltin!]!

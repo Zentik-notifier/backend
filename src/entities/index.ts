@@ -23,4 +23,8 @@ export {
   NotificationsPerSystemTokenWeeklyView,
   NotificationsPerSystemTokenMonthlyView,
   NotificationsPerSystemTokenAllTimeView,
+  NotificationsPerBucketUserDailyView,
+  NotificationsPerBucketUserWeeklyView,
+  NotificationsPerBucketUserMonthlyView,
+  NotificationsPerBucketUserAllTimeView,
 } from './views/notifications-analytics.views';

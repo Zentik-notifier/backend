@@ -9,6 +9,7 @@ export interface CurrentUserData {
   lastName?: string;
   avatar?: string;
   tokenId?: string;
+  role: string;
   createdAt: Date;
   updatedAt: Date;
 }
