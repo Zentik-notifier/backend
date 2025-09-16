@@ -37,6 +37,7 @@ import {
 import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
+import { EventTrackingService } from 'src/events/event-tracking.service';
 
 @UseGuards(JwtOrAccessTokenGuard)
 @Controller('notifications')
@@ -50,8 +51,7 @@ export class NotificationsController {
     private readonly subscriptionService: GraphQLSubscriptionService,
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly systemAccessTokenService: SystemAccessTokenService,
-    private readonly iosPushService: IOSPushService,
-    private readonly usersService: UsersService,
+    private readonly eventsTrackingService: EventTrackingService,
   ) {}
 
   @Get()
@@ -280,6 +280,9 @@ export class NotificationsController {
         `Incrementing call count for system access token: ${sat.id}`,
       );
       await this.systemAccessTokenService.incrementCalls(sat.id);
+      try {
+        await this.eventsTrackingService.trackPushPassthrough(sat.id);
+      } catch {}
     } else if (sat && !result.success) {
       this.logger.warn(
         `External notification failed for system access token: ${sat.id}, not incrementing call count`,

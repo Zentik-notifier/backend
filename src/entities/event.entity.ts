@@ -49,6 +49,10 @@ export class Event {
   @Column({ nullable: true })
   objectId?: string;
 
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  deviceId?: string;
+
   @Field()
   @CreateDateColumn()
   createdAt: Date;

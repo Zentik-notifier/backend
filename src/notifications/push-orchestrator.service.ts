@@ -16,6 +16,7 @@ import { IOSPushService } from './ios-push.service';
 import { WebPushService } from './web-push.service';
 import { UsersService } from '../users/users.service';
 import { UserSettingType } from '../entities/user-setting.entity';
+import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
 
 export interface PushResult {
   success: boolean;
@@ -46,6 +47,7 @@ export class PushNotificationOrchestratorService {
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly usersService: UsersService,
+    private readonly systemAccessTokenService: SystemAccessTokenService,
   ) {}
 
   /**
@@ -393,9 +395,6 @@ export class PushNotificationOrchestratorService {
     userDevice: UserDevice,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Track push passthrough event
-      await this.eventTrackingService.trackPushPassthrough(token);
-
       const url = `${server.replace(/\/$/, '')}/notifications/notify-external`;
       const payload = this.buildExternalPayload(notification, userDevice);
       const res = await fetch(url, {

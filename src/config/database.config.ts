@@ -16,6 +16,14 @@ import {
   UserSession,
   UserWebhook,
   UserSetting,
+  NotificationsPerUserDailyView,
+  NotificationsPerUserWeeklyView,
+  NotificationsPerUserMonthlyView,
+  NotificationsPerUserAllTimeView,
+  NotificationsPerSystemTokenDailyView,
+  NotificationsPerSystemTokenWeeklyView,
+  NotificationsPerSystemTokenMonthlyView,
+  NotificationsPerSystemTokenAllTimeView,
 } from '../entities';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 
@@ -42,6 +50,15 @@ export const databaseConfig: TypeOrmModuleOptions = {
     SystemAccessToken,
     Attachment,
     Event,
+    // analytics materialized views
+    NotificationsPerUserDailyView,
+    NotificationsPerUserWeeklyView,
+    NotificationsPerUserMonthlyView,
+    NotificationsPerUserAllTimeView,
+    NotificationsPerSystemTokenDailyView,
+    NotificationsPerSystemTokenWeeklyView,
+    NotificationsPerSystemTokenMonthlyView,
+    NotificationsPerSystemTokenAllTimeView,
     Message,
     User,
     UserBucket,

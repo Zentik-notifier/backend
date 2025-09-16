@@ -75,6 +75,7 @@ CREATE TABLE events (
     type event_type_enum NOT NULL,
     "userId" VARCHAR(255),
     "objectId" VARCHAR(255),
+    "deviceId" VARCHAR(255),
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -489,6 +490,94 @@ JOIN messages m ON n."messageId" = m.id
 LEFT JOIN buckets b ON m."bucketId" = b.id
 LEFT JOIN user_devices ud ON n."userDeviceId" = ud.id
 GROUP BY n.id, m.title, m.subtitle, m.body, m."deliveryType", n.status, n."readAt", n."sentAt", n."createdAt", b.name, u.email, u.username;
+
+-- Materialized views for notifications analytics
+
+-- Per-user daily sent notifications
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_user_daily AS
+SELECT 
+  n."userId" AS "userId",
+  DATE_TRUNC('day', n."sentAt") AS "periodStart",
+  COUNT(*) AS count
+FROM notifications n
+WHERE n."sentAt" IS NOT NULL
+GROUP BY n."userId", DATE_TRUNC('day', n."sentAt");
+CREATE INDEX IF NOT EXISTS idx_mv_npu_daily_user_period ON mv_notifications_per_user_daily ("userId", "periodStart");
+
+-- Per-user weekly sent notifications
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_user_weekly AS
+SELECT 
+  n."userId" AS "userId",
+  DATE_TRUNC('week', n."sentAt") AS "periodStart",
+  COUNT(*) AS count
+FROM notifications n
+WHERE n."sentAt" IS NOT NULL
+GROUP BY n."userId", DATE_TRUNC('week', n."sentAt");
+CREATE INDEX IF NOT EXISTS idx_mv_npu_weekly_user_period ON mv_notifications_per_user_weekly ("userId", "periodStart");
+
+-- Per-user monthly sent notifications
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_user_monthly AS
+SELECT 
+  n."userId" AS "userId",
+  DATE_TRUNC('month', n."sentAt") AS "periodStart",
+  COUNT(*) AS count
+FROM notifications n
+WHERE n."sentAt" IS NOT NULL
+GROUP BY n."userId", DATE_TRUNC('month', n."sentAt");
+CREATE INDEX IF NOT EXISTS idx_mv_npu_monthly_user_period ON mv_notifications_per_user_monthly ("userId", "periodStart");
+
+-- Per-user all-time sent notifications
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_user_all_time AS
+SELECT 
+  n."userId" AS "userId",
+  COUNT(*) AS count
+FROM notifications n
+WHERE n."sentAt" IS NOT NULL
+GROUP BY n."userId";
+CREATE INDEX IF NOT EXISTS idx_mv_npu_all_time_user ON mv_notifications_per_user_all_time ("userId");
+
+-- Per-system-token daily passthrough events (proxy for sent notifications)
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_system_token_daily AS
+SELECT 
+  e."objectId" AS "systemTokenId",
+  DATE_TRUNC('day', e."createdAt") AS "periodStart",
+  COUNT(*) AS count
+FROM events e
+WHERE e.type = 'PUSH_PASSTHROUGH'
+GROUP BY e."objectId", DATE_TRUNC('day', e."createdAt");
+CREATE INDEX IF NOT EXISTS idx_mv_npst_daily_token_period ON mv_notifications_per_system_token_daily ("systemTokenId", "periodStart");
+
+-- Per-system-token weekly
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_system_token_weekly AS
+SELECT 
+  e."objectId" AS "systemTokenId",
+  DATE_TRUNC('week', e."createdAt") AS "periodStart",
+  COUNT(*) AS count
+FROM events e
+WHERE e.type = 'PUSH_PASSTHROUGH'
+GROUP BY e."objectId", DATE_TRUNC('week', e."createdAt");
+CREATE INDEX IF NOT EXISTS idx_mv_npst_weekly_token_period ON mv_notifications_per_system_token_weekly ("systemTokenId", "periodStart");
+
+-- Per-system-token monthly
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_system_token_monthly AS
+SELECT 
+  e."objectId" AS "systemTokenId",
+  DATE_TRUNC('month', e."createdAt") AS "periodStart",
+  COUNT(*) AS count
+FROM events e
+WHERE e.type = 'PUSH_PASSTHROUGH'
+GROUP BY e."objectId", DATE_TRUNC('month', e."createdAt");
+CREATE INDEX IF NOT EXISTS idx_mv_npst_monthly_token_period ON mv_notifications_per_system_token_monthly ("systemTokenId", "periodStart");
+
+-- Per-system-token all-time
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_notifications_per_system_token_all_time AS
+SELECT 
+  e."objectId" AS "systemTokenId",
+  COUNT(*) AS count
+FROM events e
+WHERE e.type = 'PUSH_PASSTHROUGH'
+GROUP BY e."objectId";
+CREATE INDEX IF NOT EXISTS idx_mv_npst_all_time_token ON mv_notifications_per_system_token_all_time ("systemTokenId");
 
 -- Sample data for development (commented out by default)
 /*
