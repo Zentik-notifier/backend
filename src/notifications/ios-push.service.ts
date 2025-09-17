@@ -125,6 +125,7 @@ export class IOSPushService {
         body: alert?.body ?? message.body,
         subtitle: alert?.subtitle ?? message.subtitle,
         notificationId: notification.id,
+        bucketId: message.bucketId,
         actions: allActions,
         attachmentData: message.attachments,
         tapAction: message.tapAction,
@@ -146,6 +147,7 @@ export class IOSPushService {
     } else {
       // No encryption path: include essential fields directly to ensure NSE/CE can access them
       payload.notificationId = notification.id;
+      payload.bucketId = message.bucketId;
       if (allActions && allActions.length > 0) {
         payload.actions = allActions;
       }

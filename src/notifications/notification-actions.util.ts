@@ -90,7 +90,7 @@ export function generateAutomaticActions(
 
       actions.push({
         type: NotificationActionType.SNOOZE,
-        value: `snooze_${snoozeMinutes}`,
+        value: snoozeMinutes.toString(),
         destructive: false,
         icon: platformIcons.snooze,
         title: snooze,
