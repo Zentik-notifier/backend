@@ -10,6 +10,7 @@ import {
   EventsPerBucketUserAllTimeView,
 } from '../../entities';
 import { EventsService } from '../../events/events.service';
+import { EventsQueryDto, EventsResponseDto, EventsPaginatedQueryDto } from '../../events/dto';
 import { JwtOrAccessTokenGuard } from 'src/auth/guards/jwt-or-access-token.guard';
 import { CurrentUser, CurrentUserData } from '../../auth/decorators/current-user.decorator';
 import { UserRole } from '../../users/users.types';
@@ -19,31 +20,9 @@ import { UserRole } from '../../users/users.types';
 export class EventsResolver {
   constructor(private readonly eventsService: EventsService) { }
 
-  @Query(() => [Event])
-  async events(): Promise<Event[]> {
-    return this.eventsService.findAll();
-  }
-
-  @Query(() => Number)
-  async eventCount(): Promise<number> {
-    return this.eventsService.getEventCount();
-  }
-
-  @Query(() => [Event])
-  async eventsByType(
-    @Args('type', { type: () => EventType }) type: EventType,
-  ): Promise<Event[]> {
-    return this.eventsService.findByType(type);
-  }
-
-  @Query(() => [Event])
-  async eventsByUser(@Args('userId') userId: string): Promise<Event[]> {
-    return this.eventsService.findByUserId(userId);
-  }
-
-  @Query(() => [Event])
-  async eventsByObject(@Args('objectId') objectId: string): Promise<Event[]> {
-    return this.eventsService.findByObjectId(objectId);
+  @Query(() => EventsResponseDto)
+  async events(@Args('query') query: EventsQueryDto): Promise<EventsResponseDto> {
+    return this.eventsService.findAllPaginated(query);
   }
 
   // Resolver per le statistiche degli eventi per bucket per utente

@@ -4,6 +4,7 @@ import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { Event, EventType } from '../entities';
 import { EventsService } from './events.service';
+import { EventsQueryDto, EventsResponseDto, EventsPaginatedQueryDto } from './dto';
 import { CurrentUser, CurrentUserData } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/users.types';
 
@@ -15,8 +16,18 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  async findAll(): Promise<Event[]> {
+  async findAll(@Query() query?: EventsQueryDto): Promise<Event[] | EventsResponseDto> {
+    // Se vengono passati parametri di paginazione, usa la versione paginata
+    if (query && (query.page !== undefined || query.limit !== undefined || query.type || query.userId || query.objectId)) {
+      return this.eventsService.findAllPaginated(query);
+    }
+    // Altrimenti, usa la versione originale per compatibilità
     return this.eventsService.findAll();
+  }
+
+  @Get('paginated')
+  async findAllPaginated(@Query() query: EventsQueryDto): Promise<EventsResponseDto> {
+    return this.eventsService.findAllPaginated(query);
   }
 
   @Get('count')
@@ -26,17 +37,41 @@ export class EventsController {
   }
 
   @Get('by-type')
-  async findByType(@Query('type') type: EventType): Promise<Event[]> {
+  async findByType(
+    @Query('type') type: EventType,
+    @Query() query?: EventsPaginatedQueryDto
+  ): Promise<Event[] | EventsResponseDto> {
+    // Se vengono passati parametri di paginazione, usa la versione paginata
+    if (query && (query.page !== undefined || query.limit !== undefined)) {
+      return this.eventsService.findByTypePaginated(type, query);
+    }
+    // Altrimenti, usa la versione originale per compatibilità
     return this.eventsService.findByType(type);
   }
 
   @Get('by-user')
-  async findByUserId(@Query('userId') userId: string): Promise<Event[]> {
+  async findByUserId(
+    @Query('userId') userId: string,
+    @Query() query?: EventsPaginatedQueryDto
+  ): Promise<Event[] | EventsResponseDto> {
+    // Se vengono passati parametri di paginazione, usa la versione paginata
+    if (query && (query.page !== undefined || query.limit !== undefined)) {
+      return this.eventsService.findByUserIdPaginated(userId, query);
+    }
+    // Altrimenti, usa la versione originale per compatibilità
     return this.eventsService.findByUserId(userId);
   }
 
   @Get('by-object')
-  async findByObjectId(@Query('objectId') objectId: string): Promise<Event[]> {
+  async findByObjectId(
+    @Query('objectId') objectId: string,
+    @Query() query?: EventsPaginatedQueryDto
+  ): Promise<Event[] | EventsResponseDto> {
+    // Se vengono passati parametri di paginazione, usa la versione paginata
+    if (query && (query.page !== undefined || query.limit !== undefined)) {
+      return this.eventsService.findByObjectIdPaginated(objectId, query);
+    }
+    // Altrimenti, usa la versione originale per compatibilità
     return this.eventsService.findByObjectId(objectId);
   }
 

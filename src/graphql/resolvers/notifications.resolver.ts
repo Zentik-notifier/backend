@@ -26,6 +26,7 @@ import { EventsService } from '../../events/events.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { DeviceToken } from '../decorators/device-token.decorator';
 import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
+import { EventType } from 'src/entities';
 
 @ObjectType()
 export class MarkAllAsReadResult {
@@ -408,7 +409,7 @@ export class NotificationsResolver {
       const events = await this.eventsService.findByUserId(targetUserId);
       
       // Filter events that represent notifications (MESSAGE type events)
-      const notificationEvents = events.filter(e => e.type === 'MESSAGE');
+      const notificationEvents = events.filter(e => e.type === EventType.NOTIFICATION);
       
       // Count events by period
       const todayCount = notificationEvents.filter(e => {

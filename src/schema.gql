@@ -224,6 +224,25 @@ type EventsPerBucketUserWeeklyView {
   userId: String!
 }
 
+input EventsQueryDto {
+  deviceId: String
+  limit: Int = 20
+  objectId: String
+  page: Int = 1
+  type: EventType
+  userId: String
+}
+
+type EventsResponseDto {
+  events: [Event!]!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
 input GetResourcePermissionsInput {
   resourceId: String!
   resourceType: ResourceType!
@@ -544,11 +563,7 @@ type Query {
   buckets: [Bucket!]!
   checkEmailStatus(email: String!): EmailStatusResponseDto!
   enabledOAuthProviders: [OAuthProviderPublicDto!]!
-  eventCount: Float!
-  events: [Event!]!
-  eventsByObject(objectId: String!): [Event!]!
-  eventsByType(type: EventType!): [Event!]!
-  eventsByUser(userId: String!): [Event!]!
+  events(query: EventsQueryDto!): EventsResponseDto!
   eventsPerBucketUserAllTime(bucketId: String!, userId: String!): [EventsPerBucketUserAllTimeView!]!
   eventsPerBucketUserDaily(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [EventsPerBucketUserDailyView!]!
   eventsPerBucketUserMonthly(bucketId: String!, endDate: DateTime, startDate: DateTime, userId: String!): [EventsPerBucketUserMonthlyView!]!
