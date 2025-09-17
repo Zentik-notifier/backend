@@ -31,7 +31,7 @@ describe('ServarrParser', () => {
 
   describe('description', () => {
     it('should return correct description', () => {
-      expect(parser.description).toBe('Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, and indexer events');
+      expect(parser.description).toBe('Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads');
     });
   });
 
@@ -140,6 +140,39 @@ describe('ServarrParser', () => {
 
     it('should return false for null payload', () => {
       expect(parser.validate(null)).toBe(false);
+    });
+
+    it('should return true for health check payload', () => {
+      const payload = {
+        level: 'warning',
+        message: 'Applications unavailable due to failures for more than 6 hours: Readarr',
+        type: 'ApplicationLongTermStatusCheck',
+        eventType: 'HealthRestored',
+        instanceName: 'Prowlarr',
+      };
+      expect(parser.validate(payload)).toBe(true);
+    });
+
+    it('should return false for payload with episodeFiles array', () => {
+      const payload = {
+        eventType: 'Download',
+        instanceName: 'Sonarr',
+        series: { id: 1, title: 'Test Series', tvdbId: 123, tags: [], year: 2023 },
+        episodes: [{ id: 1, title: 'Test Episode', episodeNumber: 1, seasonNumber: 1, seriesId: 1, tvdbId: 123 }],
+        episodeFiles: [{ id: 1, path: '/test/path' }], // This should be rejected
+      };
+      expect(parser.validate(payload)).toBe(false);
+    });
+
+    it('should return true for payload with episodeFile object', () => {
+      const payload = {
+        eventType: 'Download',
+        instanceName: 'Sonarr',
+        series: { id: 1, title: 'Test Series', tvdbId: 123, tags: [], year: 2023 },
+        episodes: [{ id: 1, title: 'Test Episode', episodeNumber: 1, seasonNumber: 1, seriesId: 1, tvdbId: 123 }],
+        episodeFile: { id: 1, path: '/test/path', quality: 'HD', size: 1000, dateAdded: '2023-01-01' }, // This should be accepted
+      };
+      expect(parser.validate(payload)).toBe(true);
     });
   });
 
@@ -473,10 +506,116 @@ describe('ServarrParser', () => {
 
       const result = parser.parse(payload);
 
-      expect(result.title).toBe('Test: Unknown');
-      expect(result.subtitle).toBe('Servarr');
+      expect(result.title).toBe('❓ Unknown payload: Prowlarr');
+      expect(result.subtitle).toBe('Unknown Event from Prowlarr');
       expect(result.body).toContain('Instance: Prowlarr');
       expect(result.body).toContain('Event Type: Test');
+      expect(result.body).toContain('Unknown payload received from Servarr application');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should handle health check warning payload', () => {
+      const payload = {
+        level: 'warning',
+        message: 'Applications unavailable due to failures for more than 6 hours: Readarr',
+        type: 'ApplicationLongTermStatusCheck',
+        wikiUrl: 'https://wiki.servarr.com/prowlarr/system#applications-are-unavailable-due-to-failures',
+        eventType: 'HealthRestored',
+        instanceName: 'Prowlarr',
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('🟡 Prowlarr Health Health_restored');
+      expect(result.subtitle).toBe('System Health Check');
+      expect(result.body).toContain('Applications unavailable due to failures for more than 6 hours: Readarr');
+      expect(result.body).toContain('Check Type: ApplicationLongTermStatusCheck');
+      expect(result.body).toContain('Level: Warning');
+      expect(result.body).toContain('More Info: https://wiki.servarr.com/prowlarr/system#applications-are-unavailable-due-to-failures');
+      expect(result.body).toContain('Instance: Prowlarr');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should handle health check error payload', () => {
+      const payload = {
+        level: 'error',
+        message: 'All notifications are unavailable due to failures',
+        type: 'NotificationStatusCheck',
+        wikiUrl: 'https://wiki.servarr.com/radarr/system#notifications-are-unavailable-due-to-failures',
+        eventType: 'HealthIssue',
+        instanceName: 'Radarr',
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('🔴 Radarr Health Health_issue');
+      expect(result.subtitle).toBe('System Health Check');
+      expect(result.body).toContain('All notifications are unavailable due to failures');
+      expect(result.body).toContain('Check Type: NotificationStatusCheck');
+      expect(result.body).toContain('Level: Error');
+      expect(result.body).toContain('More Info: https://wiki.servarr.com/radarr/system#notifications-are-unavailable-due-to-failures');
+      expect(result.body).toContain('Instance: Radarr');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
+    });
+
+    it('should handle payload with episodeFile object and upgrade info', () => {
+      const payload = {
+        eventType: 'Download',
+        instanceName: 'Sonarr',
+        series: {
+          id: 24,
+          title: 'The O.C.',
+          year: 2003,
+          tvdbId: 72164,
+          tags: [],
+          genres: ['Drama', 'Romance'],
+        },
+        episodes: [
+          {
+            id: 3648,
+            episodeNumber: 16,
+            seasonNumber: 1,
+            title: 'The Links',
+            overview: 'He says he\'s a friend. But who can believe a word Oliver says?',
+            seriesId: 24,
+            tvdbId: 75558,
+          },
+        ],
+        episodeFile: {
+          id: 23127,
+          relativePath: 'Season 1/test.mkv',
+          path: '/tv/The O.C/Season 1/test.mkv',
+          quality: 'WEBDL-1080p',
+          qualityVersion: 1,
+          releaseGroup: 'Kitsune',
+          size: 3254719143,
+          dateAdded: '2025-09-17T19:27:16.8811992Z',
+          languages: [{ id: 1, name: 'English' }],
+        },
+        isUpgrade: false,
+        customFormatInfo: {
+          customFormats: [],
+          customFormatScore: 0,
+        },
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('Download: The O.C. S01E16 - The Links (2003)');
+      expect(result.subtitle).toBe('TV Show via Sonarr');
+      expect(result.body).toContain('The O.C. (2003)');
+      expect(result.body).toContain('Season: 1');
+      expect(result.body).toContain('Episode: 16');
+      expect(result.body).toContain('Title: The Links');
+      expect(result.body).toContain('Overview: He says he\'s a friend');
+      expect(result.body).toContain('Quality: WEBDL-1080p');
+      expect(result.body).toContain('Group: Kitsune');
+      expect(result.body).toContain('Size: 3.03 GB');
+      expect(result.body).toContain('Languages: English');
+      expect(result.body).toContain('Upgrade: No');
+      expect(result.body).toContain('Custom Format Score: 0');
+      expect(result.body).toContain('Genres: Drama, Romance');
+      expect(result.body).toContain('Instance: Sonarr');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
   });

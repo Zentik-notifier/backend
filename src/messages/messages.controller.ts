@@ -188,7 +188,7 @@ export class MessagesController {
     if (!bucketId) {
       throw new Error('Parameter "bucketId" is required');
     }
-    console.log(parserName, JSON.stringify(payload));
+    // console.log(parserName, JSON.stringify(payload));
 
     return this.messagesService.transformAndCreate(parserName, payload, userId, bucketId);
   }

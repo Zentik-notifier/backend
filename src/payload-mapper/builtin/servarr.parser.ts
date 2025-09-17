@@ -49,7 +49,7 @@ interface ServarrPayload {
     seriesId: number;
     tvdbId: number;
   }>;
-  episodeFiles?: Array<{
+  episodeFile?: {
     id: number;
     relativePath: string;
     path: string;
@@ -59,6 +59,7 @@ interface ServarrPayload {
     sceneName?: string;
     size: number;
     dateAdded: string;
+    sourcePath?: string;
     languages?: Array<{
       id: number;
       name: string;
@@ -74,7 +75,7 @@ interface ServarrPayload {
       videoDynamicRange?: string;
       videoDynamicRangeType?: string;
     };
-  }>;
+  };
   remoteMovie?: {
     tmdbId: number;
     imdbId: string;
@@ -120,6 +121,17 @@ interface ServarrPayload {
   fileCount?: number;
   sourcePath?: string;
   destinationPath?: string;
+  // Health check fields
+  level?: string;
+  message?: string;
+  type?: string;
+  wikiUrl?: string;
+  // Additional fields from second payload type
+  isUpgrade?: boolean;
+  customFormatInfo?: {
+    customFormats: any[];
+    customFormatScore: number;
+  };
 }
 
 @Injectable()
@@ -133,7 +145,7 @@ export class ServarrParser implements IBuiltinParser {
   }
 
   get description(): string {
-    return 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, and indexer events';
+    return 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads';
   }
 
   validate(payload: any): boolean {
@@ -146,8 +158,13 @@ export class ServarrParser implements IBuiltinParser {
       return false;
     }
 
-    // Check if it's a movie, TV show event, or Prowlarr event
-    if (!payload.movie && !payload.series && !payload.episodes && !payload.indexer && !payload.indexerStatus) {
+    // Check if it's a movie, TV show event, Prowlarr event, or health check event
+    if (!payload.movie && !payload.series && !payload.episodes && !payload.indexer && !payload.indexerStatus && !payload.message) {
+      return false;
+    }
+
+    // If it has episodeFiles (array), reject it - we only want episodeFile (object)
+    if (payload.episodeFiles) {
       return false;
     }
 
@@ -159,6 +176,11 @@ export class ServarrParser implements IBuiltinParser {
     const mediaInfo = this.extractMediaInfo(payload);
     const releaseInfo = this.extractReleaseInfo(payload);
     const attachments = this.extractAttachments(payload);
+
+    // If no media info was extracted, create a fallback for unknown payload
+    if (Object.keys(mediaInfo).length === 0) {
+      return this.createUnknownPayloadMessage(payload);
+    }
 
     return {
       title: this.getNotificationTitle(eventType, mediaInfo, payload.instanceName),
@@ -188,6 +210,10 @@ export class ServarrParser implements IBuiltinParser {
         return 'deleted';
       case 'renamed':
         return 'renamed';
+      case 'healthissue':
+        return 'health_issue';
+      case 'healthrestored':
+        return 'health_restored';
       default:
         return eventType;
     }
@@ -216,7 +242,7 @@ export class ServarrParser implements IBuiltinParser {
         genres: payload.series.genres || [],
         images: payload.series.images || [],
         episodes: payload.episodes || [],
-        episodeFiles: payload.episodeFiles || [],
+        episodeFile: payload.episodeFile,
       };
     }
 
@@ -233,7 +259,7 @@ export class ServarrParser implements IBuiltinParser {
         genres: [],
         images: [],
         episodes: payload.episodes,
-        episodeFiles: payload.episodeFiles || [],
+        episodeFile: payload.episodeFile,
       };
     }
 
@@ -257,6 +283,18 @@ export class ServarrParser implements IBuiltinParser {
         status: payload.indexerStatus.status,
         lastCheck: payload.indexerStatus.lastCheck,
         lastError: payload.indexerStatus.lastError,
+      };
+    }
+
+    // Handle health check events
+    if (payload.message && payload.level && payload.type) {
+      return {
+        type: 'health',
+        title: payload.type,
+        level: payload.level,
+        message: payload.message,
+        wikiUrl: payload.wikiUrl,
+        checkType: payload.type,
       };
     }
 
@@ -321,6 +359,13 @@ export class ServarrParser implements IBuiltinParser {
 
   private getNotificationTitle(eventType: string, mediaInfo: any, instanceName: string): string {
     const eventName = this.capitalizeFirst(eventType);
+    
+    // Handle health events
+    if (mediaInfo.type === 'health') {
+      const levelIcon = this.getHealthLevelIcon(mediaInfo.level);
+      return `${levelIcon} ${instanceName} Health ${eventName}`;
+    }
+    
     let mediaTitle = mediaInfo.title || 'Unknown';
     
     // For series with episodes, create a more comprehensive title
@@ -362,12 +407,37 @@ export class ServarrParser implements IBuiltinParser {
       return `TV Show via Sonarr`;
     } else if (mediaInfo.type === 'indexer' || mediaInfo.type === 'indexerStatus') {
       return `Indexer via Prowlarr`;
+    } else if (mediaInfo.type === 'health') {
+      return `System Health Check`;
     }
     return 'Servarr';
   }
 
   private getNotificationBody(eventType: string, mediaInfo: any, releaseInfo: any, payload: ServarrPayload): string {
     let message = '';
+
+    // Handle health events
+    if (mediaInfo.type === 'health') {
+      message += `${mediaInfo.message}`;
+      
+      if (mediaInfo.checkType) {
+        message += `\nCheck Type: ${mediaInfo.checkType}`;
+      }
+      
+      if (mediaInfo.level) {
+        message += `\nLevel: ${this.capitalizeFirst(mediaInfo.level)}`;
+      }
+      
+      if (mediaInfo.wikiUrl) {
+        message += `\nMore Info: ${mediaInfo.wikiUrl}`;
+      }
+      
+      if (payload.instanceName) {
+        message += `\nInstance: ${payload.instanceName}`;
+      }
+      
+      return message;
+    }
 
     // Add media information
     if (mediaInfo.title && mediaInfo.title !== 'Unknown Series') {
@@ -430,8 +500,8 @@ export class ServarrParser implements IBuiltinParser {
     }
 
     // Add episode file information if available
-    if (mediaInfo.episodeFiles && mediaInfo.episodeFiles.length > 0) {
-      const episodeFile = mediaInfo.episodeFiles[0];
+    if (mediaInfo.episodeFile) {
+      const episodeFile = mediaInfo.episodeFile;
       if (episodeFile.quality && !releaseInfo.quality) {
         message += `\nQuality: ${episodeFile.quality}`;
       }
@@ -480,6 +550,16 @@ export class ServarrParser implements IBuiltinParser {
       if (mediaInfo.lastError) {
         message += `\nLast Error: ${mediaInfo.lastError}`;
       }
+    }
+
+    // Add upgrade information if available
+    if (payload.isUpgrade !== undefined) {
+      message += `\nUpgrade: ${payload.isUpgrade ? 'Yes' : 'No'}`;
+    }
+
+    // Add custom format information if available
+    if (payload.customFormatInfo && payload.customFormatInfo.customFormatScore !== undefined) {
+      message += `\nCustom Format Score: ${payload.customFormatInfo.customFormatScore}`;
     }
 
     // Add instance name
@@ -543,6 +623,10 @@ export class ServarrParser implements IBuiltinParser {
       case 'failed':
       case 'failure':
         return NotificationDeliveryType.CRITICAL;
+      case 'health_issue':
+        return NotificationDeliveryType.CRITICAL;
+      case 'health_restored':
+        return NotificationDeliveryType.NORMAL;
       case 'imported':
       case 'import':
         return NotificationDeliveryType.NORMAL;
@@ -552,6 +636,62 @@ export class ServarrParser implements IBuiltinParser {
       default:
         return NotificationDeliveryType.NORMAL;
     }
+  }
+
+  private getHealthLevelIcon(level: string): string {
+    switch (level?.toLowerCase()) {
+      case 'error':
+        return '🔴';
+      case 'warning':
+        return '🟡';
+      case 'info':
+        return '🔵';
+      default:
+        return '⚪';
+    }
+  }
+
+  private createUnknownPayloadMessage(payload: ServarrPayload): CreateMessageDto {
+    const eventType = payload.eventType || 'Unknown Event';
+    const instanceName = payload.instanceName || 'Unknown Instance';
+    
+    let body = 'Unknown payload received from Servarr application.';
+    
+    if (payload.eventType) {
+      body += `\nEvent Type: ${payload.eventType}`;
+    }
+    
+    if (payload.instanceName) {
+      body += `\nInstance: ${payload.instanceName}`;
+    }
+    
+    // Add any additional fields that might be useful
+    if (payload.message) {
+      body += `\nMessage: ${payload.message}`;
+    }
+    
+    if (payload.level) {
+      body += `\nLevel: ${payload.level}`;
+    }
+    
+    if (payload.type) {
+      body += `\nType: ${payload.type}`;
+    }
+    
+    // Add raw payload for debugging (truncated)
+    const payloadStr = JSON.stringify(payload, null, 2);
+    const truncatedPayload = payloadStr.length > 500 
+      ? `${payloadStr.substring(0, 500)}...` 
+      : payloadStr;
+    body += `\n\nRaw Payload:\n${truncatedPayload}`;
+
+    return {
+      title: `❓ Unknown payload: ${instanceName}`,
+      subtitle: `Unknown Event from ${instanceName}`,
+      body: body,
+      deliveryType: NotificationDeliveryType.NORMAL,
+      bucketId: '', // Will be set by the service
+    };
   }
 
   private formatFileSize(bytes: number): string {
@@ -569,7 +709,7 @@ export class ServarrParser implements IBuiltinParser {
   }
 
   private isUnknownEvent(eventType: string): boolean {
-    const knownEvents = ['download', 'grabbed', 'imported', 'import', 'failed', 'failure', 'deleted', 'renamed'];
+    const knownEvents = ['download', 'grabbed', 'imported', 'import', 'failed', 'failure', 'deleted', 'renamed', 'health_issue', 'health_restored', 'healthissue', 'healthrestored'];
     return !knownEvents.includes(eventType.toLowerCase());
   }
 }
