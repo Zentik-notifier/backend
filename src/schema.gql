@@ -425,7 +425,7 @@ type NotificationAction {
   icon: String
   title: String
   type: NotificationActionType!
-  value: String!
+  value: String
 }
 
 input NotificationActionDto {
@@ -433,7 +433,7 @@ input NotificationActionDto {
   icon: String
   title: String
   type: NotificationActionType!
-  value: String!
+  value: String
 }
 
 enum NotificationActionType {

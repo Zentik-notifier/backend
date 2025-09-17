@@ -66,9 +66,9 @@ export class NotificationAction {
   })
   type: NotificationActionType;
 
-  @Field()
-  @ApiProperty()
-  value: string;
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  value?: string;
 
   @Field({ nullable: true })
   @ApiProperty({ required: false })

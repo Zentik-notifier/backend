@@ -5767,8 +5767,7 @@
           }
         },
         "required": [
-          "type",
-          "value"
+          "type"
         ]
       },
       "CreateMessageDto": {

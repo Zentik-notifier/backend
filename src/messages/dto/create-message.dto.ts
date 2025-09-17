@@ -65,10 +65,11 @@ export class NotificationActionDto {
   @IsEnum(NotificationActionType)
   type: NotificationActionType;
 
-  @Field()
-  @ApiProperty()
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  value: string;
+  value?: string;
 
   @Field({ nullable: true })
   @ApiProperty({ required: false })
