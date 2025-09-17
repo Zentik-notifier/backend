@@ -299,7 +299,21 @@ export class BucketsService {
   async removeUserBucket(bucketId: string, userId: string): Promise<void> {
     const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
     if (userBucket) {
-      await this.eventTrackingService.trackBucketUnsharing(userId, bucketId);
+      // Get bucket owner to track the unsharing event correctly
+      const bucket = await this.bucketsRepository.findOne({
+        where: { id: bucketId },
+        relations: ['user'],
+      });
+      
+      if (bucket) {
+        // Track as owner removing access from user (even if user is removing themselves)
+        await this.eventTrackingService.trackBucketUnsharing(
+          bucket.user.id, // owner
+          bucketId,       // bucket
+          userId          // user being removed
+        );
+      }
+      
       await this.userBucketRepository.remove(userBucket);
     }
   }

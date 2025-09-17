@@ -52,23 +52,25 @@ export class EventTrackingService {
     await this.eventsService.createEvent({
       type: EventType.NOTIFICATION,
       userId,
-      objectId: deviceId,
+      targetId: deviceId,
     });
   }
 
-  async trackBucketSharing(userId: string, bucketId: string): Promise<void> {
+  async trackBucketSharing(ownerUserId: string, bucketId: string, sharedWithUserId: string): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.BUCKET_SHARING,
-      userId,
+      userId: ownerUserId,
       objectId: bucketId,
+      targetId: sharedWithUserId,
     });
   }
 
-  async trackBucketUnsharing(userId: string, bucketId: string): Promise<void> {
+  async trackBucketUnsharing(ownerUserId: string, bucketId: string, unsharedFromUserId: string): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.BUCKET_UNSHARING,
-      userId,
+      userId: ownerUserId,
       objectId: bucketId,
+      targetId: unsharedFromUserId,
     });
   }
 
@@ -76,7 +78,7 @@ export class EventTrackingService {
     await this.eventsService.createEvent({
       type: EventType.DEVICE_REGISTER,
       userId,
-      objectId: deviceId,
+      targetId: deviceId,
     });
   }
 
@@ -84,7 +86,7 @@ export class EventTrackingService {
     await this.eventsService.createEvent({
       type: EventType.DEVICE_UNREGISTER,
       userId,
-      objectId: deviceId,
+      targetId: deviceId,
     });
   }
 

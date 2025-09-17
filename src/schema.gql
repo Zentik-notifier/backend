@@ -174,9 +174,9 @@ type EntityPermission {
 
 type Event {
   createdAt: DateTime!
-  deviceId: String
   id: String!
   objectId: String
+  targetId: String
   type: EventType!
   userId: String
 }
@@ -225,10 +225,10 @@ type EventsPerBucketUserWeeklyView {
 }
 
 input EventsQueryDto {
-  deviceId: String
   limit: Int = 20
   objectId: String
   page: Int = 1
+  targetId: String
   type: EventType
   userId: String
 }

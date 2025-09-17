@@ -65,7 +65,7 @@ export class EventsService {
   }
 
   async findAllPaginated(query: EventsQueryDto): Promise<EventsResponseDto> {
-    const { page = 1, limit = 20, type, userId, objectId, deviceId } = query;
+    const { page = 1, limit = 20, type, userId, objectId, targetId } = query;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.eventsRepository
@@ -84,8 +84,8 @@ export class EventsService {
       queryBuilder.andWhere('event.objectId = :objectId', { objectId });
     }
 
-    if (deviceId) {
-      queryBuilder.andWhere('event.deviceId = :deviceId', { deviceId });
+    if (targetId) {
+      queryBuilder.andWhere('event.targetId = :targetId', { targetId });
     }
 
     const [events, total] = await queryBuilder

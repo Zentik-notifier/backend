@@ -75,7 +75,7 @@ CREATE TABLE events (
     type event_type_enum NOT NULL,
     "userId" VARCHAR(255),
     "objectId" VARCHAR(255),
-    "deviceId" VARCHAR(255),
+    "targetId" VARCHAR(255),
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

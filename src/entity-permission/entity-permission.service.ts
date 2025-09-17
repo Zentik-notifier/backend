@@ -149,6 +149,7 @@ export class EntityPermissionService {
           await this.eventTrackingService.trackBucketSharing(
             granterUserId,
             resourceId,
+            user.id,
           );
         } catch (trackingError) {
           this.logger.warn(
@@ -177,6 +178,7 @@ export class EntityPermissionService {
           await this.eventTrackingService.trackBucketSharing(
             granterUserId,
             resourceId,
+            user.id,
           );
         } catch (trackingError) {
           this.logger.warn(
@@ -228,6 +230,7 @@ export class EntityPermissionService {
           await this.eventTrackingService.trackBucketUnsharing(
             revokerUserId,
             resourceId,
+            user.id,
           );
         } catch (trackingError) {
           this.logger.warn(

@@ -51,7 +51,7 @@ export class Event {
 
   @Field({ nullable: true })
   @Column({ nullable: true })
-  deviceId?: string;
+  targetId?: string;
 
   @Field()
   @CreateDateColumn()

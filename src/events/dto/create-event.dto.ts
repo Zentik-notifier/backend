@@ -21,5 +21,5 @@ export class CreateEventDto {
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
-  deviceId?: string;
+  targetId?: string;
 }

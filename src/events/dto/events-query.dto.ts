@@ -61,9 +61,9 @@ export class EventsQueryDto {
   @Field({ nullable: true })
   @ApiProperty({
     required: false,
-    description: 'Filter events by device ID',
+    description: 'Filter events by target ID',
   })
   @IsOptional()
   @IsString()
-  deviceId?: string;
+  targetId?: string;
 }

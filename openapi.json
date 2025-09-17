@@ -1306,10 +1306,10 @@
             }
           },
           {
-            "name": "deviceId",
+            "name": "targetId",
             "required": false,
             "in": "query",
-            "description": "Filter events by device ID",
+            "description": "Filter events by target ID",
             "schema": {
               "type": "string"
             }
@@ -1399,10 +1399,10 @@
             }
           },
           {
-            "name": "deviceId",
+            "name": "targetId",
             "required": false,
             "in": "query",
-            "description": "Filter events by device ID",
+            "description": "Filter events by target ID",
             "schema": {
               "type": "string"
             }
