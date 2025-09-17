@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 import { IBuiltinParser } from './builtin-parser.interface';
-import { CreateMessageDto } from '../../messages/dto/create-message.dto';
-import { NotificationDeliveryType } from '../../notifications/notifications.types';
+import { CreateMessageDto, NotificationAttachmentDto } from '../../messages/dto/create-message.dto';
+import { NotificationDeliveryType, MediaType } from '../../notifications/notifications.types';
 
 interface ServarrPayload {
   movie?: {
@@ -17,18 +17,63 @@ interface ServarrPayload {
   series?: {
     id: number;
     title: string;
+    titleSlug?: string;
+    path?: string;
     year: number;
-    folderPath: string;
+    folderPath?: string;
     tvdbId: number;
+    tvMazeId?: number;
+    tmdbId?: number;
+    imdbId?: string;
+    type?: string;
+    genres?: string[];
+    images?: Array<{
+      coverType: string;
+      url: string;
+      remoteUrl?: string;
+    }>;
     tags: string[];
+    originalLanguage?: {
+      id: number;
+      name: string;
+    };
   };
   episodes?: Array<{
     id: number;
     episodeNumber: number;
     seasonNumber: number;
     title: string;
+    overview?: string;
+    airDate?: string;
+    airDateUtc?: string;
     seriesId: number;
     tvdbId: number;
+  }>;
+  episodeFiles?: Array<{
+    id: number;
+    relativePath: string;
+    path: string;
+    quality: string;
+    qualityVersion: number;
+    releaseGroup?: string;
+    sceneName?: string;
+    size: number;
+    dateAdded: string;
+    languages?: Array<{
+      id: number;
+      name: string;
+    }>;
+    mediaInfo?: {
+      audioChannels: number;
+      audioCodec: string;
+      audioLanguages: string[];
+      height: number;
+      width: number;
+      subtitles: string[];
+      videoCodec: string;
+      videoDynamicRange?: string;
+      videoDynamicRangeType?: string;
+    };
   }>;
   remoteMovie?: {
     tmdbId: number;
@@ -69,6 +114,12 @@ interface ServarrPayload {
   eventType: string;
   instanceName: string;
   applicationUrl?: string;
+  downloadClient?: string;
+  downloadClientType?: string;
+  downloadId?: string;
+  fileCount?: number;
+  sourcePath?: string;
+  destinationPath?: string;
 }
 
 @Injectable()
@@ -107,6 +158,7 @@ export class ServarrParser implements IBuiltinParser {
     const eventType = this.extractEventType(payload);
     const mediaInfo = this.extractMediaInfo(payload);
     const releaseInfo = this.extractReleaseInfo(payload);
+    const attachments = this.extractAttachments(payload);
 
     return {
       title: this.getNotificationTitle(eventType, mediaInfo, payload.instanceName),
@@ -114,6 +166,7 @@ export class ServarrParser implements IBuiltinParser {
       body: this.getNotificationBody(eventType, mediaInfo, releaseInfo, payload),
       deliveryType: this.getEventPriority(eventType),
       bucketId: '', // Will be set by the service
+      attachments: attachments.length > 0 ? attachments : undefined,
     };
   }
 
@@ -158,8 +211,12 @@ export class ServarrParser implements IBuiltinParser {
         title: payload.series.title,
         year: payload.series.year,
         tvdbId: payload.series.tvdbId,
-        folderPath: payload.series.folderPath,
+        folderPath: payload.series.folderPath || payload.series.path,
         tags: payload.series.tags || [],
+        genres: payload.series.genres || [],
+        images: payload.series.images || [],
+        episodes: payload.episodes || [],
+        episodeFiles: payload.episodeFiles || [],
       };
     }
 
@@ -173,7 +230,10 @@ export class ServarrParser implements IBuiltinParser {
         tvdbId: episode.tvdbId,
         folderPath: '',
         tags: [],
+        genres: [],
+        images: [],
         episodes: payload.episodes,
+        episodeFiles: payload.episodeFiles || [],
       };
     }
 
@@ -218,17 +278,75 @@ export class ServarrParser implements IBuiltinParser {
     };
   }
 
+  private extractAttachments(payload: ServarrPayload): NotificationAttachmentDto[] {
+    const attachments: NotificationAttachmentDto[] = [];
+
+    // Extract image from series
+    if (payload.series && payload.series.images && payload.series.images.length > 0) {
+      // First try to find a banner image
+      let selectedImage = payload.series.images.find(img => img.coverType === 'banner');
+      
+      // If no banner found, use the first available image
+      if (!selectedImage) {
+        selectedImage = payload.series.images[0];
+      }
+
+      if (selectedImage) {
+        // Always use remoteUrl if available, otherwise fall back to url
+        let imageUrl = selectedImage.remoteUrl || selectedImage.url;
+        
+        // If still a relative URL and we have applicationUrl, make it absolute
+        if (imageUrl && imageUrl.startsWith('/') && payload.applicationUrl) {
+          const baseUrl = payload.applicationUrl.replace(/\/$/, '');
+          imageUrl = `${baseUrl}${imageUrl}`;
+        }
+
+        if (imageUrl) {
+          const imageType = selectedImage.coverType === 'banner' ? 'Banner' : 
+                           selectedImage.coverType === 'poster' ? 'Poster' :
+                           selectedImage.coverType === 'fanart' ? 'Fanart' : 'Image';
+          
+          attachments.push({
+            url: imageUrl,
+            mediaType: MediaType.IMAGE,
+            name: `${payload.series.title} ${imageType}`,
+            saveOnServer: false,
+          });
+        }
+      }
+    }
+
+    return attachments;
+  }
+
   private getNotificationTitle(eventType: string, mediaInfo: any, instanceName: string): string {
     const eventName = this.capitalizeFirst(eventType);
     let mediaTitle = mediaInfo.title || 'Unknown';
     
-    // Handle episodes-only payloads
-    if (mediaInfo.episodes && mediaInfo.episodes.length > 0 && mediaTitle === 'Unknown Series') {
+    // For series with episodes, create a more comprehensive title
+    if (mediaInfo.type === 'series' && mediaInfo.episodes && mediaInfo.episodes.length > 0) {
       const episode = mediaInfo.episodes[0];
-      if (episode.title) {
-        mediaTitle = episode.title;
-      } else if (episode.seasonNumber && episode.episodeNumber) {
-        mediaTitle = `S${episode.seasonNumber}E${episode.episodeNumber}`;
+      const seriesTitle = mediaInfo.title !== 'Unknown Series' ? mediaInfo.title : null;
+      
+      if (episode.seasonNumber && episode.episodeNumber) {
+        const episodeCode = `S${String(episode.seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`;
+        if (episode.title && seriesTitle) {
+          mediaTitle = `${seriesTitle} ${episodeCode} - ${episode.title}`;
+        } else if (episode.title && !seriesTitle) {
+          // If no series title, just use episode title
+          mediaTitle = episode.title;
+        } else if (seriesTitle) {
+          mediaTitle = `${seriesTitle} ${episodeCode}`;
+        } else {
+          // No series title, just episode code
+          mediaTitle = episodeCode;
+        }
+      } else if (episode.title) {
+        if (seriesTitle) {
+          mediaTitle = `${seriesTitle} - ${episode.title}`;
+        } else {
+          mediaTitle = episode.title;
+        }
       }
     }
     
@@ -262,11 +380,30 @@ export class ServarrParser implements IBuiltinParser {
     // Add episode information if available
     if (mediaInfo.episodes && mediaInfo.episodes.length > 0) {
       const episode = mediaInfo.episodes[0];
-      if (episode.title) {
-        message += `\nEpisode: ${episode.title}`;
-      }
+      
+      // Add season and episode numbers
       if (episode.seasonNumber && episode.episodeNumber) {
-        message += `\nSeason ${episode.seasonNumber}, Episode ${episode.episodeNumber}`;
+        message += `\nSeason: ${episode.seasonNumber}`;
+        message += `\nEpisode: ${episode.episodeNumber}`;
+      }
+      
+      // Add episode title
+      if (episode.title) {
+        message += `\nTitle: ${episode.title}`;
+      }
+      
+      // Add episode overview if available
+      if (episode.overview && episode.overview.length > 0) {
+        // Truncate overview if too long
+        const overview = episode.overview.length > 200 
+          ? `${episode.overview.substring(0, 200)}...` 
+          : episode.overview;
+        message += `\nOverview: ${overview}`;
+      }
+      
+      // Add air date if available
+      if (episode.airDate) {
+        message += `\nAir Date: ${episode.airDate}`;
       }
     }
 
@@ -290,6 +427,29 @@ export class ServarrParser implements IBuiltinParser {
     // Add folder path for import events
     if (eventType === 'imported' && mediaInfo.folderPath) {
       message += `\nPath: ${mediaInfo.folderPath}`;
+    }
+
+    // Add episode file information if available
+    if (mediaInfo.episodeFiles && mediaInfo.episodeFiles.length > 0) {
+      const episodeFile = mediaInfo.episodeFiles[0];
+      if (episodeFile.quality && !releaseInfo.quality) {
+        message += `\nQuality: ${episodeFile.quality}`;
+      }
+      if (episodeFile.releaseGroup && !releaseInfo.releaseGroup) {
+        message += `\nGroup: ${episodeFile.releaseGroup}`;
+      }
+      if (episodeFile.size) {
+        message += `\nSize: ${this.formatFileSize(episodeFile.size)}`;
+      }
+      if (episodeFile.languages && episodeFile.languages.length > 0) {
+        const languages = episodeFile.languages.map(lang => lang.name).join(', ');
+        message += `\nLanguages: ${languages}`;
+      }
+    }
+
+    // Add genres if available
+    if (mediaInfo.genres && mediaInfo.genres.length > 0) {
+      message += `\nGenres: ${mediaInfo.genres.join(', ')}`;
     }
 
     // Add tags if available

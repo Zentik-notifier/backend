@@ -323,8 +323,9 @@ describe('ServarrParser', () => {
 
       expect(result.title).toBe('Test: Test title');
       expect(result.subtitle).toBe('TV Show via Sonarr');
-      expect(result.body).toContain('Episode: Test title');
-      expect(result.body).toContain('Season 1, Episode 1');
+      expect(result.body).toContain('Season: 1');
+      expect(result.body).toContain('Episode: 1');
+      expect(result.body).toContain('Title: Test title');
       expect(result.body).toContain('Instance: Sonarr');
     });
 
@@ -347,9 +348,10 @@ describe('ServarrParser', () => {
 
       const result = parser.parse(payload);
 
-      expect(result.title).toBe('Download: S2E5');
+      expect(result.title).toBe('Download: S02E05');
       expect(result.subtitle).toBe('TV Show via Sonarr');
-      expect(result.body).toContain('Season 2, Episode 5');
+      expect(result.body).toContain('Season: 2');
+      expect(result.body).toContain('Episode: 5');
     });
 
     it('should handle unknown event types with fallback', () => {
