@@ -459,4 +459,30 @@ describe('BucketsService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
   });
+
+  describe('setBucketSnoozeMinutes', () => {
+    it('should set bucket snooze for specified minutes from now', async () => {
+      const mockUserBucket = {
+        id: 'ub-1',
+        bucketId: 'bucket-1',
+        userId: 'user-1',
+        snoozeUntil: null,
+      } as any;
+
+      jest.spyOn(service, 'findOrCreateUserBucket').mockResolvedValue(mockUserBucket);
+      jest.spyOn(userBucketRepository, 'save').mockResolvedValue(mockUserBucket);
+
+      const result = await service.setBucketSnoozeMinutes('bucket-1', 'user-1', 60);
+
+      expect(service.findOrCreateUserBucket).toHaveBeenCalledWith('bucket-1', 'user-1');
+      expect(userBucketRepository.save).toHaveBeenCalledWith(mockUserBucket);
+      expect(result).toBe(mockUserBucket);
+      
+      // Check that snoozeUntil was set to approximately 60 minutes from now
+      const expectedTime = new Date();
+      expectedTime.setMinutes(expectedTime.getMinutes() + 60);
+      const timeDiff = Math.abs(mockUserBucket.snoozeUntil.getTime() - expectedTime.getTime());
+      expect(timeDiff).toBeLessThan(5000); // Within 5 seconds tolerance
+    });
+  });
 });

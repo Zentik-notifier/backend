@@ -3472,6 +3472,52 @@
         ]
       }
     },
+    "/api/v1/buckets/{id}/snooze-minutes": {
+      "post": {
+        "description": "Snooze bucket for specified number of minutes from current time",
+        "operationId": "BucketsController_setBucketSnoozeMinutes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetBucketSnoozeMinutesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bucket snooze updated successfully"
+          },
+          "201": {
+            "description": "Bucket snooze created successfully"
+          },
+          "400": {
+            "description": "Invalid minutes value"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set bucket snooze using minutes from now",
+        "tags": [
+          "Buckets"
+        ]
+      }
+    },
     "/api/v1/attachments/upload": {
       "post": {
         "operationId": "AttachmentsController_uploadAttachment",
@@ -6110,6 +6156,20 @@
             "description": "ISO date until which notifications are snoozed. Null to clear snooze."
           }
         }
+      },
+      "SetBucketSnoozeMinutesDto": {
+        "type": "object",
+        "properties": {
+          "minutes": {
+            "type": "number",
+            "example": 60,
+            "description": "Number of minutes to snooze the bucket from now",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "minutes"
+        ]
       },
       "UploadAttachmentDto": {
         "type": "object",

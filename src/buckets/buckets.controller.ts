@@ -20,6 +20,7 @@ import { Bucket } from '../entities/bucket.entity';
 import { BucketsService } from './buckets.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsPositive } from 'class-validator';
 
 class SetBucketSnoozeDto {
   @ApiProperty({
@@ -30,6 +31,18 @@ class SetBucketSnoozeDto {
     description: 'ISO date until which notifications are snoozed. Null to clear snooze.',
   })
   snoozeUntil?: string | null;
+}
+
+class SetBucketSnoozeMinutesDto {
+  @ApiProperty({
+    type: Number,
+    example: 60,
+    description: 'Number of minutes to snooze the bucket from now',
+    minimum: 1,
+  })
+  @IsNumber()
+  @IsPositive()
+  minutes: number;
 }
 
 @UseGuards(JwtOrAccessTokenGuard)
@@ -148,6 +161,31 @@ export class BucketsController {
     @GetUser('id') userId: string,
   ) {
     return this.bucketsService.setBucketSnooze(bucketId, userId, body?.snoozeUntil ?? null);
+  }
+
+  @Post(':id/snooze-minutes')
+  @ApiOperation({
+    summary: 'Set bucket snooze using minutes from now',
+    description: 'Snooze bucket for specified number of minutes from current time',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bucket snooze updated successfully',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Bucket snooze created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid minutes value',
+  })
+  setBucketSnoozeMinutes(
+    @Param('id') bucketId: string,
+    @Body() body: SetBucketSnoozeMinutesDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, body.minutes);
   }
 
 }

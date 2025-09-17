@@ -11,7 +11,7 @@ import {
 import { ResourceType } from 'src/auth/dto/auth.dto';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
 import { BucketsService } from '../../buckets/buckets.service';
-import { CreateBucketDto, UpdateBucketDto, SnoozeScheduleInput } from '../../buckets/dto';
+import { CreateBucketDto, UpdateBucketDto, SnoozeScheduleInput, SetBucketSnoozeMinutesInput } from '../../buckets/dto';
 import { Bucket } from '../../entities/bucket.entity';
 import { EntityPermission } from '../../entities/entity-permission.entity';
 import { UserBucket } from '../../entities/user-bucket.entity';
@@ -294,6 +294,15 @@ export class BucketsResolver {
     @CurrentUser('id') userId: string,
   ) {
     return this.bucketsService.updateBucketSnoozes(bucketId, userId, snoozes);
+  }
+
+  @Mutation(() => UserBucket)
+  async setBucketSnoozeMinutes(
+    @Args('bucketId', { type: () => String }) bucketId: string,
+    @Args('input') input: SetBucketSnoozeMinutesInput,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, input.minutes);
   }
 
   @Query(() => Boolean, { name: 'isBucketSnoozed', deprecationReason: 'Usa field Bucket.isSnoozed' })

@@ -286,6 +286,20 @@ export class BucketsService {
     return this.userBucketRepository.save(userBucket);
   }
 
+  async setBucketSnoozeMinutes(
+    bucketId: string,
+    userId: string,
+    minutes: number,
+  ): Promise<UserBucket | null> {
+    // Calculate snooze until date (now + minutes)
+    const snoozeUntil = new Date();
+    snoozeUntil.setMinutes(snoozeUntil.getMinutes() + minutes);
+    
+    const userBucket = await this.findOrCreateUserBucket(bucketId, userId);
+    userBucket.snoozeUntil = snoozeUntil;
+    return this.userBucketRepository.save(userBucket);
+  }
+
   async updateBucketSnoozes(
     bucketId: string,
     userId: string,

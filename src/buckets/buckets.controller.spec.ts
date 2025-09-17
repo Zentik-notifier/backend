@@ -33,6 +33,7 @@ describe('BucketsController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     getNotificationsCount: jest.fn(),
+    setBucketSnoozeMinutes: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -325,6 +326,31 @@ describe('BucketsController', () => {
       expect(bucketsService.getNotificationsCount).toHaveBeenCalledWith(
         'bucket-1',
         'user-2',
+      );
+    });
+  });
+
+  describe('setBucketSnoozeMinutes', () => {
+    it('should set bucket snooze for specified minutes', async () => {
+      const mockUserBucket = {
+        id: 'ub-1',
+        bucketId: 'bucket-1',
+        userId: 'user-1',
+      } as any;
+
+      mockBucketsService.setBucketSnoozeMinutes.mockResolvedValue(mockUserBucket);
+
+      const result = await controller.setBucketSnoozeMinutes(
+        'bucket-1',
+        { minutes: 30 },
+        'user-1'
+      );
+
+      expect(result).toBe(mockUserBucket);
+      expect(bucketsService.setBucketSnoozeMinutes).toHaveBeenCalledWith(
+        'bucket-1',
+        'user-1',
+        30
       );
     });
   });

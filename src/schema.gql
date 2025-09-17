@@ -388,6 +388,7 @@ type Mutation {
   revokeSession(sessionId: String!): Boolean!
   revokeSystemToken(id: String!): Boolean!
   setBucketSnooze(bucketId: String!, snoozeUntil: String): UserBucket! @deprecated(reason: "Usa Bucket.setBucketSnooze (questo sarà rimosso)")
+  setBucketSnoozeMinutes(bucketId: String!, input: SetBucketSnoozeMinutesInput!): UserBucket!
   setPassword(input: ChangePasswordInput!): Boolean!
   shareBucket(input: GrantEntityPermissionInput!): EntityPermission!
   toggleOAuthProvider(id: String!): OAuthProvider!
@@ -670,6 +671,10 @@ type SessionInfoDto {
   location: String
   loginProvider: String
   operatingSystem: String
+}
+
+input SetBucketSnoozeMinutesInput {
+  minutes: Float!
 }
 
 type SnoozeSchedule {
