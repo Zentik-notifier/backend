@@ -48,4 +48,13 @@ export class WebhooksResolver {
   ): Promise<boolean> {
     return this.webhooksService.deleteWebhook(id, userId);
   }
+
+  @Mutation(() => Boolean)
+  async executeWebhook(
+    @Args('id', { type: () => ID }) id: string,
+    @GetUser('id') userId: string,
+  ): Promise<boolean> {
+    await this.webhooksService.executeWebhook(id, userId);
+    return true;
+  }
 }

@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,6 +13,8 @@ import { CreateWebhookDto, UpdateWebhookDto } from './dto';
 
 @Injectable()
 export class WebhooksService {
+  private readonly logger = new Logger(WebhooksService.name);
+
   constructor(
     @InjectRepository(UserWebhook)
     private readonly webhookRepository: Repository<UserWebhook>,
@@ -182,11 +185,68 @@ export class WebhooksService {
     return true;
   }
 
-  async executeWebhook(webhook: UserWebhook, payload: any): Promise<void> {
-    // TODO: Implement webhook execution logic
-    console.log(`Executing webhook ${webhook.name} to ${webhook.url}`, payload);
+  async executeWebhook(webhookId: string, userId: string): Promise<void> {
+    // Fetch the webhook entity from database
+    const webhook = await this.getWebhookById(webhookId, userId);
+    
+    this.logger.log(`Executing webhook ${webhook.name} to ${webhook.url}`);
 
-    // Basic HTTP client implementation would go here
-    // For now, just log the webhook execution
+    try {
+      // Prepare headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Zentik-Webhook/1.0',
+      };
+
+      // Add custom headers from webhook configuration
+      if (webhook.headers && webhook.headers.length > 0) {
+        webhook.headers.forEach((header) => {
+          headers[header.key] = header.value;
+        });
+      }
+
+      // Prepare request options
+      const requestOptions: RequestInit = {
+        method: webhook.method,
+        headers,
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      };
+
+      // Add body for POST, PUT, PATCH requests
+      if (['POST', 'PUT', 'PATCH'].includes(webhook.method)) {
+        if (webhook.body) {
+          // Use webhook's configured body with timestamp
+          const requestBody = {
+            ...webhook.body,
+            timestamp: new Date().toISOString(),
+          };
+          requestOptions.body = JSON.stringify(requestBody);
+        } else {
+          // Default: send minimal payload with timestamp
+          requestOptions.body = JSON.stringify({
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+
+      // Execute the webhook
+      const response = await fetch(webhook.url, requestOptions);
+
+      if (response.ok) {
+        this.logger.log(`Webhook ${webhook.name} executed successfully. Status: ${response.status}`);
+      } else {
+        const errorText = await response.text();
+        this.logger.error(
+          `Webhook ${webhook.name} failed. Status: ${response.status}, Response: ${errorText}`
+        );
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        this.logger.error(`Webhook ${webhook.name} timed out after 30 seconds`);
+      } else {
+        this.logger.error(`Webhook ${webhook.name} execution failed:`, error.message);
+      }
+      // Don't throw the error to prevent breaking the notification flow
+    }
   }
 }

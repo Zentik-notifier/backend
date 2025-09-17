@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -44,5 +44,22 @@ export class WebhooksController {
     @GetUser('id') userId: string,
   ): Promise<UserWebhook> {
     return this.webhooksService.getWebhookById(id, userId);
+  }
+
+  @Post(':id/execute')
+  @ApiOperation({ summary: 'Execute webhook by ID' })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Webhook executed successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Webhook not found' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  async executeWebhook(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.webhooksService.executeWebhook(id, userId);
+    return { success: true, message: 'Webhook executed successfully' };
   }
 }

@@ -3972,6 +3972,42 @@
           "Webhooks"
         ]
       }
+    },
+    "/api/v1/webhooks/{id}/execute": {
+      "post": {
+        "operationId": "WebhooksController_executeWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook executed successfully"
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Webhook not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Execute webhook by ID",
+        "tags": [
+          "Webhooks"
+        ]
+      }
     }
   },
   "info": {
