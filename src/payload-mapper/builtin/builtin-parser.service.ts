@@ -24,7 +24,7 @@ export class BuiltinParserService {
     // Register parsers by type
     this.parsers.set(PayloadMapperBuiltInType.ZentikAuthentik, this.authentikParser);
     this.parsers.set(PayloadMapperBuiltInType.ZentikServarr, this.servarrParser);
-    
+
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
     this.parsersByName.set('Authentik', this.authentikParser);
@@ -38,13 +38,13 @@ export class BuiltinParserService {
   getParser(parserName: string): IBuiltinParser {
     // First try by exact name
     let parser = this.parsersByName.get(parserName);
-    
+
     if (!parser) {
       // Then try by enum type
       const builtInType = Object.values(PayloadMapperBuiltInType).find(
         type => type.toLowerCase() === parserName.toLowerCase()
       );
-      
+
       if (builtInType) {
         parser = this.parsers.get(builtInType);
       }
@@ -73,9 +73,9 @@ export class BuiltinParserService {
    */
   transformPayload(parserName: string, payload: any): CreateMessageDto {
     const parser = this.getParser(parserName);
-    
+
     if (!parser.validate(payload)) {
-      throw new Error(`Invalid payload for parser ${parserName}`);
+      throw new Error(`Invalid payload for parser ${parserName}: ${JSON.stringify(payload)}`);
     }
 
     return parser.parse(payload);
