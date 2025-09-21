@@ -117,6 +117,11 @@ export class IOSPushService {
       payload.tapAction = message.tapAction;
     }
 
+    // Resolve bucket display fields for Communication Notifications (iOS)
+    const bucketName: string | undefined = notification?.message?.bucket?.name;
+    const bucketColor: string | undefined = notification?.message?.bucket?.color || undefined;
+    const bucketIconUrl: string | undefined = notification?.message?.bucket?.icon || undefined;
+
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
     if (device && device.publicKey) {
       const alert: any = payload.aps?.alert || {};
@@ -126,6 +131,9 @@ export class IOSPushService {
         subtitle: alert?.subtitle ?? message.subtitle,
         notificationId: notification.id,
         bucketId: message.bucketId,
+        bucketName,
+        bucketIconUrl,
+        bucketColor,
         actions: allActions,
         attachmentData: message.attachments,
         tapAction: message.tapAction,
@@ -148,6 +156,9 @@ export class IOSPushService {
       // No encryption path: include essential fields directly to ensure NSE/CE can access them
       payload.notificationId = notification.id;
       payload.bucketId = message.bucketId;
+      if (bucketName) payload.bucketName = bucketName;
+      if (bucketIconUrl) payload.bucketIconUrl = bucketIconUrl;
+      if (bucketColor) payload.bucketColor = bucketColor;
       if (allActions && allActions.length > 0) {
         payload.actions = allActions;
       }

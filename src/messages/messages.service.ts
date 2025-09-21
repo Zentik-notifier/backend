@@ -186,7 +186,7 @@ export class MessagesService {
         if (lang?.valueText) {
           createMessageDto.locale = lang.valueText as any;
         }
-      } catch {}
+      } catch { }
     }
 
     // Process userIds - convert usernames to user IDs if needed
@@ -241,36 +241,36 @@ export class MessagesService {
     // Add bucket icon as attachment when:
     // - there is at least one attachment (always), OR
     // - there are no attachments AND the user feature AddIconOnNoMedias is enabled
-    if (bucket.icon && bucket.icon.startsWith('http')) {
-      let shouldAddIcon = false;
+    // if (bucket.icon && bucket.icon.startsWith('http')) {
+    //   let shouldAddIcon = false;
 
-      if (processedAttachments.length > 0) {
-        // Always add icon when there is at least one other attachment
-        shouldAddIcon = true;
-      } else {
-        // No attachments -> check user feature flag
-        try {
-          const addIconSetting = await this.usersService.getUserSetting(
-            requesterId,
-            UserSettingType.AddIconOnNoMedias,
-            null,
-          );
-          shouldAddIcon = addIconSetting?.valueBool === true;
-        } catch (e) {
-          this.logger.warn('Failed to read user settings for auto icon, skipping flag check');
-        }
-      }
+    //   if (processedAttachments.length > 0) {
+    //     // Always add icon when there is at least one other attachment
+    //     shouldAddIcon = true;
+    //   } else {
+    //     // No attachments -> check user feature flag
+    //     try {
+    //       const addIconSetting = await this.usersService.getUserSetting(
+    //         requesterId,
+    //         UserSettingType.AddIconOnNoMedias,
+    //         null,
+    //       );
+    //       shouldAddIcon = addIconSetting?.valueBool === true;
+    //     } catch (e) {
+    //       this.logger.warn('Failed to read user settings for auto icon, skipping flag check');
+    //     }
+    //   }
 
-      if (shouldAddIcon) {
-        const bucketIconAttachment = await this.addBucketIconAttachment(
-          bucket,
-          processedAttachments,
-        );
-        if (bucketIconAttachment) {
-          processedAttachments.push(bucketIconAttachment);
-        }
-      }
-    }
+    //   if (shouldAddIcon) {
+    //     const bucketIconAttachment = await this.addBucketIconAttachment(
+    //       bucket,
+    //       processedAttachments,
+    //     );
+    //     if (bucketIconAttachment) {
+    //       processedAttachments.push(bucketIconAttachment);
+    //     }
+    //   }
+    // }
 
     const message = this.messagesRepository.create({
       ...createMessageDto,
