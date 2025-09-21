@@ -27,48 +27,36 @@ describe('RailwayParser', () => {
   describe('validate', () => {
     it('should validate correct Railway webhook payload', () => {
       const payload: RailwayWebhookPayload = {
-        message: "",
-        attributes: {
-          deployment: {
-            creator: {
-              avatar: "https://avatars.githubusercontent.com/u/23080650?v=4",
-              id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
-              name: "Test User"
-            },
-            id: "39380b1e-40a3-4c41-b1ea-3972f5406945",
-            meta: {
-              buildOnly: false,
-              reason: "deploy",
-              runtime: "V2"
-            }
-          },
-          environment: {
-            id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
-            name: "production"
-          },
-          level: "info",
-          project: {
-            createdAt: "2025-08-25T22:37:27.337Z",
-            description: "Test project description",
-            id: "a418f086-cacf-432f-b209-334e17397ae2",
-            name: "Zentik notifier"
-          },
-          service: {
-            id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
-            name: "Docs"
-          },
-          status: "BUILDING",
-          timestamp: "2025-09-21T08:36:24.208Z",
-          type: "DEPLOY"
+        type: "DEPLOY",
+        project: {
+          id: "a418f086-cacf-432f-b209-334e17397ae2",
+          name: "Zentik notifier",
+          description: "Test project",
+          createdAt: "2025-08-25T22:37:27.337Z"
         },
-        tags: {
-          project: "a418f086-cacf-432f-b209-334e17397ae2",
-          environment: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
-          service: "8fa5bf4d-573c-4814-8050-d04b17c508de",
-          deployment: "55a277c4-0e2a-417e-9a73-0f798f4fe59c",
-          replica: "bcac40cf-bf74-4b0f-86f7-dcf28d1210a7"
+        service: {
+          id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          name: "Docs"
         },
-        timestamp: "2025-09-21T08:36:31.152703801Z"
+        environment: {
+          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          name: "production"
+        },
+        status: "BUILDING",
+        timestamp: "2025-09-21T08:36:24.208Z",
+        deployment: {
+          id: "39380b1e-40a3-4c41-b1ea-3972f5406945",
+          creator: {
+            id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
+            name: "Test User",
+            avatar: "https://avatars.githubusercontent.com/u/23080650?v=4"
+          },
+          meta: {
+            buildOnly: false,
+            reason: "deploy",
+            runtime: "V2"
+          }
+        }
       };
 
       expect(parser.validate(payload)).toBe(true);
@@ -78,93 +66,142 @@ describe('RailwayParser', () => {
       expect(parser.validate(null)).toBe(false);
       expect(parser.validate(undefined)).toBe(false);
       expect(parser.validate({})).toBe(false);
-      expect(parser.validate({ attributes: {} })).toBe(false);
+      expect(parser.validate({ type: 'DEPLOY' })).toBe(false);
       expect(parser.validate({ 
-        attributes: { 
-          type: 'DEPLOY', 
-          timestamp: '2025-02-01T00:00:00.000Z' 
-        } 
+        type: 'DEPLOY', 
+        status: 'BUILDING' 
       })).toBe(false);
     });
 
     it('should validate minimal valid payload', () => {
       const minimalPayload = {
-        message: "",
-        attributes: {
-          environment: {
-            id: "env_test",
-            name: "production"
-          },
-          level: "info",
-          project: {
-            createdAt: "2025-08-25T22:37:27.337Z",
-            id: "proj_test",
-            name: "test-project"
-          },
-          service: {
-            id: "service_test",
-            name: "test-service"
-          },
-          status: "BUILDING",
-          timestamp: "2025-09-21T08:36:24.208Z",
-          type: "DEPLOY"
+        type: "DEPLOY",
+        project: {
+          id: "proj_test",
+          name: "test-project",
+          createdAt: "2025-08-25T22:37:27.337Z"
         },
-        tags: {
-          project: "proj_test",
-          environment: "env_test",
-          service: "service_test"
+        environment: {
+          id: "env_test",
+          name: "production"
         },
-        timestamp: "2025-09-21T08:36:31.152703801Z"
+        timestamp: "2025-09-21T08:36:24.208Z"
       };
 
       expect(parser.validate(minimalPayload)).toBe(true);
+    });
+
+    it('should validate payload without service', () => {
+      const payloadWithoutService = {
+        type: "DEPLOY",
+        project: {
+          id: "proj_test",
+          name: "test-project",
+          createdAt: "2025-08-25T22:37:27.337Z"
+        },
+        environment: {
+          id: "env_test",
+          name: "production"
+        },
+        timestamp: "2025-09-21T08:36:24.208Z"
+      };
+
+      expect(parser.validate(payloadWithoutService)).toBe(true);
+    });
+
+    it('should validate payload without status', () => {
+      const payloadWithoutStatus = {
+        type: "DEPLOY",
+        project: {
+          id: "proj_test",
+          name: "test-project",
+          createdAt: "2025-08-25T22:37:27.337Z"
+        },
+        service: {
+          id: "service_test",
+          name: "test-service"
+        },
+        environment: {
+          id: "env_test",
+          name: "production"
+        },
+        timestamp: "2025-09-21T08:36:24.208Z"
+      };
+
+      expect(parser.validate(payloadWithoutStatus)).toBe(true);
+    });
+
+    it('should validate real Railway payload', () => {
+      const realPayload = {
+        "type": "DEPLOY",
+        "project": {
+          "id": "a418f086-cacf-432f-b209-334e17397ae2",
+          "name": "Zentik notifier",
+          "description": "",
+          "createdAt": "2025-08-25T22:37:27.337Z"
+        },
+        "deployment": {
+          "id": "c1019898-5716-49d9-be27-b027cfffd094",
+          "meta": {
+            "logsV2": true,
+            "reason": "deploy",
+            "runtime": "V2"
+          },
+          "creator": {
+            "id": "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
+            "name": null,
+            "avatar": "https://avatars.githubusercontent.com/u/23080650?v=4"
+          }
+        },
+        "environment": {
+          "id": "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          "name": "production"
+        },
+        "status": "BUILDING",
+        "timestamp": "2025-09-21T08:50:20.066Z",
+        "service": {
+          "id": "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          "name": "Docs"
+        }
+      };
+
+      expect(parser.validate(realPayload)).toBe(true);
     });
   });
 
   describe('parse', () => {
     it('should parse DEPLOY event correctly', () => {
       const payload: RailwayWebhookPayload = {
-        message: "",
-        attributes: {
-          deployment: {
-            creator: {
-              avatar: "https://avatars.githubusercontent.com/u/23080650?v=4",
-              id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
-              name: "Test User"
-            },
-            id: "deploy_12345",
-            meta: {
-              buildOnly: false,
-              reason: "deploy",
-              runtime: "V2"
-            }
-          },
-          environment: {
-            id: "env_67890",
-            name: "production"
-          },
-          level: "info",
-          project: {
-            createdAt: "2025-08-25T22:37:27.337Z",
-            description: "Test project description",
-            id: "proj_12345",
-            name: "Zentik notifier"
-          },
-          service: {
-            id: "service_12345",
-            name: "Backend"
-          },
-          status: "SUCCESS",
-          timestamp: "2025-09-21T08:36:24.208Z",
-          type: "DEPLOY"
+        type: "DEPLOY",
+        project: {
+          id: "a418f086-cacf-432f-b209-334e17397ae2",
+          name: "Zentik notifier",
+          description: "Test project",
+          createdAt: "2025-08-25T22:37:27.337Z"
         },
-        tags: {
-          project: "proj_12345",
-          environment: "env_67890",
-          service: "service_12345",
-          deployment: "deploy_12345"
+        service: {
+          id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          name: "Backend"
         },
-        timestamp: "2025-09-21T08:36:31.152703801Z"
+        environment: {
+          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          name: "production"
+        },
+        status: "SUCCESS",
+        timestamp: "2025-09-21T08:36:24.208Z",
+        deployment: {
+          id: "deploy_12345",
+          creator: {
+            id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
+            name: "Test User",
+            avatar: "https://avatars.githubusercontent.com/u/23080650?v=4"
+          },
+          meta: {
+            buildOnly: false,
+            reason: "deploy",
+            runtime: "V2"
+          }
+        }
       };
 
       const result = parser.parse(payload);
@@ -183,32 +220,22 @@ describe('RailwayParser', () => {
 
     it('should parse payload without deployment creator', () => {
       const payload: RailwayWebhookPayload = {
-        message: "",
-        attributes: {
-          environment: {
-            id: "env_67890",
-            name: "staging"
-          },
-          level: "info",
-          project: {
-            createdAt: "2025-08-25T22:37:27.337Z",
-            id: "proj_12345",
-            name: "Test App"
-          },
-          service: {
-            id: "service_12345",
-            name: "Frontend"
-          },
-          status: "BUILDING",
-          timestamp: "2025-09-21T08:36:24.208Z",
-          type: "DEPLOY"
+        type: "DEPLOY",
+        project: {
+          id: "a418f086-cacf-432f-b209-334e17397ae2",
+          name: "Test App",
+          createdAt: "2025-08-25T22:37:27.337Z"
         },
-        tags: {
-          project: "proj_12345",
-          environment: "env_67890",
-          service: "service_12345"
+        service: {
+          id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          name: "Frontend"
         },
-        timestamp: "2025-09-21T08:36:31.152703801Z"
+        environment: {
+          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          name: "staging"
+        },
+        status: "BUILDING",
+        timestamp: "2025-09-21T08:36:24.208Z"
       };
 
       const result = parser.parse(payload);
@@ -225,32 +252,22 @@ describe('RailwayParser', () => {
 
     it('should set CRITICAL priority for failed deployments', () => {
       const payload: RailwayWebhookPayload = {
-        message: "",
-        attributes: {
-          environment: {
-            id: "env_67890",
-            name: "production"
-          },
-          level: "error",
-          project: {
-            createdAt: "2025-08-25T22:37:27.337Z",
-            id: "proj_12345",
-            name: "Test App"
-          },
-          service: {
-            id: "service_12345",
-            name: "Backend"
-          },
-          status: "FAILED",
-          timestamp: "2025-09-21T08:36:24.208Z",
-          type: "DEPLOY"
+        type: "DEPLOY",
+        project: {
+          id: "a418f086-cacf-432f-b209-334e17397ae2",
+          name: "Test App",
+          createdAt: "2025-08-25T22:37:27.337Z"
         },
-        tags: {
-          project: "proj_12345",
-          environment: "env_67890",
-          service: "service_12345"
+        service: {
+          id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          name: "Backend"
         },
-        timestamp: "2025-09-21T08:36:31.152703801Z"
+        environment: {
+          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          name: "production"
+        },
+        status: "FAILED",
+        timestamp: "2025-09-21T08:36:24.208Z"
       };
 
       const result = parser.parse(payload);
@@ -258,6 +275,107 @@ describe('RailwayParser', () => {
       expect(result.title).toBe('Test App - Backend');
       expect(result.subtitle).toBe('DEPLOY - FAILED');
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
+    });
+
+    it('should parse payload without service name', () => {
+      const payload: RailwayWebhookPayload = {
+        type: "DEPLOY",
+        project: {
+          id: "a418f086-cacf-432f-b209-334e17397ae2",
+          name: "Test App",
+          createdAt: "2025-08-25T22:37:27.337Z"
+        },
+        environment: {
+          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          name: "production"
+        },
+        status: "SUCCESS",
+        timestamp: "2025-09-21T08:36:24.208Z"
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('Test App');
+      expect(result.subtitle).toBe('DEPLOY - SUCCESS');
+      expect(result.body).toContain('Project: Test App');
+      expect(result.body).not.toContain('Service:');
+      expect(result.body).toContain('Environment: production');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should parse payload without status', () => {
+      const payload: RailwayWebhookPayload = {
+        type: "DEPLOY",
+        project: {
+          id: "a418f086-cacf-432f-b209-334e17397ae2",
+          name: "Test App",
+          createdAt: "2025-08-25T22:37:27.337Z"
+        },
+        service: {
+          id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          name: "Backend"
+        },
+        environment: {
+          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          name: "production"
+        },
+        timestamp: "2025-09-21T08:36:24.208Z"
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('Test App - Backend');
+      expect(result.subtitle).toBe('DEPLOY');
+      expect(result.body).toContain('Project: Test App');
+      expect(result.body).toContain('Service: Backend');
+      expect(result.body).toContain('Environment: production');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should parse real Railway payload', () => {
+      const realPayload = {
+        "type": "DEPLOY",
+        "project": {
+          "id": "a418f086-cacf-432f-b209-334e17397ae2",
+          "name": "Zentik notifier",
+          "description": "",
+          "createdAt": "2025-08-25T22:37:27.337Z"
+        },
+        "deployment": {
+          "id": "c1019898-5716-49d9-be27-b027cfffd094",
+          "meta": {
+            "logsV2": true,
+            "reason": "deploy",
+            "runtime": "V2"
+          },
+          "creator": {
+            "id": "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
+            "name": null,
+            "avatar": "https://avatars.githubusercontent.com/u/23080650?v=4"
+          }
+        },
+        "environment": {
+          "id": "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          "name": "production"
+        },
+        "status": "BUILDING",
+        "timestamp": "2025-09-21T08:50:20.066Z",
+        "service": {
+          "id": "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          "name": "Docs"
+        }
+      };
+
+      const result = parser.parse(realPayload as any);
+
+      expect(result.title).toBe('Zentik notifier - Docs');
+      expect(result.subtitle).toBe('DEPLOY - BUILDING');
+      expect(result.body).toContain('Project: Zentik notifier');
+      expect(result.body).toContain('Service: Docs');
+      expect(result.body).toContain('Environment: production');
+      expect(result.body).toContain('Deployment ID: c1019898-5716-49d9-be27-b027cfffd094');
+      expect(result.body).not.toContain('Started by:'); // creator.name is null
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
     it('should handle errors gracefully', () => {
@@ -278,11 +396,11 @@ describe('RailwayParser', () => {
       const testPayload = parser.getTestPayload();
 
       expect(parser.validate(testPayload)).toBe(true);
-      expect(testPayload.attributes.type).toBe('DEPLOY');
-      expect(testPayload.attributes.project.name).toBe('Zentik notifier');
-      expect(testPayload.attributes.environment.name).toBe('production');
-      expect(testPayload.attributes.service.name).toBe('Docs');
-      expect(testPayload.attributes.deployment?.creator.name).toBe('Test User');
+      expect(testPayload.type).toBe('DEPLOY');
+      expect(testPayload.project.name).toBe('Zentik notifier');
+      expect(testPayload.environment.name).toBe('production');
+      expect(testPayload.service?.name).toBe('Docs');
+      expect(testPayload.deployment?.creator?.name).toBe('Test User');
     });
 
     it('should parse test payload successfully', () => {

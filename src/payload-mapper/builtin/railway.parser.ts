@@ -5,44 +5,32 @@ import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 
 export interface RailwayWebhookPayload {
-  message: string;
-  attributes: {
-    deployment?: {
-      creator: {
-        avatar?: string;
-        id: string;
-        name?: string;
-      };
-      id: string;
-      meta: Record<string, any>;
-    };
-    environment: {
-      id: string;
-      name: string;
-    };
-    level: string;
-    project: {
-      createdAt: string;
-      description?: string;
-      id: string;
-      name: string;
-    };
-    service: {
-      id: string;
-      name: string;
-    };
-    status: string;
-    timestamp: string;
-    type: string;
+  type: string;
+  project: {
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
   };
-  tags: {
-    project: string;
-    environment: string;
-    service: string;
-    deployment?: string;
-    replica?: string;
+  service?: {
+    id: string;
+    name: string;
   };
+  environment: {
+    id: string;
+    name: string;
+  };
+  status?: string;
   timestamp: string;
+  deployment?: {
+    id: string;
+    creator?: {
+      id: string;
+      name?: string | null;
+      avatar?: string;
+    };
+    meta?: Record<string, any>;
+  };
 }
 
 @Injectable()
@@ -63,23 +51,8 @@ export class RailwayParser implements IBuiltinParser {
     return !!(
       payload &&
       typeof payload === 'object' &&
-      payload.attributes &&
-      typeof payload.attributes === 'object' &&
-      payload.attributes.type &&
-      payload.attributes.timestamp &&
-      payload.attributes.project &&
-      payload.attributes.environment &&
-      payload.attributes.service &&
-      payload.attributes.status &&
-      typeof payload.attributes.project === 'object' &&
-      typeof payload.attributes.environment === 'object' &&
-      typeof payload.attributes.service === 'object' &&
-      payload.attributes.project.id &&
-      payload.attributes.project.name &&
-      payload.attributes.environment.id &&
-      payload.attributes.environment.name &&
-      payload.attributes.service.id &&
-      payload.attributes.service.name
+      payload.type &&
+      payload.project?.name
     );
   }
 
@@ -93,27 +66,34 @@ export class RailwayParser implements IBuiltinParser {
   }
 
   private createMessage(payload: RailwayWebhookPayload): CreateMessageDto {
-    const { attributes } = payload;
-    const { project, service, environment, type, status, timestamp, deployment } = attributes;
-    
-    const title = `${project.name} - ${service.name}`;
-    const subtitle = `${type} - ${status}`;
-    
+    const { project, service, environment, type, status, timestamp, deployment } = payload;
+
+    const title = service?.name ? `${project.name} - ${service.name}` : project.name;
+    const subtitle = status ? `${type} - ${status}` : type;
+
     let body = `Project: ${project.name}\n`;
-    body += `Service: ${service.name}\n`;
-    body += `Environment: ${environment.name}\n`;
     
+    if (service?.name) {
+      body += `Service: ${service.name}\n`;
+    }
+
+    if (environment) {
+      body += `Environment: ${environment.name}\n`;
+    }
+
     if (deployment?.creator?.name) {
       body += `Started by: ${deployment.creator.name}\n`;
     }
-    
+
     if (deployment?.id) {
       body += `Deployment ID: ${deployment.id}\n`;
     }
-    
-    body += `Timestamp: ${new Date(timestamp).toLocaleString('it-IT')}`;
 
-    const deliveryType = this.getDeliveryType(type, status);
+    if (timestamp) {
+      body += `Timestamp: ${new Date(timestamp).toLocaleString('it-IT')}`;
+    }
+
+    const deliveryType = this.getDeliveryType(type, status || '');
 
     return {
       title,
@@ -125,10 +105,10 @@ export class RailwayParser implements IBuiltinParser {
   }
 
   private getDeliveryType(type: string, status: string): NotificationDeliveryType {
-    if (status.includes('FAILED') || status.includes('ERROR')) {
+    if (status && (status.includes('FAILED') || status.includes('ERROR'))) {
       return NotificationDeliveryType.CRITICAL;
     }
-    
+
     return NotificationDeliveryType.NORMAL;
   }
 
@@ -144,48 +124,36 @@ export class RailwayParser implements IBuiltinParser {
 
   getTestPayload(): RailwayWebhookPayload {
     return {
-      message: "",
-      attributes: {
-        deployment: {
-          creator: {
-            avatar: "https://avatars.githubusercontent.com/u/23080650?v=4",
-            id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
-            name: "Test User"
-          },
-          id: "39380b1e-40a3-4c41-b1ea-3972f5406945",
-          meta: {
-            buildOnly: false,
-            reason: "deploy",
-            runtime: "V2"
-          }
-        },
-        environment: {
-          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
-          name: "production"
-        },
-        level: "info",
-        project: {
-          createdAt: "2025-08-25T22:37:27.337Z",
-          description: "Test project description",
-          id: "a418f086-cacf-432f-b209-334e17397ae2",
-          name: "Zentik notifier"
-        },
-        service: {
-          id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
-          name: "Docs"
-        },
-        status: "BUILDING",
-        timestamp: "2025-09-21T08:36:24.208Z",
-        type: "DEPLOY"
+      type: "DEPLOY",
+      project: {
+        id: "a418f086-cacf-432f-b209-334e17397ae2",
+        name: "Zentik notifier",
+        description: "Test project description",
+        createdAt: "2025-08-25T22:37:27.337Z"
       },
-      tags: {
-        project: "a418f086-cacf-432f-b209-334e17397ae2",
-        environment: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
-        service: "8fa5bf4d-573c-4814-8050-d04b17c508de",
-        deployment: "55a277c4-0e2a-417e-9a73-0f798f4fe59c",
-        replica: "bcac40cf-bf74-4b0f-86f7-dcf28d1210a7"
+      service: {
+        id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
+        name: "Docs"
       },
-      timestamp: "2025-09-21T08:36:31.152703801Z"
+      environment: {
+        id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+        name: "production"
+      },
+      status: "BUILDING",
+      timestamp: "2025-09-21T08:36:24.208Z",
+      deployment: {
+        id: "39380b1e-40a3-4c41-b1ea-3972f5406945",
+        creator: {
+          id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
+          name: "Test User",
+          avatar: "https://avatars.githubusercontent.com/u/23080650?v=4"
+        },
+        meta: {
+          buildOnly: false,
+          reason: "deploy",
+          runtime: "V2"
+        }
+      }
     };
   }
 }
