@@ -43,6 +43,7 @@ export class RailwayParser implements IBuiltinParser {
   }
 
   validate(payload: any): boolean {
+    console.log(payload);
     return !!(
       payload &&
       typeof payload === 'object' &&
