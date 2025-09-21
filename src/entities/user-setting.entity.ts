@@ -16,6 +16,9 @@ export enum UserSettingType {
   Timezone = 'Timezone',
   Language = 'Language',
   UnencryptOnBigPayload = 'UnencryptOnBigPayload',
+  ExpoKey = 'ExpoKey',
+  HomeassistantUrl = 'HomeassistantUrl',
+  HomeassistantToken = 'HomeassistantToken',
 }
 
 registerEnumType(UserSettingType, { name: 'UserSettingType' });

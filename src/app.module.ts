@@ -23,6 +23,7 @@ import { PayloadMapperModule } from './payload-mapper/payload-mapper.module';
 import { SystemAccessTokenModule } from './system-access-token/system-access-token.module';
 import { UsersModule } from './users/users.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { DatabaseBackupModule } from './database-backup/database-backup.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     PayloadMapperModule,
     AttachmentsModule,
     EventsModule,
+    DatabaseBackupModule,
   ],
   controllers: [AppController],
   providers: [

@@ -894,6 +894,9 @@ type UserSetting {
 }
 
 enum UserSettingType {
+  ExpoKey
+  HomeassistantToken
+  HomeassistantUrl
   Language
   Timezone
   UnencryptOnBigPayload

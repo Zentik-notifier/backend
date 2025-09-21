@@ -5400,7 +5400,10 @@
             "enum": [
               "Timezone",
               "Language",
-              "UnencryptOnBigPayload"
+              "UnencryptOnBigPayload",
+              "ExpoKey",
+              "HomeassistantUrl",
+              "HomeassistantToken"
             ]
           },
           "valueText": {
@@ -5434,7 +5437,10 @@
             "enum": [
               "Timezone",
               "Language",
-              "UnencryptOnBigPayload"
+              "UnencryptOnBigPayload",
+              "ExpoKey",
+              "HomeassistantUrl",
+              "HomeassistantToken"
             ]
           },
           "valueText": {
