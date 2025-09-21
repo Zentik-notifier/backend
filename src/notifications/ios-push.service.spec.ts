@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { IOSPushService } from './ios-push.service';
 import { LocaleService } from '../common/services/locale.service';
+import { NotificationActionType } from './notifications.types';
 
 // Mock apn module
 jest.mock('apn', () => ({
@@ -236,6 +237,224 @@ describe('IOSPushService', () => {
         }),
         'test_device_token_123',
       );
+    });
+  });
+
+  describe('buildAPNsPayload', () => {
+    const mockNotification = {
+      id: 'notification-1',
+      message: {
+        id: 'message-1',
+        title: 'Test Message',
+        body: 'Test Body',
+        subtitle: 'Test Subtitle',
+        bucketId: 'bucket-1',
+        sound: 'default',
+        actions: [],
+        attachments: [
+          {
+            mediaType: 'IMAGE',
+            url: 'https://example.com/image.jpg',
+            name: 'image.jpg',
+          },
+          {
+            mediaType: 'ICON',
+            url: 'https://example.com/icon.png',
+            name: 'icon.png',
+          },
+        ],
+        bucket: {
+          id: 'bucket-1',
+          name: 'Test Bucket',
+          icon: 'https://example.com/bucket-icon.png',
+          color: '#FF0000',
+        },
+      },
+    };
+
+    const mockDevice = {
+      id: 'device-1',
+      deviceToken: 'device-token-123',
+      publicKey: JSON.stringify({
+        kty: 'RSA',
+        n: 'mock-n-value',
+        e: 'AQAB',
+      }),
+      badgeCount: 5,
+    };
+
+    const mockAutomaticActions = [
+      {
+        type: NotificationActionType.NAVIGATE,
+        value: 'open',
+        title: 'Open',
+      },
+    ];
+
+    it('should build APNs payload with bucket fields for encrypted device', async () => {
+      const result = await service.buildAPNsPayload(
+        mockNotification as any,
+        mockAutomaticActions,
+        mockDevice as any,
+      );
+
+      expect(result.payload).toMatchObject({
+        aps: {
+          alert: { title: 'Encrypted Notification' },
+          sound: 'default',
+          'mutable-content': 1,
+          'content-available': 1,
+          'thread-id': 'bucket-1',
+        },
+        enc: expect.any(String),
+      });
+
+      // Verify that bucket fields are included in encrypted payload
+      expect(result.payload.enc).toBeDefined();
+      expect(result.payload.bucketName).toBeUndefined(); // Should be encrypted
+      expect(result.payload.bucketIconUrl).toBeUndefined(); // Should be encrypted
+      expect(result.payload.bucketColor).toBeUndefined(); // Should be encrypted
+    });
+
+    it('should build APNs payload with bucket fields for non-encrypted device', async () => {
+      const nonEncryptedDevice = { ...mockDevice, publicKey: undefined };
+
+      const result = await service.buildAPNsPayload(
+        mockNotification as any,
+        mockAutomaticActions,
+        nonEncryptedDevice as any,
+      );
+
+      expect(result.payload).toMatchObject({
+        aps: {
+          alert: {
+            title: 'Test Message',
+            body: 'Test Body',
+            subtitle: 'Test Subtitle',
+          },
+          sound: 'default',
+          'mutable-content': 1,
+          'content-available': 1,
+          'thread-id': 'bucket-1',
+        },
+        notificationId: 'notification-1',
+        bucketId: 'bucket-1',
+        bucketName: 'Test Bucket',
+        bucketIconUrl: 'https://example.com/bucket-icon.png',
+        bucketColor: '#FF0000',
+      });
+
+      // Verify no encryption blob for non-encrypted device
+      expect(result.payload.enc).toBeUndefined();
+    });
+
+    it('should build APNs payload with Communication Notifications format when bucket fields present', async () => {
+      const result = await service.buildAPNsPayload(
+        mockNotification as any,
+        mockAutomaticActions,
+        mockDevice as any,
+      );
+
+      // For Communication Notifications with bucket fields, should use minimal alert
+      expect(result.payload.aps.alert).toEqual({
+        title: 'Encrypted Notification',
+      });
+      expect(result.payload.aps.alert.body).toBeUndefined();
+    });
+
+    it('should build APNs payload without Communication Notifications format when bucket fields missing', async () => {
+      const notificationWithoutBucket = {
+        ...mockNotification,
+        message: {
+          ...mockNotification.message,
+          bucketId: 'bucket-1',
+          bucket: null,
+        },
+      };
+
+      const result = await service.buildAPNsPayload(
+        notificationWithoutBucket as any,
+        mockAutomaticActions,
+        mockDevice as any,
+      );
+
+      // For regular notifications without bucket fields, should use full alert
+      expect(result.payload.aps.alert).toEqual({
+        title: 'Test Message',
+        body: 'Test Body',
+        subtitle: 'Test Subtitle',
+      });
+    });
+
+    it('should include attachmentData in payload (excluding ICON attachments)', async () => {
+      const result = await service.buildAPNsPayload(
+        mockNotification as any,
+        mockAutomaticActions,
+        undefined, // Non-encrypted
+      );
+
+      // Should include attachmentData but filter out ICON attachments
+      expect(result.payload.attachmentData).toEqual([
+        {
+          mediaType: 'IMAGE',
+          url: 'https://example.com/image.jpg',
+          name: 'image.jpg',
+        },
+        // ICON attachment should be filtered out
+      ]);
+    });
+
+    it('should handle missing bucket gracefully', async () => {
+      const notificationWithoutBucket = {
+        ...mockNotification,
+        message: {
+          ...mockNotification.message,
+          bucket: null,
+        },
+      };
+
+      const result = await service.buildAPNsPayload(
+        notificationWithoutBucket as any,
+        mockAutomaticActions,
+        undefined,
+      );
+
+      expect(result.payload).toMatchObject({
+        aps: {
+          alert: {
+            title: 'Test Message',
+            body: 'Test Body',
+            subtitle: 'Test Subtitle',
+          },
+        },
+        notificationId: 'notification-1',
+        bucketId: 'bucket-1',
+        // bucketName, bucketIconUrl, bucketColor should be undefined
+      });
+
+      expect(result.payload.bucketName).toBeUndefined();
+      expect(result.payload.bucketIconUrl).toBeUndefined();
+      expect(result.payload.bucketColor).toBeUndefined();
+    });
+
+    it('should include actions in payload', async () => {
+      const result = await service.buildAPNsPayload(
+        mockNotification as any,
+        mockAutomaticActions,
+        undefined,
+      );
+
+      expect(result.payload.actions).toEqual(mockAutomaticActions);
+    });
+
+    it('should handle priority correctly', async () => {
+      const result = await service.buildAPNsPayload(
+        mockNotification as any,
+        mockAutomaticActions,
+        undefined,
+      );
+
+      expect(result.customPayload.priority).toBe(10);
     });
   });
 });

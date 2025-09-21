@@ -135,7 +135,7 @@ export class IOSPushService {
         bucketIconUrl,
         bucketColor,
         actions: allActions,
-        attachmentData: message.attachments,
+        attachmentData: this.filterOutIconAttachments(message.attachments || []),
         tapAction: message.tapAction,
       };
 
@@ -163,7 +163,7 @@ export class IOSPushService {
         payload.actions = allActions;
       }
       if (message.attachments && (message.attachments as any[]).length > 0) {
-        payload.attachmentData = message.attachments;
+        payload.attachmentData = this.filterOutIconAttachments(message.attachments || []);
       }
     }
 
@@ -489,5 +489,19 @@ export class IOSPushService {
       this.provider.shutdown();
       this.logger.log('APNs provider shut down');
     }
+  }
+
+  /**
+   * Filters out ICON attachments from the attachments array
+   * Icons should not be included in notification attachments
+   */
+  private filterOutIconAttachments(attachments: any[]): any[] {
+    if (!attachments || !Array.isArray(attachments)) {
+      return [];
+    }
+    
+    return attachments.filter(attachment => 
+      attachment.mediaType?.toUpperCase() !== 'ICON'
+    );
   }
 }
