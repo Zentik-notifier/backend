@@ -8,25 +8,16 @@ import {
   Resolver,
   Subscription,
 } from '@nestjs/graphql';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
 import { Notification } from '../../entities/notification.entity';
-import { 
-  EventsPerUserDailyView,
-  EventsPerUserWeeklyView,
-  EventsPerUserMonthlyView,
-  EventsPerUserAllTimeView
-} from '../../entities/views/events-analytics.views';
 import { NotificationServiceInfo } from '../../notifications/dto';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { PushNotificationOrchestratorService } from '../../notifications/push-orchestrator.service';
-import { UsersService } from '../../users/users.service';
 import { EventsService } from '../../events/events.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { DeviceToken } from '../decorators/device-token.decorator';
 import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
-import { EventType } from 'src/entities';
+import { EventType } from '../../entities/event.entity';
 
 @ObjectType()
 export class MarkAllAsReadResult {
@@ -89,15 +80,7 @@ export class NotificationsResolver {
     private notificationsService: NotificationsService,
     private subscriptionService: GraphQLSubscriptionService,
     private eventsService: EventsService,
-    @InjectRepository(EventsPerUserDailyView)
-    private dailyViewRepository: Repository<EventsPerUserDailyView>,
-    @InjectRepository(EventsPerUserWeeklyView)
-    private weeklyViewRepository: Repository<EventsPerUserWeeklyView>,
-    @InjectRepository(EventsPerUserMonthlyView)
-    private monthlyViewRepository: Repository<EventsPerUserMonthlyView>,
-    @InjectRepository(EventsPerUserAllTimeView)
-    private allTimeViewRepository: Repository<EventsPerUserAllTimeView>,
-  ) {}
+  ) { }
 
   @Query(() => [Notification])
   async notifications(
@@ -362,79 +345,40 @@ export class NotificationsResolver {
     // Use provided userId or current user's id
     const targetUserId = userId || currentUserId;
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const thisWeek = new Date(now);
-    thisWeek.setDate(now.getDate() - now.getDay()); // Start of current week
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const today = startOfDay(now);
+    const thisWeek = startOfWeek(now, { weekStartsOn: 1 }); // Monday as start of week
+    const thisMonth = startOfMonth(now);
 
-    try {
-      // Try to get data from materialized views first
-      const [dailyStats, weeklyStats, monthlyStats, allTimeStats] = await Promise.all([
-        this.dailyViewRepository
-          .createQueryBuilder('view')
-          .where('view."userId" = :userId', { userId: targetUserId })
-          .andWhere('view."periodStart"::date = :today::date', { today: today.toISOString().split('T')[0] })
-          .getMany(),
-        this.weeklyViewRepository
-          .createQueryBuilder('view')
-          .where('view."userId" = :userId', { userId: targetUserId })
-          .andWhere('DATE_TRUNC(\'week\', view."periodStart") = DATE_TRUNC(\'week\', :thisWeek::timestamp)', { thisWeek: thisWeek.toISOString() })
-          .getMany(),
-        this.monthlyViewRepository
-          .createQueryBuilder('view')
-          .where('view."userId" = :userId', { userId: targetUserId })
-          .andWhere('DATE_TRUNC(\'month\', view."periodStart") = DATE_TRUNC(\'month\', :thisMonth::timestamp)', { thisMonth: thisMonth.toISOString() })
-          .getMany(),
-        this.allTimeViewRepository
-          .createQueryBuilder('view')
-          .where('view."userId" = :userId', { userId: targetUserId })
-          .getMany(),
-      ]);
+    const events = await this.eventsService.findByUserId(targetUserId);
 
-      const todayCount = dailyStats.reduce((sum, stat) => sum + stat.count, 0);
-      const weekCount = weeklyStats.reduce((sum, stat) => sum + stat.count, 0);
-      const monthCount = monthlyStats.reduce((sum, stat) => sum + stat.count, 0);
-      const totalCount = allTimeStats.reduce((sum, stat) => sum + stat.count, 0);
+    // Filter events that represent notifications (MESSAGE type events)
+    const notificationEvents = events.filter(e => e.type === EventType.NOTIFICATION);
 
-      return {
-        today: todayCount,
-        thisWeek: weekCount,
-        thisMonth: monthCount,
-        total: totalCount,
-      };
-    } catch (error) {
-      this.logger.error(`Error fetching user stats from views: ${error.message}`);
-      
-      // Fallback: calculate from events table directly
-      const events = await this.eventsService.findByUserId(targetUserId);
-      
-      // Filter events that represent notifications (MESSAGE type events)
-      const notificationEvents = events.filter(e => e.type === EventType.NOTIFICATION);
-      
-      // Count events by period
-      const todayCount = notificationEvents.filter(e => {
-        const eventDate = new Date(e.createdAt);
-        return eventDate >= today && eventDate < new Date(today.getTime() + 24 * 60 * 60 * 1000);
-      }).length;
+    // Count events by period using date-fns
+    const todayCount = notificationEvents.filter(e => {
+      const eventDate = new Date(e.createdAt);
+      return isAfter(eventDate, today) || eventDate.getTime() === today.getTime();
+    }).length;
 
-      const weekCount = notificationEvents.filter(e => {
-        const eventDate = new Date(e.createdAt);
-        return eventDate >= thisWeek;
-      }).length;
+    const weekCount = notificationEvents.filter(e => {
+      const eventDate = new Date(e.createdAt);
+      return isAfter(eventDate, thisWeek) || eventDate.getTime() === thisWeek.getTime();
+    }).length;
 
-      const monthCount = notificationEvents.filter(e => {
-        const eventDate = new Date(e.createdAt);
-        return eventDate >= thisMonth;
-      }).length;
+    const monthCount = notificationEvents.filter(e => {
+      const eventDate = new Date(e.createdAt);
+      return isAfter(eventDate, thisMonth) || eventDate.getTime() === thisMonth.getTime();
+    }).length;
 
-      const totalCount = notificationEvents.length;
+    const totalCount = notificationEvents.length;
 
-      return {
-        today: todayCount,
-        thisWeek: weekCount,
-        thisMonth: monthCount,
-        total: totalCount,
-      };
-    }
+    this.logger.debug(`User ${targetUserId} stats: today=${todayCount}, week=${weekCount}, month=${monthCount}, total=${totalCount} (total events: ${notificationEvents.length})`);
+
+    return {
+      today: todayCount,
+      thisWeek: weekCount,
+      thisMonth: monthCount,
+      total: totalCount,
+    };
   }
 }
