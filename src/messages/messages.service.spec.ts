@@ -240,13 +240,7 @@ describe('MessagesService', () => {
       expect(messagesRepository.create).toHaveBeenCalledWith({
         ...mockCreateMessageDto,
         bucketId: 'bucket-1', // Should use the actual bucket ID
-        attachments: expect.arrayContaining([
-          expect.objectContaining({
-            mediaType: MediaType.ICON,
-            name: 'Test Bucket Icon',
-            url: 'https://example.com/bucket-icon.png',
-          }),
-        ]),
+        attachments: [], // No automatic bucket icon attachment anymore
         attachmentUuids: [],
       });
       expect(messagesRepository.save).toHaveBeenCalled();
@@ -277,13 +271,7 @@ describe('MessagesService', () => {
       expect(messagesRepository.create).toHaveBeenCalledWith({
         ...createMessageDtoWithUserIds,
         bucketId: 'bucket-1', // Should use the actual bucket ID
-        attachments: expect.arrayContaining([
-          expect.objectContaining({
-            mediaType: MediaType.ICON,
-            name: 'Test Bucket Icon',
-            url: 'https://example.com/bucket-icon.png',
-          }),
-        ]),
+        attachments: [], // No automatic bucket icon attachment anymore
         attachmentUuids: [],
       });
       expect(messagesRepository.save).toHaveBeenCalled();
@@ -323,13 +311,7 @@ describe('MessagesService', () => {
           ...createMessageDtoWithGroupAndCollapse,
           groupId: 'custom-group-123',
           collapseId: 'collapse-456',
-          attachments: expect.arrayContaining([
-            expect.objectContaining({
-              mediaType: MediaType.ICON,
-              name: 'Test Bucket Icon',
-              url: 'https://example.com/bucket-icon.png',
-            }),
-          ]),
+          attachments: [], // No automatic bucket icon attachment anymore
         }),
       );
       expect(messagesRepository.save).toHaveBeenCalled();
@@ -886,14 +868,7 @@ describe('MessagesService', () => {
 
         expect(messagesRepository.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            attachments: expect.arrayContaining([
-              expect.objectContaining({
-                mediaType: MediaType.ICON,
-                name: 'Test Bucket Icon',
-                saveOnServer: false,
-                url: 'https://example.com/bucket-icon.png',
-              }),
-            ]),
+            attachments: [], // No automatic bucket icon attachment anymore
           }),
         );
         expect(result).toEqual(mockMessage);

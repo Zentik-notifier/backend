@@ -3,6 +3,11 @@ import { IOSPushService } from './ios-push.service';
 import { LocaleService } from '../common/services/locale.service';
 import { NotificationActionType } from './notifications.types';
 
+// Mock the crypto utils
+jest.mock('../common/utils/cryptoUtils', () => ({
+  encryptWithPublicKey: jest.fn().mockResolvedValue('mock-encrypted-data'),
+}));
+
 // Mock apn module
 jest.mock('apn', () => ({
   Provider: jest.fn().mockImplementation(() => ({
@@ -372,10 +377,13 @@ describe('IOSPushService', () => {
         },
       };
 
+      // Use device without publicKey to avoid encryption
+      const nonEncryptedDevice = { ...mockDevice, publicKey: undefined };
+
       const result = await service.buildAPNsPayload(
         notificationWithoutBucket as any,
         mockAutomaticActions,
-        mockDevice as any,
+        nonEncryptedDevice as any,
       );
 
       // For regular notifications without bucket fields, should use full alert
