@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 import { AuthentikParser } from './authentik.parser';
 import { ServarrParser } from './servarr.parser';
+import { RailwayParser } from './railway.parser';
 import { BuiltinParserService } from './builtin-parser.service';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
@@ -12,7 +13,7 @@ describe('BuiltinParserService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [BuiltinParserService, AuthentikParser, ServarrParser, BuiltinParserLoggerService],
+      providers: [BuiltinParserService, AuthentikParser, ServarrParser, RailwayParser, BuiltinParserLoggerService],
     }).compile();
 
     service = module.get<BuiltinParserService>(BuiltinParserService);
@@ -96,7 +97,7 @@ describe('BuiltinParserService', () => {
     it('should return all registered parsers', () => {
       const parsers = service.getAllParsers();
       
-      expect(parsers).toHaveLength(2);
+      expect(parsers).toHaveLength(3);
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZentikAuthentik,
@@ -106,6 +107,11 @@ describe('BuiltinParserService', () => {
         name: 'Servarr',
         type: PayloadMapperBuiltInType.ZentikServarr,
         description: 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads',
+      });
+      expect(parsers).toContainEqual({
+        name: 'ZentikRailway',
+        type: PayloadMapperBuiltInType.ZentikRailway,
+        description: 'Parser for Railway webhooks - handles deployment and alert events',
       });
     });
   });

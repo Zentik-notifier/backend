@@ -530,6 +530,7 @@ type PayloadMapper {
 """Built-in payload mapper types"""
 enum PayloadMapperBuiltInType {
   ZentikAuthentik
+  ZentikRailway
   ZentikServarr
 }
 

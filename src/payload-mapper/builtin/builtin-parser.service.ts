@@ -4,6 +4,7 @@ import { IBuiltinParser } from './builtin-parser.interface';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { AuthentikParser } from './authentik.parser';
 import { ServarrParser } from './servarr.parser';
+import { RailwayParser } from './railway.parser';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class BuiltinParserService {
   constructor(
     private readonly authentikParser: AuthentikParser,
     private readonly servarrParser: ServarrParser,
+    private readonly railwayParser: RailwayParser,
     private readonly loggerService: BuiltinParserLoggerService,
   ) {
     this.registerParsers();
@@ -24,12 +26,16 @@ export class BuiltinParserService {
     // Register parsers by type
     this.parsers.set(PayloadMapperBuiltInType.ZentikAuthentik, this.authentikParser);
     this.parsers.set(PayloadMapperBuiltInType.ZentikServarr, this.servarrParser);
+    this.parsers.set(PayloadMapperBuiltInType.ZentikRailway, this.railwayParser);
 
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
     this.parsersByName.set('Authentik', this.authentikParser);
     this.parsersByName.set('servarr', this.servarrParser);
     this.parsersByName.set('Servarr', this.servarrParser);
+    this.parsersByName.set('railway', this.railwayParser);
+    this.parsersByName.set('Railway', this.railwayParser);
+    this.parsersByName.set('ZentikRailway', this.railwayParser);
   }
 
   /**

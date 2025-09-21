@@ -5,7 +5,7 @@ import { PayloadMapper } from '../entities/payload-mapper.entity';
 import { PayloadMapperController } from './payload-mapper.controller';
 import { PayloadMapperResolver } from './payload-mapper.resolver';
 import { PayloadMapperService } from './payload-mapper.service';
-import { BuiltinParserService, AuthentikParser, ServarrParser, BuiltinParserLoggerService } from './builtin';
+import { BuiltinParserService, AuthentikParser, ServarrParser, RailwayParser, BuiltinParserLoggerService } from './builtin';
 
 @Module({
   imports: [
@@ -13,7 +13,7 @@ import { BuiltinParserService, AuthentikParser, ServarrParser, BuiltinParserLogg
     AuthModule,
   ],
   controllers: [PayloadMapperController],
-  providers: [PayloadMapperService, PayloadMapperResolver, BuiltinParserService, AuthentikParser, ServarrParser, BuiltinParserLoggerService],
+  providers: [PayloadMapperService, PayloadMapperResolver, BuiltinParserService, AuthentikParser, ServarrParser, RailwayParser, BuiltinParserLoggerService],
   exports: [PayloadMapperService],
 })
 export class PayloadMapperModule { }

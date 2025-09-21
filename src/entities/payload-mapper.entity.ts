@@ -13,6 +13,7 @@ import { User } from './user.entity';
 export enum PayloadMapperBuiltInType {
     ZentikAuthentik = 'ZENTIK_AUTHENTIK',
     ZentikServarr = 'ZENTIK_SERVARR',
+    ZentikRailway = 'ZENTIK_RAILWAY',
 }
 
 registerEnumType(PayloadMapperBuiltInType, {
