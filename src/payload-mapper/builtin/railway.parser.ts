@@ -5,27 +5,44 @@ import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 
 export interface RailwayWebhookPayload {
-  type: string;
-  timestamp: string;
-  project: {
-    id: string;
-    name: string;
-    description?: string;
-    createdAt: string;
-  };
-  environment: {
-    id: string;
-    name: string;
-  };
-  deployment?: {
-    id: string;
-    creator: {
+  message: string;
+  attributes: {
+    deployment?: {
+      creator: {
+        avatar?: string;
+        id: string;
+        name?: string;
+      };
+      id: string;
+      meta: Record<string, any>;
+    };
+    environment: {
       id: string;
       name: string;
-      avatar?: string;
     };
-    meta: Record<string, any>;
+    level: string;
+    project: {
+      createdAt: string;
+      description?: string;
+      id: string;
+      name: string;
+    };
+    service: {
+      id: string;
+      name: string;
+    };
+    status: string;
+    timestamp: string;
+    type: string;
   };
+  tags: {
+    project: string;
+    environment: string;
+    service: string;
+    deployment?: string;
+    replica?: string;
+  };
+  timestamp: string;
 }
 
 @Injectable()
@@ -43,133 +60,83 @@ export class RailwayParser implements IBuiltinParser {
   }
 
   validate(payload: any): boolean {
-    console.log(JSON.stringify(payload));
     return !!(
       payload &&
       typeof payload === 'object' &&
-      payload.type &&
-      payload.timestamp &&
-      payload.project &&
-      payload.environment &&
-      typeof payload.project === 'object' &&
-      typeof payload.environment === 'object' &&
-      payload.project.id &&
-      payload.project.name &&
-      payload.environment.id &&
-      payload.environment.name
+      payload.attributes &&
+      typeof payload.attributes === 'object' &&
+      payload.attributes.type &&
+      payload.attributes.timestamp &&
+      payload.attributes.project &&
+      payload.attributes.environment &&
+      payload.attributes.service &&
+      payload.attributes.status &&
+      typeof payload.attributes.project === 'object' &&
+      typeof payload.attributes.environment === 'object' &&
+      typeof payload.attributes.service === 'object' &&
+      payload.attributes.project.id &&
+      payload.attributes.project.name &&
+      payload.attributes.environment.id &&
+      payload.attributes.environment.name &&
+      payload.attributes.service.id &&
+      payload.attributes.service.name
     );
   }
 
   parse(payload: RailwayWebhookPayload): CreateMessageDto {
     try {
-      const baseMessage = this.createBaseMessage(payload);
-      
-      switch (payload.type) {
-        case 'DEPLOY':
-          return this.createDeploymentMessage(payload, baseMessage);
-        case 'ALERT':
-          return this.createAlertMessage(payload, baseMessage);
-        default:
-          return this.createGenericMessage(payload, baseMessage);
-      }
+      return this.createMessage(payload);
     } catch (error) {
-      console.error('Errore durante il parsing del payload Railway:', error);
+      console.error('Error parsing Railway payload:', error);
       return this.createErrorMessage(payload);
     }
   }
 
-  private createBaseMessage(payload: RailwayWebhookPayload): Partial<CreateMessageDto> {
-    return {
-      title: `Railway - ${payload.project.name}`,
-      deliveryType: NotificationDeliveryType.NORMAL,
-      bucketId: '', // Will be set by the service
-    };
-  }
-
-  private createDeploymentMessage(
-    payload: RailwayWebhookPayload,
-    baseMessage: Partial<CreateMessageDto>
-  ): CreateMessageDto {
-    const deployment = payload.deployment;
-    const creator = deployment?.creator;
-
-    let body = `🚀 Deployment completato\n\n`;
-    body += `Progetto: ${payload.project.name}\n`;
-    body += `Ambiente: ${payload.environment.name}\n`;
+  private createMessage(payload: RailwayWebhookPayload): CreateMessageDto {
+    const { attributes } = payload;
+    const { project, service, environment, type, status, timestamp, deployment } = attributes;
     
-    if (creator) {
-      body += `Avviato da: ${creator.name}\n`;
+    const title = `${project.name} - ${service.name}`;
+    const subtitle = `${type} - ${status}`;
+    
+    let body = `Project: ${project.name}\n`;
+    body += `Service: ${service.name}\n`;
+    body += `Environment: ${environment.name}\n`;
+    
+    if (deployment?.creator?.name) {
+      body += `Started by: ${deployment.creator.name}\n`;
     }
     
-    if (deployment) {
+    if (deployment?.id) {
       body += `Deployment ID: ${deployment.id}\n`;
     }
     
-    body += `Timestamp: ${new Date(payload.timestamp).toLocaleString('it-IT')}\n`;
+    body += `Timestamp: ${new Date(timestamp).toLocaleString('it-IT')}`;
 
-    if (payload.project.description) {
-      body += `\nDescrizione progetto: ${payload.project.description}`;
-    }
+    const deliveryType = this.getDeliveryType(type, status);
 
     return {
-      ...baseMessage,
-      title: `🚀 Deployment - ${payload.project.name}`,
-      subtitle: `Ambiente: ${payload.environment.name}`,
+      title,
+      subtitle,
       body,
-      deliveryType: NotificationDeliveryType.NORMAL,
+      deliveryType,
+      bucketId: '', // Will be set by the service
     } as CreateMessageDto;
   }
 
-  private createAlertMessage(
-    payload: RailwayWebhookPayload,
-    baseMessage: Partial<CreateMessageDto>
-  ): CreateMessageDto {
-    let body = `⚠️ Alert Railway\n\n`;
-    body += `Progetto: ${payload.project.name}\n`;
-    body += `Ambiente: ${payload.environment.name}\n`;
-    body += `Timestamp: ${new Date(payload.timestamp).toLocaleString('it-IT')}\n`;
-
-    if (payload.project.description) {
-      body += `\nDescrizione progetto: ${payload.project.description}`;
+  private getDeliveryType(type: string, status: string): NotificationDeliveryType {
+    if (status.includes('FAILED') || status.includes('ERROR')) {
+      return NotificationDeliveryType.CRITICAL;
     }
-
-    return {
-      ...baseMessage,
-      title: `⚠️ Alert - ${payload.project.name}`,
-      subtitle: `Ambiente: ${payload.environment.name}`,
-      body,
-      deliveryType: NotificationDeliveryType.CRITICAL,
-    } as CreateMessageDto;
-  }
-
-  private createGenericMessage(
-    payload: RailwayWebhookPayload,
-    baseMessage: Partial<CreateMessageDto>
-  ): CreateMessageDto {
-    let body = `📋 Evento Railway\n\n`;
-    body += `Tipo: ${payload.type}\n`;
-    body += `Progetto: ${payload.project.name}\n`;
-    body += `Ambiente: ${payload.environment.name}\n`;
-    body += `Timestamp: ${new Date(payload.timestamp).toLocaleString('it-IT')}\n`;
-
-    if (payload.project.description) {
-      body += `\nDescrizione progetto: ${payload.project.description}`;
-    }
-
-    return {
-      ...baseMessage,
-      title: `📋 ${payload.type} - ${payload.project.name}`,
-      subtitle: `Ambiente: ${payload.environment.name}`,
-      body,
-      deliveryType: NotificationDeliveryType.NORMAL,
-    } as CreateMessageDto;
+    
+    return NotificationDeliveryType.NORMAL;
   }
 
   private createErrorMessage(payload: any): CreateMessageDto {
     return {
-      title: '❌ Errore parsing Railway webhook',
+      title: '❌ Railway webhook parsing error',
       subtitle: 'Parser ZentikRailway',
-      body: `Si è verificato un errore durante il parsing del payload Railway.\n\nPayload ricevuto:\n${JSON.stringify(payload, null, 2)}`,
+      body: `An error occurred while parsing the Railway payload.\n\nReceived payload:\n${JSON.stringify(payload, null, 2)}`,
       deliveryType: NotificationDeliveryType.CRITICAL,
       bucketId: '',
     } as CreateMessageDto;
@@ -177,30 +144,48 @@ export class RailwayParser implements IBuiltinParser {
 
   getTestPayload(): RailwayWebhookPayload {
     return {
-      type: 'DEPLOY',
-      timestamp: '2025-02-01T00:00:00.000Z',
-      project: {
-        id: 'proj_12345',
-        name: 'zentik-notifier',
-        description: 'Sistema di notifiche Zentik',
-        createdAt: '2025-01-01T00:00:00.000Z'
-      },
-      environment: {
-        id: 'env_67890',
-        name: 'production'
-      },
-      deployment: {
-        id: 'deploy_abcde',
-        creator: {
-          id: 'user_12345',
-          name: 'Gianluca Ruocco',
-          avatar: 'https://avatar.example.com/user.png'
+      message: "",
+      attributes: {
+        deployment: {
+          creator: {
+            avatar: "https://avatars.githubusercontent.com/u/23080650?v=4",
+            id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
+            name: "Test User"
+          },
+          id: "39380b1e-40a3-4c41-b1ea-3972f5406945",
+          meta: {
+            buildOnly: false,
+            reason: "deploy",
+            runtime: "V2"
+          }
         },
-        meta: {
-          branch: 'main',
-          commit: 'abc123def456'
-        }
-      }
+        environment: {
+          id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+          name: "production"
+        },
+        level: "info",
+        project: {
+          createdAt: "2025-08-25T22:37:27.337Z",
+          description: "Test project description",
+          id: "a418f086-cacf-432f-b209-334e17397ae2",
+          name: "Zentik notifier"
+        },
+        service: {
+          id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
+          name: "Docs"
+        },
+        status: "BUILDING",
+        timestamp: "2025-09-21T08:36:24.208Z",
+        type: "DEPLOY"
+      },
+      tags: {
+        project: "a418f086-cacf-432f-b209-334e17397ae2",
+        environment: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
+        service: "8fa5bf4d-573c-4814-8050-d04b17c508de",
+        deployment: "55a277c4-0e2a-417e-9a73-0f798f4fe59c",
+        replica: "bcac40cf-bf74-4b0f-86f7-dcf28d1210a7"
+      },
+      timestamp: "2025-09-21T08:36:31.152703801Z"
     };
   }
 }
