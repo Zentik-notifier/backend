@@ -1,19 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { 
-  EventsPerUserDailyView,
-  EventsPerUserWeeklyView,
-  EventsPerUserMonthlyView,
-  EventsPerUserAllTimeView
-} from '../../entities/views/events-analytics.views';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { PushNotificationOrchestratorService } from '../../notifications/push-orchestrator.service';
 import { UsersService } from '../../users/users.service';
 import { EventsService } from '../../events/events.service';
 import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
 import { NotificationsResolver } from './notifications.resolver';
+import { EventType } from '../../entities/event.entity';
 
 describe('NotificationsResolver', () => {
   let resolver: NotificationsResolver;
@@ -45,38 +38,7 @@ describe('NotificationsResolver', () => {
   const mockEventsService = {
     createEvent: jest.fn(),
     getUserEvents: jest.fn(),
-  };
-
-  const mockDailyViewRepository = {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    delete: jest.fn(),
-  };
-
-  const mockWeeklyViewRepository = {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    delete: jest.fn(),
-  };
-
-  const mockMonthlyViewRepository = {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    delete: jest.fn(),
-  };
-
-  const mockAllTimeViewRepository = {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    delete: jest.fn(),
+    findByUserId: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -102,22 +64,6 @@ describe('NotificationsResolver', () => {
         {
           provide: EventsService,
           useValue: mockEventsService,
-        },
-        {
-          provide: getRepositoryToken(EventsPerUserDailyView),
-          useValue: mockDailyViewRepository,
-        },
-        {
-          provide: getRepositoryToken(EventsPerUserWeeklyView),
-          useValue: mockWeeklyViewRepository,
-        },
-        {
-          provide: getRepositoryToken(EventsPerUserMonthlyView),
-          useValue: mockMonthlyViewRepository,
-        },
-        {
-          provide: getRepositoryToken(EventsPerUserAllTimeView),
-          useValue: mockAllTimeViewRepository,
         },
       ],
     })
@@ -157,6 +103,82 @@ describe('NotificationsResolver', () => {
 
       expect(result).toEqual(mockResponse);
       expect(notificationsService.getNotificationServices).toHaveBeenCalled();
+    });
+  });
+
+  describe('userNotificationStats', () => {
+    it('should return notification stats for a user', async () => {
+      const userId = 'test-user-id';
+      
+      // Mock events with different types
+      const mockEvents = [
+        {
+          id: '1',
+          type: EventType.NOTIFICATION,
+          userId,
+          createdAt: new Date(),
+        },
+        {
+          id: '2',
+          type: EventType.NOTIFICATION,
+          userId,
+          createdAt: new Date(),
+        },
+        {
+          id: '3',
+          type: EventType.MESSAGE, // Different type, should be filtered out
+          userId,
+          createdAt: new Date(),
+        },
+      ];
+
+      mockEventsService.findByUserId.mockResolvedValue(mockEvents);
+
+      const result = await resolver.userNotificationStats(userId);
+
+      // Verify that the method returns the expected structure
+      expect(result).toHaveProperty('today');
+      expect(result).toHaveProperty('thisWeek');
+      expect(result).toHaveProperty('thisMonth');
+      expect(result).toHaveProperty('total');
+      
+      // Verify that only NOTIFICATION type events are counted in total
+      expect(result.total).toBe(2);
+      
+      // Verify that the service was called correctly
+      expect(mockEventsService.findByUserId).toHaveBeenCalledWith(userId);
+    });
+
+    it('should return zero stats when no notification events exist', async () => {
+      const userId = 'test-user-id';
+      
+      mockEventsService.findByUserId.mockResolvedValue([]);
+
+      const result = await resolver.userNotificationStats(userId);
+
+      expect(result).toEqual({
+        today: 0,
+        thisWeek: 0,
+        thisMonth: 0,
+        total: 0,
+      });
+      expect(mockEventsService.findByUserId).toHaveBeenCalledWith(userId);
+    });
+
+    it('should use current user id when no userId provided', async () => {
+      const currentUserId = 'current-user-id';
+      
+      mockEventsService.findByUserId.mockResolvedValue([]);
+
+      const result = await resolver.userNotificationStats(currentUserId);
+
+      expect(result).toEqual({
+        today: 0,
+        thisWeek: 0,
+        thisMonth: 0,
+        total: 0,
+      });
+      expect(mockEventsService.findByUserId).toHaveBeenCalledWith(currentUserId);
     });
   });
 

@@ -1,12 +1,9 @@
-import { Controller, Get, Query, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
-import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { Event, EventType } from '../entities';
+import { EventsPaginatedQueryDto, EventsQueryDto, EventsResponseDto } from './dto';
 import { EventsService } from './events.service';
-import { EventsQueryDto, EventsResponseDto, EventsPaginatedQueryDto } from './dto';
-import { CurrentUser, CurrentUserData } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../users/users.types';
 
 @ApiTags('Events')
 @Controller('events')
@@ -41,11 +38,9 @@ export class EventsController {
     @Query('type') type: EventType,
     @Query() query?: EventsPaginatedQueryDto
   ): Promise<Event[] | EventsResponseDto> {
-    // Se vengono passati parametri di paginazione, usa la versione paginata
     if (query && (query.page !== undefined || query.limit !== undefined)) {
       return this.eventsService.findByTypePaginated(type, query);
     }
-    // Altrimenti, usa la versione originale per compatibilità
     return this.eventsService.findByType(type);
   }
 
@@ -54,11 +49,9 @@ export class EventsController {
     @Query('userId') userId: string,
     @Query() query?: EventsPaginatedQueryDto
   ): Promise<Event[] | EventsResponseDto> {
-    // Se vengono passati parametri di paginazione, usa la versione paginata
     if (query && (query.page !== undefined || query.limit !== undefined)) {
       return this.eventsService.findByUserIdPaginated(userId, query);
     }
-    // Altrimenti, usa la versione originale per compatibilità
     return this.eventsService.findByUserId(userId);
   }
 
@@ -67,107 +60,10 @@ export class EventsController {
     @Query('objectId') objectId: string,
     @Query() query?: EventsPaginatedQueryDto
   ): Promise<Event[] | EventsResponseDto> {
-    // Se vengono passati parametri di paginazione, usa la versione paginata
     if (query && (query.page !== undefined || query.limit !== undefined)) {
       return this.eventsService.findByObjectIdPaginated(objectId, query);
     }
-    // Altrimenti, usa la versione originale per compatibilità
     return this.eventsService.findByObjectId(objectId);
   }
 
-  // Endpoint REST per le statistiche delle notifiche per bucket per utente
-  @Get('bucket-user/daily')
-  @UseGuards(JwtOrAccessTokenGuard)
-  async getNotificationsPerBucketUserDaily(
-    @Query('bucketId') bucketId: string,
-    @Query('userId') userId: string,
-    @CurrentUser() currentUser: CurrentUserData,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    // Admin può vedere tutto, non-admin solo i propri dati
-    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
-    }
-
-    const start = startDate ? new Date(startDate) : undefined;
-    const end = endDate ? new Date(endDate) : undefined;
-    
-    return this.eventsService.getEventsPerBucketUserDaily(bucketId, userId, start, end);
-  }
-
-  @Get('bucket-user/weekly')
-  @UseGuards(JwtOrAccessTokenGuard)
-  async getNotificationsPerBucketUserWeekly(
-    @Query('bucketId') bucketId: string,
-    @Query('userId') userId: string,
-    @CurrentUser() currentUser: CurrentUserData,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    // Admin può vedere tutto, non-admin solo i propri dati
-    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
-    }
-
-    const start = startDate ? new Date(startDate) : undefined;
-    const end = endDate ? new Date(endDate) : undefined;
-    
-    return this.eventsService.getEventsPerBucketUserWeekly(bucketId, userId, start, end);
-  }
-
-  @Get('bucket-user/monthly')
-  @UseGuards(JwtOrAccessTokenGuard)
-  async getNotificationsPerBucketUserMonthly(
-    @Query('bucketId') bucketId: string,
-    @Query('userId') userId: string,
-    @CurrentUser() currentUser: CurrentUserData,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    // Admin può vedere tutto, non-admin solo i propri dati
-    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
-    }
-
-    const start = startDate ? new Date(startDate) : undefined;
-    const end = endDate ? new Date(endDate) : undefined;
-    
-    return this.eventsService.getEventsPerBucketUserMonthly(bucketId, userId, start, end);
-  }
-
-  @Get('bucket-user/all-time')
-  @UseGuards(JwtOrAccessTokenGuard)
-  async getNotificationsPerBucketUserAllTime(
-    @Query('bucketId') bucketId: string,
-    @Query('userId') userId: string,
-    @CurrentUser() currentUser: CurrentUserData,
-  ) {
-    // Admin può vedere tutto, non-admin solo i propri dati
-    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
-    }
-    
-    return this.eventsService.getEventsPerBucketUserAllTime(bucketId, userId);
-  }
-
-  @Get('bucket-user/stats')
-  @UseGuards(JwtOrAccessTokenGuard)
-  async getBucketUserNotificationStats(
-    @Query('bucketId') bucketId: string,
-    @Query('userId') userId: string,
-    @CurrentUser() currentUser: CurrentUserData,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    // Admin può vedere tutto, non-admin solo i propri dati
-    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== userId) {
-      throw new ForbiddenException('You can only access your own notification statistics');
-    }
-
-    const start = startDate ? new Date(startDate) : undefined;
-    const end = endDate ? new Date(endDate) : undefined;
-    
-    return this.eventsService.getBucketUserEventStats(bucketId, userId, start, end);
-  }
 }

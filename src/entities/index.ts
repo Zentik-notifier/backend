@@ -14,25 +14,3 @@ export { UserSession } from './user-session.entity';
 export { HttpMethod, UserWebhook } from './user-webhook.entity';
 export { User } from './user.entity';
 export { UserSetting, UserSettingType } from './user-setting.entity';
-export {
-  EventsPerUserDailyView,
-  EventsPerUserWeeklyView,
-  EventsPerUserMonthlyView,
-  EventsPerUserAllTimeView,
-  EventsPerBucketDailyView,
-  EventsPerBucketWeeklyView,
-  EventsPerBucketMonthlyView,
-  EventsPerBucketAllTimeView,
-  EventsPerDeviceDailyView,
-  EventsPerDeviceWeeklyView,
-  EventsPerDeviceMonthlyView,
-  EventsPerDeviceAllTimeView,
-  EventsPerTypeDailyView,
-  EventsPerTypeWeeklyView,
-  EventsPerTypeMonthlyView,
-  EventsPerTypeAllTimeView,
-  EventsPerBucketUserDailyView,
-  EventsPerBucketUserWeeklyView,
-  EventsPerBucketUserMonthlyView,
-  EventsPerBucketUserAllTimeView,
-} from './views/events-analytics.views';
