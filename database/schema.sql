@@ -37,7 +37,7 @@ CREATE TYPE permission_enum AS ENUM ('read', 'write', 'delete', 'admin');
 CREATE TYPE resource_type_enum AS ENUM ('bucket', 'notification', 'user_webhook', 'user_access_token');
 CREATE TYPE event_type_enum AS ENUM ('LOGIN', 'LOGIN_OAUTH', 'LOGOUT', 'REGISTER', 'PUSH_PASSTHROUGH', 'MESSAGE', 'NOTIFICATION', 'BUCKET_SHARING', 'BUCKET_UNSHARING', 'DEVICE_REGISTER', 'DEVICE_UNREGISTER', 'ACCOUNT_DELETE');
 -- NOTE: ACCOUNT_DELETE added in code; ensure DB enum updated in migrations when applying
-CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOnBigPayload', 'AddIconOnNoMedias');
+CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOnBigPayload');
 
 -- Create users table
 CREATE TABLE users (

@@ -16,7 +16,6 @@ export enum UserSettingType {
   Timezone = 'Timezone',
   Language = 'Language',
   UnencryptOnBigPayload = 'UnencryptOnBigPayload',
-  AddIconOnNoMedias = 'AddIconOnNoMedias',
 }
 
 registerEnumType(UserSettingType, { name: 'UserSettingType' });

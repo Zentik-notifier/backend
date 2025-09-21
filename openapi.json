@@ -5644,8 +5644,7 @@
             "enum": [
               "Timezone",
               "Language",
-              "UnencryptOnBigPayload",
-              "AddIconOnNoMedias"
+              "UnencryptOnBigPayload"
             ]
           },
           "valueText": {
@@ -5679,8 +5678,7 @@
             "enum": [
               "Timezone",
               "Language",
-              "UnencryptOnBigPayload",
-              "AddIconOnNoMedias"
+              "UnencryptOnBigPayload"
             ]
           },
           "valueText": {

@@ -93,9 +93,6 @@ describe('MessagesService', () => {
           provide: UsersService,
           useValue: {
             getUserSetting: jest.fn(async (userId: string, type: UserSettingType) => {
-              if (type === UserSettingType.AddIconOnNoMedias) {
-                return { valueBool: true } as any;
-              }
               if (type === UserSettingType.Language) {
                 return { valueText: 'en-EN' } as any;
               }
