@@ -38,8 +38,22 @@ jobs:
           OWNER_LC=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
           IMG="ghcr.io/${OWNER_LC}/zentik-notifier-backend"
           TAG1="${IMG}:${GITHUB_SHA}"
+          # Read version from backend/package.json
+          if command -v jq >/dev/null 2>&1; then
+            VERSION=$(jq -r .version backend/package.json)
+          else
+            VERSION=$(node -p "require('./backend/package.json').version" 2>/dev/null || echo "")
+          fi
+          if [ -n "$VERSION" ] && [ "$VERSION" != "null" ]; then
+            TAG_VERSION="${IMG}:${VERSION}"
+          fi
+          TAG_LATEST="${IMG}:latest"
           echo "image=${IMG}" >> $GITHUB_OUTPUT
           echo "tag_primary=${TAG1}" >> $GITHUB_OUTPUT
+          if [ -n "$TAG_VERSION" ]; then
+            echo "tag_version=${TAG_VERSION}" >> $GITHUB_OUTPUT
+          fi
+          echo "tag_latest=${TAG_LATEST}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -50,6 +64,8 @@ jobs:
           push: true
           tags: |
             ${{ steps.vars.outputs.tag_primary }}
+            ${{ steps.vars.outputs.tag_latest }}
+            ${{ steps.vars.outputs.tag_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
