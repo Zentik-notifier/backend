@@ -331,37 +331,7 @@ describe('BucketsResolver', () => {
     });
   });
 
-  describe('isSnoozedField', () => {
-    it('should return snooze status for bucket', async () => {
-  mockBucketsService.isBucketSnoozed.mockResolvedValue(true);
-
-      const result = await resolver.isSnoozedField(
-        mockBucket as Bucket,
-        'user-1',
-      );
-
-      expect(result).toBe(true);
-      expect(mockBucketsService.isBucketSnoozed).toHaveBeenCalledWith(
-        'bucket-1',
-        'user-1',
-      );
-    });
-
-    it('should return false when bucket is not snoozed', async () => {
-      mockBucketsService.isBucketSnoozed.mockResolvedValue(false);
-
-      const result = await resolver.isSnoozedField(
-        mockBucket as Bucket,
-        'user-1',
-      );
-
-      expect(result).toBe(false);
-      expect(mockBucketsService.isBucketSnoozed).toHaveBeenCalledWith(
-        'bucket-1',
-        'user-1',
-      );
-    });
-  });
+  // isSnoozed field removed from schema; tests no longer applicable
 
   describe('snooze mutations & query (deprecated)', () => {
     it('setBucketSnooze should call service and return userBucket', async () => {
@@ -386,11 +356,6 @@ describe('BucketsResolver', () => {
       expect(mockBucketsService.updateBucketSnoozes).toHaveBeenCalledWith('bucket-1', 'user-1', schedules);
     });
 
-    it('getSnoozeStatus should call isBucketSnoozed', async () => {
-      mockBucketsService.isBucketSnoozed.mockResolvedValue(true);
-      const result = await (resolver as any).getSnoozeStatus('bucket-1', 'user-1');
-      expect(result).toBe(true);
-      expect(mockBucketsService.isBucketSnoozed).toHaveBeenCalledWith('bucket-1', 'user-1');
-    });
+    // getSnoozeStatus query removed from schema; test not applicable anymore
   });
 });
