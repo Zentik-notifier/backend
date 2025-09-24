@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -50,6 +51,8 @@ class SetBucketSnoozeMinutesDto {
 @ApiTags('Buckets')
 @Controller('buckets')
 export class BucketsController {
+  private readonly logger = new Logger(BucketsController.name);
+
   constructor(private readonly bucketsService: BucketsService) { }
 
   @Post()
@@ -160,7 +163,15 @@ export class BucketsController {
     @Body() body: SetBucketSnoozeDto,
     @GetUser('id') userId: string,
   ) {
-    return this.bucketsService.setBucketSnooze(bucketId, userId, body?.snoozeUntil ?? null);
+    const startTime = Date.now();
+    this.logger.debug(`REST setBucketSnooze started for bucketId: ${bucketId}, userId: ${userId}`);
+    
+    const result = this.bucketsService.setBucketSnooze(bucketId, userId, body?.snoozeUntil ?? null);
+    
+    const duration = Date.now() - startTime;
+    this.logger.debug(`REST setBucketSnooze completed in ${duration}ms for bucketId: ${bucketId}, userId: ${userId}`);
+    
+    return result;
   }
 
   @Post(':id/snooze-minutes')
@@ -185,7 +196,15 @@ export class BucketsController {
     @Body() body: SetBucketSnoozeMinutesDto,
     @GetUser('id') userId: string,
   ) {
-    return this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, body.minutes);
+    const startTime = Date.now();
+    this.logger.debug(`REST setBucketSnoozeMinutes started for bucketId: ${bucketId}, userId: ${userId}, minutes: ${body.minutes}`);
+    
+    const result = this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, body.minutes);
+    
+    const duration = Date.now() - startTime;
+    this.logger.debug(`REST setBucketSnoozeMinutes completed in ${duration}ms for bucketId: ${bucketId}, userId: ${userId}`);
+    
+    return result;
   }
 
 }

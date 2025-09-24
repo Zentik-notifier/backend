@@ -1,4 +1,4 @@
-import { Injectable, Logger, UseGuards } from '@nestjs/common';
+import { Injectable, UseGuards } from '@nestjs/common';
 import {
   Args,
   Mutation,
@@ -28,7 +28,6 @@ import { GraphQLSubscriptionService } from '../services/graphql-subscription.ser
 @UseGuards(JwtOrAccessTokenGuard)
 @Injectable()
 export class BucketsResolver {
-  private readonly logger = new Logger(BucketsResolver.name);
 
   constructor(
     private bucketsService: BucketsService,
@@ -39,15 +38,8 @@ export class BucketsResolver {
 
   @Query(() => [Bucket])
   async buckets(@CurrentUser('id') userId: string): Promise<Bucket[]> {
-    return this.bucketsService.findAll(userId);
-  }
-
-  @ResolveField(() => Boolean, { name: 'isSnoozed' })
-  async isSnoozedField(
-    @Parent() bucket: Bucket,
-    @CurrentUser('id') userId: string,
-  ): Promise<boolean> {
-    return this.bucketsService.isBucketSnoozed(bucket.id, userId);
+    const buckets = await this.bucketsService.findAll(userId);
+    return buckets;
   }
 
   @ResolveField(() => UserBucket, { name: 'userBucket', nullable: true })
@@ -55,11 +47,18 @@ export class BucketsResolver {
     @Parent() bucket: Bucket,
     @CurrentUser('id') userId: string,
   ): Promise<UserBucket | null> {
+    // Use pre-loaded userBucket data if available
+    if (bucket.userBucket) {
+      return bucket.userBucket;
+    }
+    
+    // Fallback to database query if userBucket not pre-loaded
     try {
-      return await this.bucketsService.findUserBucketByBucketAndUser(
+      const result = await this.bucketsService.findUserBucketByBucketAndUser(
         bucket.id,
         userId,
       );
+      return result;
     } catch {
       return null;
     }
@@ -167,10 +166,6 @@ export class BucketsResolver {
 
       return Array.from(userIds);
     } catch (error) {
-      this.logger.error(
-        `Error getting users with bucket access: ${error.message}`,
-        error.stack,
-      );
       // Fallback to just the requester if there's an error
       return [requesterId];
     }
@@ -283,7 +278,13 @@ export class BucketsResolver {
     snoozeUntil: string | null,
     @CurrentUser('id') userId: string,
   ) {
-    return this.bucketsService.setBucketSnooze(bucketId, userId, snoozeUntil);
+    const result = await this.bucketsService.setBucketSnooze(bucketId, userId, snoozeUntil);
+
+    // Pubblica subito un evento per aggiornare i client con lo stato più recente
+    try {
+      await this.subscriptionService.publishUserBucketUpdated(result, bucketId, userId);
+    } catch (err) {}
+    return result;
   }
 
   @Mutation(() => UserBucket, { deprecationReason: 'Usa future Bucket mutation (updateBucketSnoozes)' })
@@ -302,15 +303,8 @@ export class BucketsResolver {
     @Args('input') input: SetBucketSnoozeMinutesInput,
     @CurrentUser('id') userId: string,
   ) {
-    return this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, input.minutes);
-  }
-
-  @Query(() => Boolean, { name: 'isBucketSnoozed', deprecationReason: 'Usa field Bucket.isSnoozed' })
-  async getSnoozeStatus(
-    @Args('bucketId', { type: () => String }) bucketId: string,
-    @CurrentUser('id') userId: string,
-  ) {
-    return this.bucketsService.isBucketSnoozed(bucketId, userId);
+    const result = await this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, input.minutes);
+    return result;
   }
 
   // Subscriptions - these still need Context for WebSocket filtering
