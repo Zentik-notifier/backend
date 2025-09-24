@@ -7,7 +7,7 @@ import { UserDevice } from '../entities/user-device.entity';
 import { DevicePlatform } from '../users/dto';
 import { IOSPushService } from './ios-push.service';
 import { generateAutomaticActions } from './notification-actions.util';
-import { MediaType } from './notifications.types';
+import { MediaType, NotificationActionType } from './notifications.types';
 
 interface FirebaseMulticastResult {
   success: boolean;
@@ -247,9 +247,12 @@ export class FirebasePushService {
       payload.data.actions = JSON.stringify(allActions);
     }
 
-    // Add tap action if present (for Android compatibility in data section)
-    if (message.tapAction && payload.data) {
-      payload.data.tapAction = JSON.stringify(message.tapAction);
+    // Add tap action (for Android compatibility in data section)
+    if (payload.data) {
+      const effectiveTapAction = message.tapAction
+        ? message.tapAction
+        : ({ type: NotificationActionType.OPEN_NOTIFICATION, value: notification.id } as any);
+      payload.data.tapAction = JSON.stringify(effectiveTapAction);
     }
 
     return payload;

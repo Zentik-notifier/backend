@@ -8,7 +8,7 @@ import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { DevicePlatform } from '../users/dto';
 import { generateAutomaticActions } from './notification-actions.util';
-import { NotificationDeliveryType } from './notifications.types';
+import { NotificationActionType, NotificationDeliveryType } from './notifications.types';
 
 export interface NotificationResult {
   token: string;
@@ -101,6 +101,11 @@ export class IOSPushService {
       ...(message.actions || []),
     ];
 
+    // Determine effective tapAction: use provided one or default to OPEN_NOTIFICATION with notification.id
+    const effectiveTapAction: NotificationAction = message.tapAction
+      ? message.tapAction
+      : ({ type: NotificationActionType.OPEN_NOTIFICATION, value: notification.id });
+
     // Build the complete payload with only 'aps' key
     const payload: any = {
       aps: apsPayload,
@@ -113,8 +118,8 @@ export class IOSPushService {
     } as any;
 
     // Add tapAction to payload for non-encrypted devices
-    if (message.tapAction && (!device || !device.publicKey)) {
-      payload.tapAction = message.tapAction;
+    if (!device || !device.publicKey) {
+      payload.tapAction = effectiveTapAction;
     }
 
     // Resolve bucket display fields for Communication Notifications (iOS)
@@ -136,7 +141,7 @@ export class IOSPushService {
         bucketColor,
         actions: allActions,
         attachmentData: this.filterOutIconAttachments(message.attachments || []),
-        tapAction: message.tapAction,
+        tapAction: effectiveTapAction,
       };
 
       const enc = await encryptWithPublicKey(
@@ -465,21 +470,21 @@ export class IOSPushService {
       this.logger.error('APNs provider not initialized');
       throw new Error('APNs provider not initialized');
     }
-    
+
     const token = deviceData?.token;
-    
+
     // Reconstruct apn.Notification from components
     const notification_apn = new apn.Notification();
     notification_apn.rawPayload = payload.rawPayload;
     notification_apn.payload = payload.customPayload;
     notification_apn.priority = payload.priority;
     notification_apn.topic = payload.topic;
-    
+
     this.logger.log(`Sending APN notification to token: ${token}`);
     const result = await this.provider.send(notification_apn, token);
-    
+
     this.logger.log(`APN send result: ${JSON.stringify({ failed: result.failed, sent: result.sent })}`);
-    
+
     const ok = !result.failed || result.failed.length === 0;
     return { success: ok, results: [{ token, result }] } as any;
   }
@@ -499,8 +504,8 @@ export class IOSPushService {
     if (!attachments || !Array.isArray(attachments)) {
       return [];
     }
-    
-    return attachments.filter(attachment => 
+
+    return attachments.filter(attachment =>
       attachment.mediaType?.toUpperCase() !== 'ICON'
     );
   }
