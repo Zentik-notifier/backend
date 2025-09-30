@@ -9,15 +9,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Notification } from '../entities/notification.entity';
-import { UserDevice } from '../entities/user-device.entity';
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { NotificationServiceInfo } from './dto';
+import { ExternalDeviceDataFcmDto, ExternalDeviceDataIosDto, ExternalDeviceDataWebDto, ExternalNotifyRequestDto, ExternalPlatform } from './dto/external-notify.dto';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationServiceType } from './notifications.types';
 import { WebPushService } from './web-push.service';
-import { ExternalNotifyRequestDto, ExternalPlatform, ExternalDeviceDataIosDto, ExternalDeviceDataFcmDto, ExternalDeviceDataWebDto } from './dto/external-notify.dto';
 
 @Injectable()
 export class NotificationsService {
