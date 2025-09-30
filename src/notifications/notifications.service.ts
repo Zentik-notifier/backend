@@ -145,6 +145,34 @@ export class NotificationsService {
     await this.notificationsRepository.remove(notification);
   }
 
+  /**
+   * Remove many notifications by ids for a specific user.
+   * Silently skips ids that don't exist or don't belong to the user.
+   */
+  async removeMany(ids: string[], userId: string): Promise<{ deletedIds: string[] }> {
+    if (!ids?.length) return { deletedIds: [] };
+
+    // Find only existing notifications for this user
+    const existing = await this.notificationsRepository.find({
+      where: ids.map((id) => ({ id, userId } as any)),
+      select: { id: true } as any,
+    });
+    const existingIds = existing.map(n => n.id);
+    if (existingIds.length === 0) return { deletedIds: [] };
+
+    // Delete by ids using query for efficiency
+    await this.notificationsRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Notification)
+      .where('"userId" = :userId', { userId })
+      .andWhere('id IN (:...ids)', { ids: existingIds })
+      .execute();
+
+    this.logger.log(`Removed ${existingIds.length} notifications for user ${userId}`);
+    return { deletedIds: existingIds };
+  }
+
   async markAsSent(id: string, userId: string): Promise<Notification> {
     const notification = await this.findOne(id, userId);
     notification.sentAt = new Date();

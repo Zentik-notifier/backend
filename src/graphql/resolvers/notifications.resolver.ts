@@ -258,22 +258,12 @@ export class NotificationsResolver {
     @Args('ids', { type: () => [String] }) ids: string[],
     @CurrentUser('id') userId: string,
   ): Promise<MassDeleteResult> {
-    let deletedCount = 0;
-
-    for (const id of ids) {
-      try {
-        await this.notificationsService.remove(id, userId);
-        await this.subscriptionService.publishNotificationDeleted(id, userId);
-        deletedCount++;
-      } catch (error) {
-        this.logger.error(`Failed to delete notification ${id}:`, error);
-      }
+    const { deletedIds } = await this.notificationsService.removeMany(ids, userId);
+    // Publish deletions only for actually deleted ids
+    for (const id of deletedIds) {
+      await this.subscriptionService.publishNotificationDeleted(id, userId);
     }
-
-    return {
-      deletedCount,
-      success: true,
-    };
+    return { deletedCount: deletedIds.length, success: true };
   }
 
   @Mutation(() => MassMarkResult)
