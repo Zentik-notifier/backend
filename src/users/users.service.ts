@@ -141,6 +141,8 @@ export class UsersService {
       // Ensure onlyLocal has a default value if not provided
       if (registerDeviceDto.onlyLocal === undefined) {
         existingDevice.onlyLocal = existingDevice.onlyLocal ?? false;
+        existingDevice.publicKey = publicKeyNew;
+        existingDevice.privateKey = privateKeyNew;
       }
 
       const saved = await this.userDevicesRepository.save(existingDevice);
