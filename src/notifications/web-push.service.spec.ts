@@ -1,10 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebPushService } from './web-push.service';
+import { LocaleService } from '../common/services/locale.service';
 
 // Mock web-push
 jest.mock('web-push', () => ({
   setVapidDetails: jest.fn(),
   sendNotification: jest.fn(),
+}));
+
+// Mock notification-actions.util
+jest.mock('./notification-actions.util', () => ({
+  generateAutomaticActions: jest.fn().mockReturnValue([]),
+  DevicePlatform: {
+    WEB: 'WEB',
+    IOS: 'IOS',
+    ANDROID: 'ANDROID',
+  },
 }));
 
 describe('WebPushService', () => {
@@ -13,7 +24,15 @@ describe('WebPushService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [WebPushService],
+      providers: [
+        WebPushService,
+        {
+          provide: LocaleService,
+          useValue: {
+            getLocale: jest.fn().mockReturnValue('en'),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<WebPushService>(WebPushService);

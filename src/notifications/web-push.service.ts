@@ -63,13 +63,13 @@ export class WebPushService {
       }
 
       const endpoint = device.subscriptionFields.endpoint as string;
-      const sub = {
+      const sub: any = {
         endpoint,
         keys: {
           p256dh: device.subscriptionFields.p256dh,
           auth: device.subscriptionFields.auth,
         },
-      } as any;
+      };
 
       try {
         // Use device-specific VAPID keys
@@ -116,8 +116,8 @@ export class WebPushService {
   /**
    * Build a web push payload object (not stringified) from a notification.
    */
-  public buildWebPayload(notification: Notification): any {
-    const message = notification.message as any;
+  public buildWebPayload(notification: Notification) {
+    const message = notification.message;
 
     // Generate automatic actions for web (same as iOS/Android)
     const automaticActions = generateAutomaticActions(
@@ -133,7 +133,7 @@ export class WebPushService {
     ];
 
     const imageUrl = (message?.attachments || []).find(
-      (att: any) =>
+      (att) =>
         att?.url &&
         (att.mediaType === MediaType.IMAGE ||
           att.mediaType === MediaType.GIF ||
@@ -143,7 +143,7 @@ export class WebPushService {
     // Determine tap URL based on tapAction type (similar to iOS implementation)
     let url: string | undefined = '/';
     const effectiveTapAction = message.tapAction || { type: NotificationActionType.OPEN_NOTIFICATION, value: notification.id };
-    
+
     if (effectiveTapAction.type === NotificationActionType.NAVIGATE && effectiveTapAction.value) {
       url = effectiveTapAction.value;
     } else if (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION) {
@@ -158,21 +158,20 @@ export class WebPushService {
       url,
       notificationId: notification.id,
       bucketId: message?.bucketId,
-      bucketIcon: message?.bucketIcon,
-      bucketName: message?.bucketName,
+      bucketIcon: message?.bucket.icon,
+      bucketName: message?.bucket.name,
       deliveryType: message?.deliveryType,
       locale: message?.locale,
       sound: message?.sound,
       badge: 1,
-      actions: allActions, 
+      actions: allActions,
       tapAction: effectiveTapAction,
       attachments: message?.attachments,
-      // Include all add*Action flags for consistency with iOS/Android
       addMarkAsReadAction: !!message?.addMarkAsReadAction,
       addOpenNotificationAction: !!message?.addOpenNotificationAction,
       addDeleteAction: !!message?.addDeleteAction,
       snoozes: message?.snoozes || [],
-    } as any;
+    };
   }
 
   public async sendPrebuilt(
@@ -183,7 +182,7 @@ export class WebPushService {
       return { success: false, results: [] };
     }
 
-    const { endpoint, p256dh, auth, publicKey, privateKey } = deviceData || ({} as any);
+    const { endpoint, p256dh, auth, publicKey, privateKey } = deviceData || ({});
     if (!endpoint || !p256dh || !auth) {
       return { success: false, results: [{ endpoint: endpoint || '', success: false, error: 'Missing subscription fields' }] };
     }
@@ -194,7 +193,7 @@ export class WebPushService {
     const sub = {
       endpoint,
       keys: { p256dh, auth },
-    } as any;
+    };
 
     try {
       const subject = process.env.VAPID_SUBJECT || 'mailto:gianlucaruoccoios@gmail.com';
