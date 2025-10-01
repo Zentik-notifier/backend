@@ -40,7 +40,7 @@ export class UsersService {
     @InjectRepository(UserSetting)
     private readonly userSettingsRepository: Repository<UserSetting>,
     private readonly eventTrackingService: EventTrackingService,
-  ) {}
+  ) { }
 
   async findOne(userId: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -115,12 +115,12 @@ export class UsersService {
     }
 
     // Check if device already exists for this user
-    const existingDevice = await this.userDevicesRepository.findOne({
+    const existingDevice = registerDeviceDto.deviceToken ? await this.userDevicesRepository.findOne({
       where: {
         user: { id: userId },
         deviceToken: registerDeviceDto.deviceToken,
       },
-    });
+    }) : null;
 
     let publicKeyNew: string | undefined;
     let privateKeyNew: string | undefined;
@@ -146,7 +146,7 @@ export class UsersService {
       }
 
       const saved = await this.userDevicesRepository.save(existingDevice);
-      this.logger.log(`Updated existing device ${saved.id} for user=${userId}`);
+      this.logger.log(`Updated existing device ${saved.id} for user=${userId} with token ${registerDeviceDto.deviceToken}`);
       return saved;
     }
 
@@ -166,7 +166,7 @@ export class UsersService {
     const saved = await this.userDevicesRepository.save(device);
 
     this.logger.log(
-      `Registered new device ${saved.platform} ${saved.id} for user=${userId}`,
+      `Registered new device ${saved.platform} ${saved.id} for user=${userId} with token ${saved.deviceToken}`,
     );
 
     // Track device registration event
