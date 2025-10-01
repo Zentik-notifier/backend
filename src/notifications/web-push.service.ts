@@ -3,6 +3,9 @@ import * as webpush from 'web-push';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { MediaType, NotificationActionType } from './notifications.types';
+import { generateAutomaticActions } from './notification-actions.util';
+import { DevicePlatform } from '../users/dto';
+import { LocaleService } from '../common/services/locale.service';
 
 interface WebPushSendResult {
   success: boolean;
@@ -15,7 +18,7 @@ export class WebPushService {
   private webpush = webpush;
   private configured = false;
 
-  constructor() {
+  constructor(private readonly localeService: LocaleService) {
     this.initialize();
   }
 
@@ -116,12 +119,18 @@ export class WebPushService {
   public buildWebPayload(notification: Notification): any {
     const message = notification.message as any;
 
-    const webActions = (message?.actions || []).map((a: any) => ({
-      action: `${a.type}:${a.value}`,
-      title: a.title || a.value,
-      icon: a.icon,
-      destructive: !!a.destructive,
-    }));
+    // Generate automatic actions for web (same as iOS/Android)
+    const automaticActions = generateAutomaticActions(
+      notification,
+      DevicePlatform.WEB,
+      this.localeService,
+    );
+
+    // Combine manual actions with automatic actions
+    const allActions = [
+      ...(message?.actions || []),
+      ...automaticActions,
+    ];
 
     const imageUrl = (message?.attachments || []).find(
       (att: any) =>
@@ -131,12 +140,15 @@ export class WebPushService {
           att.mediaType === MediaType.ICON),
     )?.url;
 
+    // Determine tap URL based on tapAction type (similar to iOS implementation)
     let url: string | undefined = '/';
-    if (
-      message?.tapAction?.type === NotificationActionType.NAVIGATE &&
-      message?.tapAction?.value
-    ) {
-      url = message.tapAction.value;
+    const effectiveTapAction = message.tapAction || { type: NotificationActionType.OPEN_NOTIFICATION, value: notification.id };
+    
+    if (effectiveTapAction.type === NotificationActionType.NAVIGATE && effectiveTapAction.value) {
+      url = effectiveTapAction.value;
+    } else if (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION) {
+      // For OPEN_NOTIFICATION, navigate to notification detail page
+      url = `/notifications/${effectiveTapAction.value || notification.id}`;
     }
 
     return {
@@ -146,13 +158,16 @@ export class WebPushService {
       url,
       notificationId: notification.id,
       bucketId: message?.bucketId,
+      bucketIcon: message?.bucketIcon,
+      bucketName: message?.bucketName,
       deliveryType: message?.deliveryType,
       locale: message?.locale,
       sound: message?.sound,
       badge: 1,
-      actions: webActions,
-      tapAction: message?.tapAction,
+      actions: allActions, 
+      tapAction: effectiveTapAction,
       attachments: message?.attachments,
+      // Include all add*Action flags for consistency with iOS/Android
       addMarkAsReadAction: !!message?.addMarkAsReadAction,
       addOpenNotificationAction: !!message?.addOpenNotificationAction,
       addDeleteAction: !!message?.addDeleteAction,
