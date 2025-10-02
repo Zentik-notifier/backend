@@ -41,10 +41,10 @@ export function generateAutomaticActions(
       snooze: 'ic_access_time',
     },
     [DevicePlatform.WEB]: {
-      delete: 'delete',
-      markAsRead: 'check_circle',
-      open: 'open_in_new',
-      snooze: 'schedule',
+      delete: '🗑️',
+      markAsRead: '✅',
+      open: '🔗',
+      snooze: '⏰',
     },
   } as const;
 
