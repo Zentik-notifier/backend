@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Repository, In } from 'typeorm';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Notification } from '../entities/notification.entity';
 import { DevicePlatform } from '../users/dto';
@@ -62,12 +62,45 @@ export class NotificationsService {
 
   async markAsRead(id: string, userId: string): Promise<Notification> {
     const notification = await this.findOne(id, userId);
-    notification.readAt = new Date();
+    const readAt = new Date();
+    
+    // Mark the specific notification as read
+    notification.readAt = readAt;
+    await this.notificationsRepository.save(notification);
 
-    const updated = await this.notificationsRepository.save(notification);
-    this.logger.log(`Notification ${id} marked as read for user ${userId}`);
+    // Find and mark all other notifications from the same message as read
+    const relatedNotifications = await this.notificationsRepository.find({
+      where: {
+        userId,
+        message: { id: notification.message.id },
+        readAt: IsNull(),
+      },
+      relations: ['message'],
+    });
+
+    if (relatedNotifications.length > 0) {
+      await this.notificationsRepository.update(
+        { id: In(relatedNotifications.map(n => n.id)) },
+        { readAt }
+      );
+      this.logger.log(`Marked ${relatedNotifications.length} related notifications as read for user ${userId}`);
+    }
+
+    this.logger.log(`Notification ${id} and related notifications marked as read for user ${userId}`);
 
     return this.findOne(id, userId);
+  }
+
+  async countRelatedUnreadNotifications(messageId: string, userId: string): Promise<number> {
+    const count = await this.notificationsRepository.count({
+      where: {
+        userId,
+        message: { id: messageId },
+        readAt: IsNull(),
+      },
+      relations: ['message'],
+    });
+    return count;
   }
 
   async markAsUnread(id: string, userId: string): Promise<Notification> {

@@ -272,6 +272,7 @@ export class NotificationsResolver {
     @CurrentUser('id') userId: string,
   ): Promise<MassMarkResult> {
     let updatedCount = 0;
+    const processedMessageIds = new Set<string>();
 
     for (const id of ids) {
       try {
@@ -283,7 +284,21 @@ export class NotificationsResolver {
           notification,
           userId,
         );
+        
+        // Count the main notification
         updatedCount++;
+        
+        // Track message IDs to avoid double counting related notifications
+        if (!processedMessageIds.has(notification.message.id)) {
+          processedMessageIds.add(notification.message.id);
+          
+          // Count related notifications from the same message
+          const relatedCount = await this.notificationsService.countRelatedUnreadNotifications(
+            notification.message.id,
+            userId,
+          );
+          updatedCount += relatedCount;
+        }
       } catch (error) {
         this.logger.error(`Failed to mark notification ${id} as read:`, error);
       }

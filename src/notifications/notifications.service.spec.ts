@@ -62,6 +62,8 @@ describe('NotificationsService', () => {
   const mockRepository = {
     createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
     findOne: jest.fn(),
+    find: jest.fn(),
+    count: jest.fn(),
     save: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -247,6 +249,12 @@ describe('NotificationsService', () => {
       jest
         .spyOn(notificationsRepository, 'save')
         .mockResolvedValue(mockNotification as Notification);
+      jest
+        .spyOn(notificationsRepository, 'find')
+        .mockResolvedValue([]);
+      jest
+        .spyOn(notificationsRepository, 'update')
+        .mockResolvedValue({ affected: 0 } as any);
 
       const result = await service.markAsRead('notification-1', 'user-1');
 
@@ -254,6 +262,94 @@ describe('NotificationsService', () => {
       expect(notificationsRepository.save).toHaveBeenCalledWith({
         ...mockNotification,
         readAt: expect.any(Date),
+      });
+      expect(notificationsRepository.find).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          message: { id: 'message-1' },
+          readAt: expect.any(Object),
+        },
+        relations: ['message'],
+      });
+    });
+
+    it('should mark notification and related notifications as read', async () => {
+      const relatedNotification = {
+        id: 'notification-2',
+        userId: 'user-1',
+        message: { id: 'message-1' },
+        readAt: null,
+      };
+
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValue(mockNotification as Notification);
+      jest
+        .spyOn(notificationsRepository, 'save')
+        .mockResolvedValue(mockNotification as Notification);
+      jest
+        .spyOn(notificationsRepository, 'find')
+        .mockResolvedValue([relatedNotification] as any);
+      jest
+        .spyOn(notificationsRepository, 'update')
+        .mockResolvedValue({ affected: 1 } as any);
+
+      const result = await service.markAsRead('notification-1', 'user-1');
+
+      expect(result).toEqual(mockNotification);
+      expect(notificationsRepository.save).toHaveBeenCalledWith({
+        ...mockNotification,
+        readAt: expect.any(Date),
+      });
+      expect(notificationsRepository.find).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          message: { id: 'message-1' },
+          readAt: expect.any(Object),
+        },
+        relations: ['message'],
+      });
+      expect(notificationsRepository.update).toHaveBeenCalledWith(
+        { id: expect.any(Object) },
+        { readAt: expect.any(Date) }
+      );
+    });
+  });
+
+  describe('countRelatedUnreadNotifications', () => {
+    it('should count related unread notifications', async () => {
+      jest
+        .spyOn(notificationsRepository, 'count')
+        .mockResolvedValue(2);
+
+      const result = await service.countRelatedUnreadNotifications('message-1', 'user-1');
+
+      expect(result).toBe(2);
+      expect(notificationsRepository.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          message: { id: 'message-1' },
+          readAt: expect.any(Object),
+        },
+        relations: ['message'],
+      });
+    });
+
+    it('should return 0 when no related unread notifications exist', async () => {
+      jest
+        .spyOn(notificationsRepository, 'count')
+        .mockResolvedValue(0);
+
+      const result = await service.countRelatedUnreadNotifications('message-1', 'user-1');
+
+      expect(result).toBe(0);
+      expect(notificationsRepository.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          message: { id: 'message-1' },
+          readAt: expect.any(Object),
+        },
+        relations: ['message'],
       });
     });
   });
