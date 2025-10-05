@@ -3357,6 +3357,39 @@
         ]
       }
     },
+    "/api/v1/attachments/proxy-media": {
+      "get": {
+        "description": "Downloads media from an external URL and returns it as binary data. Useful for bypassing CORS restrictions.",
+        "operationId": "AttachmentsController_proxyMedia",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Media downloaded successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Media not found or unreachable"
+          },
+          "408": {
+            "description": "Request timeout"
+          },
+          "413": {
+            "description": "Media too large"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Proxy media from external URL (returns binary data directly)",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
     "/api/v1/attachments/{id}": {
       "get": {
         "operationId": "AttachmentsController_findOne",

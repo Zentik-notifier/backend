@@ -86,6 +86,51 @@ export class AttachmentsController {
     );
   }
 
+  @Get('proxy-media')
+  @UseGuards(JwtOrAccessTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Proxy media from external URL (returns binary data directly)',
+    description: 'Downloads media from an external URL and returns it as binary data. Useful for bypassing CORS restrictions.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Media downloaded successfully'
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'Media not found or unreachable' })
+  @ApiResponse({ status: 413, description: 'Media too large' })
+  @ApiResponse({ status: 408, description: 'Request timeout' })
+  async proxyMedia(
+    @GetUser('id') userId: string,
+    @Res() res: Response,
+  ) {
+    // For this proxy endpoint, we'll get the URL from query parameters
+    // since this is a GET request and we need to pass a URL
+    const url = res.req.query.url as string;
+
+    if (!url) {
+      return res.status(400).json({ error: 'URL parameter is required' });
+    }
+
+    try {
+      const result = await this.attachmentsService.proxyMediaFromUrl(url, res);
+      return result;
+    } catch (error) {
+      console.error('[AttachmentsController] Proxy media error:', error);
+
+      if (error.message?.includes('timeout')) {
+        return res.status(408).json({ error: 'Request timeout' });
+      }
+
+      if (error.message?.includes('too large')) {
+        return res.status(413).json({ error: 'Media too large' });
+      }
+
+      return res.status(500).json({ error: 'Failed to proxy media' });
+    }
+  }
+
   @Get(':id')
   @UseGuards(JwtOrAccessTokenGuard)
   @ApiBearerAuth()

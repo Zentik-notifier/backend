@@ -143,6 +143,113 @@ export class AttachmentsService {
     return saved;
   }
 
+  private getMimeType(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const mimeTypes: { [key: string]: string } = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      pdf: 'application/pdf',
+      txt: 'text/plain',
+    };
+    return mimeTypes[ext || ''] || 'application/octet-stream';
+  }
+
+  async proxyMediaFromUrl(url: string, res: any): Promise<void> {
+    try {
+      const urlObj = new URL(url);
+      const protocol = urlObj.protocol === 'https:' ? https : http;
+
+      return new Promise((resolve, reject) => {
+        const request = protocol.get(url, (response) => {
+          if (response.statusCode !== 200) {
+            reject(
+              new Error(
+                `Failed to download file from URL: ${response.statusCode}`,
+              ),
+            );
+            return;
+          }
+
+          // Check content length for security
+          const contentLength = response.headers['content-length'];
+          const maxFileSize =
+            this.configService.get<number>('ATTACHMENTS_MAX_FILE_SIZE') ||
+            10485760; // 10MB default
+
+          if (contentLength && parseInt(contentLength) > maxFileSize) {
+            reject(new Error(`File size exceeds maximum allowed size of ${maxFileSize} bytes`));
+            return;
+          }
+
+          const chunks: Buffer[] = [];
+          let totalSize = 0;
+
+          response.on('data', (chunk: Buffer) => {
+            chunks.push(chunk);
+            totalSize += chunk.length;
+
+            // Check size as we go to avoid memory issues
+            if (totalSize > maxFileSize) {
+              reject(new Error(`File too large: ${totalSize} bytes`));
+              request.destroy();
+              return;
+            }
+          });
+
+          response.on('end', () => {
+            try {
+              const buffer = Buffer.concat(chunks);
+
+              // Determine MIME type from URL or filename
+              const filename = urlObj.pathname.split('/').pop() || 'file';
+              const mimeType = this.getMimeType(filename);
+
+              // Set appropriate headers
+              res.setHeader('Content-Type', mimeType);
+              res.setHeader('Content-Length', buffer.length);
+              res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+
+              // Send the binary data
+              res.end(buffer);
+
+              this.logger.log(
+                `Media proxied successfully: url=${url} size=${buffer.length}B mimeType=${mimeType}`,
+              );
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          });
+
+          response.on('error', (error) => {
+            reject(error);
+          });
+        });
+
+        // Set timeout
+        request.setTimeout(30000, () => { // 30 second timeout
+          request.destroy();
+          reject(new Error('Request timeout'));
+        });
+
+        request.on('error', (error) => {
+          reject(error);
+        });
+      });
+    } catch (error) {
+      this.logger.error(`Failed to proxy media from URL ${url}:`, error);
+      throw error;
+    }
+  }
+
   async downloadAndSaveFromUrl(
     userId: string,
     url: string,
