@@ -184,9 +184,20 @@ describe('PayloadMapperService', () => {
     it('should throw NotFoundException for unknown parser', async () => {
       jest.spyOn(builtinParserService, 'hasParser').mockReturnValue(false);
 
+      // Mock the repository to return null for "unknown" parser
+      const originalFindOne = payloadMapperRepository.findOne;
+      const originalFind = payloadMapperRepository.find;
+
+      payloadMapperRepository.findOne = jest.fn().mockResolvedValue(null);
+      payloadMapperRepository.find = jest.fn().mockResolvedValue([]);
+
       await expect(
         service.transformPayload('unknown', mockPayload, 'user-1', 'bucket-1'),
-      ).rejects.toThrow("Parser 'unknown' not found. Builtin parsers are available via /messages/parsers endpoint.");
+      ).rejects.toThrow("User parser 'unknown' not found");
+
+      // Restore original mocks
+      payloadMapperRepository.findOne = originalFindOne;
+      payloadMapperRepository.find = originalFind;
     });
   });
 });

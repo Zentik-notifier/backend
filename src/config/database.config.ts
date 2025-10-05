@@ -8,6 +8,7 @@ import {
   Message,
   Notification,
   OAuthProvider,
+  PayloadMapper,
   User,
   UserAccessToken,
   UserBucket,
@@ -40,6 +41,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
       }),
   entities: [
     SystemAccessToken,
+    PayloadMapper,
     Attachment,
     Event,
     Message,

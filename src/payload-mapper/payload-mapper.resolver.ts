@@ -1,7 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { PayloadMapperService } from './payload-mapper.service';
 import { PayloadMapper } from '../entities/payload-mapper.entity';
-import { CreatePayloadMapperDto, UpdatePayloadMapperDto, PayloadMapperWithBuiltin } from './dto';
+import { CreatePayloadMapperDto, UpdatePayloadMapperDto } from './dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UseGuards } from '@nestjs/common';
 import { JwtOrAccessTokenGuard } from 'src/auth/guards/jwt-or-access-token.guard';
@@ -19,8 +19,8 @@ export class PayloadMapperResolver {
     return this.payloadMapperService.create(userId, createPayloadMapperDto);
   }
 
-  @Query(() => [PayloadMapperWithBuiltin])
-  payloadMappers(@CurrentUser('id') userId: string): Promise<PayloadMapperWithBuiltin[]> {
+  @Query(() => [PayloadMapper])
+  payloadMappers(@CurrentUser('id') userId: string): Promise<PayloadMapper[]> {
     return this.payloadMapperService.findAll(userId);
   }
 

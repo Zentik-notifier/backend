@@ -578,46 +578,6 @@ export class ServarrParser implements IBuiltinParser {
     return message;
   }
 
-  private getEventIcon(eventType: string): string {
-    switch (eventType) {
-      case 'download':
-      case 'grabbed':
-        return '⬇️';
-      case 'imported':
-      case 'import':
-        return '✅';
-      case 'failed':
-      case 'failure':
-        return '❌';
-      case 'deleted':
-        return '🗑️';
-      case 'renamed':
-        return '📝';
-      default:
-        return '🎬';
-    }
-  }
-
-  private getEventColor(eventType: string): string {
-    switch (eventType) {
-      case 'download':
-      case 'grabbed':
-        return '#2196F3'; // Blue
-      case 'imported':
-      case 'import':
-        return '#4CAF50'; // Green
-      case 'failed':
-      case 'failure':
-        return '#F44336'; // Red
-      case 'deleted':
-        return '#FF9800'; // Orange
-      case 'renamed':
-        return '#9C27B0'; // Purple
-      default:
-        return '#607D8B'; // Blue Grey
-    }
-  }
-
   private getEventPriority(eventType: string): NotificationDeliveryType {
     switch (eventType) {
       case 'failed':
@@ -652,7 +612,6 @@ export class ServarrParser implements IBuiltinParser {
   }
 
   private createUnknownPayloadMessage(payload: ServarrPayload): CreateMessageDto {
-    const eventType = payload.eventType || 'Unknown Event';
     const instanceName = payload.instanceName || 'Unknown Instance';
     
     let body = 'Unknown payload received from Servarr application.';

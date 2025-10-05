@@ -39,6 +39,15 @@ export class PayloadMapper {
     @Column()
     name: string;
 
+    @Field(() => PayloadMapperBuiltInType, { nullable: true })
+    @ApiProperty({ enum: PayloadMapperBuiltInType, required: false })
+    @Column({
+        type: 'enum',
+        enum: PayloadMapperBuiltInType,
+        nullable: true,
+    })
+    builtInName?: PayloadMapperBuiltInType;
+
     @Field()
     @ApiProperty({
         description: 'JavaScript function as stringified code for payload mapping',
