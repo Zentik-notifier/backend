@@ -24,6 +24,7 @@ export enum ExecutionStatus {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR',
   TIMEOUT = 'TIMEOUT',
+  SKIPPED = 'SKIPPED',
 }
 
 registerEnumType(ExecutionStatus, {

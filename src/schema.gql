@@ -234,6 +234,7 @@ type EventsResponseDto {
 """Status of the execution"""
 enum ExecutionStatus {
   ERROR
+  SKIPPED
   SUCCESS
   TIMEOUT
 }

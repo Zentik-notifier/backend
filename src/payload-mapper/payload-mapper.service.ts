@@ -12,6 +12,16 @@ import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { BuiltinParserService } from './builtin';
 import { CreatePayloadMapperDto, UpdatePayloadMapperDto } from './dto';
 
+/**
+ * Interface for parser execution results
+ */
+interface ParserResult {
+  result?: CreateMessageDto;
+  status: ExecutionStatus;
+  errors?: string;
+  executionTimeMs: number;
+}
+
 @Injectable()
 export class PayloadMapperService {
   constructor(
@@ -141,39 +151,90 @@ export class PayloadMapperService {
     userId: string,
     bucketId: string,
   ): Promise<CreateMessageDto> {
-    let result: CreateMessageDto | undefined;
+    console.log(`[PayloadMapper] 🚀 transformPayload called for parser '${parserName}' by user ${userId}`);
+
+    let parserResult: ParserResult;
+    let parserInfo: { entityName: string; entityId?: string; parserType: 'builtin' | 'user' };
 
     try {
       // Check if it's a builtin parser
       if (this.builtinParserService.hasParser(parserName)) {
-        result = await this.transformWithBuiltinParser(
+        console.log(`[PayloadMapper] 🔧 Using builtin parser '${parserName}'`);
+        parserInfo = { entityName: parserName, parserType: 'builtin' };
+        parserResult = await this.transformWithBuiltinParser(
           parserName,
           payload,
           bucketId,
-          userId,
         );
       } else {
         // Look up user-created payload mapper by name or ID
+        console.log(`[PayloadMapper] 🔍 Looking for user parser '${parserName}'`);
         const payloadMapper = await this.findUserPayloadMapperByNameOrId(
           parserName,
           userId,
         );
         if (!payloadMapper) {
+          console.error(`[PayloadMapper] ❌ User parser '${parserName}' not found`);
           throw new NotFoundException(`User parser '${parserName}' not found`);
         }
 
-        result = await this.transformWithUserParser(
+        console.log(`[PayloadMapper] ✅ Found user parser '${payloadMapper.name}' (ID: ${payloadMapper.id})`);
+        parserInfo = {
+          entityName: payloadMapper.name,
+          entityId: payloadMapper.id,
+          parserType: 'user'
+        };
+        parserResult = await this.transformWithUserParser(
           payloadMapper,
           payload,
           bucketId,
-          userId,
         );
       }
     } catch (error: any) {
+      console.error(`[PayloadMapper] ❌ transformPayload failed for parser '${parserName}':`, error.message);
       throw error; // Re-throw to maintain existing behavior
     }
 
-    return result;
+    // Track the execution immediately after getting the result
+    try {
+      await this.entityExecutionService.create({
+        type: ExecutionType.PAYLOAD_MAPPER,
+        status: parserResult.status,
+        entityName: parserInfo.entityName,
+        entityId: parserInfo.parserType === 'user' ? parserInfo.entityId : undefined,
+        userId,
+        input: JSON.stringify({
+          parserName,
+          parserType: parserInfo.parserType,
+          payload,
+          bucketId,
+        }),
+        output: parserResult.result ? JSON.stringify(parserResult.result) : undefined,
+        errors: parserResult.errors,
+        durationMs: parserResult.executionTimeMs,
+      });
+
+      console.log(`[PayloadMapper] 💾 Execution tracked for ${parserInfo.parserType} parser '${parserName}' - Status: ${parserResult.status} (${parserResult.executionTimeMs}ms)`);
+
+    } catch (trackingError) {
+      // Log but don't throw - tracking shouldn't break the main flow
+      console.error('[PayloadMapper] ❌ Failed to track payload mapper execution:', trackingError);
+    }
+
+    // Handle different execution statuses
+    if (parserResult.status === ExecutionStatus.SKIPPED) {
+      throw new Error(`Parser '${parserName}' was skipped - returned null/undefined`);
+    }
+
+    if (parserResult.status === ExecutionStatus.ERROR) {
+      throw new Error(`Parser '${parserName}' execution failed: ${parserResult.errors}`);
+    }
+
+    if (!parserResult.result) {
+      throw new Error(`Parser '${parserName}' returned no result`);
+    }
+
+    return parserResult.result;
   }
 
   /**
@@ -204,23 +265,38 @@ export class PayloadMapperService {
     payloadMapper: PayloadMapper,
     payload: any,
     bucketId: string,
-    userId: string,
-  ): Promise<CreateMessageDto> {
+  ): Promise<ParserResult> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
     let executionErrors: string | undefined;
     let result: CreateMessageDto | undefined;
 
+    console.log(`[PayloadMapper] 🔄 Executing user parser '${payloadMapper.name}' (ID: ${payloadMapper.id})`);
+    console.log(`[PayloadMapper] 📥 Input payload:`, JSON.stringify(payload, null, 2));
+    console.log(`[PayloadMapper] 🪣 Bucket ID: ${bucketId}`);
+
     try {
       // Create a function from the stored JavaScript code
+      console.log(`[PayloadMapper] ⚡ Evaluating JavaScript function for parser '${payloadMapper.name}'`);
       const userFunction = eval(payloadMapper.jsEvalFn);
 
       // Execute the user function with the payload
+      console.log(`[PayloadMapper] 🚀 Executing parser function...`);
       const transformedPayload = userFunction(payload);
+
+      // Check if result is null/undefined (SKIPPED status)
+      if (transformedPayload === null || transformedPayload === undefined) {
+        console.log(`[PayloadMapper] ⏭️ Parser '${payloadMapper.name}' returned null/undefined - marking as SKIPPED`);
+        executionStatus = ExecutionStatus.SKIPPED;
+        return {
+          status: executionStatus,
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
 
       // Ensure the result is a valid CreateMessageDto structure
       if (!transformedPayload || typeof transformedPayload !== 'object') {
-        throw new Error('User parser must return an object');
+        throw new Error('User parser must return an object or null');
       }
 
       // Set the bucketId from the service parameter
@@ -228,38 +304,29 @@ export class PayloadMapperService {
         ...transformedPayload,
         bucketId: bucketId,
       };
+
+      console.log(`[PayloadMapper] ✅ User parser '${payloadMapper.name}' executed successfully`);
+      console.log(`[PayloadMapper] 📤 Output result:`, JSON.stringify(result, null, 2));
+
     } catch (error: any) {
       executionStatus = ExecutionStatus.ERROR;
       executionErrors = error.message;
-      throw new Error(
-        `Error executing user parser '${payloadMapper.name}': ${error.message}`,
-      );
-    }
 
-    // Track the execution
-    try {
-      await this.entityExecutionService.create({
-        type: ExecutionType.PAYLOAD_MAPPER,
+      console.error(`[PayloadMapper] ❌ Error executing user parser '${payloadMapper.name}':`, error.message);
+      console.error(`[PayloadMapper] ❌ Error stack:`, error.stack);
+
+      return {
         status: executionStatus,
-        entityName: payloadMapper.name,
-        entityId: payloadMapper.id,
-        userId,
-        input: JSON.stringify({
-          parserName: payloadMapper.name,
-          parserId: payloadMapper.id,
-          payload,
-          bucketId,
-        }),
-        output: result ? JSON.stringify(result) : undefined,
         errors: executionErrors,
-        durationMs: Date.now() - startTime,
-      });
-    } catch (trackingError) {
-      // Log but don't throw - tracking shouldn't break the main flow
-      console.error('Failed to track payload mapper execution:', trackingError);
+        executionTimeMs: Date.now() - startTime,
+      };
     }
 
-    return result!;
+    return {
+      result,
+      status: executionStatus,
+      executionTimeMs: Date.now() - startTime,
+    };
   }
 
   /**
@@ -269,56 +336,66 @@ export class PayloadMapperService {
     parserName: string,
     payload: any,
     bucketId: string,
-    userId: string,
-  ): Promise<CreateMessageDto> {
+  ): Promise<ParserResult> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
     let executionErrors: string | undefined;
     let result: CreateMessageDto | undefined;
 
+    console.log(`[PayloadMapper] 🔄 Executing builtin parser '${parserName}'`);
+    console.log(`[PayloadMapper] 📥 Input payload:`, JSON.stringify(payload, null, 2));
+    console.log(`[PayloadMapper] 🪣 Bucket ID: ${bucketId}`);
+
     try {
       // Transform the payload using the builtin parser
+      console.log(`[PayloadMapper] 🚀 Executing builtin parser '${parserName}'...`);
       const transformedPayload = this.builtinParserService.transformPayload(
         parserName,
         payload,
       );
+
+      // Check if result is null/undefined (SKIPPED status)
+      if (transformedPayload === null || transformedPayload === undefined) {
+        console.log(`[PayloadMapper] ⏭️ Builtin parser '${parserName}' returned null/undefined - marking as SKIPPED`);
+        executionStatus = ExecutionStatus.SKIPPED;
+        return {
+          status: executionStatus,
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      // Ensure the result is a valid CreateMessageDto structure
+      if (!transformedPayload || typeof transformedPayload !== 'object') {
+        throw new Error('Builtin parser must return an object or null');
+      }
 
       // Set the bucketId from the service parameter
       result = {
         ...transformedPayload,
         bucketId: bucketId,
       };
+
+      console.log(`[PayloadMapper] ✅ Builtin parser '${parserName}' executed successfully`);
+      console.log(`[PayloadMapper] 📤 Output result:`, JSON.stringify(result, null, 2));
+
     } catch (error: any) {
       executionStatus = ExecutionStatus.ERROR;
       executionErrors = error.message;
-      throw error; // Re-throw to maintain existing behavior
-    }
 
-    // Track the execution
-    try {
-      await this.entityExecutionService.create({
-        type: ExecutionType.PAYLOAD_MAPPER,
+      console.error(`[PayloadMapper] ❌ Error executing builtin parser '${parserName}':`, error.message);
+      console.error(`[PayloadMapper] ❌ Error stack:`, error.stack);
+
+      return {
         status: executionStatus,
-        entityName: parserName,
-        userId,
-        input: JSON.stringify({
-          parserName,
-          parserType: 'builtin',
-          payload,
-          bucketId,
-        }),
-        output: result ? JSON.stringify(result) : undefined,
         errors: executionErrors,
-        durationMs: Date.now() - startTime,
-      });
-    } catch (trackingError) {
-      // Log but don't throw - tracking shouldn't break the main flow
-      console.error(
-        'Failed to track builtin payload mapper execution:',
-        trackingError,
-      );
+        executionTimeMs: Date.now() - startTime,
+      };
     }
 
-    return result;
+    return {
+      result,
+      status: executionStatus,
+      executionTimeMs: Date.now() - startTime,
+    };
   }
 }
