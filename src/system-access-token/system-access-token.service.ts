@@ -56,6 +56,47 @@ export class SystemAccessTokenService {
     });
   }
 
+  async findOne(id: string) {
+    return this.systemTokenRepository.findOne({
+      where: { id },
+      relations: ['requester'],
+    });
+  }
+
+  async updateToken(
+    id: string,
+    maxCalls?: number,
+    expiresAt?: Date,
+    requesterId?: string,
+    description?: string,
+  ) {
+    // Validate that the requester user exists if provided
+    if (requesterId) {
+      const user = await this.userRepository.findOne({
+        where: { id: requesterId },
+      });
+      if (!user) {
+        throw new BadRequestException(`User with ID ${requesterId} not found`);
+      }
+    }
+
+    const updateData: any = {};
+    if (maxCalls !== undefined) updateData.maxCalls = maxCalls;
+    if (expiresAt !== undefined) updateData.expiresAt = expiresAt;
+    if (requesterId !== undefined) updateData.requesterId = requesterId;
+    if (description !== undefined) updateData.description = description;
+
+    const result = await this.systemTokenRepository.update(id, updateData);
+    if (result.affected === 0) {
+      throw new BadRequestException(`System access token with ID ${id} not found`);
+    }
+
+    return this.systemTokenRepository.findOne({
+      where: { id },
+      relations: ['requester'],
+    });
+  }
+
   async revoke(id: string) {
     const r = await this.systemTokenRepository.delete(id);
     return (r.affected || 0) > 0;

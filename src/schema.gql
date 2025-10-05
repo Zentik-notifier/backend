@@ -372,6 +372,7 @@ type Mutation {
   updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
   updateProfile(input: UpdateProfileInput!): User!
   updateReceivedNotifications(id: String!): UpdateReceivedResult!
+  updateSystemToken(description: String, expiresAt: String, id: String!, maxCalls: Float, requesterId: String): SystemAccessTokenDto!
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
   updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
@@ -541,6 +542,7 @@ type Query {
   events(query: EventsQueryDto!): EventsResponseDto!
   getBackendVersion: String!
   getResourcePermissions(input: GetResourcePermissionsInput!): [EntityPermission!]!
+  getSystemToken(id: String!): SystemAccessTokenDto
   getUserAccessTokens: [AccessTokenListDto!]!
   getUserSessions: [SessionInfoDto!]!
   healthcheck: String!

@@ -31,6 +31,28 @@ export class SystemAccessTokenResolver {
     return await this.service.findAll();
   }
 
+  @Query(() => SystemAccessTokenDto, { nullable: true })
+  async getSystemToken(@Args('id') id: string) {
+    return await this.service.findOne(id);
+  }
+
+  @Mutation(() => SystemAccessTokenDto)
+  async updateSystemToken(
+    @Args('id') id: string,
+    @Args('maxCalls', { nullable: true }) maxCalls?: number,
+    @Args('expiresAt', { nullable: true }) expiresAt?: string,
+    @Args('requesterId', { nullable: true }) requesterId?: string,
+    @Args('description', { nullable: true }) description?: string,
+  ) {
+    return await this.service.updateToken(
+      id,
+      maxCalls,
+      expiresAt ? new Date(expiresAt) : undefined,
+      requesterId,
+      description,
+    );
+  }
+
   @Mutation(() => Boolean)
   async revokeSystemToken(@Args('id') id: string) {
     return await this.service.revoke(id);
