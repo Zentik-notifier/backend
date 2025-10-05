@@ -10,7 +10,8 @@ import { Bucket } from '../entities/bucket.entity';
 export class UserBucketResolver {
   constructor(
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
-    @InjectRepository(Bucket) private readonly bucketsRepository: Repository<Bucket>,
+    @InjectRepository(Bucket)
+    private readonly bucketsRepository: Repository<Bucket>,
   ) {}
 
   @ResolveField(() => User)
@@ -22,6 +23,8 @@ export class UserBucketResolver {
   @ResolveField(() => Bucket)
   async bucket(@Parent() userBucket: UserBucket) {
     if (userBucket.bucket) return userBucket.bucket;
-    return this.bucketsRepository.findOne({ where: { id: userBucket.bucketId } });
+    return this.bucketsRepository.findOne({
+      where: { id: userBucket.bucketId },
+    });
   }
 }

@@ -24,6 +24,7 @@ import { SystemAccessTokenModule } from './system-access-token/system-access-tok
 import { UsersModule } from './users/users.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { DatabaseBackupModule } from './database-backup/database-backup.module';
+import { EntityExecutionModule } from './entity-execution/entity-execution.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { DatabaseBackupModule } from './database-backup/database-backup.module';
     AttachmentsModule,
     EventsModule,
     DatabaseBackupModule,
+    EntityExecutionModule,
   ],
   controllers: [AppController],
   providers: [

@@ -38,7 +38,7 @@ import { NotificationsResolver } from '../graphql/resolvers/notifications.resolv
     EventsModule,
     GraphQLSharedModule,
     forwardRef(() => MessagesModule),
-  BucketsModule,
+    BucketsModule,
     SystemAccessTokenModule,
   ],
   controllers: [NotificationsController],

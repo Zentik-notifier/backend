@@ -34,12 +34,16 @@ export class AttachmentsService {
     return storagePath;
   }
 
-  private async getUserMediaTypePath(userId: string, mediaType: MediaType, attachmentId: string): Promise<string> {
+  private async getUserMediaTypePath(
+    userId: string,
+    mediaType: MediaType,
+    attachmentId: string,
+  ): Promise<string> {
     const basePath = await this.getStoragePath();
     const userPath = join(basePath, userId);
     const mediaTypePath = join(userPath, mediaType.toLowerCase());
     const attachmentPath = join(mediaTypePath, attachmentId);
-    
+
     await mkdir(attachmentPath, { recursive: true });
     return attachmentPath;
   }
@@ -73,7 +77,11 @@ export class AttachmentsService {
     }
 
     // Get user-specific media type path: /attachments/userid/mediatype/id/
-    const attachmentPath = await this.getUserMediaTypePath(userId, finalMediaType!, attachmentId);
+    const attachmentPath = await this.getUserMediaTypePath(
+      userId,
+      finalMediaType!,
+      attachmentId,
+    );
 
     // Validate file size
     const maxFileSize =
@@ -110,19 +118,23 @@ export class AttachmentsService {
     const filepath = join(attachmentPath, uniqueFilename);
 
     // Debug file buffer
-    this.logger.log(`[DEBUG] File buffer info: size=${file.buffer?.length || 0} originalSize=${file.size} mimetype=${file.mimetype}`);
-    
+    this.logger.log(
+      `[DEBUG] File buffer info: size=${file.buffer?.length || 0} originalSize=${file.size} mimetype=${file.mimetype}`,
+    );
+
     // Write file to storage
     await writeFile(filepath, file.buffer);
     this.logger.log(
       `Attachment file saved on filesystem: path=${filepath} size=${file.size}B userId=${userId}`,
     );
-    
+
     // Verify file was written correctly
     const fs = require('fs');
     if (fs.existsSync(filepath)) {
       const stats = fs.statSync(filepath);
-      this.logger.log(`[DEBUG] File verification: exists=${fs.existsSync(filepath)} size=${stats.size} bytes`);
+      this.logger.log(
+        `[DEBUG] File verification: exists=${fs.existsSync(filepath)} size=${stats.size} bytes`,
+      );
     } else {
       this.logger.error(`[ERROR] File was not created: ${filepath}`);
     }
@@ -185,7 +197,11 @@ export class AttachmentsService {
             10485760; // 10MB default
 
           if (contentLength && parseInt(contentLength) > maxFileSize) {
-            reject(new Error(`File size exceeds maximum allowed size of ${maxFileSize} bytes`));
+            reject(
+              new Error(
+                `File size exceeds maximum allowed size of ${maxFileSize} bytes`,
+              ),
+            );
             return;
           }
 
@@ -235,7 +251,8 @@ export class AttachmentsService {
         });
 
         // Set timeout
-        request.setTimeout(30000, () => { // 30 second timeout
+        request.setTimeout(30000, () => {
+          // 30 second timeout
           request.destroy();
           reject(new Error('Request timeout'));
         });
@@ -318,7 +335,11 @@ export class AttachmentsService {
               }
 
               // Get user-specific media type path: /attachments/userid/mediatype/id/
-              const attachmentPath = await this.getUserMediaTypePath(userId, finalMediaType, attachmentId);
+              const attachmentPath = await this.getUserMediaTypePath(
+                userId,
+                finalMediaType,
+                attachmentId,
+              );
 
               // Full file path: /attachments/userid/mediatype/id/filename
               const filepath = join(attachmentPath, uniqueFilename);
@@ -437,9 +458,9 @@ export class AttachmentsService {
   ): Promise<{ deletedAttachments: number }> {
     const cutoff = new Date(Date.now() - maxAgeMs);
     const oldAttachments = await this.attachmentsRepository.find({
-      where: { 
+      where: {
         createdAt: LessThan(cutoff),
-        mediaType: Not(MediaType.ICON) // Exclude icons from cleanup
+        mediaType: Not(MediaType.ICON), // Exclude icons from cleanup
       },
     });
 

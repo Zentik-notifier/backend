@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 import {
   Attachment,
   Bucket,
+  EntityExecution,
   EntityPermission,
   Event,
   Message,
@@ -43,6 +44,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     SystemAccessToken,
     PayloadMapper,
     Attachment,
+    EntityExecution,
     Event,
     Message,
     User,

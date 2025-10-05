@@ -2,7 +2,11 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { Event, EventType } from '../entities';
-import { EventsPaginatedQueryDto, EventsQueryDto, EventsResponseDto } from './dto';
+import {
+  EventsPaginatedQueryDto,
+  EventsQueryDto,
+  EventsResponseDto,
+} from './dto';
 import { EventsService } from './events.service';
 
 @ApiTags('Events')
@@ -13,9 +17,18 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  async findAll(@Query() query?: EventsQueryDto): Promise<Event[] | EventsResponseDto> {
+  async findAll(
+    @Query() query?: EventsQueryDto,
+  ): Promise<Event[] | EventsResponseDto> {
     // Se vengono passati parametri di paginazione, usa la versione paginata
-    if (query && (query.page !== undefined || query.limit !== undefined || query.type || query.userId || query.objectId)) {
+    if (
+      query &&
+      (query.page !== undefined ||
+        query.limit !== undefined ||
+        query.type ||
+        query.userId ||
+        query.objectId)
+    ) {
       return this.eventsService.findAllPaginated(query);
     }
     // Altrimenti, usa la versione originale per compatibilità
@@ -23,7 +36,9 @@ export class EventsController {
   }
 
   @Get('paginated')
-  async findAllPaginated(@Query() query: EventsQueryDto): Promise<EventsResponseDto> {
+  async findAllPaginated(
+    @Query() query: EventsQueryDto,
+  ): Promise<EventsResponseDto> {
     return this.eventsService.findAllPaginated(query);
   }
 
@@ -36,7 +51,7 @@ export class EventsController {
   @Get('by-type')
   async findByType(
     @Query('type') type: EventType,
-    @Query() query?: EventsPaginatedQueryDto
+    @Query() query?: EventsPaginatedQueryDto,
   ): Promise<Event[] | EventsResponseDto> {
     if (query && (query.page !== undefined || query.limit !== undefined)) {
       return this.eventsService.findByTypePaginated(type, query);
@@ -47,7 +62,7 @@ export class EventsController {
   @Get('by-user')
   async findByUserId(
     @Query('userId') userId: string,
-    @Query() query?: EventsPaginatedQueryDto
+    @Query() query?: EventsPaginatedQueryDto,
   ): Promise<Event[] | EventsResponseDto> {
     if (query && (query.page !== undefined || query.limit !== undefined)) {
       return this.eventsService.findByUserIdPaginated(userId, query);
@@ -58,12 +73,11 @@ export class EventsController {
   @Get('by-object')
   async findByObjectId(
     @Query('objectId') objectId: string,
-    @Query() query?: EventsPaginatedQueryDto
+    @Query() query?: EventsPaginatedQueryDto,
   ): Promise<Event[] | EventsResponseDto> {
     if (query && (query.page !== undefined || query.limit !== undefined)) {
       return this.eventsService.findByObjectIdPaginated(objectId, query);
     }
     return this.eventsService.findByObjectId(objectId);
   }
-
 }

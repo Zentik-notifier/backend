@@ -80,7 +80,7 @@ export class NotificationsResolver {
     private notificationsService: NotificationsService,
     private subscriptionService: GraphQLSubscriptionService,
     private eventsService: EventsService,
-  ) { }
+  ) {}
 
   @Query(() => [Notification])
   async notifications(
@@ -102,7 +102,6 @@ export class NotificationsResolver {
   async notificationServices() {
     return this.notificationsService.getNotificationServices();
   }
-
 
   @Mutation(() => Boolean)
   async deleteNotification(
@@ -258,7 +257,10 @@ export class NotificationsResolver {
     @Args('ids', { type: () => [String] }) ids: string[],
     @CurrentUser('id') userId: string,
   ): Promise<MassDeleteResult> {
-    const { deletedIds } = await this.notificationsService.removeMany(ids, userId);
+    const { deletedIds } = await this.notificationsService.removeMany(
+      ids,
+      userId,
+    );
     // Publish deletions only for actually deleted ids
     for (const id of deletedIds) {
       await this.subscriptionService.publishNotificationDeleted(id, userId);
@@ -284,19 +286,20 @@ export class NotificationsResolver {
           notification,
           userId,
         );
-        
+
         // Count the main notification
         updatedCount++;
-        
+
         // Track message IDs to avoid double counting related notifications
         if (!processedMessageIds.has(notification.message.id)) {
           processedMessageIds.add(notification.message.id);
-          
+
           // Count related notifications from the same message
-          const relatedCount = await this.notificationsService.countRelatedUnreadNotifications(
-            notification.message.id,
-            userId,
-          );
+          const relatedCount =
+            await this.notificationsService.countRelatedUnreadNotifications(
+              notification.message.id,
+              userId,
+            );
           updatedCount += relatedCount;
         }
       } catch (error) {
@@ -357,27 +360,39 @@ export class NotificationsResolver {
     const events = await this.eventsService.findByUserId(targetUserId);
 
     // Filter events that represent notifications (MESSAGE type events)
-    const notificationEvents = events.filter(e => e.type === EventType.NOTIFICATION);
+    const notificationEvents = events.filter(
+      (e) => e.type === EventType.NOTIFICATION,
+    );
 
     // Count events by period using date-fns
-    const todayCount = notificationEvents.filter(e => {
+    const todayCount = notificationEvents.filter((e) => {
       const eventDate = new Date(e.createdAt);
-      return isAfter(eventDate, today) || eventDate.getTime() === today.getTime();
+      return (
+        isAfter(eventDate, today) || eventDate.getTime() === today.getTime()
+      );
     }).length;
 
-    const weekCount = notificationEvents.filter(e => {
+    const weekCount = notificationEvents.filter((e) => {
       const eventDate = new Date(e.createdAt);
-      return isAfter(eventDate, thisWeek) || eventDate.getTime() === thisWeek.getTime();
+      return (
+        isAfter(eventDate, thisWeek) ||
+        eventDate.getTime() === thisWeek.getTime()
+      );
     }).length;
 
-    const monthCount = notificationEvents.filter(e => {
+    const monthCount = notificationEvents.filter((e) => {
       const eventDate = new Date(e.createdAt);
-      return isAfter(eventDate, thisMonth) || eventDate.getTime() === thisMonth.getTime();
+      return (
+        isAfter(eventDate, thisMonth) ||
+        eventDate.getTime() === thisMonth.getTime()
+      );
     }).length;
 
     const totalCount = notificationEvents.length;
 
-    this.logger.debug(`User ${targetUserId} stats: today=${todayCount}, week=${weekCount}, month=${monthCount}, total=${totalCount} (total events: ${notificationEvents.length})`);
+    this.logger.debug(
+      `User ${targetUserId} stats: today=${todayCount}, week=${weekCount}, month=${monthCount}, total=${totalCount} (total events: ${notificationEvents.length})`,
+    );
 
     return {
       today: todayCount,

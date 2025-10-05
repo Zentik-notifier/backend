@@ -6,11 +6,15 @@ import { IBuiltinParser } from './builtin-parser.interface';
 export class BuiltinParserLoggerService {
   private readonly logger = new Logger(BuiltinParserLoggerService.name);
 
-  logInitialization(parsers: Map<PayloadMapperBuiltInType, IBuiltinParser>): void {
+  logInitialization(
+    parsers: Map<PayloadMapperBuiltInType, IBuiltinParser>,
+  ): void {
     this.logger.log('🚀 Initializing builtin payload parsers...');
-    
+
     const parserCount = parsers.size;
-    this.logger.log(`📦 Found ${parserCount} builtin parser${parserCount !== 1 ? 's' : ''}:`);
+    this.logger.log(
+      `📦 Found ${parserCount} builtin parser${parserCount !== 1 ? 's' : ''}:`,
+    );
 
     parsers.forEach((parser, type) => {
       this.logger.log(`  ✅ ${parser.name} (${type}) - ${parser.description}`);

@@ -163,8 +163,14 @@ export class UsersController {
   }
 
   @Get('settings')
-  @ApiOperation({ summary: 'Get user settings (optionally filtered by deviceId)' })
-  @ApiResponse({ status: 200, description: 'User settings', type: [UserSetting] })
+  @ApiOperation({
+    summary: 'Get user settings (optionally filtered by deviceId)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User settings',
+    type: [UserSetting],
+  })
   async getUserSettings(
     @GetUser('id') userId: string,
     @Query('deviceId') deviceId?: string,
@@ -174,7 +180,11 @@ export class UsersController {
 
   @Post('settings')
   @ApiOperation({ summary: 'Upsert a user setting' })
-  @ApiResponse({ status: 200, description: 'User setting upserted', type: UserSetting })
+  @ApiResponse({
+    status: 200,
+    description: 'User setting upserted',
+    type: UserSetting,
+  })
   async upsertUserSetting(
     @GetUser('id') userId: string,
     @Body() input: UpsertUserSettingInput,

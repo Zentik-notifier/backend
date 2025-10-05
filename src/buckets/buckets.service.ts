@@ -16,7 +16,6 @@ import { CreateBucketDto, UpdateBucketDto } from './dto/index';
 
 @Injectable()
 export class BucketsService {
-
   constructor(
     @InjectRepository(Bucket)
     private readonly bucketsRepository: Repository<Bucket>,
@@ -24,7 +23,7 @@ export class BucketsService {
     private readonly userBucketRepository: Repository<UserBucket>,
     private readonly entityPermissionService: EntityPermissionService,
     private readonly eventTrackingService: EventTrackingService,
-  ) { }
+  ) {}
 
   async create(
     userId: string,
@@ -42,12 +41,12 @@ export class BucketsService {
       where: { id: saved.id },
       relations: ['user'],
     });
-    
+
     // Create UserBucket relationship immediately to optimize future snooze operations
     try {
       await this.createUserBucket(userId, { bucketId: saved.id });
     } catch (error) {}
-    
+
     return reloaded ?? saved;
   }
 
@@ -65,7 +64,12 @@ export class BucketsService {
       .leftJoinAndSelect('bucket.messages', 'messages')
       .leftJoinAndSelect('messages.bucket', 'messageBucket')
       .leftJoinAndSelect('bucket.user', 'user')
-      .leftJoinAndSelect('bucket.userBuckets', 'userBuckets', 'userBuckets.userId = :userId', { userId })
+      .leftJoinAndSelect(
+        'bucket.userBuckets',
+        'userBuckets',
+        'userBuckets.userId = :userId',
+        { userId },
+      )
       .innerJoin(
         'entity_permissions',
         'ep',
@@ -91,8 +95,8 @@ export class BucketsService {
     );
 
     // Add userBucket field for current user to each bucket
-    const bucketsWithUserBucket = uniqueBuckets.map(bucket => {
-      const userBucket = bucket.userBuckets?.find(ub => ub.userId === userId);
+    const bucketsWithUserBucket = uniqueBuckets.map((bucket) => {
+      const userBucket = bucket.userBuckets?.find((ub) => ub.userId === userId);
       return {
         ...bucket,
         userBucket: userBucket || undefined,
@@ -102,7 +106,7 @@ export class BucketsService {
     const sortedBuckets = bucketsWithUserBucket.sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
-    
+
     return sortedBuckets;
   }
 
@@ -142,11 +146,18 @@ export class BucketsService {
         typeof qb.getOne === 'function'
       ) {
         const withUserBuckets = await qb
-          .leftJoinAndSelect('bucket.userBuckets', 'userBuckets', 'userBuckets.userId = :userId', { userId })
+          .leftJoinAndSelect(
+            'bucket.userBuckets',
+            'userBuckets',
+            'userBuckets.userId = :userId',
+            { userId },
+          )
           .where('bucket.id = :id', { id })
           .getOne();
         if (withUserBuckets) {
-          const userBucket = (withUserBuckets.userBuckets || []).find((ub: any) => ub.userId === userId);
+          const userBucket = (withUserBuckets.userBuckets || []).find(
+            (ub: any) => ub.userId === userId,
+          );
           (baseBucket as any).userBucket = userBucket || undefined;
         }
       }
@@ -252,7 +263,11 @@ export class BucketsService {
 
   async createUserBucket(
     userId: string,
-    params: { bucketId: string; snoozeUntil?: string | undefined; snoozes?: any[] },
+    params: {
+      bucketId: string;
+      snoozeUntil?: string | undefined;
+      snoozes?: any[];
+    },
   ): Promise<UserBucket> {
     const existing = await this.userBucketRepository.findOne({
       where: { userId, bucketId: params.bucketId },
@@ -260,11 +275,13 @@ export class BucketsService {
     if (existing) {
       throw new ConflictException('User bucket relationship already exists');
     }
-    
+
     const userBucket = this.userBucketRepository.create({
       bucketId: params.bucketId,
       userId,
-      snoozeUntil: params.snoozeUntil ? new Date(params.snoozeUntil) : undefined,
+      snoozeUntil: params.snoozeUntil
+        ? new Date(params.snoozeUntil)
+        : undefined,
       snoozes: params.snoozes || [],
     });
     const savedUserBucket = await this.userBucketRepository.save(userBucket);
@@ -313,7 +330,10 @@ export class BucketsService {
       } catch (error) {
         // If creation fails due to race condition, try to find again
         if (error instanceof ConflictException) {
-          userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+          userBucket = await this.findUserBucketByBucketAndUser(
+            bucketId,
+            userId,
+          );
           if (!userBucket) {
             throw error; // Re-throw if still not found
           }
@@ -330,14 +350,23 @@ export class BucketsService {
     userId: string,
     userBuckets: UserBucket[],
   ): Promise<boolean> {
-    const userBucket = userBuckets.find(ub => ub.bucketId === bucketId);
-    const result = userBucket && userBucket.snoozeUntil ? new Date() < userBucket.snoozeUntil : false;
+    const userBucket = userBuckets.find((ub) => ub.bucketId === bucketId);
+    const result =
+      userBucket && userBucket.snoozeUntil
+        ? new Date() < userBucket.snoozeUntil
+        : false;
     return result;
   }
 
   async isBucketSnoozed(bucketId: string, userId: string): Promise<boolean> {
-    const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
-    const result = userBucket && userBucket.snoozeUntil ? new Date() < userBucket.snoozeUntil : false;
+    const userBucket = await this.findUserBucketByBucketAndUser(
+      bucketId,
+      userId,
+    );
+    const result =
+      userBucket && userBucket.snoozeUntil
+        ? new Date() < userBucket.snoozeUntil
+        : false;
     return result;
   }
 
@@ -347,7 +376,10 @@ export class BucketsService {
     snoozeUntil: string | null,
   ): Promise<UserBucket | null> {
     if (snoozeUntil === null) {
-      const existing = await this.findUserBucketByBucketAndUser(bucketId, userId);
+      const existing = await this.findUserBucketByBucketAndUser(
+        bucketId,
+        userId,
+      );
       if (existing) {
         existing.snoozeUntil = null;
         const result = await this.userBucketRepository.save(existing);
@@ -356,7 +388,7 @@ export class BucketsService {
       const result = await this.createUserBucket(userId, { bucketId });
       return result;
     }
-    
+
     const userBucket = await this.findOrCreateUserBucket(bucketId, userId);
     userBucket.snoozeUntil = new Date(snoozeUntil);
     const result = await this.userBucketRepository.save(userBucket);
@@ -371,7 +403,7 @@ export class BucketsService {
     // Calculate snooze until date (now + minutes)
     const snoozeUntil = new Date();
     snoozeUntil.setMinutes(snoozeUntil.getMinutes() + minutes);
-    
+
     const userBucket = await this.findOrCreateUserBucket(bucketId, userId);
     userBucket.snoozeUntil = snoozeUntil;
     const result = await this.userBucketRepository.save(userBucket);
@@ -389,23 +421,26 @@ export class BucketsService {
   }
 
   async removeUserBucket(bucketId: string, userId: string): Promise<void> {
-    const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+    const userBucket = await this.findUserBucketByBucketAndUser(
+      bucketId,
+      userId,
+    );
     if (userBucket) {
       // Get bucket owner to track the unsharing event correctly
       const bucket = await this.bucketsRepository.findOne({
         where: { id: bucketId },
         relations: ['user'],
       });
-      
+
       if (bucket) {
         // Track as owner removing access from user (even if user is removing themselves)
         await this.eventTrackingService.trackBucketUnsharing(
           bucket.user.id, // owner
-          bucketId,       // bucket
-          userId          // user being removed
+          bucketId, // bucket
+          userId, // user being removed
         );
       }
-      
+
       await this.userBucketRepository.remove(userBucket);
     }
   }

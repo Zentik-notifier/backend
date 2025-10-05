@@ -88,7 +88,9 @@ export class SystemAccessTokenService {
 
     const result = await this.systemTokenRepository.update(id, updateData);
     if (result.affected === 0) {
-      throw new BadRequestException(`System access token with ID ${id} not found`);
+      throw new BadRequestException(
+        `System access token with ID ${id} not found`,
+      );
     }
 
     return this.systemTokenRepository.findOne({

@@ -164,12 +164,14 @@ describe('PushNotificationOrchestratorService', () => {
         {
           provide: UsersService,
           useValue: {
-            getUserSetting: jest.fn(async (userId: string, type: UserSettingType) => {
-              if (type === UserSettingType.UnencryptOnBigPayload) {
-                return { valueBool: true } as any;
-              }
-              return null;
-            }),
+            getUserSetting: jest.fn(
+              async (userId: string, type: UserSettingType) => {
+                if (type === UserSettingType.UnencryptOnBigPayload) {
+                  return { valueBool: true } as any;
+                }
+                return null;
+              },
+            ),
           },
         },
       ],
@@ -191,7 +193,7 @@ describe('PushNotificationOrchestratorService', () => {
       GraphQLSubscriptionService,
     );
     urlBuilderService = module.get<UrlBuilderService>(UrlBuilderService);
-  bucketsService = module.get<BucketsService>(BucketsService);
+    bucketsService = module.get<BucketsService>(BucketsService);
     configService = module.get<ConfigService>(ConfigService);
 
     jest.clearAllMocks();
@@ -553,7 +555,9 @@ describe('PushNotificationOrchestratorService', () => {
         },
       });
 
-      expect(mockWebPushService.buildWebPayload).toHaveBeenCalledWith(mockNotification);
+      expect(mockWebPushService.buildWebPayload).toHaveBeenCalledWith(
+        mockNotification,
+      );
     });
   });
 });

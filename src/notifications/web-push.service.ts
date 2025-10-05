@@ -127,10 +127,7 @@ export class WebPushService {
     );
 
     // Combine manual actions with automatic actions
-    const allActions = [
-      ...(message?.actions || []),
-      ...automaticActions,
-    ];
+    const allActions = [...(message?.actions || []), ...automaticActions];
 
     const imageUrl = (message?.attachments || []).find(
       (att) =>
@@ -142,11 +139,19 @@ export class WebPushService {
 
     // Determine tap URL based on tapAction type (similar to iOS implementation)
     let url: string | undefined = '/';
-    const effectiveTapAction = message.tapAction || { type: NotificationActionType.OPEN_NOTIFICATION, value: notification.id };
+    const effectiveTapAction = message.tapAction || {
+      type: NotificationActionType.OPEN_NOTIFICATION,
+      value: notification.id,
+    };
 
-    if (effectiveTapAction.type === NotificationActionType.NAVIGATE && effectiveTapAction.value) {
+    if (
+      effectiveTapAction.type === NotificationActionType.NAVIGATE &&
+      effectiveTapAction.value
+    ) {
       url = effectiveTapAction.value;
-    } else if (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION) {
+    } else if (
+      effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION
+    ) {
       // For OPEN_NOTIFICATION, navigate to notification detail page
       url = `/notifications/${effectiveTapAction.value || notification.id}`;
     }
@@ -175,19 +180,39 @@ export class WebPushService {
   }
 
   public async sendPrebuilt(
-    deviceData: { endpoint: string; p256dh: string; auth: string; publicKey: string; privateKey: string },
+    deviceData: {
+      endpoint: string;
+      p256dh: string;
+      auth: string;
+      publicKey: string;
+      privateKey: string;
+    },
     payload: string,
   ): Promise<WebPushSendResult> {
     if (!this.configured) {
       return { success: false, results: [] };
     }
 
-    const { endpoint, p256dh, auth, publicKey, privateKey } = deviceData || ({});
+    const { endpoint, p256dh, auth, publicKey, privateKey } = deviceData || {};
     if (!endpoint || !p256dh || !auth) {
-      return { success: false, results: [{ endpoint: endpoint || '', success: false, error: 'Missing subscription fields' }] };
+      return {
+        success: false,
+        results: [
+          {
+            endpoint: endpoint || '',
+            success: false,
+            error: 'Missing subscription fields',
+          },
+        ],
+      };
     }
     if (!publicKey || !privateKey) {
-      return { success: false, results: [{ endpoint, success: false, error: 'Missing VAPID key pair' }] };
+      return {
+        success: false,
+        results: [
+          { endpoint, success: false, error: 'Missing VAPID key pair' },
+        ],
+      };
     }
 
     const sub = {
@@ -196,13 +221,19 @@ export class WebPushService {
     };
 
     try {
-      const subject = process.env.VAPID_SUBJECT || 'mailto:gianlucaruoccoios@gmail.com';
+      const subject =
+        process.env.VAPID_SUBJECT || 'mailto:gianlucaruoccoios@gmail.com';
       await this.webpush.sendNotification(sub, payload, {
         vapidDetails: { subject, publicKey, privateKey },
       });
       return { success: true, results: [{ endpoint, success: true }] };
     } catch (error: any) {
-      return { success: false, results: [{ endpoint, success: false, error: error?.message || String(error) }] };
+      return {
+        success: false,
+        results: [
+          { endpoint, success: false, error: error?.message || String(error) },
+        ],
+      };
     }
   }
 }

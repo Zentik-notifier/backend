@@ -47,7 +47,7 @@ describe('FirebasePushService', () => {
     }).compile();
 
     service = module.get<FirebasePushService>(FirebasePushService);
-    
+
     // Mock Firebase app
     (service as any).app = {
       messaging: () => ({
@@ -203,9 +203,13 @@ describe('FirebasePushService', () => {
         },
       };
 
-      mockSendEachForMulticast.mockRejectedValueOnce(new Error('Firebase error'));
+      mockSendEachForMulticast.mockRejectedValueOnce(
+        new Error('Firebase error'),
+      );
 
-      await expect(service.sendPrebuilt(deviceData, payload as any)).rejects.toThrow('Firebase error');
+      await expect(
+        service.sendPrebuilt(deviceData, payload as any),
+      ).rejects.toThrow('Firebase error');
     });
 
     it('should handle empty tokens array', async () => {

@@ -11,7 +11,12 @@ import {
 import { ResourceType } from 'src/auth/dto/auth.dto';
 import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
 import { BucketsService } from '../../buckets/buckets.service';
-import { CreateBucketDto, UpdateBucketDto, SnoozeScheduleInput, SetBucketSnoozeMinutesInput } from '../../buckets/dto';
+import {
+  CreateBucketDto,
+  UpdateBucketDto,
+  SnoozeScheduleInput,
+  SetBucketSnoozeMinutesInput,
+} from '../../buckets/dto';
 import { Bucket } from '../../entities/bucket.entity';
 import { EntityPermission } from '../../entities/entity-permission.entity';
 import { UserBucket } from '../../entities/user-bucket.entity';
@@ -28,7 +33,6 @@ import { GraphQLSubscriptionService } from '../services/graphql-subscription.ser
 @UseGuards(JwtOrAccessTokenGuard)
 @Injectable()
 export class BucketsResolver {
-
   constructor(
     private bucketsService: BucketsService,
     private subscriptionService: GraphQLSubscriptionService,
@@ -51,7 +55,7 @@ export class BucketsResolver {
     if (bucket.userBucket) {
       return bucket.userBucket;
     }
-    
+
     // Fallback to database query if userBucket not pre-loaded
     try {
       const result = await this.bucketsService.findUserBucketByBucketAndUser(
@@ -271,23 +275,35 @@ export class BucketsResolver {
     return true;
   }
 
-  @Mutation(() => UserBucket, { deprecationReason: 'Usa Bucket.setBucketSnooze (questo sarà rimosso)' })
+  @Mutation(() => UserBucket, {
+    deprecationReason: 'Usa Bucket.setBucketSnooze (questo sarà rimosso)',
+  })
   async setBucketSnooze(
     @Args('bucketId', { type: () => String }) bucketId: string,
     @Args('snoozeUntil', { type: () => String, nullable: true })
     snoozeUntil: string | null,
     @CurrentUser('id') userId: string,
   ) {
-    const result = await this.bucketsService.setBucketSnooze(bucketId, userId, snoozeUntil);
+    const result = await this.bucketsService.setBucketSnooze(
+      bucketId,
+      userId,
+      snoozeUntil,
+    );
 
     // Pubblica subito un evento per aggiornare i client con lo stato più recente
     try {
-      await this.subscriptionService.publishUserBucketUpdated(result, bucketId, userId);
+      await this.subscriptionService.publishUserBucketUpdated(
+        result,
+        bucketId,
+        userId,
+      );
     } catch (err) {}
     return result;
   }
 
-  @Mutation(() => UserBucket, { deprecationReason: 'Usa future Bucket mutation (updateBucketSnoozes)' })
+  @Mutation(() => UserBucket, {
+    deprecationReason: 'Usa future Bucket mutation (updateBucketSnoozes)',
+  })
   async updateBucketSnoozes(
     @Args('bucketId', { type: () => String }) bucketId: string,
     @Args('snoozes', { type: () => [SnoozeScheduleInput] })
@@ -303,7 +319,11 @@ export class BucketsResolver {
     @Args('input') input: SetBucketSnoozeMinutesInput,
     @CurrentUser('id') userId: string,
   ) {
-    const result = await this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, input.minutes);
+    const result = await this.bucketsService.setBucketSnoozeMinutes(
+      bucketId,
+      userId,
+      input.minutes,
+    );
     return result;
   }
 

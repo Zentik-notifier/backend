@@ -9,6 +9,8 @@ import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository } from 'typeorm';
 import { UserWebhook } from '../entities';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { EntityExecutionService } from '../entity-execution/entity-execution.service';
+import { ExecutionType, ExecutionStatus } from '../entities';
 import { CreateWebhookDto, UpdateWebhookDto } from './dto';
 
 @Injectable()
@@ -19,6 +21,7 @@ export class WebhooksService {
     @InjectRepository(UserWebhook)
     private readonly webhookRepository: Repository<UserWebhook>,
     private readonly entityPermissionService: EntityPermissionService,
+    private readonly entityExecutionService: EntityExecutionService,
   ) {}
 
   async createWebhook(
@@ -188,8 +191,13 @@ export class WebhooksService {
   async executeWebhook(webhookId: string, userId: string): Promise<void> {
     // Fetch the webhook entity from database
     const webhook = await this.getWebhookById(webhookId, userId);
-    
+
     this.logger.log(`Executing webhook ${webhook.name} to ${webhook.url}`);
+
+    const startTime = Date.now();
+    let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
+    let executionErrors: string | undefined;
+    let responseBody: string | undefined;
 
     try {
       // Prepare headers
@@ -233,20 +241,68 @@ export class WebhooksService {
       const response = await fetch(webhook.url, requestOptions);
 
       if (response.ok) {
-        this.logger.log(`Webhook ${webhook.name} executed successfully. Status: ${response.status}`);
+        this.logger.log(
+          `Webhook ${webhook.name} executed successfully. Status: ${response.status}`,
+        );
+        responseBody = await response.text();
       } else {
         const errorText = await response.text();
+        executionStatus = ExecutionStatus.ERROR;
+        executionErrors = `HTTP ${response.status}: ${errorText}`;
         this.logger.error(
-          `Webhook ${webhook.name} failed. Status: ${response.status}, Response: ${errorText}`
+          `Webhook ${webhook.name} failed. Status: ${response.status}, Response: ${errorText}`,
         );
       }
     } catch (error) {
+      executionStatus =
+        error.name === 'AbortError'
+          ? ExecutionStatus.TIMEOUT
+          : ExecutionStatus.ERROR;
+      executionErrors = error.message;
       if (error.name === 'AbortError') {
         this.logger.error(`Webhook ${webhook.name} timed out after 30 seconds`);
       } else {
-        this.logger.error(`Webhook ${webhook.name} execution failed:`, error.message);
+        this.logger.error(
+          `Webhook ${webhook.name} execution failed:`,
+          error.message,
+        );
       }
       // Don't throw the error to prevent breaking the notification flow
+    }
+
+    // Track the execution
+    try {
+      await this.entityExecutionService.create({
+        type: ExecutionType.WEBHOOK,
+        status: executionStatus,
+        entityName: webhook.name,
+        entityId: webhook.id,
+        userId,
+        input: JSON.stringify({
+          webhookId,
+          method: webhook.method,
+          url: webhook.url,
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Zentik-Webhook/1.0',
+            ...webhook.headers?.reduce(
+              (acc, header) => ({ ...acc, [header.key]: header.value }),
+              {},
+            ),
+          },
+          body: ['POST', 'PUT', 'PATCH'].includes(webhook.method)
+            ? webhook.body
+              ? { ...webhook.body, timestamp: new Date().toISOString() }
+              : { timestamp: new Date().toISOString() }
+            : undefined,
+        }),
+        output: responseBody,
+        errors: executionErrors,
+        durationMs: Date.now() - startTime,
+      });
+    } catch (trackingError) {
+      this.logger.error('Failed to track webhook execution:', trackingError);
+      // Don't throw tracking errors to prevent breaking the notification flow
     }
   }
 }

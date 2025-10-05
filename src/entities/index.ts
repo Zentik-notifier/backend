@@ -1,6 +1,11 @@
 export { Attachment } from './attachment.entity';
 export { Bucket } from './bucket.entity';
 export { EntityPermission } from './entity-permission.entity';
+export {
+  EntityExecution,
+  ExecutionType,
+  ExecutionStatus,
+} from './entity-execution.entity';
 export { Event, EventType } from './event.entity';
 export { Message } from './message.entity';
 export { Notification } from './notification.entity';

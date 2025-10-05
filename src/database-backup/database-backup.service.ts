@@ -42,17 +42,24 @@ export class DatabaseBackupService implements OnModuleInit {
       port: this.configService.get<number>('DB_PORT', 5432),
       database: this.configService.get<string>('DB_NAME', 'zentik'),
       username: this.configService.get<string>('DB_USERNAME', 'zentik_user'),
-      password: this.configService.get<string>('DB_PASSWORD', 'zentik_password'),
-      storagePath: this.configService.get<string>('BACKUP_STORAGE_PATH', '/var/backups/zentik'),
+      password: this.configService.get<string>(
+        'DB_PASSWORD',
+        'zentik_password',
+      ),
+      storagePath: this.configService.get<string>(
+        'BACKUP_STORAGE_PATH',
+        '/var/backups/zentik',
+      ),
       maxToKeep: this.configService.get<number>('BACKUP_MAX_TO_KEEP', 10),
-      compressBackup: true, 
+      compressBackup: true,
     };
 
     this.ensureBackupDirectory();
   }
 
   onModuleInit() {
-    const backupEnabled = this.configService.get<string>('BACKUP_ENABLED') === 'true';
+    const backupEnabled =
+      this.configService.get<string>('BACKUP_ENABLED') === 'true';
 
     if (!backupEnabled) {
       this.logger.log('Database backup disabled');
@@ -60,7 +67,8 @@ export class DatabaseBackupService implements OnModuleInit {
     }
 
     // Execute backup on startup if configured
-    const executeOnStart = this.configService.get<string>('BACKUP_EXECUTE_ON_START') === 'true';
+    const executeOnStart =
+      this.configService.get<string>('BACKUP_EXECUTE_ON_START') === 'true';
     if (executeOnStart) {
       this.logger.log('Executing initial database backup on startup...');
       this.handleBackup().catch((error) => {
@@ -69,11 +77,14 @@ export class DatabaseBackupService implements OnModuleInit {
     }
 
     // Single backup cron job
-    const cronExpr = this.configService.get<string>('BACKUP_CRON_JOB') || '0 */12 * * *';
+    const cronExpr =
+      this.configService.get<string>('BACKUP_CRON_JOB') || '0 */12 * * *';
     const backupJob = new CronJob(cronExpr, () => this.handleBackup());
     this.schedulerRegistry.addCronJob('databaseBackup', backupJob);
     backupJob.start();
-    this.logger.log(`Database backup cron scheduled with expression: ${cronExpr}`);
+    this.logger.log(
+      `Database backup cron scheduled with expression: ${cronExpr}`,
+    );
   }
 
   /**
@@ -82,9 +93,11 @@ export class DatabaseBackupService implements OnModuleInit {
   async handleBackup(): Promise<void> {
     this.logger.log('Starting scheduled database backup');
     const result = await this.createBackup();
-    
+
     if (result.success) {
-      this.logger.log(`Database backup completed successfully: ${result.filename} (${result.size})`);
+      this.logger.log(
+        `Database backup completed successfully: ${result.filename} (${result.size})`,
+      );
     } else {
       this.logger.error(`Database backup failed: ${result.error}`);
     }
@@ -95,7 +108,10 @@ export class DatabaseBackupService implements OnModuleInit {
    */
   private async createBackup(): Promise<BackupResult> {
     const timestamp = new Date();
-    const timestampStr = timestamp.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const timestampStr = timestamp
+      .toISOString()
+      .replace(/[:.]/g, '-')
+      .slice(0, -5);
     const baseFilename = `zentik_backup_${timestampStr}`;
     const sqlFilename = `${baseFilename}.sql`;
     const finalFilename = `${sqlFilename}.gz`;
@@ -152,7 +168,9 @@ export class DatabaseBackupService implements OnModuleInit {
       const stats = fs.statSync(finalBackupPath);
       const size = this.formatBytes(stats.size);
 
-      this.logger.log(`Backup created successfully: ${finalFilename} (${size})`);
+      this.logger.log(
+        `Backup created successfully: ${finalFilename} (${size})`,
+      );
 
       // Clean up old backups
       await this.cleanupOldBackups();
@@ -163,7 +181,6 @@ export class DatabaseBackupService implements OnModuleInit {
         size,
         timestamp,
       };
-
     } catch (error) {
       this.logger.error(`Backup failed: ${error.message}`);
       return {
@@ -188,10 +205,13 @@ export class DatabaseBackupService implements OnModuleInit {
 
       // Collect all backup files with their metadata
       for (const file of files) {
-        if (file.startsWith('zentik_backup_') && (file.endsWith('.sql') || file.endsWith('.sql.gz'))) {
+        if (
+          file.startsWith('zentik_backup_') &&
+          (file.endsWith('.sql') || file.endsWith('.sql.gz'))
+        ) {
           const filePath = path.join(this.config.storagePath, file);
           const stats = fs.statSync(filePath);
-          
+
           backupFiles.push({
             filename: file,
             path: filePath,
@@ -215,10 +235,11 @@ export class DatabaseBackupService implements OnModuleInit {
         }
 
         if (deletedCount > 0) {
-          this.logger.log(`Cleaned up ${deletedCount} old backup files (keeping ${this.config.maxToKeep} most recent)`);
+          this.logger.log(
+            `Cleaned up ${deletedCount} old backup files (keeping ${this.config.maxToKeep} most recent)`,
+          );
         }
       }
-
     } catch (error) {
       this.logger.error(`Failed to cleanup old backups: ${error.message}`);
     }
@@ -238,17 +259,16 @@ export class DatabaseBackupService implements OnModuleInit {
     }
   }
 
-
   /**
    * Format bytes to human readable format
    */
   private formatBytes(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

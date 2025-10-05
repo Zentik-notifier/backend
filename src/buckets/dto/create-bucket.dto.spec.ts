@@ -26,7 +26,8 @@ describe('CreateBucketDto', () => {
     it('should pass validation with non-HTTP icon', async () => {
       const dto = new CreateBucketDto();
       dto.name = 'Test Bucket';
-      dto.icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      dto.icon =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);

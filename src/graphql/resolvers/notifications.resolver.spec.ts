@@ -110,7 +110,7 @@ describe('NotificationsResolver', () => {
   describe('userNotificationStats', () => {
     it('should return notification stats for a user', async () => {
       const userId = 'test-user-id';
-      
+
       // Mock events with different types
       const mockEvents = [
         {
@@ -142,17 +142,17 @@ describe('NotificationsResolver', () => {
       expect(result).toHaveProperty('thisWeek');
       expect(result).toHaveProperty('thisMonth');
       expect(result).toHaveProperty('total');
-      
+
       // Verify that only NOTIFICATION type events are counted in total
       expect(result.total).toBe(2);
-      
+
       // Verify that the service was called correctly
       expect(mockEventsService.findByUserId).toHaveBeenCalledWith(userId);
     });
 
     it('should return zero stats when no notification events exist', async () => {
       const userId = 'test-user-id';
-      
+
       mockEventsService.findByUserId.mockResolvedValue([]);
 
       const result = await resolver.userNotificationStats(userId);
@@ -168,7 +168,7 @@ describe('NotificationsResolver', () => {
 
     it('should use current user id when no userId provided', async () => {
       const currentUserId = 'current-user-id';
-      
+
       mockEventsService.findByUserId.mockResolvedValue([]);
 
       const result = await resolver.userNotificationStats(currentUserId);
@@ -179,7 +179,9 @@ describe('NotificationsResolver', () => {
         thisMonth: 0,
         total: 0,
       });
-      expect(mockEventsService.findByUserId).toHaveBeenCalledWith(currentUserId);
+      expect(mockEventsService.findByUserId).toHaveBeenCalledWith(
+        currentUserId,
+      );
     });
   });
 
@@ -187,13 +189,13 @@ describe('NotificationsResolver', () => {
     it('should mark multiple notifications as read and count related notifications', async () => {
       const notificationIds = ['notification-1', 'notification-2'];
       const userId = 'user-1';
-      
+
       const mockNotification1 = {
         id: 'notification-1',
         message: { id: 'message-1' },
         readAt: new Date(),
       };
-      
+
       const mockNotification2 = {
         id: 'notification-2',
         message: { id: 'message-2' },
@@ -203,39 +205,56 @@ describe('NotificationsResolver', () => {
       mockNotificationsService.markAsRead
         .mockResolvedValueOnce(mockNotification1)
         .mockResolvedValueOnce(mockNotification2);
-      
+
       mockNotificationsService.countRelatedUnreadNotifications
         .mockResolvedValueOnce(2) // 2 related notifications for message-1
         .mockResolvedValueOnce(1); // 1 related notification for message-2
 
-      const result = await resolver.massMarkNotificationsAsRead(notificationIds, userId);
+      const result = await resolver.massMarkNotificationsAsRead(
+        notificationIds,
+        userId,
+      );
 
       expect(result).toEqual({
         updatedCount: 5, // 2 main notifications + 2 related + 1 related
         success: true,
       });
-      
+
       expect(mockNotificationsService.markAsRead).toHaveBeenCalledTimes(2);
-      expect(mockNotificationsService.markAsRead).toHaveBeenCalledWith('notification-1', userId);
-      expect(mockNotificationsService.markAsRead).toHaveBeenCalledWith('notification-2', userId);
-      
-      expect(mockNotificationsService.countRelatedUnreadNotifications).toHaveBeenCalledTimes(2);
-      expect(mockNotificationsService.countRelatedUnreadNotifications).toHaveBeenCalledWith('message-1', userId);
-      expect(mockNotificationsService.countRelatedUnreadNotifications).toHaveBeenCalledWith('message-2', userId);
-      
-      expect(mockSubscriptionService.publishNotificationUpdated).toHaveBeenCalledTimes(2);
+      expect(mockNotificationsService.markAsRead).toHaveBeenCalledWith(
+        'notification-1',
+        userId,
+      );
+      expect(mockNotificationsService.markAsRead).toHaveBeenCalledWith(
+        'notification-2',
+        userId,
+      );
+
+      expect(
+        mockNotificationsService.countRelatedUnreadNotifications,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        mockNotificationsService.countRelatedUnreadNotifications,
+      ).toHaveBeenCalledWith('message-1', userId);
+      expect(
+        mockNotificationsService.countRelatedUnreadNotifications,
+      ).toHaveBeenCalledWith('message-2', userId);
+
+      expect(
+        mockSubscriptionService.publishNotificationUpdated,
+      ).toHaveBeenCalledTimes(2);
     });
 
     it('should handle notifications from the same message without double counting', async () => {
       const notificationIds = ['notification-1', 'notification-2'];
       const userId = 'user-1';
-      
+
       const mockNotification1 = {
         id: 'notification-1',
         message: { id: 'message-1' },
         readAt: new Date(),
       };
-      
+
       const mockNotification2 = {
         id: 'notification-2',
         message: { id: 'message-1' }, // Same message
@@ -245,25 +264,33 @@ describe('NotificationsResolver', () => {
       mockNotificationsService.markAsRead
         .mockResolvedValueOnce(mockNotification1)
         .mockResolvedValueOnce(mockNotification2);
-      
-      mockNotificationsService.countRelatedUnreadNotifications
-        .mockResolvedValueOnce(1); // Only called once for message-1
 
-      const result = await resolver.massMarkNotificationsAsRead(notificationIds, userId);
+      mockNotificationsService.countRelatedUnreadNotifications.mockResolvedValueOnce(
+        1,
+      ); // Only called once for message-1
+
+      const result = await resolver.massMarkNotificationsAsRead(
+        notificationIds,
+        userId,
+      );
 
       expect(result).toEqual({
         updatedCount: 3, // 2 main notifications + 1 related (not double counted)
         success: true,
       });
-      
-      expect(mockNotificationsService.countRelatedUnreadNotifications).toHaveBeenCalledTimes(1);
-      expect(mockNotificationsService.countRelatedUnreadNotifications).toHaveBeenCalledWith('message-1', userId);
+
+      expect(
+        mockNotificationsService.countRelatedUnreadNotifications,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        mockNotificationsService.countRelatedUnreadNotifications,
+      ).toHaveBeenCalledWith('message-1', userId);
     });
 
     it('should handle errors gracefully and continue processing', async () => {
       const notificationIds = ['notification-1', 'notification-2'];
       const userId = 'user-1';
-      
+
       const mockNotification2 = {
         id: 'notification-2',
         message: { id: 'message-2' },
@@ -273,20 +300,25 @@ describe('NotificationsResolver', () => {
       mockNotificationsService.markAsRead
         .mockRejectedValueOnce(new Error('Failed to mark as read'))
         .mockResolvedValueOnce(mockNotification2);
-      
-      mockNotificationsService.countRelatedUnreadNotifications
-        .mockResolvedValueOnce(1);
 
-      const result = await resolver.massMarkNotificationsAsRead(notificationIds, userId);
+      mockNotificationsService.countRelatedUnreadNotifications.mockResolvedValueOnce(
+        1,
+      );
+
+      const result = await resolver.massMarkNotificationsAsRead(
+        notificationIds,
+        userId,
+      );
 
       expect(result).toEqual({
         updatedCount: 2, // Only the successful notification + 1 related
         success: true,
       });
-      
+
       expect(mockNotificationsService.markAsRead).toHaveBeenCalledTimes(2);
-      expect(mockNotificationsService.countRelatedUnreadNotifications).toHaveBeenCalledTimes(1);
+      expect(
+        mockNotificationsService.countRelatedUnreadNotifications,
+      ).toHaveBeenCalledTimes(1);
     });
   });
-
 });

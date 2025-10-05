@@ -12,7 +12,10 @@ import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
 import { WebPushService } from './web-push.service';
-import { ExternalNotifyRequestDto, ExternalPlatform } from './dto/external-notify.dto';
+import {
+  ExternalNotifyRequestDto,
+  ExternalPlatform,
+} from './dto/external-notify.dto';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -249,9 +252,7 @@ describe('NotificationsService', () => {
       jest
         .spyOn(notificationsRepository, 'save')
         .mockResolvedValue(mockNotification as Notification);
-      jest
-        .spyOn(notificationsRepository, 'find')
-        .mockResolvedValue([]);
+      jest.spyOn(notificationsRepository, 'find').mockResolvedValue([]);
       jest
         .spyOn(notificationsRepository, 'update')
         .mockResolvedValue({ affected: 0 } as any);
@@ -311,18 +312,19 @@ describe('NotificationsService', () => {
       });
       expect(notificationsRepository.update).toHaveBeenCalledWith(
         { id: expect.any(Object) },
-        { readAt: expect.any(Date) }
+        { readAt: expect.any(Date) },
       );
     });
   });
 
   describe('countRelatedUnreadNotifications', () => {
     it('should count related unread notifications', async () => {
-      jest
-        .spyOn(notificationsRepository, 'count')
-        .mockResolvedValue(2);
+      jest.spyOn(notificationsRepository, 'count').mockResolvedValue(2);
 
-      const result = await service.countRelatedUnreadNotifications('message-1', 'user-1');
+      const result = await service.countRelatedUnreadNotifications(
+        'message-1',
+        'user-1',
+      );
 
       expect(result).toBe(2);
       expect(notificationsRepository.count).toHaveBeenCalledWith({
@@ -336,11 +338,12 @@ describe('NotificationsService', () => {
     });
 
     it('should return 0 when no related unread notifications exist', async () => {
-      jest
-        .spyOn(notificationsRepository, 'count')
-        .mockResolvedValue(0);
+      jest.spyOn(notificationsRepository, 'count').mockResolvedValue(0);
 
-      const result = await service.countRelatedUnreadNotifications('message-1', 'user-1');
+      const result = await service.countRelatedUnreadNotifications(
+        'message-1',
+        'user-1',
+      );
 
       expect(result).toBe(0);
       expect(notificationsRepository.count).toHaveBeenCalledWith({
@@ -649,7 +652,9 @@ describe('NotificationsService', () => {
         },
       };
 
-      mockFirebasePushService.sendPrebuilt.mockResolvedValue({ success: false });
+      mockFirebasePushService.sendPrebuilt.mockResolvedValue({
+        success: false,
+      });
 
       const result = await service.sendPrebuilt(androidPayload);
 

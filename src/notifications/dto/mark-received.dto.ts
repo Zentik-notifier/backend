@@ -1,34 +1,62 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class MarkReceivedDto {
-  @ApiProperty({ description: 'User device ID that received the notification', example: 'dvc_12345' })
+  @ApiProperty({
+    description: 'User device ID that received the notification',
+    example: 'dvc_12345',
+  })
   userDeviceId!: string;
 }
 
 export class DeviceReportReceivedDto {
-  @ApiProperty({ description: 'Device push token', example: 'fcm_or_apns_token_string' })
+  @ApiProperty({
+    description: 'Device push token',
+    example: 'fcm_or_apns_token_string',
+  })
   deviceToken!: string;
 }
 
 export class UpdateReceivedUpToDto {
-  @ApiProperty({ description: 'Notification ID used as upper bound', example: 'ntf_12345' })
+  @ApiProperty({
+    description: 'Notification ID used as upper bound',
+    example: 'ntf_12345',
+  })
   id!: string;
 
-  @ApiProperty({ description: 'Device push token used to resolve the user device', example: 'fcm_or_apns_token_string' })
+  @ApiProperty({
+    description: 'Device push token used to resolve the user device',
+    example: 'fcm_or_apns_token_string',
+  })
   deviceToken!: string;
 }
 
 export class ExternalNotifyRequestDocDto {
-  @ApiProperty({ description: 'Notification payload as JSON string', example: '{"title":"Hello","body":"World"}' })
+  @ApiProperty({
+    description: 'Notification payload as JSON string',
+    example: '{"title":"Hello","body":"World"}',
+  })
   notification!: string;
 
-  @ApiProperty({ description: 'User device object as JSON string', example: '{"deviceToken":"abc","platform":"WEB"}' })
+  @ApiProperty({
+    description: 'User device object as JSON string',
+    example: '{"deviceToken":"abc","platform":"WEB"}',
+  })
   userDevice!: string;
 
-  @ApiProperty({ required: false, nullable: true, description: 'APNs headers override as JSON string', example: '{"apns-push-type":"alert"}' })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: 'APNs headers override as JSON string',
+    example: '{"apns-push-type":"alert"}',
+  })
   apnsHeaders?: string;
 
-  @ApiProperty({ required: false, nullable: true, description: 'FCM options as JSON string', example: '{"priority":"high"}' })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: 'FCM options as JSON string',
+    example: '{"priority":"high"}',
+  })
   fcmOptions?: string;
 }
 

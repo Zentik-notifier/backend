@@ -8,7 +8,10 @@ import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { DevicePlatform } from '../users/dto';
 import { generateAutomaticActions } from './notification-actions.util';
-import { NotificationActionType, NotificationDeliveryType } from './notifications.types';
+import {
+  NotificationActionType,
+  NotificationDeliveryType,
+} from './notifications.types';
 
 export interface NotificationResult {
   token: string;
@@ -104,7 +107,10 @@ export class IOSPushService {
     // Determine effective tapAction: use provided one or default to OPEN_NOTIFICATION with notification.id
     const effectiveTapAction: NotificationAction = message.tapAction
       ? message.tapAction
-      : ({ type: NotificationActionType.OPEN_NOTIFICATION, value: notification.id });
+      : {
+          type: NotificationActionType.OPEN_NOTIFICATION,
+          value: notification.id,
+        };
 
     // Build the complete payload with only 'aps' key
     const payload: any = {
@@ -124,8 +130,10 @@ export class IOSPushService {
 
     // Resolve bucket display fields for Communication Notifications (iOS)
     const bucketName: string | undefined = notification?.message?.bucket?.name;
-    const bucketColor: string | undefined = notification?.message?.bucket?.color || undefined;
-    const bucketIconUrl: string | undefined = notification?.message?.bucket?.icon || undefined;
+    const bucketColor: string | undefined =
+      notification?.message?.bucket?.color || undefined;
+    const bucketIconUrl: string | undefined =
+      notification?.message?.bucket?.icon || undefined;
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
     if (device && device.publicKey) {
@@ -140,7 +148,9 @@ export class IOSPushService {
         bucketIconUrl,
         bucketColor,
         actions: allActions,
-        attachmentData: this.filterOutIconAttachments(message.attachments || []),
+        attachmentData: this.filterOutIconAttachments(
+          message.attachments || [],
+        ),
         tapAction: effectiveTapAction,
       };
 
@@ -168,7 +178,9 @@ export class IOSPushService {
         payload.actions = allActions;
       }
       if (message.attachments && (message.attachments as any[]).length > 0) {
-        payload.attachmentData = this.filterOutIconAttachments(message.attachments || []);
+        payload.attachmentData = this.filterOutIconAttachments(
+          message.attachments || [],
+        );
       }
     }
 
@@ -465,7 +477,10 @@ export class IOSPushService {
    * deviceData: { token: string; priority?: number }
    * payload: { rawPayload, customPayload } | rawPayload
    */
-  async sendPrebuilt(deviceData: { token: string }, payload: any): Promise<SendResult> {
+  async sendPrebuilt(
+    deviceData: { token: string },
+    payload: any,
+  ): Promise<SendResult> {
     if (!this.provider) {
       this.logger.error('APNs provider not initialized');
       throw new Error('APNs provider not initialized');
@@ -483,7 +498,9 @@ export class IOSPushService {
     this.logger.log(`Sending APN notification to token: ${token}`);
     const result = await this.provider.send(notification_apn, token);
 
-    this.logger.log(`APN send result: ${JSON.stringify({ failed: result.failed, sent: result.sent })}`);
+    this.logger.log(
+      `APN send result: ${JSON.stringify({ failed: result.failed, sent: result.sent })}`,
+    );
 
     const ok = !result.failed || result.failed.length === 0;
     return { success: ok, results: [{ token, result }] } as any;
@@ -505,8 +522,8 @@ export class IOSPushService {
       return [];
     }
 
-    return attachments.filter(attachment =>
-      attachment.mediaType?.toUpperCase() !== 'ICON'
+    return attachments.filter(
+      (attachment) => attachment.mediaType?.toUpperCase() !== 'ICON',
     );
   }
 }

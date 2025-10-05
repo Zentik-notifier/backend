@@ -6,6 +6,7 @@ import { AttachmentsModule } from '../attachments/attachments.module';
 import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
 import { BucketsModule } from '../buckets/buckets.module';
+import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
 import { EventsModule } from '../events/events.module';
 import { MessagesModule } from '../messages/messages.module';
@@ -16,6 +17,7 @@ import { UsersModule } from '../users/users.module';
 import { GraphQLSharedModule } from './graphql-shared.module';
 import { AuthResolver } from './resolvers/auth.resolver';
 import { BucketsResolver } from './resolvers/buckets.resolver';
+import { EntityExecutionsResolver } from './resolvers/entity-executions.resolver';
 import { EntityPermissionsResolver } from './resolvers/entity-permissions.resolver';
 import { EventsResolver } from './resolvers/events.resolver';
 import { MessagesResolver } from './resolvers/messages.resolver';
@@ -62,6 +64,7 @@ const GRAPHQL_PATH = `${process.env.BACKEND_API_PREFIX}/graphql`;
     BucketsModule,
     UsersModule,
     AuthModule,
+    EntityExecutionModule,
     EntityPermissionModule,
     EventsModule,
     GraphQLSharedModule,
@@ -73,6 +76,7 @@ const GRAPHQL_PATH = `${process.env.BACKEND_API_PREFIX}/graphql`;
     AuthResolver,
     MessagesResolver,
     BucketsResolver,
+    EntityExecutionsResolver,
     EntityPermissionsResolver,
     EventsResolver,
     PayloadMapperResolver,

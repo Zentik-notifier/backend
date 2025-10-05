@@ -48,7 +48,7 @@ export class MessagesService {
     private readonly eventTrackingService: EventTrackingService,
     private readonly payloadMapperService: PayloadMapperService,
     private readonly usersService: UsersService,
-  ) { }
+  ) {}
 
   private isUuid(identifier: string): boolean {
     const uuidRegex =
@@ -78,7 +78,7 @@ export class MessagesService {
         )
         .where(
           'bucket.id = :bucketId AND ' +
-          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketId: bucketIdOrName, userId },
         )
         .getOne();
@@ -97,7 +97,7 @@ export class MessagesService {
         )
         .where(
           'bucket.name = :bucketName AND ' +
-          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketName: bucketIdOrName, userId },
         )
         .getOne();
@@ -186,7 +186,7 @@ export class MessagesService {
         if (lang?.valueText) {
           createMessageDto.locale = lang.valueText as any;
         }
-      } catch { }
+      } catch {}
     }
 
     // Process userIds - convert usernames to user IDs if needed
@@ -199,9 +199,17 @@ export class MessagesService {
     }
 
     // Check if attachments are enabled when saveOnServer is requested
-    const attachmentsEnabled = this.configService.get<string>('ATTACHMENTS_ENABLED', 'true');
-    if (attachmentsEnabled.toLowerCase() !== 'true' && createMessageDto.attachments?.some(att => att.saveOnServer === true)) {
-      throw new BadRequestException('Attachments are currently disabled, cannot save to server');
+    const attachmentsEnabled = this.configService.get<string>(
+      'ATTACHMENTS_ENABLED',
+      'true',
+    );
+    if (
+      attachmentsEnabled.toLowerCase() !== 'true' &&
+      createMessageDto.attachments?.some((att) => att.saveOnServer === true)
+    ) {
+      throw new BadRequestException(
+        'Attachments are currently disabled, cannot save to server',
+      );
     }
 
     // Process attachments before creating the message
@@ -707,9 +715,19 @@ export class MessagesService {
   /**
    * Transform payload using parser and create message
    */
-  async transformAndCreate(parserName: string, payload: any, userId: string, bucketId: string): Promise<Message> {
+  async transformAndCreate(
+    parserName: string,
+    payload: any,
+    userId: string,
+    bucketId: string,
+  ): Promise<Message> {
     // Delegate to PayloadMapperService for parser identification and transformation
-    const transformedPayload = await this.payloadMapperService.transformPayload(parserName, payload, userId, bucketId);
+    const transformedPayload = await this.payloadMapperService.transformPayload(
+      parserName,
+      payload,
+      userId,
+      bucketId,
+    );
 
     // Create the message using the transformed payload
     return this.create(transformedPayload, userId);

@@ -14,7 +14,7 @@ export class AppController {
     private readonly oauthProvidersService: OAuthProvidersService,
     private readonly emailService: EmailService,
     private readonly attachmentsService: AttachmentsService,
-  ) { }
+  ) {}
 
   @Get('health')
   getHealth() {

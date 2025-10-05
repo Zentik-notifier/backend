@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsObject, IsOptional, IsString, ValidateNested, IsNumber } from 'class-validator';
+import {
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+  IsNumber,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum ExternalPlatform {
@@ -21,7 +28,10 @@ export class ExternalDeviceDataFcmDto {
 }
 
 export class ExternalDeviceDataWebDto {
-  @ApiProperty({ description: 'Web Push endpoint', example: 'https://fcm.googleapis.com/fcm/send/...' })
+  @ApiProperty({
+    description: 'Web Push endpoint',
+    example: 'https://fcm.googleapis.com/fcm/send/...',
+  })
   @IsString()
   endpoint!: string;
 
@@ -33,11 +43,17 @@ export class ExternalDeviceDataWebDto {
   @IsString()
   auth!: string;
 
-  @ApiProperty({ description: 'VAPID public key for device', example: 'BPub...' })
+  @ApiProperty({
+    description: 'VAPID public key for device',
+    example: 'BPub...',
+  })
   @IsString()
   publicKey!: string;
 
-  @ApiProperty({ description: 'VAPID private key for device', example: 'Priv...' })
+  @ApiProperty({
+    description: 'VAPID private key for device',
+    example: 'Priv...',
+  })
   @IsString()
   privateKey!: string;
 }
@@ -47,19 +63,50 @@ export class ExternalNotifyRequestDto {
   @IsEnum(ExternalPlatform)
   platform!: ExternalPlatform;
 
-  @ApiProperty({ description: 'Prebuilt payload to be sent as-is', type: Object, examples: {
-    IOS: { rawPayload: { aps: { alert: { title: 'Encrypted Notification' } }, enc: '...' }, customPayload: { priority: 10 } },
-    ANDROID: { apns: { payload: { /* ... */ } }, data: { /* ... */ } },
-    WEB: { title: '...', body: '...', url: '/', notificationId: '...', actions: [ { action: 'OPEN', title: 'Open' } ] }
-  } })
+  @ApiProperty({
+    description: 'Prebuilt payload to be sent as-is',
+    type: Object,
+    examples: {
+      IOS: {
+        rawPayload: {
+          aps: { alert: { title: 'Encrypted Notification' } },
+          enc: '...',
+        },
+        customPayload: { priority: 10 },
+      },
+      ANDROID: {
+        apns: {
+          payload: {
+            /* ... */
+          },
+        },
+        data: {
+          /* ... */
+        },
+      },
+      WEB: {
+        title: '...',
+        body: '...',
+        url: '/',
+        notificationId: '...',
+        actions: [{ action: 'OPEN', title: 'Open' }],
+      },
+    },
+  })
   @IsObject()
   payload!: any;
 
-  @ApiProperty({ description: 'Device data per platform', oneOf: [
-    { $ref: '#/components/schemas/ExternalDeviceDataIosDto' },
-    { $ref: '#/components/schemas/ExternalDeviceDataFcmDto' },
-    { $ref: '#/components/schemas/ExternalDeviceDataWebDto' }
-  ] })
+  @ApiProperty({
+    description: 'Device data per platform',
+    oneOf: [
+      { $ref: '#/components/schemas/ExternalDeviceDataIosDto' },
+      { $ref: '#/components/schemas/ExternalDeviceDataFcmDto' },
+      { $ref: '#/components/schemas/ExternalDeviceDataWebDto' },
+    ],
+  })
   @IsObject()
-  deviceData!: ExternalDeviceDataIosDto | ExternalDeviceDataFcmDto | ExternalDeviceDataWebDto;
+  deviceData!:
+    | ExternalDeviceDataIosDto
+    | ExternalDeviceDataFcmDto
+    | ExternalDeviceDataWebDto;
 }

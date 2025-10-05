@@ -56,7 +56,7 @@ export class AttachmentsController {
     if (!file) {
       throw new Error('No file uploaded');
     }
-    
+
     return this.attachmentsService.uploadAttachment(
       userId,
       uploadAttachmentDto,
@@ -91,20 +91,18 @@ export class AttachmentsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Proxy media from external URL (returns binary data directly)',
-    description: 'Downloads media from an external URL and returns it as binary data. Useful for bypassing CORS restrictions.'
+    description:
+      'Downloads media from an external URL and returns it as binary data. Useful for bypassing CORS restrictions.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Media downloaded successfully'
+    description: 'Media downloaded successfully',
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Media not found or unreachable' })
   @ApiResponse({ status: 413, description: 'Media too large' })
   @ApiResponse({ status: 408, description: 'Request timeout' })
-  async proxyMedia(
-    @GetUser('id') userId: string,
-    @Res() res: Response,
-  ) {
+  async proxyMedia(@GetUser('id') userId: string, @Res() res: Response) {
     // For this proxy endpoint, we'll get the URL from query parameters
     // since this is a GET request and we need to pass a URL
     const url = res.req.query.url as string;
@@ -185,15 +183,15 @@ export class AttachmentsController {
     );
 
     const absolutePath = resolve(attachment.filepath);
-    
+
     const fs = require('fs');
     if (!fs.existsSync(absolutePath)) {
       console.error(`[ERROR] File does not exist: ${absolutePath}`);
       return res.status(404).json({ error: 'File not found' });
     }
-    
+
     const stats = fs.statSync(absolutePath);
-    
+
     res.sendFile(absolutePath);
   }
 

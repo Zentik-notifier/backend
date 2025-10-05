@@ -8,16 +8,17 @@ import { NotificationDeliveryType } from '../../notifications/notifications.type
 export class AuthentikParser implements IBuiltinParser {
   readonly name = 'Authentik';
   readonly builtInType = PayloadMapperBuiltInType.ZentikAuthentik;
-  readonly description = 'Parser for Authentik notifications - handles login, logout, registration, update available and other events';
+  readonly description =
+    'Parser for Authentik notifications - handles login, logout, registration, update available and other events';
 
   parse(payload: any): CreateMessageDto {
     const eventType = this.extractEventTypeFromBody(payload.body);
     const extractedData = this.extractDataFromBody(payload.body);
-    
+
     // Use event_user_* fields if available, fallback to user_* fields
     const username = payload.event_user_username ?? payload.user_username;
     const email = payload.event_user_email ?? payload.user_email;
-    
+
     return {
       title: this.getNotificationTitle(eventType, {
         username: username,
@@ -27,10 +28,15 @@ export class AuthentikParser implements IBuiltinParser {
         username: username,
         email: email,
       }),
-      body: this.getNotificationBody(eventType, {
-        username: username,
-        email: email,
-      }, extractedData, payload.body),
+      body: this.getNotificationBody(
+        eventType,
+        {
+          username: username,
+          email: email,
+        },
+        extractedData,
+        payload.body,
+      ),
       deliveryType: this.getEventPriority(eventType),
       bucketId: '', // Will be set by the service
     };
@@ -40,55 +46,78 @@ export class AuthentikParser implements IBuiltinParser {
     if (!payload || typeof payload !== 'object') {
       return false;
     }
-    
+
     if (!payload.body || !payload.severity) {
       return false;
     }
-    
+
     if (!(payload.user_email || payload.event_user_email)) {
       return false;
     }
-    
+
     if (!(payload.user_username || payload.event_user_username)) {
       return false;
     }
-    
+
     return true;
   }
 
   private getNotificationTitle(eventType: string, user: any): string {
-    const eventName = eventType === 'loginSuccess' ? 'login' : 
-                     eventType === 'loginFailed' ? 'login_failed' : 
-                     eventType;
-    
+    const eventName =
+      eventType === 'loginSuccess'
+        ? 'login'
+        : eventType === 'loginFailed'
+          ? 'login_failed'
+          : eventType;
+
     // For unmapped events, just return the event name
-    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(eventType)) {
+    if (
+      eventType === 'unknown' ||
+      !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(
+        eventType,
+      )
+    ) {
       return `${eventName.charAt(0).toUpperCase()}${eventName.slice(1)} - Unmapped event`;
     }
-    
+
     if (eventType === 'updateAvailable') {
       return 'Update Available';
     }
-    
+
     return `${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}: ${user.username}`;
   }
 
   private getNotificationSubtitle(eventType: string, user: any): string {
     // For unmapped events, don't show subtitle
-    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(eventType)) {
+    if (
+      eventType === 'unknown' ||
+      !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(
+        eventType,
+      )
+    ) {
       return '';
     }
-    
+
     if (eventType === 'updateAvailable') {
       return user.email;
     }
-    
+
     return user.email;
   }
 
-  private getNotificationBody(eventType: string, user: any, context: any, originalBody?: string): string {
+  private getNotificationBody(
+    eventType: string,
+    user: any,
+    context: any,
+    originalBody?: string,
+  ): string {
     // For unmapped events, return the original body directly
-    if (eventType === 'unknown' || !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(eventType)) {
+    if (
+      eventType === 'unknown' ||
+      !['loginSuccess', 'loginFailed', 'logout', 'updateAvailable'].includes(
+        eventType,
+      )
+    ) {
       return originalBody || 'No body content available';
     }
 
@@ -120,7 +149,7 @@ export class AuthentikParser implements IBuiltinParser {
     }
 
     let message = user.username;
-    
+
     if (target) {
       message += `\nApp: ${target}`;
     }
@@ -154,7 +183,7 @@ export class AuthentikParser implements IBuiltinParser {
     if (body.includes('New version') && body.includes('available')) {
       return 'updateAvailable';
     }
-    
+
     // Fallback to pattern matching for other formats
     const match = body.match(/^(\w+):/);
     if (match) {
@@ -183,11 +212,11 @@ export class AuthentikParser implements IBuiltinParser {
       }
 
       let jsonStr = jsonMatch[1];
-      
+
       // Convert Python-style dictionary to valid JSON
       // Replace single quotes with double quotes
       jsonStr = jsonStr.replace(/'/g, '"');
-      
+
       // Convert Python boolean values to JSON boolean values
       jsonStr = jsonStr.replace(/\bTrue\b/g, 'true');
       jsonStr = jsonStr.replace(/\bFalse\b/g, 'false');

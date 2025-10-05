@@ -29,7 +29,8 @@ class SetBucketSnoozeDto {
     nullable: true,
     type: String,
     example: '2025-09-14T12:34:56.000Z',
-    description: 'ISO date until which notifications are snoozed. Null to clear snooze.',
+    description:
+      'ISO date until which notifications are snoozed. Null to clear snooze.',
   })
   snoozeUntil?: string | null;
 }
@@ -53,7 +54,7 @@ class SetBucketSnoozeMinutesDto {
 export class BucketsController {
   private readonly logger = new Logger(BucketsController.name);
 
-  constructor(private readonly bucketsService: BucketsService) { }
+  constructor(private readonly bucketsService: BucketsService) {}
 
   @Post()
   @ApiOperation({
@@ -148,7 +149,8 @@ export class BucketsController {
   @Post(':id/snooze')
   @ApiOperation({
     summary: 'Set bucket snooze for the current user',
-    description: 'Pass a JSON body {"snoozeUntil": "<ISO date>"}. Use null or omit the field to clear.',
+    description:
+      'Pass a JSON body {"snoozeUntil": "<ISO date>"}. Use null or omit the field to clear.',
   })
   @ApiResponse({
     status: 200,
@@ -164,20 +166,29 @@ export class BucketsController {
     @GetUser('id') userId: string,
   ) {
     const startTime = Date.now();
-    this.logger.debug(`REST setBucketSnooze started for bucketId: ${bucketId}, userId: ${userId}`);
-    
-    const result = this.bucketsService.setBucketSnooze(bucketId, userId, body?.snoozeUntil ?? null);
-    
+    this.logger.debug(
+      `REST setBucketSnooze started for bucketId: ${bucketId}, userId: ${userId}`,
+    );
+
+    const result = this.bucketsService.setBucketSnooze(
+      bucketId,
+      userId,
+      body?.snoozeUntil ?? null,
+    );
+
     const duration = Date.now() - startTime;
-    this.logger.debug(`REST setBucketSnooze completed in ${duration}ms for bucketId: ${bucketId}, userId: ${userId}`);
-    
+    this.logger.debug(
+      `REST setBucketSnooze completed in ${duration}ms for bucketId: ${bucketId}, userId: ${userId}`,
+    );
+
     return result;
   }
 
   @Post(':id/snooze-minutes')
   @ApiOperation({
     summary: 'Set bucket snooze using minutes from now',
-    description: 'Snooze bucket for specified number of minutes from current time',
+    description:
+      'Snooze bucket for specified number of minutes from current time',
   })
   @ApiResponse({
     status: 200,
@@ -197,14 +208,21 @@ export class BucketsController {
     @GetUser('id') userId: string,
   ) {
     const startTime = Date.now();
-    this.logger.debug(`REST setBucketSnoozeMinutes started for bucketId: ${bucketId}, userId: ${userId}, minutes: ${body.minutes}`);
-    
-    const result = this.bucketsService.setBucketSnoozeMinutes(bucketId, userId, body.minutes);
-    
+    this.logger.debug(
+      `REST setBucketSnoozeMinutes started for bucketId: ${bucketId}, userId: ${userId}, minutes: ${body.minutes}`,
+    );
+
+    const result = this.bucketsService.setBucketSnoozeMinutes(
+      bucketId,
+      userId,
+      body.minutes,
+    );
+
     const duration = Date.now() - startTime;
-    this.logger.debug(`REST setBucketSnoozeMinutes completed in ${duration}ms for bucketId: ${bucketId}, userId: ${userId}`);
-    
+    this.logger.debug(
+      `REST setBucketSnoozeMinutes completed in ${duration}ms for bucketId: ${bucketId}, userId: ${userId}`,
+    );
+
     return result;
   }
-
 }

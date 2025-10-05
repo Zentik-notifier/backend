@@ -12,7 +12,13 @@ import { Notification } from '../entities/notification.entity';
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { NotificationServiceInfo } from './dto';
-import { ExternalDeviceDataFcmDto, ExternalDeviceDataIosDto, ExternalDeviceDataWebDto, ExternalNotifyRequestDto, ExternalPlatform } from './dto/external-notify.dto';
+import {
+  ExternalDeviceDataFcmDto,
+  ExternalDeviceDataIosDto,
+  ExternalDeviceDataWebDto,
+  ExternalNotifyRequestDto,
+  ExternalPlatform,
+} from './dto/external-notify.dto';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationServiceType } from './notifications.types';
@@ -63,7 +69,7 @@ export class NotificationsService {
   async markAsRead(id: string, userId: string): Promise<Notification> {
     const notification = await this.findOne(id, userId);
     const readAt = new Date();
-    
+
     // Mark the specific notification as read
     notification.readAt = readAt;
     await this.notificationsRepository.save(notification);
@@ -80,18 +86,25 @@ export class NotificationsService {
 
     if (relatedNotifications.length > 0) {
       await this.notificationsRepository.update(
-        { id: In(relatedNotifications.map(n => n.id)) },
-        { readAt }
+        { id: In(relatedNotifications.map((n) => n.id)) },
+        { readAt },
       );
-      this.logger.log(`Marked ${relatedNotifications.length} related notifications as read for user ${userId}`);
+      this.logger.log(
+        `Marked ${relatedNotifications.length} related notifications as read for user ${userId}`,
+      );
     }
 
-    this.logger.log(`Notification ${id} and related notifications marked as read for user ${userId}`);
+    this.logger.log(
+      `Notification ${id} and related notifications marked as read for user ${userId}`,
+    );
 
     return this.findOne(id, userId);
   }
 
-  async countRelatedUnreadNotifications(messageId: string, userId: string): Promise<number> {
+  async countRelatedUnreadNotifications(
+    messageId: string,
+    userId: string,
+  ): Promise<number> {
     const count = await this.notificationsRepository.count({
       where: {
         userId,
@@ -181,15 +194,18 @@ export class NotificationsService {
    * Remove many notifications by ids for a specific user.
    * Silently skips ids that don't exist or don't belong to the user.
    */
-  async removeMany(ids: string[], userId: string): Promise<{ deletedIds: string[] }> {
+  async removeMany(
+    ids: string[],
+    userId: string,
+  ): Promise<{ deletedIds: string[] }> {
     if (!ids?.length) return { deletedIds: [] };
 
     // Find only existing notifications for this user
     const existing = await this.notificationsRepository.find({
-      where: ids.map((id) => ({ id, userId } as any)),
+      where: ids.map((id) => ({ id, userId }) as any),
       select: { id: true } as any,
     });
-    const existingIds = existing.map(n => n.id);
+    const existingIds = existing.map((n) => n.id);
     if (existingIds.length === 0) return { deletedIds: [] };
 
     // Delete by ids using query for efficiency
@@ -201,7 +217,9 @@ export class NotificationsService {
       .andWhere('id IN (:...ids)', { ids: existingIds })
       .execute();
 
-    this.logger.log(`Removed ${existingIds.length} notifications for user ${userId}`);
+    this.logger.log(
+      `Removed ${existingIds.length} notifications for user ${userId}`,
+    );
     return { deletedIds: existingIds };
   }
 
@@ -428,11 +446,15 @@ export class NotificationsService {
   /**
    * Send prebuilt payloads (as-is) from passthrough entrypoint.
    */
-  async sendPrebuilt(body: ExternalNotifyRequestDto): Promise<{ success: boolean; message?: string }> {
+  async sendPrebuilt(
+    body: ExternalNotifyRequestDto,
+  ): Promise<{ success: boolean; message?: string }> {
     this.logger.log(`Processing sendPrebuilt for platform: ${body.platform}`);
-    
+
     if (body.platform === ExternalPlatform.IOS) {
-      this.logger.log(`Sending iOS prebuilt notification to token: ${(body.deviceData as ExternalDeviceDataIosDto).token}`);
+      this.logger.log(
+        `Sending iOS prebuilt notification to token: ${(body.deviceData as ExternalDeviceDataIosDto).token}`,
+      );
       const res = await this.iosPushService.sendPrebuilt(
         body.deviceData as ExternalDeviceDataIosDto,
         body.payload,
@@ -444,7 +466,7 @@ export class NotificationsService {
     if (body.platform === ExternalPlatform.ANDROID) {
       const res = await this.firebasePushService.sendPrebuilt(
         body.deviceData as ExternalDeviceDataFcmDto,
-        body.payload as any,
+        body.payload,
       );
       return { success: res.success };
     }
@@ -452,7 +474,7 @@ export class NotificationsService {
     if (body.platform === ExternalPlatform.WEB) {
       const res = await this.webPushService.sendPrebuilt(
         body.deviceData as ExternalDeviceDataWebDto,
-        body.payload as any,
+        body.payload,
       );
       return { success: res.success };
     }

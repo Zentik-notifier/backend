@@ -66,13 +66,23 @@ export class RailwayParser implements IBuiltinParser {
   }
 
   private createMessage(payload: RailwayWebhookPayload): CreateMessageDto {
-    const { project, service, environment, type, status, timestamp, deployment } = payload;
+    const {
+      project,
+      service,
+      environment,
+      type,
+      status,
+      timestamp,
+      deployment,
+    } = payload;
 
-    const title = service?.name ? `${project.name} - ${service.name}` : project.name;
+    const title = service?.name
+      ? `${project.name} - ${service.name}`
+      : project.name;
     const subtitle = status ? `${type} - ${status}` : type;
 
     let body = `Project: ${project.name}\n`;
-    
+
     if (service?.name) {
       body += `Service: ${service.name}\n`;
     }
@@ -104,7 +114,10 @@ export class RailwayParser implements IBuiltinParser {
     } as CreateMessageDto;
   }
 
-  private getDeliveryType(type: string, status: string): NotificationDeliveryType {
+  private getDeliveryType(
+    type: string,
+    status: string,
+  ): NotificationDeliveryType {
     if (status && (status.includes('FAILED') || status.includes('ERROR'))) {
       return NotificationDeliveryType.CRITICAL;
     }
@@ -124,36 +137,36 @@ export class RailwayParser implements IBuiltinParser {
 
   getTestPayload(): RailwayWebhookPayload {
     return {
-      type: "DEPLOY",
+      type: 'DEPLOY',
       project: {
-        id: "a418f086-cacf-432f-b209-334e17397ae2",
-        name: "Zentik notifier",
-        description: "Test project description",
-        createdAt: "2025-08-25T22:37:27.337Z"
+        id: 'a418f086-cacf-432f-b209-334e17397ae2',
+        name: 'Zentik notifier',
+        description: 'Test project description',
+        createdAt: '2025-08-25T22:37:27.337Z',
       },
       service: {
-        id: "bece679c-d79e-4895-84c0-aad3c62ea70c",
-        name: "Docs"
+        id: 'bece679c-d79e-4895-84c0-aad3c62ea70c',
+        name: 'Docs',
       },
       environment: {
-        id: "4af5f898-f125-46a2-bd11-acfb0b7760d7",
-        name: "production"
+        id: '4af5f898-f125-46a2-bd11-acfb0b7760d7',
+        name: 'production',
       },
-      status: "BUILDING",
-      timestamp: "2025-09-21T08:36:24.208Z",
+      status: 'BUILDING',
+      timestamp: '2025-09-21T08:36:24.208Z',
       deployment: {
-        id: "39380b1e-40a3-4c41-b1ea-3972f5406945",
+        id: '39380b1e-40a3-4c41-b1ea-3972f5406945',
         creator: {
-          id: "4eb5aac7-8e08-4768-8dcb-1ff1064ff206",
-          name: "Test User",
-          avatar: "https://avatars.githubusercontent.com/u/23080650?v=4"
+          id: '4eb5aac7-8e08-4768-8dcb-1ff1064ff206',
+          name: 'Test User',
+          avatar: 'https://avatars.githubusercontent.com/u/23080650?v=4',
         },
         meta: {
           buildOnly: false,
-          reason: "deploy",
-          runtime: "V2"
-        }
-      }
+          reason: 'deploy',
+          runtime: 'V2',
+        },
+      },
     };
   }
 }

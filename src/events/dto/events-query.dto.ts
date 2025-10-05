@@ -1,6 +1,13 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsPositive, IsString, Max, Min, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsPositive,
+  IsString,
+  Max,
+  Min,
+  IsEnum,
+} from 'class-validator';
 import { EventType } from '../../entities';
 
 @InputType()

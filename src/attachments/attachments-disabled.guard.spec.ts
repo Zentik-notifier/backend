@@ -35,14 +35,18 @@ describe('AttachmentsDisabledGuard', () => {
   });
 
   it('should allow access when attachments are enabled', () => {
-    jest.spyOn(attachmentsService, 'isAttachmentsEnabled').mockReturnValue(true);
+    jest
+      .spyOn(attachmentsService, 'isAttachmentsEnabled')
+      .mockReturnValue(true);
 
     const result = guard.canActivate(mockExecutionContext);
     expect(result).toBe(true);
   });
 
   it('should throw ForbiddenException when attachments are disabled', () => {
-    jest.spyOn(attachmentsService, 'isAttachmentsEnabled').mockReturnValue(false);
+    jest
+      .spyOn(attachmentsService, 'isAttachmentsEnabled')
+      .mockReturnValue(false);
 
     expect(() => guard.canActivate(mockExecutionContext)).toThrow(
       ForbiddenException,

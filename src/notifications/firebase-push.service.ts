@@ -251,7 +251,10 @@ export class FirebasePushService {
     if (payload.data) {
       const effectiveTapAction = message.tapAction
         ? message.tapAction
-        : ({ type: NotificationActionType.OPEN_NOTIFICATION, value: notification.id } as any);
+        : ({
+            type: NotificationActionType.OPEN_NOTIFICATION,
+            value: notification.id,
+          } as any);
       payload.data.tapAction = JSON.stringify(effectiveTapAction);
     }
 
@@ -270,11 +273,20 @@ export class FirebasePushService {
         success: false,
         successCount: 0,
         failureCount: 1,
-        results: [{ token: deviceData?.token || 'unknown', success: false, error: 'Firebase not configured' }],
+        results: [
+          {
+            token: deviceData?.token || 'unknown',
+            success: false,
+            error: 'Firebase not configured',
+          },
+        ],
       };
     }
 
-    const tokens = Array.isArray(payload?.tokens) && payload.tokens.length > 0 ? payload.tokens : [deviceData.token];
+    const tokens =
+      Array.isArray(payload?.tokens) && payload.tokens.length > 0
+        ? payload.tokens
+        : [deviceData.token];
     const toSend: admin.messaging.MulticastMessage = { ...payload, tokens };
     const response = await admin
       .messaging(this.app)

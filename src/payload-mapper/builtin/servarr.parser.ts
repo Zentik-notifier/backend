@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 import { IBuiltinParser } from './builtin-parser.interface';
-import { CreateMessageDto, NotificationAttachmentDto } from '../../messages/dto/create-message.dto';
-import { NotificationDeliveryType, MediaType } from '../../notifications/notifications.types';
+import {
+  CreateMessageDto,
+  NotificationAttachmentDto,
+} from '../../messages/dto/create-message.dto';
+import {
+  NotificationDeliveryType,
+  MediaType,
+} from '../../notifications/notifications.types';
 
 interface ServarrPayload {
   movie?: {
@@ -159,7 +165,14 @@ export class ServarrParser implements IBuiltinParser {
     }
 
     // Check if it's a movie, TV show event, Prowlarr event, or health check event
-    if (!payload.movie && !payload.series && !payload.episodes && !payload.indexer && !payload.indexerStatus && !payload.message) {
+    if (
+      !payload.movie &&
+      !payload.series &&
+      !payload.episodes &&
+      !payload.indexer &&
+      !payload.indexerStatus &&
+      !payload.message
+    ) {
       return false;
     }
 
@@ -183,9 +196,18 @@ export class ServarrParser implements IBuiltinParser {
     }
 
     return {
-      title: this.getNotificationTitle(eventType, mediaInfo, payload.instanceName),
+      title: this.getNotificationTitle(
+        eventType,
+        mediaInfo,
+        payload.instanceName,
+      ),
       subtitle: this.getNotificationSubtitle(mediaInfo),
-      body: this.getNotificationBody(eventType, mediaInfo, releaseInfo, payload),
+      body: this.getNotificationBody(
+        eventType,
+        mediaInfo,
+        releaseInfo,
+        payload,
+      ),
       deliveryType: this.getEventPriority(eventType),
       bucketId: '', // Will be set by the service
       attachments: attachments.length > 0 ? attachments : undefined,
@@ -194,7 +216,7 @@ export class ServarrParser implements IBuiltinParser {
 
   private extractEventType(payload: ServarrPayload): string {
     const eventType = payload.eventType?.toLowerCase() || 'unknown';
-    
+
     // Map common Servarr event types
     switch (eventType) {
       case 'download':
@@ -316,14 +338,22 @@ export class ServarrParser implements IBuiltinParser {
     };
   }
 
-  private extractAttachments(payload: ServarrPayload): NotificationAttachmentDto[] {
+  private extractAttachments(
+    payload: ServarrPayload,
+  ): NotificationAttachmentDto[] {
     const attachments: NotificationAttachmentDto[] = [];
 
     // Extract image from series
-    if (payload.series && payload.series.images && payload.series.images.length > 0) {
+    if (
+      payload.series &&
+      payload.series.images &&
+      payload.series.images.length > 0
+    ) {
       // First try to find a banner image
-      let selectedImage = payload.series.images.find(img => img.coverType === 'banner');
-      
+      let selectedImage = payload.series.images.find(
+        (img) => img.coverType === 'banner',
+      );
+
       // If no banner found, use the first available image
       if (!selectedImage) {
         selectedImage = payload.series.images[0];
@@ -332,7 +362,7 @@ export class ServarrParser implements IBuiltinParser {
       if (selectedImage) {
         // Always use remoteUrl if available, otherwise fall back to url
         let imageUrl = selectedImage.remoteUrl || selectedImage.url;
-        
+
         // If still a relative URL and we have applicationUrl, make it absolute
         if (imageUrl && imageUrl.startsWith('/') && payload.applicationUrl) {
           const baseUrl = payload.applicationUrl.replace(/\/$/, '');
@@ -340,10 +370,15 @@ export class ServarrParser implements IBuiltinParser {
         }
 
         if (imageUrl) {
-          const imageType = selectedImage.coverType === 'banner' ? 'Banner' : 
-                           selectedImage.coverType === 'poster' ? 'Poster' :
-                           selectedImage.coverType === 'fanart' ? 'Fanart' : 'Image';
-          
+          const imageType =
+            selectedImage.coverType === 'banner'
+              ? 'Banner'
+              : selectedImage.coverType === 'poster'
+                ? 'Poster'
+                : selectedImage.coverType === 'fanart'
+                  ? 'Fanart'
+                  : 'Image';
+
           attachments.push({
             url: imageUrl,
             mediaType: MediaType.IMAGE,
@@ -357,22 +392,31 @@ export class ServarrParser implements IBuiltinParser {
     return attachments;
   }
 
-  private getNotificationTitle(eventType: string, mediaInfo: any, instanceName: string): string {
+  private getNotificationTitle(
+    eventType: string,
+    mediaInfo: any,
+    instanceName: string,
+  ): string {
     const eventName = this.capitalizeFirst(eventType);
-    
+
     // Handle health events
     if (mediaInfo.type === 'health') {
       const levelIcon = this.getHealthLevelIcon(mediaInfo.level);
       return `${levelIcon} ${instanceName} Health ${eventName}`;
     }
-    
+
     let mediaTitle = mediaInfo.title || 'Unknown';
-    
+
     // For series with episodes, create a more comprehensive title
-    if (mediaInfo.type === 'series' && mediaInfo.episodes && mediaInfo.episodes.length > 0) {
+    if (
+      mediaInfo.type === 'series' &&
+      mediaInfo.episodes &&
+      mediaInfo.episodes.length > 0
+    ) {
       const episode = mediaInfo.episodes[0];
-      const seriesTitle = mediaInfo.title !== 'Unknown Series' ? mediaInfo.title : null;
-      
+      const seriesTitle =
+        mediaInfo.title !== 'Unknown Series' ? mediaInfo.title : null;
+
       if (episode.seasonNumber && episode.episodeNumber) {
         const episodeCode = `S${String(episode.seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`;
         if (episode.title && seriesTitle) {
@@ -394,9 +438,10 @@ export class ServarrParser implements IBuiltinParser {
         }
       }
     }
-    
-    const year = mediaInfo.year && mediaInfo.year > 0 ? ` (${mediaInfo.year})` : '';
-    
+
+    const year =
+      mediaInfo.year && mediaInfo.year > 0 ? ` (${mediaInfo.year})` : '';
+
     return `${eventName}: ${mediaTitle}${year}`;
   }
 
@@ -405,7 +450,10 @@ export class ServarrParser implements IBuiltinParser {
       return `Movie via Radarr`;
     } else if (mediaInfo.type === 'series') {
       return `TV Show via Sonarr`;
-    } else if (mediaInfo.type === 'indexer' || mediaInfo.type === 'indexerStatus') {
+    } else if (
+      mediaInfo.type === 'indexer' ||
+      mediaInfo.type === 'indexerStatus'
+    ) {
       return `Indexer via Prowlarr`;
     } else if (mediaInfo.type === 'health') {
       return `System Health Check`;
@@ -413,29 +461,34 @@ export class ServarrParser implements IBuiltinParser {
     return 'Servarr';
   }
 
-  private getNotificationBody(eventType: string, mediaInfo: any, releaseInfo: any, payload: ServarrPayload): string {
+  private getNotificationBody(
+    eventType: string,
+    mediaInfo: any,
+    releaseInfo: any,
+    payload: ServarrPayload,
+  ): string {
     let message = '';
 
     // Handle health events
     if (mediaInfo.type === 'health') {
       message += `${mediaInfo.message}`;
-      
+
       if (mediaInfo.checkType) {
         message += `\nCheck Type: ${mediaInfo.checkType}`;
       }
-      
+
       if (mediaInfo.level) {
         message += `\nLevel: ${this.capitalizeFirst(mediaInfo.level)}`;
       }
-      
+
       if (mediaInfo.wikiUrl) {
         message += `\nMore Info: ${mediaInfo.wikiUrl}`;
       }
-      
+
       if (payload.instanceName) {
         message += `\nInstance: ${payload.instanceName}`;
       }
-      
+
       return message;
     }
 
@@ -450,27 +503,28 @@ export class ServarrParser implements IBuiltinParser {
     // Add episode information if available
     if (mediaInfo.episodes && mediaInfo.episodes.length > 0) {
       const episode = mediaInfo.episodes[0];
-      
+
       // Add season and episode numbers
       if (episode.seasonNumber && episode.episodeNumber) {
         message += `\nSeason: ${episode.seasonNumber}`;
         message += `\nEpisode: ${episode.episodeNumber}`;
       }
-      
+
       // Add episode title
       if (episode.title) {
         message += `\nTitle: ${episode.title}`;
       }
-      
+
       // Add episode overview if available
       if (episode.overview && episode.overview.length > 0) {
         // Truncate overview if too long
-        const overview = episode.overview.length > 200 
-          ? `${episode.overview.substring(0, 200)}...` 
-          : episode.overview;
+        const overview =
+          episode.overview.length > 200
+            ? `${episode.overview.substring(0, 200)}...`
+            : episode.overview;
         message += `\nOverview: ${overview}`;
       }
-      
+
       // Add air date if available
       if (episode.airDate) {
         message += `\nAir Date: ${episode.airDate}`;
@@ -480,15 +534,15 @@ export class ServarrParser implements IBuiltinParser {
     // Add release information for download/import events
     if (['download', 'imported'].includes(eventType) && releaseInfo.quality) {
       message += `\nQuality: ${releaseInfo.quality}`;
-      
+
       if (releaseInfo.releaseGroup) {
         message += `\nGroup: ${releaseInfo.releaseGroup}`;
       }
-      
+
       if (releaseInfo.indexer) {
         message += `\nIndexer: ${releaseInfo.indexer}`;
       }
-      
+
       if (releaseInfo.size) {
         message += `\nSize: ${releaseInfo.size}`;
       }
@@ -512,7 +566,9 @@ export class ServarrParser implements IBuiltinParser {
         message += `\nSize: ${this.formatFileSize(episodeFile.size)}`;
       }
       if (episodeFile.languages && episodeFile.languages.length > 0) {
-        const languages = episodeFile.languages.map(lang => lang.name).join(', ');
+        const languages = episodeFile.languages
+          .map((lang) => lang.name)
+          .join(', ');
         message += `\nLanguages: ${languages}`;
       }
     }
@@ -558,7 +614,10 @@ export class ServarrParser implements IBuiltinParser {
     }
 
     // Add custom format information if available
-    if (payload.customFormatInfo && payload.customFormatInfo.customFormatScore !== undefined) {
+    if (
+      payload.customFormatInfo &&
+      payload.customFormatInfo.customFormatScore !== undefined
+    ) {
       message += `\nCustom Format Score: ${payload.customFormatInfo.customFormatScore}`;
     }
 
@@ -611,37 +670,40 @@ export class ServarrParser implements IBuiltinParser {
     }
   }
 
-  private createUnknownPayloadMessage(payload: ServarrPayload): CreateMessageDto {
+  private createUnknownPayloadMessage(
+    payload: ServarrPayload,
+  ): CreateMessageDto {
     const instanceName = payload.instanceName || 'Unknown Instance';
-    
+
     let body = 'Unknown payload received from Servarr application.';
-    
+
     if (payload.eventType) {
       body += `\nEvent Type: ${payload.eventType}`;
     }
-    
+
     if (payload.instanceName) {
       body += `\nInstance: ${payload.instanceName}`;
     }
-    
+
     // Add any additional fields that might be useful
     if (payload.message) {
       body += `\nMessage: ${payload.message}`;
     }
-    
+
     if (payload.level) {
       body += `\nLevel: ${payload.level}`;
     }
-    
+
     if (payload.type) {
       body += `\nType: ${payload.type}`;
     }
-    
+
     // Add raw payload for debugging (truncated)
     const payloadStr = JSON.stringify(payload, null, 2);
-    const truncatedPayload = payloadStr.length > 500 
-      ? `${payloadStr.substring(0, 500)}...` 
-      : payloadStr;
+    const truncatedPayload =
+      payloadStr.length > 500
+        ? `${payloadStr.substring(0, 500)}...`
+        : payloadStr;
     body += `\n\nRaw Payload:\n${truncatedPayload}`;
 
     return {
@@ -655,11 +717,11 @@ export class ServarrParser implements IBuiltinParser {
 
   private formatFileSize(bytes: number): string {
     if (!bytes || bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
@@ -668,7 +730,20 @@ export class ServarrParser implements IBuiltinParser {
   }
 
   private isUnknownEvent(eventType: string): boolean {
-    const knownEvents = ['download', 'grabbed', 'imported', 'import', 'failed', 'failure', 'deleted', 'renamed', 'health_issue', 'health_restored', 'healthissue', 'healthrestored'];
+    const knownEvents = [
+      'download',
+      'grabbed',
+      'imported',
+      'import',
+      'failed',
+      'failure',
+      'deleted',
+      'renamed',
+      'health_issue',
+      'health_restored',
+      'healthissue',
+      'healthrestored',
+    ];
     return !knownEvents.includes(eventType.toLowerCase());
   }
 }

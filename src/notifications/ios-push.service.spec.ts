@@ -9,18 +9,22 @@ jest.mock('../common/utils/cryptoUtils', () => ({
 }));
 
 // Mock apn module
-jest.mock('apn', () => ({
-  Provider: jest.fn().mockImplementation(() => ({
-    send: jest.fn(),
-    shutdown: jest.fn(),
-  })),
-  Notification: jest.fn().mockImplementation(() => ({
-    rawPayload: null,
-    payload: null,
-    priority: null,
-    topic: null,
-  })),
-}), { virtual: true });
+jest.mock(
+  'apn',
+  () => ({
+    Provider: jest.fn().mockImplementation(() => ({
+      send: jest.fn(),
+      shutdown: jest.fn(),
+    })),
+    Notification: jest.fn().mockImplementation(() => ({
+      rawPayload: null,
+      payload: null,
+      priority: null,
+      topic: null,
+    })),
+  }),
+  { virtual: true },
+);
 
 describe('IOSPushService', () => {
   let service: IOSPushService;
@@ -42,7 +46,7 @@ describe('IOSPushService', () => {
     }).compile();
 
     service = module.get<IOSPushService>(IOSPushService);
-    
+
     // Mock the provider
     mockProvider = {
       send: jest.fn(),

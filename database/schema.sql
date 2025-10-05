@@ -6,6 +6,7 @@
 DROP TABLE IF EXISTS entity_permissions CASCADE;
 DROP TABLE IF EXISTS user_settings CASCADE;
 DROP TABLE IF EXISTS payload_mappers CASCADE;
+DROP TABLE IF EXISTS entity_executions CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
 DROP TABLE IF EXISTS user_buckets CASCADE;
@@ -28,6 +29,8 @@ DROP TYPE IF EXISTS resource_type_enum CASCADE;
 DROP TYPE IF EXISTS event_type_enum CASCADE;
 DROP TYPE IF EXISTS user_setting_type_enum CASCADE;
 DROP TYPE IF EXISTS oauth_provider_type_enum CASCADE;
+DROP TYPE IF EXISTS execution_type_enum CASCADE;
+DROP TYPE IF EXISTS execution_status_enum CASCADE;
 
 -- Create custom enum types
 CREATE TYPE device_platform_enum AS ENUM ('IOS', 'ANDROID', 'WEB');
@@ -40,6 +43,8 @@ CREATE TYPE event_type_enum AS ENUM ('LOGIN', 'LOGIN_OAUTH', 'LOGOUT', 'REGISTER
 -- NOTE: ACCOUNT_DELETE added in code; ensure DB enum updated in migrations when applying
 CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOnBigPayload');
 CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'CUSTOM');
+CREATE TYPE execution_type_enum AS ENUM ('WEBHOOK', 'PAYLOAD_MAPPER');
+CREATE TYPE execution_status_enum AS ENUM ('SUCCESS', 'ERROR', 'TIMEOUT');
 
 -- Create users table
 CREATE TABLE users (
@@ -57,6 +62,22 @@ CREATE TABLE users (
     "emailConfirmationToken" VARCHAR(255),
     "emailConfirmationTokenRequestedAt" TIMESTAMP WITH TIME ZONE,
     "emailConfirmed" BOOLEAN DEFAULT FALSE NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create entity_executions table
+CREATE TABLE entity_executions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type execution_type_enum NOT NULL,
+    status execution_status_enum NOT NULL,
+    "entityName" VARCHAR(255),
+    "entityId" UUID,
+    "userId" UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    input TEXT NOT NULL,
+    output TEXT,
+    errors TEXT,
+    "durationMs" BIGINT,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

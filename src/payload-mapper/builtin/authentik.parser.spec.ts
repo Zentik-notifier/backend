@@ -163,7 +163,7 @@ describe('AuthentikParser', () => {
     it('should handle Python-style JSON in body', () => {
       const payload = {
         ...mockPayload,
-        body: 'User testuser logged in successfully: {\'userAgent\': \'Mozilla/5.0...\', \'pathNext\': \'/if/admin/\', \'authMethod\': \'password\', \'asn\': {\'asn\': 16509, \'as_org\': \'AMAZON-02\', \'network\': \'3.96.0.0/11\'}, \'geo\': {\'lat\': 50.1169, \'city\': \'Frankfurt am Main\', \'long\': 8.6837, \'country\': \'DE\', \'continent\': \'EU\'}}',
+        body: "User testuser logged in successfully: {'userAgent': 'Mozilla/5.0...', 'pathNext': '/if/admin/', 'authMethod': 'password', 'asn': {'asn': 16509, 'as_org': 'AMAZON-02', 'network': '3.96.0.0/11'}, 'geo': {'lat': 50.1169, 'city': 'Frankfurt am Main', 'long': 8.6837, 'country': 'DE', 'continent': 'EU'}}",
       };
 
       const result = parser.parse(payload);
@@ -175,7 +175,7 @@ describe('AuthentikParser', () => {
     it('should handle Python boolean and null values in JSON', () => {
       const payload = {
         ...mockPayload,
-        body: 'User testuser logged in successfully: {\'userAgent\': \'Mozilla/5.0...\', \'pathNext\': \'/if/admin/\', \'authMethod\': \'password\', \'asn\': {\'asn\': 16509, \'as_org\': \'AMAZON-02\', \'network\': \'3.96.0.0/11\', \'isValid\': True, \'isBlocked\': False, \'parent\': None}, \'geo\': {\'lat\': 50.1169, \'city\': \'Frankfurt am Main\', \'long\': 8.6837, \'country\': \'DE\', \'continent\': \'EU\'}}',
+        body: "User testuser logged in successfully: {'userAgent': 'Mozilla/5.0...', 'pathNext': '/if/admin/', 'authMethod': 'password', 'asn': {'asn': 16509, 'as_org': 'AMAZON-02', 'network': '3.96.0.0/11', 'isValid': True, 'isBlocked': False, 'parent': None}, 'geo': {'lat': 50.1169, 'city': 'Frankfurt am Main', 'long': 8.6837, 'country': 'DE', 'continent': 'EU'}}",
       };
 
       const result = parser.parse(payload);
@@ -292,9 +292,10 @@ describe('AuthentikParser', () => {
 
   describe('extractDataFromBody', () => {
     it('should extract JSON data from body', () => {
-      const body = 'User testuser logged in: {"userAgent": "Mozilla/5.0", "pathNext": "/admin"}';
+      const body =
+        'User testuser logged in: {"userAgent": "Mozilla/5.0", "pathNext": "/admin"}';
       const result = parser['extractDataFromBody'](body);
-      
+
       expect(result).toEqual({
         userAgent: 'Mozilla/5.0',
         pathNext: '/admin',
@@ -304,14 +305,15 @@ describe('AuthentikParser', () => {
     it('should return empty object when no JSON found', () => {
       const body = 'User testuser logged in';
       const result = parser['extractDataFromBody'](body);
-      
+
       expect(result).toEqual({});
     });
 
     it('should handle Python-style single quotes', () => {
-      const body = 'User testuser logged in: {\'userAgent\': \'Mozilla/5.0\', \'pathNext\': \'/admin\'}';
+      const body =
+        "User testuser logged in: {'userAgent': 'Mozilla/5.0', 'pathNext': '/admin'}";
       const result = parser['extractDataFromBody'](body);
-      
+
       expect(result).toEqual({
         userAgent: 'Mozilla/5.0',
         pathNext: '/admin',
@@ -319,9 +321,10 @@ describe('AuthentikParser', () => {
     });
 
     it('should handle Python boolean and null values', () => {
-      const body = 'User testuser logged in: {\'isValid\': True, \'isBlocked\': False, \'parent\': None}';
+      const body =
+        "User testuser logged in: {'isValid': True, 'isBlocked': False, 'parent': None}";
       const result = parser['extractDataFromBody'](body);
-      
+
       expect(result).toEqual({
         asn: undefined,
         authMethod: undefined,
@@ -338,7 +341,7 @@ describe('AuthentikParser', () => {
     it('should handle invalid JSON gracefully', () => {
       const body = 'User testuser logged in: {invalid json}';
       const result = parser['extractDataFromBody'](body);
-      
+
       expect(result).toEqual({});
     });
   });

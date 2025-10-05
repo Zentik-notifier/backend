@@ -36,7 +36,7 @@ describe('WebPushService', () => {
     }).compile();
 
     service = module.get<WebPushService>(WebPushService);
-    
+
     // Mock web-push
     const webPush = require('web-push');
     mockWebPush = webPush;
@@ -74,7 +74,7 @@ describe('WebPushService', () => {
 
       expect(result.success).toBe(true);
       expect(result.results).toHaveLength(1);
-      expect(result.results![0]).toEqual({
+      expect(result.results[0]).toEqual({
         endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
         success: true,
       });
@@ -120,7 +120,7 @@ describe('WebPushService', () => {
 
       expect(result.success).toBe(false);
       expect(result.results).toHaveLength(1);
-      expect(result.results![0]).toEqual({
+      expect(result.results[0]).toEqual({
         endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
         success: false,
         error: 'Invalid subscription',
@@ -230,7 +230,7 @@ describe('WebPushService', () => {
       const result = await service.sendPrebuilt(deviceData, payload);
 
       expect(result.success).toBe(false);
-      expect(result.results![0].error).toBe('Web Push service error');
+      expect(result.results[0].error).toBe('Web Push service error');
     });
   });
 });

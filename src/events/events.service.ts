@@ -1,18 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Event, EventType } from '../entities';
 import {
-  Event,
-  EventType,
-} from '../entities';
-import { CreateEventDto, EventsQueryDto, EventsResponseDto, EventsPaginatedQueryDto } from './dto';
+  CreateEventDto,
+  EventsQueryDto,
+  EventsResponseDto,
+  EventsPaginatedQueryDto,
+} from './dto';
 
 @Injectable()
 export class EventsService {
   constructor(
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
-  ) { }
+  ) {}
 
   async createEvent(createEventDto: CreateEventDto): Promise<Event> {
     const event = this.eventsRepository.create(createEventDto);
@@ -88,15 +90,24 @@ export class EventsService {
     return response;
   }
 
-  async findByTypePaginated(type: EventType, query: EventsPaginatedQueryDto): Promise<EventsResponseDto> {
+  async findByTypePaginated(
+    type: EventType,
+    query: EventsPaginatedQueryDto,
+  ): Promise<EventsResponseDto> {
     return this.findAllPaginated({ ...query, type });
   }
 
-  async findByUserIdPaginated(userId: string, query: EventsPaginatedQueryDto): Promise<EventsResponseDto> {
+  async findByUserIdPaginated(
+    userId: string,
+    query: EventsPaginatedQueryDto,
+  ): Promise<EventsResponseDto> {
     return this.findAllPaginated({ ...query, userId });
   }
 
-  async findByObjectIdPaginated(objectId: string, query: EventsPaginatedQueryDto): Promise<EventsResponseDto> {
+  async findByObjectIdPaginated(
+    objectId: string,
+    query: EventsPaginatedQueryDto,
+  ): Promise<EventsResponseDto> {
     return this.findAllPaginated({ ...query, objectId });
   }
 }

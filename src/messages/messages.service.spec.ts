@@ -92,12 +92,14 @@ describe('MessagesService', () => {
         {
           provide: UsersService,
           useValue: {
-            getUserSetting: jest.fn(async (userId: string, type: UserSettingType) => {
-              if (type === UserSettingType.Language) {
-                return { valueText: 'en-EN' } as any;
-              }
-              return null;
-            }),
+            getUserSetting: jest.fn(
+              async (userId: string, type: UserSettingType) => {
+                if (type === UserSettingType.Language) {
+                  return { valueText: 'en-EN' } as any;
+                }
+                return null;
+              },
+            ),
           },
         },
         {
@@ -222,7 +224,8 @@ describe('MessagesService', () => {
     entityPermissionService = module.get<EntityPermissionService>(
       EntityPermissionService,
     );
-    payloadMapperService = module.get<PayloadMapperService>(PayloadMapperService);
+    payloadMapperService =
+      module.get<PayloadMapperService>(PayloadMapperService);
   });
 
   it('should be defined', () => {
@@ -337,7 +340,9 @@ describe('MessagesService', () => {
         getOne: jest.fn().mockResolvedValue(mockBucketWithEmojiIcon),
       };
 
-      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(bucketsRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.create(mockCreateMessageDto, 'user-1');
 
@@ -1150,8 +1155,12 @@ describe('MessagesService', () => {
       } as any);
 
       // Mock the message creation
-      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
-      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
       expect(result).toEqual(mockMessage);
@@ -1184,8 +1193,12 @@ describe('MessagesService', () => {
       } as any);
 
       // Mock the message creation
-      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
-      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
       expect(result).toEqual(mockMessage);
@@ -1211,8 +1224,12 @@ describe('MessagesService', () => {
       } as any);
 
       // Mock the message creation
-      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
-      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
       expect(result).toEqual(mockMessage);
@@ -1239,8 +1256,12 @@ describe('MessagesService', () => {
       } as any);
 
       // Mock the message creation
-      jest.spyOn(messagesRepository, 'create').mockReturnValue(mockMessage as any);
-      jest.spyOn(messagesRepository, 'save').mockResolvedValue(mockMessage as Message);
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
       expect(result).toEqual(mockMessage);

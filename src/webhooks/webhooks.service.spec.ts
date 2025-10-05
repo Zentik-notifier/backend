@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserWebhook, HttpMethod, User } from '../entities';
+import { UserWebhook, HttpMethod, User, EntityExecution } from '../entities';
 import { UserRole } from '../users/users.types';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { WebhooksService } from './webhooks.service';
+import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -36,6 +37,22 @@ describe('WebhooksService', () => {
         {
           provide: EntityPermissionService,
           useValue: mockEntityPermissionService,
+        },
+        {
+          provide: getRepositoryToken(EntityExecution),
+          useValue: {
+            create: jest.fn().mockReturnValue({}),
+            save: jest.fn().mockResolvedValue({}),
+            find: jest.fn().mockResolvedValue([]),
+            findOne: jest.fn().mockResolvedValue(null),
+            delete: jest.fn().mockResolvedValue({ affected: 0 }),
+          },
+        },
+        {
+          provide: EntityExecutionService,
+          useValue: {
+            create: jest.fn().mockResolvedValue({}),
+          },
         },
       ],
     }).compile();
@@ -111,7 +128,10 @@ describe('WebhooksService', () => {
 
       await service.executeWebhook('webhook-1', 'user-1');
 
-      expect(service.getWebhookById).toHaveBeenCalledWith('webhook-1', 'user-1');
+      expect(service.getWebhookById).toHaveBeenCalledWith(
+        'webhook-1',
+        'user-1',
+      );
       expect(global.fetch).toHaveBeenCalledWith(
         'https://example.com/webhook',
         expect.objectContaining({
@@ -119,11 +139,11 @@ describe('WebhooksService', () => {
           headers: {
             'Content-Type': 'application/json',
             'User-Agent': 'Zentik-Webhook/1.0',
-            'Authorization': 'Bearer token123',
+            Authorization: 'Bearer token123',
             'X-Custom': 'custom-value',
           },
           signal: expect.any(AbortSignal),
-        })
+        }),
       );
 
       // Check body separately to handle dynamic timestamp
@@ -151,19 +171,16 @@ describe('WebhooksService', () => {
 
       await service.executeWebhook('webhook-1', 'user-1');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://example.com/webhook',
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Zentik-Webhook/1.0',
-            'Authorization': 'Bearer token123',
-            'X-Custom': 'custom-value',
-          },
-          signal: expect.any(AbortSignal),
-        }
-      );
+      expect(global.fetch).toHaveBeenCalledWith('https://example.com/webhook', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Zentik-Webhook/1.0',
+          Authorization: 'Bearer token123',
+          'X-Custom': 'custom-value',
+        },
+        signal: expect.any(AbortSignal),
+      });
     });
 
     it('should execute webhook without custom body', async () => {
@@ -172,7 +189,9 @@ describe('WebhooksService', () => {
         body: null,
       };
 
-      jest.spyOn(service, 'getWebhookById').mockResolvedValue(webhookWithoutBody);
+      jest
+        .spyOn(service, 'getWebhookById')
+        .mockResolvedValue(webhookWithoutBody);
 
       const mockResponse = {
         ok: true,
@@ -189,11 +208,11 @@ describe('WebhooksService', () => {
           headers: {
             'Content-Type': 'application/json',
             'User-Agent': 'Zentik-Webhook/1.0',
-            'Authorization': 'Bearer token123',
+            Authorization: 'Bearer token123',
             'X-Custom': 'custom-value',
           },
           signal: expect.any(AbortSignal),
-        })
+        }),
       );
 
       // Check body separately
@@ -213,7 +232,9 @@ describe('WebhooksService', () => {
       (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
       // Should not throw error
-      await expect(service.executeWebhook('webhook-1', 'user-1')).resolves.not.toThrow();
+      await expect(
+        service.executeWebhook('webhook-1', 'user-1'),
+      ).resolves.not.toThrow();
 
       expect(mockResponse.text).toHaveBeenCalled();
     });
@@ -222,7 +243,9 @@ describe('WebhooksService', () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
       // Should not throw error
-      await expect(service.executeWebhook('webhook-1', 'user-1')).resolves.not.toThrow();
+      await expect(
+        service.executeWebhook('webhook-1', 'user-1'),
+      ).resolves.not.toThrow();
     });
 
     it('should handle webhook timeout', async () => {
@@ -231,7 +254,9 @@ describe('WebhooksService', () => {
       (global.fetch as jest.Mock).mockRejectedValue(timeoutError);
 
       // Should not throw error
-      await expect(service.executeWebhook('webhook-1', 'user-1')).resolves.not.toThrow();
+      await expect(
+        service.executeWebhook('webhook-1', 'user-1'),
+      ).resolves.not.toThrow();
     });
 
     it('should execute webhook without custom headers', async () => {
@@ -240,7 +265,9 @@ describe('WebhooksService', () => {
         headers: [],
       };
 
-      jest.spyOn(service, 'getWebhookById').mockResolvedValue(webhookWithoutHeaders);
+      jest
+        .spyOn(service, 'getWebhookById')
+        .mockResolvedValue(webhookWithoutHeaders);
 
       const mockResponse = {
         ok: true,
@@ -259,7 +286,7 @@ describe('WebhooksService', () => {
             'User-Agent': 'Zentik-Webhook/1.0',
           },
           signal: expect.any(AbortSignal),
-        })
+        }),
       );
     });
   });

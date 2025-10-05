@@ -8,9 +8,7 @@ import { AttachmentsService } from './attachments.service';
 
 @Injectable()
 export class AttachmentsDisabledGuard implements CanActivate {
-  constructor(
-    private readonly attachmentsService: AttachmentsService,
-  ) {}
+  constructor(private readonly attachmentsService: AttachmentsService) {}
 
   canActivate(context: ExecutionContext): boolean {
     if (!this.attachmentsService.isAttachmentsEnabled()) {

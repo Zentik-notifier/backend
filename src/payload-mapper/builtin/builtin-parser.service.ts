@@ -9,7 +9,8 @@ import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
 @Injectable()
 export class BuiltinParserService {
-  private readonly parsers: Map<PayloadMapperBuiltInType, IBuiltinParser> = new Map();
+  private readonly parsers: Map<PayloadMapperBuiltInType, IBuiltinParser> =
+    new Map();
   private readonly parsersByName: Map<string, IBuiltinParser> = new Map();
 
   constructor(
@@ -24,9 +25,18 @@ export class BuiltinParserService {
 
   private registerParsers(): void {
     // Register parsers by type
-    this.parsers.set(PayloadMapperBuiltInType.ZentikAuthentik, this.authentikParser);
-    this.parsers.set(PayloadMapperBuiltInType.ZentikServarr, this.servarrParser);
-    this.parsers.set(PayloadMapperBuiltInType.ZentikRailway, this.railwayParser);
+    this.parsers.set(
+      PayloadMapperBuiltInType.ZentikAuthentik,
+      this.authentikParser,
+    );
+    this.parsers.set(
+      PayloadMapperBuiltInType.ZentikServarr,
+      this.servarrParser,
+    );
+    this.parsers.set(
+      PayloadMapperBuiltInType.ZentikRailway,
+      this.railwayParser,
+    );
 
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
@@ -48,7 +58,7 @@ export class BuiltinParserService {
     if (!parser) {
       // Then try by enum type
       const builtInType = Object.values(PayloadMapperBuiltInType).find(
-        type => type.toLowerCase() === parserName.toLowerCase()
+        (type) => type.toLowerCase() === parserName.toLowerCase(),
       );
 
       if (builtInType) {
@@ -66,8 +76,12 @@ export class BuiltinParserService {
   /**
    * Gets all available parsers
    */
-  getAllParsers(): Array<{ name: string; type: PayloadMapperBuiltInType; description: string }> {
-    return Array.from(this.parsers.values()).map(parser => ({
+  getAllParsers(): Array<{
+    name: string;
+    type: PayloadMapperBuiltInType;
+    description: string;
+  }> {
+    return Array.from(this.parsers.values()).map((parser) => ({
       name: parser.name,
       type: parser.builtInType,
       description: parser.description,
@@ -81,7 +95,9 @@ export class BuiltinParserService {
     const parser = this.getParser(parserName);
 
     if (!parser.validate(payload)) {
-      throw new Error(`Invalid payload for parser ${parserName}: ${JSON.stringify(payload)}`);
+      throw new Error(
+        `Invalid payload for parser ${parserName}: ${JSON.stringify(payload)}`,
+      );
     }
 
     return parser.parse(payload);

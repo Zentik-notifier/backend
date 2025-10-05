@@ -56,7 +56,11 @@ export class EventTrackingService {
     });
   }
 
-  async trackBucketSharing(ownerUserId: string, bucketId: string, sharedWithUserId: string): Promise<void> {
+  async trackBucketSharing(
+    ownerUserId: string,
+    bucketId: string,
+    sharedWithUserId: string,
+  ): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.BUCKET_SHARING,
       userId: ownerUserId,
@@ -65,7 +69,11 @@ export class EventTrackingService {
     });
   }
 
-  async trackBucketUnsharing(ownerUserId: string, bucketId: string, unsharedFromUserId: string): Promise<void> {
+  async trackBucketUnsharing(
+    ownerUserId: string,
+    bucketId: string,
+    unsharedFromUserId: string,
+  ): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.BUCKET_UNSHARING,
       userId: ownerUserId,

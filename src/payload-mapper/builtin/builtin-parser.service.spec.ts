@@ -13,7 +13,13 @@ describe('BuiltinParserService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [BuiltinParserService, AuthentikParser, ServarrParser, RailwayParser, BuiltinParserLoggerService],
+      providers: [
+        BuiltinParserService,
+        AuthentikParser,
+        ServarrParser,
+        RailwayParser,
+        BuiltinParserLoggerService,
+      ],
     }).compile();
 
     service = module.get<BuiltinParserService>(BuiltinParserService);
@@ -37,7 +43,9 @@ describe('BuiltinParserService', () => {
     });
 
     it('should return parser by enum type', () => {
-      const parser = service.getParser(PayloadMapperBuiltInType.ZentikAuthentik);
+      const parser = service.getParser(
+        PayloadMapperBuiltInType.ZentikAuthentik,
+      );
       expect(parser).toBe(authentikParser);
     });
 
@@ -73,7 +81,9 @@ describe('BuiltinParserService', () => {
     });
 
     it('should return true for existing parser by enum type', () => {
-      expect(service.hasParser(PayloadMapperBuiltInType.ZentikAuthentik)).toBe(true);
+      expect(service.hasParser(PayloadMapperBuiltInType.ZentikAuthentik)).toBe(
+        true,
+      );
     });
 
     it('should return true for servarr parser by name', () => {
@@ -85,7 +95,9 @@ describe('BuiltinParserService', () => {
     });
 
     it('should return true for servarr parser by enum type', () => {
-      expect(service.hasParser(PayloadMapperBuiltInType.ZentikServarr)).toBe(true);
+      expect(service.hasParser(PayloadMapperBuiltInType.ZentikServarr)).toBe(
+        true,
+      );
     });
 
     it('should return false for unknown parser', () => {
@@ -96,22 +108,25 @@ describe('BuiltinParserService', () => {
   describe('getAllParsers', () => {
     it('should return all registered parsers', () => {
       const parsers = service.getAllParsers();
-      
+
       expect(parsers).toHaveLength(3);
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZentikAuthentik,
-        description: 'Parser for Authentik notifications - handles login, logout, registration, update available and other events',
+        description:
+          'Parser for Authentik notifications - handles login, logout, registration, update available and other events',
       });
       expect(parsers).toContainEqual({
         name: 'Servarr',
         type: PayloadMapperBuiltInType.ZentikServarr,
-        description: 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads',
+        description:
+          'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads',
       });
       expect(parsers).toContainEqual({
         name: 'ZentikRailway',
         type: PayloadMapperBuiltInType.ZentikRailway,
-        description: 'Parser for Railway webhooks - handles deployment and alert events',
+        description:
+          'Parser for Railway webhooks - handles deployment and alert events',
       });
     });
   });
@@ -160,5 +175,4 @@ describe('BuiltinParserService', () => {
       expect(result).toBe(false);
     });
   });
-
 });

@@ -33,8 +33,7 @@ export class JwtOrAccessTokenGuard implements CanActivate {
     // Fallback to query parameter
     else if (queryToken) {
       token = queryToken;
-    }
-    else {
+    } else {
       throw new UnauthorizedException('No authentication token provided');
     }
 

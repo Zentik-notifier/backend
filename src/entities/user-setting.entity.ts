@@ -43,15 +43,25 @@ export class UserSetting {
 
   @Field(() => UserSettingType)
   @ApiProperty({ enum: UserSettingType })
-  @Column({ type: 'enum', enum: UserSettingType, enumName: 'user_setting_type_enum' })
+  @Column({
+    type: 'enum',
+    enum: UserSettingType,
+    enumName: 'user_setting_type_enum',
+  })
   configType: UserSettingType;
 
-  @Field(() => String, { nullable: true, description: 'String value for the setting, when applicable' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'String value for the setting, when applicable',
+  })
   @ApiProperty({ required: false })
   @Column({ type: 'text', nullable: true })
   valueText?: string | null;
 
-  @Field(() => Boolean, { nullable: true, description: 'Boolean value for the setting, when applicable' })
+  @Field(() => Boolean, {
+    nullable: true,
+    description: 'Boolean value for the setting, when applicable',
+  })
   @ApiProperty({ required: false })
   @Column({ type: 'boolean', nullable: true })
   valueBool?: boolean | null;
@@ -76,5 +86,3 @@ export class UserSetting {
   @JoinColumn({ name: 'deviceId' })
   device?: UserDevice | null;
 }
-
-

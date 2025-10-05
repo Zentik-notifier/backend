@@ -1,6 +1,12 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { UserSettingType } from '../../entities/user-setting.entity';
 
 @InputType()
@@ -28,5 +34,3 @@ export class UpsertUserSettingInput {
   @IsUUID()
   deviceId?: string | null;
 }
-
-

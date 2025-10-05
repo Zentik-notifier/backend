@@ -51,8 +51,8 @@ export class AuthResolver {
     const providers =
       await this.oauthProvidersService.findEnabledProvidersPublic();
     const emailEnabled = this.emailService.isEmailEnabled();
-    return { 
-      oauthProviders: providers, 
+    return {
+      oauthProviders: providers,
       emailEnabled,
       uploadEnabled: this.attachmentsService.isAttachmentsEnabled(),
     };

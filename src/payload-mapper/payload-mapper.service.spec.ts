@@ -6,6 +6,8 @@ import { NotificationDeliveryType } from '../notifications/notifications.types';
 import { AuthentikParser } from './builtin/authentik.parser';
 import { BuiltinParserService } from './builtin/builtin-parser.service';
 import { PayloadMapperService } from './payload-mapper.service';
+import { EntityExecution } from '../entities';
+import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 
 describe('PayloadMapperService', () => {
   let service: PayloadMapperService;
@@ -15,7 +17,8 @@ describe('PayloadMapperService', () => {
   const mockPayloadMapper: Partial<PayloadMapper> = {
     id: 'mapper-1',
     name: 'Test Mapper',
-    jsEvalFn: 'return { title: "Test" };',
+    jsEvalFn:
+      'function(payload) { return { title: "Test", deliveryType: "NORMAL" }; }',
     userId: 'user-1',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -56,6 +59,22 @@ describe('PayloadMapperService', () => {
             ]),
           },
         },
+        {
+          provide: getRepositoryToken(EntityExecution),
+          useValue: {
+            create: jest.fn().mockReturnValue({}),
+            save: jest.fn().mockResolvedValue({}),
+            find: jest.fn().mockResolvedValue([]),
+            findOne: jest.fn().mockResolvedValue(null),
+            delete: jest.fn().mockResolvedValue({ affected: 0 }),
+          },
+        },
+        {
+          provide: EntityExecutionService,
+          useValue: {
+            create: jest.fn().mockResolvedValue({}),
+          },
+        },
         AuthentikParser,
       ],
     }).compile();
@@ -64,7 +83,8 @@ describe('PayloadMapperService', () => {
     payloadMapperRepository = module.get<Repository<PayloadMapper>>(
       getRepositoryToken(PayloadMapper),
     );
-    builtinParserService = module.get<BuiltinParserService>(BuiltinParserService);
+    builtinParserService =
+      module.get<BuiltinParserService>(BuiltinParserService);
   });
 
   it('should be defined', () => {
@@ -101,7 +121,10 @@ describe('PayloadMapperService', () => {
       const result = await service.findOne('mapper-1', 'user-1');
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
-        where: [{ id: 'mapper-1', userId: 'user-1' }],
+        where: [
+          { id: 'mapper-1', userId: 'user-1' },
+          { name: 'mapper-1', userId: 'user-1' },
+        ],
         relations: ['user'],
       });
       expect(result).toEqual(mockPayloadMapper);
@@ -131,16 +154,27 @@ describe('PayloadMapperService', () => {
     it('should update an existing payload mapper', async () => {
       const updateDto = {
         name: 'Updated Mapper',
-        jsEvalFn: 'return { title: "Updated" };',
+        jsEvalFn:
+          'function(payload) { return { title: "Updated", deliveryType: "NORMAL" }; }',
       };
+
+      // Create a copy of the original mock to restore later
+      const originalMock = { ...mockPayloadMapper };
 
       const result = await service.update('mapper-1', 'user-1', updateDto);
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
-        where: [{ id: 'mapper-1', userId: 'user-1' }],
+        where: [
+          { id: 'mapper-1', userId: 'user-1' },
+          { name: 'mapper-1', userId: 'user-1' },
+        ],
         relations: ['user'],
       });
       expect(payloadMapperRepository.save).toHaveBeenCalled();
+
+      // Restore the original mock
+      Object.assign(mockPayloadMapper, originalMock);
+
       expect(result).toEqual(mockPayloadMapper);
     });
   });
@@ -150,10 +184,15 @@ describe('PayloadMapperService', () => {
       const result = await service.remove('mapper-1', 'user-1');
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
-        where: [{ id: 'mapper-1', userId: 'user-1' }],
+        where: [
+          { id: 'mapper-1', userId: 'user-1' },
+          { name: 'mapper-1', userId: 'user-1' },
+        ],
         relations: ['user'],
       });
-      expect(payloadMapperRepository.remove).toHaveBeenCalledWith(mockPayloadMapper);
+      expect(payloadMapperRepository.remove).toHaveBeenCalledWith(
+        mockPayloadMapper,
+      );
       expect(result).toBeUndefined();
     });
   });
@@ -166,10 +205,18 @@ describe('PayloadMapperService', () => {
     };
 
     it('should transform payload using builtin parser', async () => {
-      const result = await service.transformPayload('authentik', mockPayload, 'user-1', 'bucket-1');
+      const result = await service.transformPayload(
+        'authentik',
+        mockPayload,
+        'user-1',
+        'bucket-1',
+      );
 
       expect(builtinParserService.hasParser).toHaveBeenCalledWith('authentik');
-      expect(builtinParserService.transformPayload).toHaveBeenCalledWith('authentik', mockPayload);
+      expect(builtinParserService.transformPayload).toHaveBeenCalledWith(
+        'authentik',
+        mockPayload,
+      );
 
       expect(result).toEqual({
         title: 'Test Title',
@@ -181,23 +228,98 @@ describe('PayloadMapperService', () => {
       });
     });
 
+    it('should transform payload using user parser by ID', async () => {
+      jest.spyOn(builtinParserService, 'hasParser').mockReturnValue(false);
+
+      // Mock the eval function to return a mock function that returns the expected result
+      const originalEval = global.eval;
+      global.eval = jest.fn().mockReturnValue((payload: any) => ({
+        title: 'Test',
+        deliveryType: 'NORMAL',
+      }));
+
+      const result = await service.transformPayload(
+        'mapper-1',
+        mockPayload,
+        'user-1',
+        'bucket-1',
+      );
+
+      expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
+        where: [
+          { id: 'mapper-1', userId: 'user-1' },
+          { name: 'mapper-1', userId: 'user-1' },
+        ],
+        relations: ['user'],
+      });
+
+      expect(global.eval).toHaveBeenCalledWith(
+        'function(payload) { return { title: "Test", deliveryType: "NORMAL" }; }',
+      );
+      expect(result).toEqual({
+        title: 'Test',
+        subtitle: undefined,
+        body: undefined,
+        sound: undefined,
+        deliveryType: 'NORMAL',
+        bucketId: 'bucket-1',
+      });
+
+      // Restore original eval
+      global.eval = originalEval;
+    });
+
+    it('should transform payload using user parser by name', async () => {
+      jest.spyOn(builtinParserService, 'hasParser').mockReturnValue(false);
+
+      // Mock the eval function to return a mock function that returns the expected result
+      const originalEval = global.eval;
+      global.eval = jest.fn().mockReturnValue((payload: any) => ({
+        title: 'Test',
+        deliveryType: 'NORMAL',
+      }));
+
+      const result = await service.transformPayload(
+        'Test Mapper',
+        mockPayload,
+        'user-1',
+        'bucket-1',
+      );
+
+      expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
+        where: [
+          { id: 'Test Mapper', userId: 'user-1' },
+          { name: 'Test Mapper', userId: 'user-1' },
+        ],
+        relations: ['user'],
+      });
+
+      expect(global.eval).toHaveBeenCalledWith(
+        'function(payload) { return { title: "Test", deliveryType: "NORMAL" }; }',
+      );
+      expect(result).toEqual({
+        title: 'Test',
+        subtitle: undefined,
+        body: undefined,
+        sound: undefined,
+        deliveryType: 'NORMAL',
+        bucketId: 'bucket-1',
+      });
+
+      // Restore original eval
+      global.eval = originalEval;
+    });
+
     it('should throw NotFoundException for unknown parser', async () => {
       jest.spyOn(builtinParserService, 'hasParser').mockReturnValue(false);
 
-      // Mock the repository to return null for "unknown" parser
-      const originalFindOne = payloadMapperRepository.findOne;
-      const originalFind = payloadMapperRepository.find;
-
+      // Mock the repository to return null for both ID and name searches
       payloadMapperRepository.findOne = jest.fn().mockResolvedValue(null);
       payloadMapperRepository.find = jest.fn().mockResolvedValue([]);
 
       await expect(
         service.transformPayload('unknown', mockPayload, 'user-1', 'bucket-1'),
       ).rejects.toThrow("User parser 'unknown' not found");
-
-      // Restore original mocks
-      payloadMapperRepository.findOne = originalFindOne;
-      payloadMapperRepository.find = originalFind;
     });
   });
 });

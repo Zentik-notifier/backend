@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
 import { UserWebhook } from '../entities';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
 import { WebhooksController } from './webhooks.controller';
@@ -12,6 +13,7 @@ import { WebhooksService } from './webhooks.service';
     TypeOrmModule.forFeature([UserWebhook]),
     AuthModule,
     EntityPermissionModule,
+    EntityExecutionModule,
   ],
   controllers: [WebhooksController],
   providers: [WebhooksService, WebhooksResolver],

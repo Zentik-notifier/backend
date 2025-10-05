@@ -338,19 +338,21 @@ describe('BucketsController', () => {
         userId: 'user-1',
       } as any;
 
-      mockBucketsService.setBucketSnoozeMinutes.mockResolvedValue(mockUserBucket);
+      mockBucketsService.setBucketSnoozeMinutes.mockResolvedValue(
+        mockUserBucket,
+      );
 
       const result = await controller.setBucketSnoozeMinutes(
         'bucket-1',
         { minutes: 30 },
-        'user-1'
+        'user-1',
       );
 
       expect(result).toBe(mockUserBucket);
       expect(bucketsService.setBucketSnoozeMinutes).toHaveBeenCalledWith(
         'bucket-1',
         'user-1',
-        30
+        30,
       );
     });
   });

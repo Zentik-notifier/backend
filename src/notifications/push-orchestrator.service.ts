@@ -165,7 +165,10 @@ export class PushNotificationOrchestratorService {
 
     // Track notification events for each device
     for (const device of targetDevices) {
-      await this.eventTrackingService.trackNotification(device.userId, device.id);
+      await this.eventTrackingService.trackNotification(
+        device.userId,
+        device.id,
+      );
     }
 
     // Create one notification per device (user + device pair) - ALWAYS create notifications
@@ -185,10 +188,11 @@ export class PushNotificationOrchestratorService {
     }
 
     // Get all user-bucket relationships for this bucket and users to check snooze status efficiently
-    const userBuckets = await this.bucketsService.findUserBucketsByBucketAndUsers(
-      message.bucketId,
-      authorizedUsers,
-    );
+    const userBuckets =
+      await this.bucketsService.findUserBucketsByBucketAndUsers(
+        message.bucketId,
+        authorizedUsers,
+      );
     const userBucketMap = new Map(userBuckets.map((ub) => [ub.userId, ub]));
 
     // Load relations and publish GraphQL subscriptions
@@ -269,7 +273,9 @@ export class PushNotificationOrchestratorService {
             sentAt: new Date(),
           });
         } else if (result.error) {
-          await this.notificationsRepository.update(notif.id, { error: result.error });
+          await this.notificationsRepository.update(notif.id, {
+            error: result.error,
+          });
           // Conditional retry for APNs PayloadTooLarge if user setting allows
           if (
             typeof result.error === 'string' &&
@@ -403,7 +409,7 @@ export class PushNotificationOrchestratorService {
         },
         body: JSON.stringify(payload),
       });
-      
+
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         return { success: true };
@@ -417,15 +423,15 @@ export class PushNotificationOrchestratorService {
     }
   }
 
-  private async buildExternalPayload(notification: Notification, device: UserDevice) {
+  private async buildExternalPayload(
+    notification: Notification,
+    device: UserDevice,
+  ) {
     if (device.platform === DevicePlatform.IOS) {
-      const { payload: rawPayload, customPayload } = await this.iosPushService.buildAPNsPayload(
-        notification,
-        [],
-        device,
-      );
+      const { payload: rawPayload, customPayload } =
+        await this.iosPushService.buildAPNsPayload(notification, [], device);
       const priority = notification.message.deliveryType === 'SILENT' ? 5 : 10;
-      
+
       return {
         platform: 'IOS',
         payload: {

@@ -35,9 +35,7 @@ import { MessagesService } from './messages.service';
 @ApiTags('Messages')
 @ApiBearerAuth()
 export class MessagesController {
-  constructor(
-    private readonly messagesService: MessagesService,
-  ) { }
+  constructor(private readonly messagesService: MessagesService) {}
 
   @Post()
   @Throttle({
@@ -160,7 +158,8 @@ export class MessagesController {
   })
   @ApiOperation({
     summary: 'Transform payload using builtin parser and create message',
-    description: 'Transform a payload using a builtin parser (e.g., Authentik) and create a message with the transformed data. Requires bucketId query parameter to specify the target bucket.',
+    description:
+      'Transform a payload using a builtin parser (e.g., Authentik) and create a message with the transformed data. Requires bucketId query parameter to specify the target bucket.',
   })
   @ApiConsumes('application/json')
   @ApiResponse({
@@ -170,7 +169,8 @@ export class MessagesController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid payload, missing required parameters (parser, bucketId), or parser not found',
+    description:
+      'Invalid payload, missing required parameters (parser, bucketId), or parser not found',
   })
   @ApiResponse({
     status: 404,
@@ -190,7 +190,11 @@ export class MessagesController {
     }
     // console.log(parserName, JSON.stringify(payload));
 
-    return this.messagesService.transformAndCreate(parserName, payload, userId, bucketId);
+    return this.messagesService.transformAndCreate(
+      parserName,
+      payload,
+      userId,
+      bucketId,
+    );
   }
-
 }

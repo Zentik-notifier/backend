@@ -37,7 +37,6 @@ export class PayloadMapperController {
     return this.payloadMapperService.findAll(userId);
   }
 
-
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.payloadMapperService.findOne(id, userId);

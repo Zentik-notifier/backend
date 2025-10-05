@@ -106,9 +106,15 @@ describe('BucketsService', () => {
     }).compile();
 
     service = module.get<BucketsService>(BucketsService);
-    bucketsRepository = module.get<Repository<Bucket>>(getRepositoryToken(Bucket));
-    userBucketRepository = module.get<Repository<UserBucket>>(getRepositoryToken(UserBucket));
-    entityPermissionService = module.get<EntityPermissionService>(EntityPermissionService);
+    bucketsRepository = module.get<Repository<Bucket>>(
+      getRepositoryToken(Bucket),
+    );
+    userBucketRepository = module.get<Repository<UserBucket>>(
+      getRepositoryToken(UserBucket),
+    );
+    entityPermissionService = module.get<EntityPermissionService>(
+      EntityPermissionService,
+    );
   });
 
   it('should be defined', () => {
@@ -132,7 +138,10 @@ describe('BucketsService', () => {
     });
 
     it('should create a bucket with emoji icon successfully', async () => {
-      const result = await service.create('user-1', mockCreateBucketDtoWithEmoji);
+      const result = await service.create(
+        'user-1',
+        mockCreateBucketDtoWithEmoji,
+      );
 
       expect(bucketsRepository.create).toHaveBeenCalledWith({
         ...mockCreateBucketDtoWithEmoji,
@@ -147,7 +156,10 @@ describe('BucketsService', () => {
     });
 
     it('should create a bucket with data URL icon successfully', async () => {
-      const result = await service.create('user-1', mockCreateBucketDtoWithDataUrl);
+      const result = await service.create(
+        'user-1',
+        mockCreateBucketDtoWithDataUrl,
+      );
 
       expect(bucketsRepository.create).toHaveBeenCalledWith({
         ...mockCreateBucketDtoWithDataUrl,
@@ -469,19 +481,32 @@ describe('BucketsService', () => {
         snoozeUntil: null,
       } as any;
 
-      jest.spyOn(service, 'findOrCreateUserBucket').mockResolvedValue(mockUserBucket);
-      jest.spyOn(userBucketRepository, 'save').mockResolvedValue(mockUserBucket);
+      jest
+        .spyOn(service, 'findOrCreateUserBucket')
+        .mockResolvedValue(mockUserBucket);
+      jest
+        .spyOn(userBucketRepository, 'save')
+        .mockResolvedValue(mockUserBucket);
 
-      const result = await service.setBucketSnoozeMinutes('bucket-1', 'user-1', 60);
+      const result = await service.setBucketSnoozeMinutes(
+        'bucket-1',
+        'user-1',
+        60,
+      );
 
-      expect(service.findOrCreateUserBucket).toHaveBeenCalledWith('bucket-1', 'user-1');
+      expect(service.findOrCreateUserBucket).toHaveBeenCalledWith(
+        'bucket-1',
+        'user-1',
+      );
       expect(userBucketRepository.save).toHaveBeenCalledWith(mockUserBucket);
       expect(result).toBe(mockUserBucket);
-      
+
       // Check that snoozeUntil was set to approximately 60 minutes from now
       const expectedTime = new Date();
       expectedTime.setMinutes(expectedTime.getMinutes() + 60);
-      const timeDiff = Math.abs(mockUserBucket.snoozeUntil.getTime() - expectedTime.getTime());
+      const timeDiff = Math.abs(
+        mockUserBucket.snoozeUntil.getTime() - expectedTime.getTime(),
+      );
       expect(timeDiff).toBeLessThan(5000); // Within 5 seconds tolerance
     });
   });
