@@ -100,16 +100,20 @@ export class EntityExecutionService {
   }
 
   /**
-   * Find executions by type and optionally by entity ID
+   * Find executions by type and optionally by entity ID or entity name
    */
   async findByTypeAndEntity(
     type: ExecutionType,
     entityId?: string,
+    entityName?: string,
     userId?: string,
   ): Promise<EntityExecution[]> {
     const where: any = { type };
     if (entityId) {
       where.entityId = entityId;
+    }
+    if (entityName) {
+      where.entityName = entityName;
     }
     if (userId) {
       where.userId = userId;

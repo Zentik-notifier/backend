@@ -247,6 +247,7 @@ enum ExecutionType {
 
 input GetEntityExecutionsInput {
   entityId: String
+  entityName: String
   type: ExecutionType
   userId: String
 }

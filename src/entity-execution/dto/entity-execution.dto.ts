@@ -27,6 +27,15 @@ export class GetEntityExecutionsInput {
   @Field({ nullable: true })
   @ApiProperty({
     required: false,
+    description: 'Name of the entity to filter by',
+  })
+  @IsOptional()
+  @IsString()
+  entityName?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
     description: 'User ID to filter by',
   })
   @IsOptional()
