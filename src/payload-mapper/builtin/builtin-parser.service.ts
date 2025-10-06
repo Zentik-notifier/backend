@@ -26,15 +26,15 @@ export class BuiltinParserService {
   private registerParsers(): void {
     // Register parsers by type
     this.parsers.set(
-      PayloadMapperBuiltInType.ZentikAuthentik,
+      PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
       this.authentikParser,
     );
     this.parsers.set(
-      PayloadMapperBuiltInType.ZentikServarr,
+      PayloadMapperBuiltInType.ZENTIK_SERVARR,
       this.servarrParser,
     );
     this.parsers.set(
-      PayloadMapperBuiltInType.ZentikRailway,
+      PayloadMapperBuiltInType.ZENTIK_RAILWAY,
       this.railwayParser,
     );
 

@@ -36,7 +36,7 @@ export interface RailwayWebhookPayload {
 @Injectable()
 export class RailwayParser implements IBuiltinParser {
   get builtInType(): PayloadMapperBuiltInType {
-    return PayloadMapperBuiltInType.ZentikRailway;
+    return PayloadMapperBuiltInType.ZENTIK_RAILWAY;
   }
 
   get name(): string {

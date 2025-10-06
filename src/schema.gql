@@ -540,9 +540,9 @@ type PayloadMapper {
 
 """Built-in payload mapper types"""
 enum PayloadMapperBuiltInType {
-  ZentikAuthentik
-  ZentikRailway
-  ZentikServarr
+  ZENTIK_AUTHENTIK
+  ZENTIK_RAILWAY
+  ZENTIK_SERVARR
 }
 
 """Permission enum for bucket access"""

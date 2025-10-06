@@ -143,7 +143,7 @@ interface ServarrPayload {
 @Injectable()
 export class ServarrParser implements IBuiltinParser {
   get builtInType(): PayloadMapperBuiltInType {
-    return PayloadMapperBuiltInType.ZentikServarr;
+    return PayloadMapperBuiltInType.ZENTIK_SERVARR;
   }
 
   get name(): string {

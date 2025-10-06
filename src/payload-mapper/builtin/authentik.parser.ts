@@ -7,7 +7,7 @@ import { NotificationDeliveryType } from '../../notifications/notifications.type
 @Injectable()
 export class AuthentikParser implements IBuiltinParser {
   readonly name = 'Authentik';
-  readonly builtInType = PayloadMapperBuiltInType.ZentikAuthentik;
+  readonly builtInType = PayloadMapperBuiltInType.ZENTIK_AUTHENTIK;
   readonly description =
     'Parser for Authentik notifications - handles login, logout, registration, update available and other events';
 

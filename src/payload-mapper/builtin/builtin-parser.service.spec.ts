@@ -43,8 +43,8 @@ describe('BuiltinParserService', () => {
     });
 
     it('should return parser by enum type', () => {
-      const parser = service.getParser(
-        PayloadMapperBuiltInType.ZentikAuthentik,
+      const parser =       service.getParser(
+        PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
       );
       expect(parser).toBe(authentikParser);
     });
@@ -60,7 +60,7 @@ describe('BuiltinParserService', () => {
     });
 
     it('should return servarr parser by enum type', () => {
-      const parser = service.getParser(PayloadMapperBuiltInType.ZentikServarr);
+      const parser = service.getParser(PayloadMapperBuiltInType.ZENTIK_SERVARR);
       expect(parser).toBe(servarrParser);
     });
 
@@ -81,7 +81,7 @@ describe('BuiltinParserService', () => {
     });
 
     it('should return true for existing parser by enum type', () => {
-      expect(service.hasParser(PayloadMapperBuiltInType.ZentikAuthentik)).toBe(
+      expect(service.hasParser(PayloadMapperBuiltInType.ZENTIK_AUTHENTIK)).toBe(
         true,
       );
     });
@@ -95,7 +95,7 @@ describe('BuiltinParserService', () => {
     });
 
     it('should return true for servarr parser by enum type', () => {
-      expect(service.hasParser(PayloadMapperBuiltInType.ZentikServarr)).toBe(
+      expect(service.hasParser(PayloadMapperBuiltInType.ZENTIK_SERVARR)).toBe(
         true,
       );
     });
@@ -112,19 +112,19 @@ describe('BuiltinParserService', () => {
       expect(parsers).toHaveLength(3);
       expect(parsers).toContainEqual({
         name: 'Authentik',
-        type: PayloadMapperBuiltInType.ZentikAuthentik,
+        type: PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
         description:
           'Parser for Authentik notifications - handles login, logout, registration, update available and other events',
       });
       expect(parsers).toContainEqual({
         name: 'Servarr',
-        type: PayloadMapperBuiltInType.ZentikServarr,
+        type: PayloadMapperBuiltInType.ZENTIK_SERVARR,
         description:
           'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads',
       });
       expect(parsers).toContainEqual({
         name: 'ZentikRailway',
-        type: PayloadMapperBuiltInType.ZentikRailway,
+        type: PayloadMapperBuiltInType.ZENTIK_RAILWAY,
         description:
           'Parser for Railway webhooks - handles deployment and alert events',
       });

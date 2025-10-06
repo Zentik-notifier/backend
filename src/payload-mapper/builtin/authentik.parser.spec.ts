@@ -19,7 +19,7 @@ describe('AuthentikParser', () => {
 
   describe('builtInType', () => {
     it('should return ZENTIK_AUTHENTIK', () => {
-      expect(parser.builtInType).toBe(PayloadMapperBuiltInType.ZentikAuthentik);
+      expect(parser.builtInType).toBe(PayloadMapperBuiltInType.ZENTIK_AUTHENTIK);
     });
   });
 

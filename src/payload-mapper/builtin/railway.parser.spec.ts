@@ -20,7 +20,7 @@ describe('RailwayParser', () => {
 
   it('should have correct metadata', () => {
     expect(parser.name).toBe('ZentikRailway');
-    expect(parser.builtInType).toBe(PayloadMapperBuiltInType.ZentikRailway);
+    expect(parser.builtInType).toBe(PayloadMapperBuiltInType.ZENTIK_RAILWAY);
     expect(parser.description).toBe(
       'Parser for Railway webhooks - handles deployment and alert events',
     );
