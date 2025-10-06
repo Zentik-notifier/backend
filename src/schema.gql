@@ -565,6 +565,7 @@ type Query {
   buckets: [Bucket!]!
   checkEmailStatus(email: String!): EmailStatusResponseDto!
   enabledOAuthProviders: [OAuthProviderPublicDto!]!
+  entityExecution(id: String!): EntityExecution
   events(query: EventsQueryDto!): EventsResponseDto!
   getBackendVersion: String!
   getEntityExecutions(input: GetEntityExecutionsInput!): [EntityExecution!]!

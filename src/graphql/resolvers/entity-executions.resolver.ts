@@ -12,6 +12,14 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 export class EntityExecutionsResolver {
   constructor(private entityExecutionService: EntityExecutionService) {}
 
+  @Query(() => EntityExecution, { nullable: true })
+  async entityExecution(
+    @Args('id') id: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<EntityExecution | null> {
+    return this.entityExecutionService.findById(id, userId);
+  }
+
   @Query(() => [EntityExecution])
   async getEntityExecutions(
     @Args('input') input: GetEntityExecutionsInput,

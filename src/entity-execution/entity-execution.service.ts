@@ -86,6 +86,20 @@ export class EntityExecutionService {
   }
 
   /**
+   * Find a single execution by ID
+   */
+  async findById(id: string, userId?: string): Promise<EntityExecution | null> {
+    const where: any = { id };
+    if (userId) {
+      where.userId = userId;
+    }
+
+    return this.entityExecutionRepository.findOne({
+      where,
+    });
+  }
+
+  /**
    * Find executions by type and optionally by entity ID
    */
   async findByTypeAndEntity(
