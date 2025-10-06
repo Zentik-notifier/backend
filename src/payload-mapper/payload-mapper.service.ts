@@ -160,7 +160,12 @@ export class PayloadMapperService {
       // Check if it's a builtin parser
       if (this.builtinParserService.hasParser(parserName)) {
         console.log(`[PayloadMapper] 🔧 Using builtin parser '${parserName}'`);
-        parserInfo = { entityName: parserName, parserType: 'builtin' };
+        // Get the builtin parser to extract the builtInType
+        const builtinParser = this.builtinParserService.getAllParsers().find(p => p.name === parserName);
+        parserInfo = {
+          entityName: builtinParser ? builtinParser.type : parserName,
+          parserType: 'builtin'
+        };
         parserResult = await this.transformWithBuiltinParser(
           parserName,
           payload,
@@ -201,7 +206,7 @@ export class PayloadMapperService {
         type: ExecutionType.PAYLOAD_MAPPER,
         status: parserResult.status,
         entityName: parserInfo.entityName,
-        entityId: parserInfo.parserType === 'user' ? parserInfo.entityId : undefined,
+        entityId: parserInfo.parserType === 'user' ? parserInfo.entityId : `builtin-${parserName.toLowerCase()}`,
         userId,
         input: JSON.stringify({
           parserName,

@@ -276,6 +276,7 @@ describe('EntityExecutionService', () => {
       const result = await service.findByTypeAndEntity(
         ExecutionType.PAYLOAD_MAPPER,
         'parser-1',
+        undefined,
         'user-1',
       );
 

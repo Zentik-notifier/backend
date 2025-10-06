@@ -35,6 +35,7 @@ export class EntityExecutionsResolver {
       return this.entityExecutionService.findByTypeAndEntity(
         input.type,
         input.entityId,
+        undefined,
         input.userId || userId,
       );
     }
@@ -44,6 +45,7 @@ export class EntityExecutionsResolver {
       return this.entityExecutionService.findByTypeAndEntity(
         ExecutionType.PAYLOAD_MAPPER, // Default to PAYLOAD_MAPPER if no type specified
         input.entityId,
+        undefined,
         input.userId || userId,
       );
     }
