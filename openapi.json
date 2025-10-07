@@ -2677,6 +2677,7 @@
             "required": false,
             "in": "query",
             "schema": {
+              "default": true,
               "type": "boolean"
             }
           },
@@ -2693,6 +2694,7 @@
             "required": false,
             "in": "query",
             "schema": {
+              "default": true,
               "type": "boolean"
             }
           },
@@ -5014,13 +5016,15 @@
             ]
           },
           "addMarkAsReadAction": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "addOpenNotificationAction": {
             "type": "boolean"
           },
           "addDeleteAction": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "snoozes": {
             "type": "array",
@@ -5684,13 +5688,15 @@
             ]
           },
           "addMarkAsReadAction": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "addOpenNotificationAction": {
             "type": "boolean"
           },
           "addDeleteAction": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "snoozes": {
             "type": "array",
@@ -5802,13 +5808,15 @@
             ]
           },
           "addMarkAsReadAction": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "addOpenNotificationAction": {
             "type": "boolean"
           },
           "addDeleteAction": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "snoozes": {
             "type": "array",

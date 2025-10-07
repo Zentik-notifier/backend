@@ -199,11 +199,11 @@ export class CreateMessageDto {
   deliveryType: NotificationDeliveryType;
 
   @Field({ nullable: true })
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, default: true })
   @IsOptional()
   @Transform(transformMultipartBoolean, { toClassOnly: true })
   @IsBoolean()
-  addMarkAsReadAction?: boolean;
+  addMarkAsReadAction?: boolean = true;
 
   @Field({ nullable: true })
   @ApiProperty({ required: false })
@@ -213,11 +213,11 @@ export class CreateMessageDto {
   addOpenNotificationAction?: boolean;
 
   @Field({ nullable: true })
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, default: true })
   @IsOptional()
   @Transform(transformMultipartBoolean, { toClassOnly: true })
   @IsBoolean()
-  addDeleteAction?: boolean;
+  addDeleteAction?: boolean = true;
 
   @Field(() => [Number], { nullable: true })
   @ApiProperty({ type: [Number], required: false })

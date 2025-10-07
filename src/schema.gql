@@ -75,8 +75,8 @@ input CreateBucketDto {
 
 input CreateMessageDto {
   actions: [NotificationActionDto!]
-  addDeleteAction: Boolean
-  addMarkAsReadAction: Boolean
+  addDeleteAction: Boolean = true
+  addMarkAsReadAction: Boolean = true
   addOpenNotificationAction: Boolean
   attachments: [NotificationAttachmentDto!]
   body: String
