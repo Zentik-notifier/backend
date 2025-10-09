@@ -1,7 +1,7 @@
 import { Injectable, LoggerService, Scope, Inject, forwardRef, Logger, ConsoleLogger } from '@nestjs/common';
-import { LogStorageService } from '../../server-manager/log-storage.service';
-import { LokiLoggerService } from '../../server-manager/loki-logger.service';
-import { LogLevel } from '../../entities/log.entity';
+import { LogStorageService } from './log-storage.service';
+import { LokiLoggerService } from './loki-logger.service';
+import { LogLevel } from '../entities/log.entity';
 
 /**
  * Custom logger that saves logs to database and sends to Loki when enabled

@@ -10,7 +10,6 @@ import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { BucketsModule } from './buckets/buckets.module';
 import { CommonModule } from './common/common.module';
-import { LoggerModule } from './common/logger/logger.module';
 
 import { databaseConfig } from './config/database.config';
 // import { oauthConfig } from './config/oauth.config';
@@ -64,7 +63,6 @@ import { ServerSettingType } from './entities/server-setting.entity';
       },
     }),
     CommonModule,
-    LoggerModule,
     AuthModule,
     SystemAccessTokenModule,
     UsersModule,

@@ -11,8 +11,8 @@ import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { createAdminUsers } from './seeds/admin-users.seed';
 import { ServerSettingsService } from './server-manager/server-settings.service';
+import { DatabaseLoggerService } from './server-manager/database-logger.service';
 import { ServerSettingType } from './entities/server-setting.entity';
-import { DatabaseLoggerService } from './common/logger/database-logger.service';
 
 // Global reference to the application instance
 let appInstance: INestApplication | null = null;
