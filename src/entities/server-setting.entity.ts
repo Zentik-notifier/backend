@@ -93,6 +93,15 @@ export enum ServerSettingType {
   LogStorageEnabled = 'LogStorageEnabled',
   LogRetentionDays = 'LogRetentionDays',
   
+  // Loki Remote Logging
+  LokiEnabled = 'LokiEnabled',
+  LokiUrl = 'LokiUrl',
+  LokiUsername = 'LokiUsername',
+  LokiPassword = 'LokiPassword',
+  LokiLabels = 'LokiLabels',
+  LokiBatchSize = 'LokiBatchSize',
+  LokiBatchIntervalMs = 'LokiBatchIntervalMs',
+  
   // Prometheus Metrics
   PrometheusEnabled = 'PrometheusEnabled',
   PrometheusPath = 'PrometheusPath',

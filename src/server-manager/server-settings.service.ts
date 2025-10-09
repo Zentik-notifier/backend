@@ -172,6 +172,15 @@ export class ServerSettingsService {
       { configType: ServerSettingType.LogStorageEnabled, envKey: 'LOG_STORAGE_ENABLED', type: 'boolean', defaultValue: true },
       { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
       
+      // Loki Remote Logging
+      { configType: ServerSettingType.LokiEnabled, envKey: 'LOKI_ENABLED', type: 'boolean', defaultValue: false },
+      { configType: ServerSettingType.LokiUrl, envKey: 'LOKI_URL', type: 'string' },
+      { configType: ServerSettingType.LokiUsername, envKey: 'LOKI_USERNAME', type: 'string' },
+      { configType: ServerSettingType.LokiPassword, envKey: 'LOKI_PASSWORD', type: 'string' },
+      { configType: ServerSettingType.LokiLabels, envKey: 'LOKI_LABELS', type: 'string', defaultValue: 'app=zentik-notifier,environment=production' },
+      { configType: ServerSettingType.LokiBatchSize, envKey: 'LOKI_BATCH_SIZE', type: 'number', defaultValue: 100 },
+      { configType: ServerSettingType.LokiBatchIntervalMs, envKey: 'LOKI_BATCH_INTERVAL_MS', type: 'number', defaultValue: 5000 },
+      
       // Prometheus
       { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
       { configType: ServerSettingType.PrometheusPath, envKey: 'PROMETHEUS_PATH', type: 'string', defaultValue: '/metrics' },

@@ -9,6 +9,7 @@ import { ServerManagerResolver } from './server-manager.resolver';
 import { ServerManagerController } from './server-manager.controller';
 import { ServerSettingsService } from './server-settings.service';
 import { LogStorageService } from './log-storage.service';
+import { LokiLoggerService } from './loki-logger.service';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { LogStorageService } from './log-storage.service';
     ServerManagerResolver,
     ServerSettingsService,
     LogStorageService,
+    LokiLoggerService,
   ],
-  exports: [ServerManagerService, ServerSettingsService, LogStorageService],
+  exports: [ServerManagerService, ServerSettingsService, LogStorageService, LokiLoggerService],
 })
 export class ServerManagerModule {}

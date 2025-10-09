@@ -422,6 +422,9 @@ type Mutation {
   deleteWebhook(id: ID!): Boolean!
   deviceReportNotificationReceived(id: String!): Notification!
   executeWebhook(id: ID!): Boolean!
+
+  """Force flush all pending logs to Loki"""
+  flushLokiLogs: Boolean!
   grantEntityPermission(input: GrantEntityPermissionInput!): EntityPermission!
   login(input: LoginDto!): LoginResponse!
   logout: String!
@@ -435,6 +438,9 @@ type Mutation {
   refreshAccessToken(refreshToken: String!): RefreshTokenResponse!
   register(input: RegisterDto!): RegisterResponse!
   registerDevice(input: RegisterDeviceDto!): UserDevice!
+
+  """Reload Loki configuration from settings"""
+  reloadLokiConfig: Boolean!
   removeDevice(deviceId: String!): Boolean!
   removeDeviceByToken(deviceToken: String!): Boolean!
   requestEmailConfirmation(input: RequestEmailConfirmationDto!): EmailConfirmationResponseDto!
@@ -453,10 +459,19 @@ type Mutation {
   setBucketSnoozeMinutes(bucketId: String!, input: SetBucketSnoozeMinutesInput!): UserBucket!
   setPassword(input: ChangePasswordInput!): Boolean!
   shareBucket(input: GrantEntityPermissionInput!): EntityPermission!
+
+  """Start the log cleanup cron job"""
+  startLogCleanupCron: Boolean!
+
+  """Stop the log cleanup cron job"""
+  stopLogCleanupCron: Boolean!
   toggleOAuthProvider(id: String!): OAuthProvider!
 
   """Manually trigger a database backup"""
   triggerBackup: String!
+
+  """Manually trigger log cleanup based on retention policy"""
+  triggerLogCleanup: Boolean!
   unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
@@ -647,6 +662,9 @@ type Query {
   listBackups: [BackupInfoDto!]!
   listSystemTokens: [SystemAccessTokenDto!]!
 
+  """Get the status of the log cleanup cron job"""
+  logCleanupCronStatus: String!
+
   """Get log count by level"""
   logCountByLevel: String!
 
@@ -802,6 +820,13 @@ enum ServerSettingType {
   LogLevel
   LogRetentionDays
   LogStorageEnabled
+  LokiBatchIntervalMs
+  LokiBatchSize
+  LokiEnabled
+  LokiLabels
+  LokiPassword
+  LokiUrl
+  LokiUsername
   MessagesDeleteCronJob
   MessagesDeleteJobEnabled
   MessagesMaxAge

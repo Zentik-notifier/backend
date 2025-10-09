@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { Repository, LessThan, Like, FindOptionsWhere } from 'typeorm';
 import { Log, LogLevel } from '../entities/log.entity';
 import { ServerSettingsService } from './server-settings.service';
@@ -8,14 +9,41 @@ import { ServerSettingType } from '../entities/server-setting.entity';
 import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
 
 @Injectable()
-export class LogStorageService {
+export class LogStorageService implements OnModuleInit {
   private readonly logger = new Logger(LogStorageService.name);
+  private readonly CRON_JOB_NAME = 'logs-cleanup';
 
   constructor(
     @InjectRepository(Log)
     private readonly logRepository: Repository<Log>,
     private readonly serverSettingsService: ServerSettingsService,
+    private readonly schedulerRegistry: SchedulerRegistry,
   ) {}
+
+  /**
+   * Initialize and register the cron job dynamically
+   */
+  onModuleInit() {
+    this.registerCleanupCronJob();
+  }
+
+  /**
+   * Register the cleanup cron job dynamically
+   */
+  private registerCleanupCronJob() {
+    const cronExpression = '0 */2 * * *'; // Every 2 hours at minute 0
+    
+    const job = new CronJob(cronExpression, () => {
+      this.cleanupOldLogs();
+    });
+
+    this.schedulerRegistry.addCronJob(this.CRON_JOB_NAME, job);
+    job.start();
+
+    this.logger.log(
+      `Logs cleanup cron scheduled with expression: ${cronExpression}`,
+    );
+  }
 
   /**
    * Save a log entry to the database if storage is enabled
@@ -89,13 +117,15 @@ export class LogStorageService {
 
   /**
    * Clean up old logs based on retention policy
-   * Runs every day at 2 AM
+   * Called by cron job every 2 hours
    */
-  @Cron(CronExpression.EVERY_2ND_HOUR)
   async cleanupOldLogs(): Promise<void> {
     try {
+      this.logger.log('Starting log cleanup cron job...');
+      
       const storageEnabled = await this.isLogStorageEnabled();
       if (!storageEnabled) {
+        this.logger.log('Log storage is disabled, skipping cleanup');
         return;
       }
 
@@ -103,17 +133,23 @@ export class LogStorageService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
+      this.logger.log(
+        `Cleaning up logs older than ${retentionDays} days (before ${cutoffDate.toISOString()})`,
+      );
+
       const result = await this.logRepository.delete({
         timestamp: LessThan(cutoffDate),
       });
 
       if (result.affected && result.affected > 0) {
         this.logger.log(
-          `Cleaned up ${result.affected} log entries older than ${retentionDays} days`,
+          `✅ Successfully cleaned up ${result.affected} log entries older than ${retentionDays} days`,
         );
+      } else {
+        this.logger.log('No old logs to clean up');
       }
     } catch (error) {
-      this.logger.error('Failed to cleanup old logs', error);
+      this.logger.error('❌ Failed to cleanup old logs', error);
     }
   }
 
@@ -173,5 +209,79 @@ export class LogStorageService {
     });
 
     return result;
+  }
+
+  /**
+   * Get the current cron job status
+   */
+  getCronJobStatus(): { name: string; expression: string; isRunning: boolean } {
+    try {
+      const job = this.schedulerRegistry.getCronJob(this.CRON_JOB_NAME);
+      // Check if job exists and is started (cronTime is set)
+      const isRunning = !!(job as any).cronTime;
+      return {
+        name: this.CRON_JOB_NAME,
+        expression: '0 */2 * * *',
+        isRunning,
+      };
+    } catch (error) {
+      return {
+        name: this.CRON_JOB_NAME,
+        expression: '0 */2 * * *',
+        isRunning: false,
+      };
+    }
+  }
+
+  /**
+   * Stop the cleanup cron job
+   */
+  stopCronJob(): void {
+    try {
+      const job = this.schedulerRegistry.getCronJob(this.CRON_JOB_NAME);
+      job.stop();
+      this.logger.log('Logs cleanup cron job stopped');
+    } catch (error) {
+      this.logger.warn('Failed to stop cron job', error);
+    }
+  }
+
+  /**
+   * Start the cleanup cron job
+   */
+  startCronJob(): void {
+    try {
+      const job = this.schedulerRegistry.getCronJob(this.CRON_JOB_NAME);
+      job.start();
+      this.logger.log('Logs cleanup cron job started');
+    } catch (error) {
+      this.logger.warn('Failed to start cron job', error);
+    }
+  }
+
+  /**
+   * Update the cron job expression (e.g., to change frequency)
+   */
+  updateCronJobExpression(newExpression: string): void {
+    try {
+      // Remove old job
+      this.schedulerRegistry.deleteCronJob(this.CRON_JOB_NAME);
+
+      // Create and add new job with new expression
+      const job = new CronJob(newExpression, () => {
+        this.cleanupOldLogs();
+      });
+
+      this.schedulerRegistry.addCronJob(this.CRON_JOB_NAME, job);
+      job.start();
+
+      this.logger.log(
+        `Logs cleanup cron rescheduled with new expression: ${newExpression}`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to update cron job expression', error);
+      // Re-register with default expression if update fails
+      this.registerCleanupCronJob();
+    }
   }
 }

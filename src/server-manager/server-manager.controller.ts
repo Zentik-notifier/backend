@@ -17,6 +17,7 @@ import { BackupInfoDto, UpdateServerSettingDto } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
 import { ServerSettingsService } from './server-settings.service';
 import { LogStorageService } from './log-storage.service';
+import { LokiLoggerService } from './loki-logger.service';
 import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
 
 @ApiTags('Server Manager')
@@ -28,6 +29,7 @@ export class ServerManagerController {
     private readonly serverManagerService: ServerManagerService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly logStorageService: LogStorageService,
+    private readonly lokiLoggerService: LokiLoggerService,
   ) {}
 
   @Get('backups')
@@ -186,5 +188,142 @@ export class ServerManagerController {
   })
   async getLogCountByLevel() {
     return this.logStorageService.getLogCountByLevel();
+  }
+
+  @Post('logs/cleanup')
+  @ApiOperation({ summary: 'Manually trigger log cleanup' })
+  @ApiResponse({
+    status: 200,
+    description: 'Log cleanup triggered successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  async triggerLogCleanup(): Promise<{ success: boolean; message: string }> {
+    try {
+      await this.logStorageService.cleanupOldLogs();
+      return {
+        success: true,
+        message: 'Log cleanup completed successfully. Check console for details.',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to cleanup logs: ${error.message}`,
+      };
+    }
+  }
+
+  @Get('logs/cron-status')
+  @ApiOperation({ summary: 'Get cleanup cron job status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cron job status',
+  })
+  async getCronJobStatus() {
+    return this.logStorageService.getCronJobStatus();
+  }
+
+  @Post('logs/cron-start')
+  @ApiOperation({ summary: 'Start the cleanup cron job' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cron job started',
+  })
+  async startCronJob(): Promise<{ success: boolean; message: string }> {
+    try {
+      this.logStorageService.startCronJob();
+      return {
+        success: true,
+        message: 'Cron job started successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to start cron job: ${error.message}`,
+      };
+    }
+  }
+
+  @Post('logs/cron-stop')
+  @ApiOperation({ summary: 'Stop the cleanup cron job' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cron job stopped',
+  })
+  async stopCronJob(): Promise<{ success: boolean; message: string }> {
+    try {
+      this.logStorageService.stopCronJob();
+      return {
+        success: true,
+        message: 'Cron job stopped successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to stop cron job: ${error.message}`,
+      };
+    }
+  }
+
+  // Loki endpoints
+  @Post('loki/flush')
+  @ApiOperation({ summary: 'Force flush all pending logs to Loki' })
+  @ApiResponse({
+    status: 200,
+    description: 'Logs flushed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  async flushLokiLogs(): Promise<{ success: boolean; message: string }> {
+    try {
+      await this.lokiLoggerService.forceFlush();
+      return {
+        success: true,
+        message: 'Logs flushed to Loki successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to flush logs: ${error.message}`,
+      };
+    }
+  }
+
+  @Post('loki/reload')
+  @ApiOperation({ summary: 'Reload Loki configuration from settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Loki configuration reloaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  async reloadLokiConfig(): Promise<{ success: boolean; message: string }> {
+    try {
+      await this.lokiLoggerService.reloadSettings();
+      return {
+        success: true,
+        message: 'Loki configuration reloaded successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to reload Loki configuration: ${error.message}`,
+      };
+    }
   }
 }

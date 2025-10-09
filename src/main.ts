@@ -12,6 +12,7 @@ import { AppModule } from './app.module';
 import { createAdminUsers } from './seeds/admin-users.seed';
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { ServerSettingType } from './entities/server-setting.entity';
+import { DatabaseLoggerService } from './common/logger/database-logger.service';
 
 // Global reference to the application instance
 let appInstance: INestApplication | null = null;
@@ -42,7 +43,10 @@ async function generateTypes(app: INestApplication) {
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true, // Buffer logs until custom logger is set
+  });
+  
   app.setGlobalPrefix(String(process.env.BACKEND_API_PREFIX));
   app.useGlobalPipes(
     new ValidationPipe({
@@ -193,21 +197,22 @@ async function bootstrap() {
     logger.error('❌ Error during admin users initialization:', err);
   }
 
+  // Set up custom database logger to intercept all logs
+  try {
+    const databaseLogger = await app.resolve(DatabaseLoggerService);
+    app.useLogger(databaseLogger);
+    logger.log('✅ Database logger configured');
+  } catch (err) {
+    logger.error('❌ Error setting up database logger:', err);
+  }
+
   // Initialize server settings from environment variables (includes defaults)
   try {
     const serverSettingsService = app.get(ServerSettingsService);
     await serverSettingsService.initializeFromEnv();
     logger.log('✅ Server settings initialization completed.');
 
-    // Update log level from ServerSettings
-    const logLevelSetting = await serverSettingsService.getSettingByType(ServerSettingType.LogLevel);
-    if (logLevelSetting?.valueText) {
-      const validLevels = ['error', 'warn', 'log', 'debug', 'verbose'];
-      if (validLevels.includes(logLevelSetting.valueText)) {
-        app.useLogger([logLevelSetting.valueText as 'error' | 'warn' | 'log' | 'debug' | 'verbose']);
-        logger.log(`✅ Log level set to: ${logLevelSetting.valueText}`);
-      }
-    }
+    // Note: Log level is now handled by DatabaseLoggerService based on settings
   } catch (err) {
     logger.error('❌ Error during server settings initialization:', err);
   }

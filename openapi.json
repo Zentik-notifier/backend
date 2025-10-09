@@ -1235,6 +1235,171 @@
         ]
       }
     },
+    "/api/v1/server-manager/logs/cleanup": {
+      "post": {
+        "operationId": "ServerManagerController_triggerLogCleanup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Log cleanup triggered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Manually trigger log cleanup",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/logs/cron-status": {
+      "get": {
+        "operationId": "ServerManagerController_getCronJobStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Cron job status"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get cleanup cron job status",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/logs/cron-start": {
+      "post": {
+        "operationId": "ServerManagerController_startCronJob",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Cron job started"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start the cleanup cron job",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/logs/cron-stop": {
+      "post": {
+        "operationId": "ServerManagerController_stopCronJob",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Cron job stopped"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop the cleanup cron job",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/loki/flush": {
+      "post": {
+        "operationId": "ServerManagerController_flushLokiLogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Logs flushed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Force flush all pending logs to Loki",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/loki/reload": {
+      "post": {
+        "operationId": "ServerManagerController_reloadLokiConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Loki configuration reloaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reload Loki configuration from settings",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
     "/api/v1/oauth-providers": {
       "post": {
         "operationId": "OAuthProvidersController_create",
@@ -4980,6 +5145,13 @@
               "LogLevel",
               "LogStorageEnabled",
               "LogRetentionDays",
+              "LokiEnabled",
+              "LokiUrl",
+              "LokiUsername",
+              "LokiPassword",
+              "LokiLabels",
+              "LokiBatchSize",
+              "LokiBatchIntervalMs",
               "PrometheusEnabled",
               "PrometheusPath",
               "PrometheusRequiresAuth"

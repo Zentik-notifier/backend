@@ -6,6 +6,7 @@ import { BackupInfoDto, UpdateServerSettingDto, BatchUpdateSettingInput } from '
 import { BackupResult, ServerManagerService } from './server-manager.service';
 import { ServerSettingsService } from './server-settings.service';
 import { LogStorageService } from './log-storage.service';
+import { LokiLoggerService } from './loki-logger.service';
 import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
 import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
 
@@ -16,6 +17,7 @@ export class ServerManagerResolver {
     private readonly serverManagerService: ServerManagerService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly logStorageService: LogStorageService,
+    private readonly lokiLoggerService: LokiLoggerService,
   ) {}
 
   @Query(() => [BackupInfoDto], {
@@ -132,5 +134,80 @@ export class ServerManagerResolver {
   async getLogCountByLevel(): Promise<string> {
     const counts = await this.logStorageService.getLogCountByLevel();
     return JSON.stringify(counts);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'triggerLogCleanup',
+    description: 'Manually trigger log cleanup based on retention policy',
+  })
+  async triggerLogCleanup(): Promise<boolean> {
+    try {
+      await this.logStorageService.cleanupOldLogs();
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to cleanup logs: ${error.message}`);
+    }
+  }
+
+  @Query(() => String, {
+    name: 'logCleanupCronStatus',
+    description: 'Get the status of the log cleanup cron job',
+  })
+  async getLogCleanupCronStatus(): Promise<string> {
+    const status = this.logStorageService.getCronJobStatus();
+    return JSON.stringify(status);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'startLogCleanupCron',
+    description: 'Start the log cleanup cron job',
+  })
+  async startLogCleanupCron(): Promise<boolean> {
+    try {
+      this.logStorageService.startCronJob();
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to start cron job: ${error.message}`);
+    }
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'stopLogCleanupCron',
+    description: 'Stop the log cleanup cron job',
+  })
+  async stopLogCleanupCron(): Promise<boolean> {
+    try {
+      this.logStorageService.stopCronJob();
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to stop cron job: ${error.message}`);
+    }
+  }
+
+  // Loki mutations
+  @Mutation(() => Boolean, {
+    name: 'flushLokiLogs',
+    description: 'Force flush all pending logs to Loki',
+  })
+  async flushLokiLogs(): Promise<boolean> {
+    try {
+      await this.lokiLoggerService.forceFlush();
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to flush logs to Loki: ${error.message}`);
+    }
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'reloadLokiConfig',
+    description: 'Reload Loki configuration from settings',
+  })
+  async reloadLokiConfig(): Promise<boolean> {
+    try {
+      await this.lokiLoggerService.reloadSettings();
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to reload Loki configuration: ${error.message}`);
+    }
   }
 }
