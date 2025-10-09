@@ -188,9 +188,6 @@ export class OAuthProvidersService {
     return updatedProvider;
   }
 
-  // Note: initializePredefinedProviders method moved to OAuthProvidersInitService
-  // This method is now handled automatically at server startup
-
   async getProviderConfig(providerId: string): Promise<{
     clientId: string;
     clientSecret: string;
