@@ -54,7 +54,7 @@ export class AuthResolver {
     return {
       oauthProviders: providers,
       emailEnabled,
-      uploadEnabled: this.attachmentsService.isAttachmentsEnabled(),
+      uploadEnabled: await this.attachmentsService.isAttachmentsEnabled(),
     };
   }
 

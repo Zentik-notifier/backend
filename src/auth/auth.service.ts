@@ -288,9 +288,14 @@ export class AuthService {
     this.logger.debug('Token refresh attempt');
 
     try {
+      // Get JWT refresh secret from ServerSettings
+      const jwtRefreshSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshSecret))?.valueText 
+        || process.env.JWT_REFRESH_SECRET 
+        || 'fallback-refresh-secret';
+      
       // First verify JWT signature and decode payload to extract tokenId (jti)
       const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: jwtRefreshSecret,
       });
 
       // Validate that the session exists and is active for this tokenId
@@ -556,14 +561,22 @@ export class AuthService {
 
     const accessTokenExpiration = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtAccessTokenExpiration))?.valueText || '15m';
     const refreshTokenExpiration = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshTokenExpiration))?.valueText || '7d';
+    
+    // Get JWT secrets from ServerSettings
+    const jwtSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtSecret))?.valueText 
+      || process.env.JWT_SECRET 
+      || 'fallback-secret';
+    const jwtRefreshSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshSecret))?.valueText 
+      || process.env.JWT_REFRESH_SECRET 
+      || 'fallback-refresh-secret';
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET,
+        secret: jwtSecret,
         expiresIn: accessTokenExpiration,
       }),
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: jwtRefreshSecret,
         expiresIn: refreshTokenExpiration,
       }),
     ]);

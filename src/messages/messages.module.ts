@@ -13,6 +13,7 @@ import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
 import { MessagesResolver } from '../graphql/resolvers/messages.resolver';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ServerSettingsModule } from '../server-settings/server-settings.module';
 import { MessagesCleanupScheduler } from './messages.cleanup.scheduler';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
@@ -31,6 +32,7 @@ import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
     EntityPermissionModule,
     PayloadMapperModule,
     UsersModule,
+    ServerSettingsModule,
   ],
   controllers: [MessagesController],
   providers: [MessagesService, MessagesCleanupScheduler, MessagesResolver],

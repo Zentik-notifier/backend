@@ -79,6 +79,17 @@ export enum ServerSettingType {
   RateLimitBlockMs = 'RateLimitBlockMs',
   RateLimitMessagesRps = 'RateLimitMessagesRps',
   RateLimitMessagesTtlMs = 'RateLimitMessagesTtlMs',
+  
+  // JWT Secrets
+  JwtSecret = 'JwtSecret',
+  JwtRefreshSecret = 'JwtRefreshSecret',
+  
+  // CORS
+  CorsOrigin = 'CorsOrigin',
+  CorsCredentials = 'CorsCredentials',
+  
+  // Logging
+  LogLevel = 'LogLevel',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

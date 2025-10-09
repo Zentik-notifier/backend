@@ -10,8 +10,8 @@ import { AttachmentsService } from './attachments.service';
 export class AttachmentsDisabledGuard implements CanActivate {
   constructor(private readonly attachmentsService: AttachmentsService) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    if (!this.attachmentsService.isAttachmentsEnabled()) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (!(await this.attachmentsService.isAttachmentsEnabled())) {
       throw new ForbiddenException('Attachments are currently disabled');
     }
 

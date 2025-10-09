@@ -4,7 +4,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import * as http from 'http';
@@ -16,6 +15,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Attachment } from '../entities/attachment.entity';
 import { MediaType } from '../notifications/notifications.types';
 import { UploadAttachmentDto } from './dto';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 @Injectable()
 export class AttachmentsService {
@@ -23,12 +24,12 @@ export class AttachmentsService {
   constructor(
     @InjectRepository(Attachment)
     private readonly attachmentsRepository: Repository<Attachment>,
-    private readonly configService: ConfigService,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   private async getStoragePath(): Promise<string> {
     const storagePath =
-      this.configService.get<string>('ATTACHMENTS_STORAGE_PATH') ||
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsStoragePath))?.valueText ||
       './storage/attachments';
     await mkdir(storagePath, { recursive: true });
     return storagePath;
@@ -85,7 +86,7 @@ export class AttachmentsService {
 
     // Validate file size
     const maxFileSize =
-      this.configService.get<number>('ATTACHMENTS_MAX_FILE_SIZE') || 10485760;
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxFileSize))?.valueNumber || 10485760;
     if (file.size > maxFileSize) {
       throw new BadRequestException(
         `File size exceeds maximum allowed size of ${maxFileSize} bytes`,
@@ -93,8 +94,7 @@ export class AttachmentsService {
     }
 
     // Validate MIME type
-    const allowedMimeTypes = this.configService
-      .get<string>('ATTACHMENTS_ALLOWED_MIME_TYPES')
+    const allowedMimeTypes = (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsAllowedMimeTypes))?.valueText
       ?.split(',') || [
       'image/jpeg',
       'image/png',
@@ -178,6 +178,11 @@ export class AttachmentsService {
     try {
       const urlObj = new URL(url);
       const protocol = urlObj.protocol === 'https:' ? https : http;
+      
+      // Load max file size before entering the Promise
+      const maxFileSize =
+        (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxFileSize))?.valueNumber ||
+        10485760; // 10MB default
 
       return new Promise((resolve, reject) => {
         const request = protocol.get(url, (response) => {
@@ -192,9 +197,6 @@ export class AttachmentsService {
 
           // Check content length for security
           const contentLength = response.headers['content-length'];
-          const maxFileSize =
-            this.configService.get<number>('ATTACHMENTS_MAX_FILE_SIZE') ||
-            10485760; // 10MB default
 
           if (contentLength && parseInt(contentLength) > maxFileSize) {
             reject(
@@ -276,6 +278,11 @@ export class AttachmentsService {
     try {
       const urlObj = new URL(url);
       const protocol = urlObj.protocol === 'https:' ? https : http;
+      
+      // Load max file size before entering the Promise
+      const maxFileSize =
+        (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxFileSize))?.valueNumber ||
+        10485760;
 
       return new Promise((resolve, reject) => {
         const request = protocol.get(url, (response) => {
@@ -296,9 +303,6 @@ export class AttachmentsService {
               const buffer = Buffer.concat(chunks);
 
               // Validate file size
-              const maxFileSize =
-                this.configService.get<number>('ATTACHMENTS_MAX_FILE_SIZE') ||
-                10485760;
               if (buffer.length > maxFileSize) {
                 reject(
                   new BadRequestException(
@@ -475,9 +479,9 @@ export class AttachmentsService {
     return { deletedAttachments: deleted };
   }
 
-  isAttachmentsEnabled(): boolean {
+  async isAttachmentsEnabled(): Promise<boolean> {
     const attachmentsEnabled =
-      this.configService.get<string>('ATTACHMENTS_ENABLED', 'true') ?? 'true';
-    return attachmentsEnabled.toLowerCase() === 'true';
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsEnabled))?.valueBool ?? true;
+    return attachmentsEnabled;
   }
 }

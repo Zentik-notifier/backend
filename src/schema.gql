@@ -698,6 +698,8 @@ enum ServerSettingType {
   BackupExecuteOnStart
   BackupMaxToKeep
   BackupStoragePath
+  CorsCredentials
+  CorsOrigin
   EmailEnabled
   EmailFrom
   EmailFromName
@@ -712,7 +714,10 @@ enum ServerSettingType {
   FirebaseProjectId
   FirebasePush
   JwtAccessTokenExpiration
+  JwtRefreshSecret
   JwtRefreshTokenExpiration
+  JwtSecret
+  LogLevel
   MessagesDeleteCronJob
   MessagesDeleteJobEnabled
   MessagesMaxAge

@@ -13,7 +13,9 @@ import { Bucket } from '../entities/bucket.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
+import { ServerSettingType } from '../entities/server-setting.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 import {
   MediaType,
   NotificationActionType,
@@ -45,6 +47,7 @@ export class MessagesService {
     private readonly attachmentsService: AttachmentsService,
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly configService: ConfigService,
+    private readonly serverSettingsService: ServerSettingsService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly payloadMapperService: PayloadMapperService,
     private readonly usersService: UsersService,
@@ -199,12 +202,9 @@ export class MessagesService {
     }
 
     // Check if attachments are enabled when saveOnServer is requested
-    const attachmentsEnabled = this.configService.get<string>(
-      'ATTACHMENTS_ENABLED',
-      'true',
-    );
+    const attachmentsEnabled = await this.attachmentsService.isAttachmentsEnabled();
     if (
-      attachmentsEnabled.toLowerCase() !== 'true' &&
+      !attachmentsEnabled &&
       createMessageDto.attachments?.some((att) => att.saveOnServer === true)
     ) {
       throw new BadRequestException(
@@ -591,7 +591,7 @@ export class MessagesService {
    */
   async deleteMessagesFullyRead(): Promise<{ deletedMessages: number }> {
     const maxAgeInput =
-      this.configService.get<string>('MESSAGES_MAX_AGE') || '0';
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.MessagesMaxAge))?.valueText || '7d';
     const maxAgeMs = this.parseDurationToMs(maxAgeInput);
     this.logger.log(
       `Scanning messages for cleanup (all notifications received${maxAgeMs ? ` or older than ${maxAgeMs}ms` : ''})`,

@@ -158,6 +158,17 @@ export class ServerSettingsService {
       { configType: ServerSettingType.RateLimitBlockMs, envKey: 'RATE_LIMIT_BLOCK_MS', type: 'number', defaultValue: 10000 },
       { configType: ServerSettingType.RateLimitMessagesRps, envKey: 'RATE_LIMIT_MESSAGES_RPS', type: 'number', defaultValue: 10 },
       { configType: ServerSettingType.RateLimitMessagesTtlMs, envKey: 'RATE_LIMIT_MESSAGES_TTL_MS', type: 'number', defaultValue: 1000 },
+      
+      // JWT Secrets
+      { configType: ServerSettingType.JwtSecret, envKey: 'JWT_SECRET', type: 'string' },
+      { configType: ServerSettingType.JwtRefreshSecret, envKey: 'JWT_REFRESH_SECRET', type: 'string' },
+      
+      // CORS
+      { configType: ServerSettingType.CorsOrigin, envKey: 'CORS_ORIGIN', type: 'string', defaultValue: '*' },
+      { configType: ServerSettingType.CorsCredentials, envKey: 'CORS_CREDENTIALS', type: 'boolean', defaultValue: true },
+      
+      // Logging
+      { configType: ServerSettingType.LogLevel, envKey: 'LOG_LEVEL', type: 'string', defaultValue: 'info', possibleValues: ['error', 'warn', 'info', 'debug', 'verbose'] },
     ];
 
     for (const mapping of envMappings) {

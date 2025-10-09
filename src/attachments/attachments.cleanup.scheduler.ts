@@ -1,8 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { AttachmentsService } from './attachments.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 @Injectable()
 export class AttachmentsCleanupScheduler implements OnModuleInit {
@@ -10,14 +11,13 @@ export class AttachmentsCleanupScheduler implements OnModuleInit {
 
   constructor(
     private readonly attachmentsService: AttachmentsService,
-    private readonly configService: ConfigService,
+    private readonly serverSettingsService: ServerSettingsService,
     private readonly schedulerRegistry: SchedulerRegistry,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     const cleanupJobsEnabled =
-      this.configService.get<string>('ATTACHMENTS_DELETE_JOB_ENABLED') !==
-      'false';
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsDeleteJobEnabled))?.valueBool ?? true;
 
     if (!cleanupJobsEnabled) {
       this.logger.log('Attachments cleanup cron disabled');
@@ -25,7 +25,7 @@ export class AttachmentsCleanupScheduler implements OnModuleInit {
     }
 
     const cronExpr =
-      this.configService.get<string>('ATTACHMENTS_DELETE_CRON_JOB') ||
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsDeleteCronJob))?.valueText ||
       '0 0 * * * *';
     const job = new CronJob(cronExpr, () => this.handleCleanup());
     this.schedulerRegistry.addCronJob('attachmentsCleanup', job);
@@ -39,7 +39,7 @@ export class AttachmentsCleanupScheduler implements OnModuleInit {
     this.logger.log('Cron started: delete old attachments');
     try {
       const maxAgeInput =
-        this.configService.get<string>('ATTACHMENTS_MAX_AGE') || '0';
+        (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxAge))?.valueText || '0';
       const maxAgeMs = this.parseDurationToMs(maxAgeInput);
       if (!maxAgeMs || maxAgeMs <= 0) {
         this.logger.log(

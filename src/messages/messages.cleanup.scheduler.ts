@@ -1,8 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { MessagesService } from './messages.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 @Injectable()
 export class MessagesCleanupScheduler implements OnModuleInit {
@@ -10,13 +11,13 @@ export class MessagesCleanupScheduler implements OnModuleInit {
 
   constructor(
     private readonly messagesService: MessagesService,
-    private readonly configService: ConfigService,
+    private readonly serverSettingsService: ServerSettingsService,
     private readonly schedulerRegistry: SchedulerRegistry,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     const cleanupJobsEnabled =
-      this.configService.get<string>('MESSAGES_DELETE_JOB_ENABLED') !== 'false';
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.MessagesDeleteJobEnabled))?.valueBool ?? true;
 
     if (!cleanupJobsEnabled) {
       this.logger.log('Messages cleanup cron disabled');
@@ -24,7 +25,7 @@ export class MessagesCleanupScheduler implements OnModuleInit {
     }
 
     const cronExpr =
-      this.configService.get<string>('MESSAGES_DELETE_CRON_JOB') ||
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.MessagesDeleteCronJob))?.valueText ||
       '0 0 * * * *';
     // const cronExpr = '* * * * *';
     const job = new CronJob(cronExpr, () => this.handleCleanup());

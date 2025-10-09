@@ -6,6 +6,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 const execAsync = promisify(exec);
 
@@ -31,12 +33,14 @@ export interface BackupResult {
 @Injectable()
 export class DatabaseBackupService implements OnModuleInit {
   private readonly logger = new Logger(DatabaseBackupService.name);
-  private readonly config: BackupConfig;
+  private config: BackupConfig;
 
   constructor(
     private configService: ConfigService,
+    private serverSettingsService: ServerSettingsService,
     private schedulerRegistry: SchedulerRegistry,
   ) {
+    // Config will be initialized in onModuleInit
     this.config = {
       host: this.configService.get<string>('DB_HOST', 'localhost'),
       port: this.configService.get<number>('DB_PORT', 5432),
@@ -46,20 +50,30 @@ export class DatabaseBackupService implements OnModuleInit {
         'DB_PASSWORD',
         'zentik_password',
       ),
-      storagePath: this.configService.get<string>(
-        'BACKUP_STORAGE_PATH',
-        '/var/backups/zentik',
-      ),
-      maxToKeep: this.configService.get<number>('BACKUP_MAX_TO_KEEP', 10),
+      storagePath: '/var/backups/zentik', // Will be updated in onModuleInit
+      maxToKeep: 10, // Will be updated in onModuleInit
       compressBackup: true,
     };
-
-    this.ensureBackupDirectory();
   }
 
-  onModuleInit() {
+  async onModuleInit() {
+    // Load backup configuration from ServerSettings
+    const storagePath = (await this.serverSettingsService.getSettingByType(ServerSettingType.BackupStoragePath))?.valueText 
+      || this.configService.get<string>('BACKUP_STORAGE_PATH') 
+      || '/var/backups/zentik';
+    const maxToKeep = (await this.serverSettingsService.getSettingByType(ServerSettingType.BackupMaxToKeep))?.valueNumber 
+      || this.configService.get<number>('BACKUP_MAX_TO_KEEP') 
+      || 10;
+    
+    // Update config with ServerSettings values
+    this.config.storagePath = storagePath;
+    this.config.maxToKeep = maxToKeep;
+    
+    // Ensure backup directory exists with updated path
+    this.ensureBackupDirectory();
+    
     const backupEnabled =
-      this.configService.get<string>('BACKUP_ENABLED') === 'true';
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.BackupEnabled))?.valueBool ?? false;
 
     if (!backupEnabled) {
       this.logger.log('Database backup disabled');
@@ -67,8 +81,9 @@ export class DatabaseBackupService implements OnModuleInit {
     }
 
     // Execute backup on startup if configured
-    const executeOnStart =
-      this.configService.get<string>('BACKUP_EXECUTE_ON_START') === 'true';
+    const executeOnStartSetting = await this.serverSettingsService.getSettingByType(ServerSettingType.BackupExecuteOnStart);
+    const executeOnStart = executeOnStartSetting?.valueBool 
+      ?? ((this.configService.get<string>('BACKUP_EXECUTE_ON_START') === 'true') || true);
     if (executeOnStart) {
       this.logger.log('Executing initial database backup on startup...');
       this.handleBackup().catch((error) => {
@@ -78,7 +93,7 @@ export class DatabaseBackupService implements OnModuleInit {
 
     // Single backup cron job
     const cronExpr =
-      this.configService.get<string>('BACKUP_CRON_JOB') || '0 */12 * * *';
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.BackupCronJob))?.valueText || '0 */12 * * *';
     const backupJob = new CronJob(cronExpr, () => this.handleBackup());
     this.schedulerRegistry.addCronJob('databaseBackup', backupJob);
     backupJob.start();

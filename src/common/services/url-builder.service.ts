@@ -105,7 +105,7 @@ export class UrlBuilderService {
       };
     },
   >(notifications: T[]): T[] {
-    return notifications.map((notification) => {
+    for (const notification of notifications) {
       if (
         notification?.message?.attachments &&
         Array.isArray(notification.message.attachments)
@@ -122,7 +122,7 @@ export class UrlBuilderService {
           },
         );
       }
-      return notification;
-    });
+    }
+    return notifications;
   }
 }

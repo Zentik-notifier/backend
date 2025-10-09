@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ServerSettingsService } from '../../server-settings/server-settings.service';
+import { ServerSettingType } from '../../entities/server-setting.entity';
 import { AuthService, JwtPayload } from '../auth.service';
 import { SessionService } from '../session.service';
 
@@ -11,11 +13,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private authService: AuthService,
     private sessionService: SessionService,
+    private serverSettingsService: ServerSettingsService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'fallback-secret',
+      secretOrKeyProvider: async (request, rawJwtToken, done) => {
+        try {
+          // Get JWT secret from ServerSettings, fallback to env variable
+          const jwtSecret = (await serverSettingsService.getSettingByType(ServerSettingType.JwtSecret))?.valueText 
+            || process.env.JWT_SECRET 
+            || 'fallback-secret';
+          done(null, jwtSecret);
+        } catch (error) {
+          done(error, undefined);
+        }
+      },
       passReqToCallback: true, // This allows us to access the request object
     });
   }

@@ -11,6 +11,7 @@ import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { createAdminUsers } from './seeds/admin-users.seed';
 import { ServerSettingsService } from './server-settings/server-settings.service';
+import { ServerSettingType } from './entities/server-setting.entity';
 
 async function generateTypes(app: INestApplication) {
   const logger = new Logger('TypesGenerator');
@@ -37,6 +38,9 @@ async function generateTypes(app: INestApplication) {
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+
+  // Get log level from environment (will be migrated to ServerSettings after app creation)
+  const logLevel = (process.env.LOG_LEVEL || 'info') as 'error' | 'warn' | 'log' | 'debug' | 'verbose';
 
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix(String(process.env.BACKEND_API_PREFIX));
@@ -66,9 +70,17 @@ async function bootstrap() {
     process.exit(0);
   }
 
+  // Get CORS configuration from ServerSettings
+  const serverSettingsService = app.get(ServerSettingsService);
+
+  const corsOrigin = (await serverSettingsService.getSettingByType(ServerSettingType.CorsOrigin))?.valueText
+    ?? '*';
+  const corsCredentialsSetting = await serverSettingsService.getSettingByType(ServerSettingType.CorsCredentials);
+  const corsCredentials = corsCredentialsSetting?.valueBool ?? true;
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: Boolean(process.env.CORS_CREDENTIALS),
+    origin: corsOrigin,
+    credentials: corsCredentials,
   });
 
   // Setup Swagger documentation
@@ -186,6 +198,16 @@ async function bootstrap() {
     const serverSettingsService = app.get(ServerSettingsService);
     await serverSettingsService.initializeFromEnv();
     logger.log('✅ Server settings initialization completed.');
+
+    // Update log level from ServerSettings
+    const logLevelSetting = await serverSettingsService.getSettingByType(ServerSettingType.LogLevel);
+    if (logLevelSetting?.valueText) {
+      const validLevels = ['error', 'warn', 'log', 'debug', 'verbose'];
+      if (validLevels.includes(logLevelSetting.valueText)) {
+        app.useLogger([logLevelSetting.valueText as 'error' | 'warn' | 'log' | 'debug' | 'verbose']);
+        logger.log(`✅ Log level set to: ${logLevelSetting.valueText}`);
+      }
+    }
   } catch (err) {
     logger.error('❌ Error during server settings initialization:', err);
   }
