@@ -1026,6 +1026,41 @@
         ]
       }
     },
+    "/api/v1/server-manager/restart": {
+      "post": {
+        "operationId": "ServerManagerController_restartServer",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Server restart initiated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restart the server",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
     "/api/v1/oauth-providers": {
       "post": {
         "operationId": "OAuthProvidersController_create",

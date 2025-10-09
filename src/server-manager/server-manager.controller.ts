@@ -115,4 +115,21 @@ export class ServerManagerController {
   ): Promise<ServerSetting> {
     return this.serverSettingsService.updateSetting(configType, dto);
   }
+
+  @Post('restart')
+  @ApiOperation({ summary: 'Restart the server' })
+  @ApiResponse({
+    status: 200,
+    description: 'Server restart initiated',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  async restartServer(): Promise<{ success: boolean; message: string }> {
+    return await this.serverManagerService.restartServer();
+  }
 }

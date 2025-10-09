@@ -373,4 +373,30 @@ export class ServerManagerService implements OnModuleInit {
     this.logger.log('Manually triggered database backup');
     return await this.createBackup();
   }
+
+  /**
+   * Restart the server
+   */
+  async restartServer(): Promise<{ success: boolean; message: string }> {
+    this.logger.warn('Server restart requested');
+    
+    try {
+      // Schedule the restart after a short delay to allow the response to be sent
+      setTimeout(() => {
+        this.logger.warn('Restarting server now...');
+        process.exit(0); // Exit with success code, process manager (PM2/systemd) will restart
+      }, 1000);
+
+      return {
+        success: true,
+        message: 'Server restart initiated. The server will restart in 1 second.',
+      };
+    } catch (error) {
+      this.logger.error(`Failed to restart server: ${error.message}`);
+      return {
+        success: false,
+        message: `Failed to restart server: ${error.message}`,
+      };
+    }
+  }
 }

@@ -401,6 +401,9 @@ type Mutation {
   requestEmailConfirmation(input: RequestEmailConfirmationDto!): EmailConfirmationResponseDto!
   requestPasswordReset(input: RequestPasswordResetDto!): PasswordResetResponseDto!
   resetPassword(input: ResetPasswordDto!): PasswordResetResponseDto!
+
+  """Restart the server"""
+  restartServer: String!
   revokeAccessToken(tokenId: String!): Boolean!
   revokeAllAccessTokens: Boolean!
   revokeAllOtherSessions: Boolean!

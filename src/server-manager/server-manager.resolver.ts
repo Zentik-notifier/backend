@@ -79,4 +79,17 @@ export class ServerManagerResolver {
   ): Promise<ServerSetting> {
     return this.serverSettingsService.updateSetting(configType, dto);
   }
+
+  @Mutation(() => String, {
+    name: 'restartServer',
+    description: 'Restart the server',
+  })
+  async restartServer(): Promise<string> {
+    const result = await this.serverManagerService.restartServer();
+    if (result.success) {
+      return result.message;
+    } else {
+      throw new Error(result.message);
+    }
+  }
 }
