@@ -6,6 +6,8 @@ import { MediaType, NotificationActionType } from './notifications.types';
 import { generateAutomaticActions } from './notification-actions.util';
 import { DevicePlatform } from '../users/dto';
 import { LocaleService } from '../common/services/locale.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 interface WebPushSendResult {
   success: boolean;
@@ -17,14 +19,25 @@ export class WebPushService {
   private readonly logger = new Logger(WebPushService.name);
   private webpush = webpush;
   private configured = false;
+  private vapidSubject: string | null = null;
 
-  constructor(private readonly localeService: LocaleService) {
-    this.initialize();
+  constructor(
+    private readonly localeService: LocaleService,
+    private serverSettingsService: ServerSettingsService,
+  ) {}
+
+  /**
+   * Ensure service is initialized (lazy initialization)
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.configured) return;
+    await this.initialize();
   }
 
-  private initialize(): void {
+  private async initialize(): Promise<void> {
     try {
       // Service is configured as long as web-push module is available
+      this.vapidSubject = (await this.serverSettingsService.getSettingByType(ServerSettingType.VapidSubject))?.valueText || null;
       this.configured = true;
       this.logger.log('Web Push service initialized (device-level keys only)');
     } catch (err) {
@@ -40,6 +53,8 @@ export class WebPushService {
     notification: Notification,
     devices: UserDevice[],
   ): Promise<WebPushSendResult> {
+    await this.ensureInitialized();
+
     if (!this.configured) {
       this.logger.warn('Web Push not configured. Skipping send.');
       return { success: false, results: [] };
@@ -87,8 +102,7 @@ export class WebPushService {
 
         const publicKey = device.publicKey;
         const privateKey = device.privateKey;
-        const subject =
-          process.env.VAPID_SUBJECT || 'mailto:gianlucaruoccoios@gmail.com';
+        const subject = this.vapidSubject || 'mailto:gianlucaruoccoios@gmail.com';
         await this.webpush.sendNotification(sub, payload, {
           vapidDetails: {
             subject,
@@ -189,6 +203,8 @@ export class WebPushService {
     },
     payload: string,
   ): Promise<WebPushSendResult> {
+    await this.ensureInitialized();
+
     if (!this.configured) {
       return { success: false, results: [] };
     }
@@ -221,8 +237,7 @@ export class WebPushService {
     };
 
     try {
-      const subject =
-        process.env.VAPID_SUBJECT || 'mailto:gianlucaruoccoios@gmail.com';
+      const subject = this.vapidSubject || 'mailto:gianlucaruoccoios@gmail.com';
       await this.webpush.sendNotification(sub, payload, {
         vapidDetails: { subject, publicKey, privateKey },
       });

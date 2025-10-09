@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { LocaleService } from '../common/services/locale.service';
 import { Notification } from '../entities/notification.entity';
@@ -8,6 +7,8 @@ import { DevicePlatform } from '../users/dto';
 import { IOSPushService } from './ios-push.service';
 import { generateAutomaticActions } from './notification-actions.util';
 import { MediaType, NotificationActionType } from './notifications.types';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 interface FirebaseMulticastResult {
   success: boolean;
@@ -25,35 +26,41 @@ interface FirebaseMulticastResult {
 export class FirebasePushService {
   private readonly logger = new Logger(FirebasePushService.name);
   private app: admin.app.App | null = null;
+  private initialized = false;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly iosPushService: IOSPushService,
     private localeService: LocaleService,
-  ) {
-    this.initializeFirebase();
+    private serverSettingsService: ServerSettingsService,
+  ) {}
+
+  /**
+   * Ensure Firebase is initialized before use (lazy initialization)
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    await this.initializeFirebase();
+    this.initialized = true;
   }
 
-  private initializeFirebase(): void {
+  private async initializeFirebase(): Promise<void> {
     try {
-      const firebaseConfig = {
-        projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
-        privateKey: this.configService
-          .get<string>('FIREBASE_PRIVATE_KEY')
-          ?.replace(/\\n/g, '\n'),
-        clientEmail: this.configService.get<string>('FIREBASE_CLIENT_EMAIL'),
-      };
+      const projectId = (await this.serverSettingsService.getSettingByType(ServerSettingType.FirebaseProjectId))?.valueText;
+      const privateKey = (await this.serverSettingsService.getSettingByType(ServerSettingType.FirebasePrivateKey))?.valueText?.replace(/\\n/g, '\n');
+      const clientEmail = (await this.serverSettingsService.getSettingByType(ServerSettingType.FirebaseClientEmail))?.valueText;
 
-      if (
-        !firebaseConfig.projectId ||
-        !firebaseConfig.privateKey ||
-        !firebaseConfig.clientEmail
-      ) {
+      if (!projectId || !privateKey || !clientEmail) {
         this.logger.warn(
-          'Firebase configuration missing. Firebase push notifications will be disabled. Please set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL environment variables.',
+          'Firebase configuration missing. Firebase push notifications will be disabled. Please set FirebaseProjectId, FirebasePrivateKey, and FirebaseClientEmail in server settings.',
         );
         return;
       }
+
+      const firebaseConfig = {
+        projectId,
+        privateKey,
+        clientEmail,
+      };
 
       this.app = admin.initializeApp({
         credential: admin.credential.cert(firebaseConfig),
@@ -77,6 +84,8 @@ export class FirebasePushService {
     notification: Notification,
     devices: UserDevice[],
   ): Promise<FirebaseMulticastResult> {
+    await this.ensureInitialized();
+
     if (!this.app) {
       this.logger.warn(
         'Firebase not initialized. Skipping Firebase notifications.',
@@ -268,6 +277,8 @@ export class FirebasePushService {
     deviceData: { token: string },
     payload: admin.messaging.MulticastMessage,
   ): Promise<FirebaseMulticastResult> {
+    await this.ensureInitialized();
+
     if (!this.app) {
       return {
         success: false,

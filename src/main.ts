@@ -10,6 +10,7 @@ import type { Request, Response } from 'express';
 import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { createAdminUsers } from './seeds/admin-users.seed';
+import { ServerSettingsService } from './server-settings/server-settings.service';
 
 async function generateTypes(app: INestApplication) {
   const logger = new Logger('TypesGenerator');
@@ -182,9 +183,6 @@ async function bootstrap() {
 
   // Initialize server settings from environment variables
   try {
-    const { ServerSettingsService } = await import(
-      './server-settings/server-settings.service'
-    );
     const serverSettingsService = app.get(ServerSettingsService);
     await serverSettingsService.initializeFromEnv();
     logger.log('✅ Server settings initialization completed.');

@@ -12,6 +12,8 @@ import {
   NotificationActionType,
   NotificationDeliveryType,
 } from './notifications.types';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 export interface NotificationResult {
   token: string;
@@ -29,9 +31,20 @@ export interface SendResult {
 export class IOSPushService {
   private readonly logger = new Logger(IOSPushService.name);
   private provider: apn.Provider | null = null;
+  private initialized = false;
 
-  constructor(private localeService: LocaleService) {
-    this.initializeProvider();
+  constructor(
+    private localeService: LocaleService,
+    private serverSettingsService: ServerSettingsService,
+  ) {}
+
+  /**
+   * Ensure provider is initialized before use (lazy initialization)
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    await this.initializeProvider();
+    this.initialized = true;
   }
 
   /**
@@ -190,20 +203,17 @@ export class IOSPushService {
     };
   }
 
-  private initializeProvider(): void {
+  private async initializeProvider(): Promise<void> {
     try {
-      const keyId = process.env.APN_KEY_ID;
-      const teamId = process.env.APN_TEAM_ID;
-      const keyPath = process.env.APN_PRIVATE_KEY_PATH;
-      const isProduction = process.env.APN_PRODUCTION === 'true';
-      const bundleId = process.env.APN_BUNDLE_ID;
+      const keyId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnKeyId))?.valueText;
+      const teamId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnTeamId))?.valueText;
+      const keyPath = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnPrivateKeyPath))?.valueText;
+      const isProduction = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnProduction))?.valueBool ?? true;
+      const bundleId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText;
 
       // Enhanced logging for diagnostics
       this.logger.log(`=== APNs Configuration Diagnostics ===`);
-      this.logger.log(`Environment: ${process.env.NODE_ENV || 'undefined'}`);
-      this.logger.log(
-        `APN_PRODUCTION: ${process.env.APN_PRODUCTION} (parsed as: ${isProduction})`,
-      );
+      this.logger.log(`APN_PRODUCTION: ${isProduction}`);
       this.logger.log(
         `APN_KEY_ID: ${keyId ? `${keyId.substring(0, 4)}...` : 'undefined'}`,
       );
@@ -294,6 +304,8 @@ export class IOSPushService {
     notification: Notification,
     devices: UserDevice[],
   ): Promise<SendResult> {
+    await this.ensureInitialized();
+
     if (!devices || devices.length === 0) {
       throw new Error('No devices found for notification');
     }
@@ -344,7 +356,7 @@ export class IOSPushService {
           notification_apn.payload = customPayload;
           notification_apn.priority = priority as number;
           notification_apn.topic =
-            process.env.APN_BUNDLE_ID || 'com.apocaliss92.zentik';
+            (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
 
           const result = await this.provider.send(notification_apn, token);
           results.push({ token, result });
@@ -387,7 +399,7 @@ export class IOSPushService {
                     retryNotification.priority = retryBuild.customPayload
                       .priority as number;
                     retryNotification.topic =
-                      process.env.APN_BUNDLE_ID || 'com.apocaliss92.zentik';
+                      (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
 
                     const retryResult = await this.provider!.send(
                       retryNotification,
@@ -481,6 +493,8 @@ export class IOSPushService {
     deviceData: { token: string },
     payload: any,
   ): Promise<SendResult> {
+    await this.ensureInitialized();
+
     if (!this.provider) {
       this.logger.error('APNs provider not initialized');
       throw new Error('APNs provider not initialized');
