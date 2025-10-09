@@ -40,7 +40,7 @@ export class AppController {
     try {
       const providers =
         await this.oauthProvidersService.findEnabledProvidersPublic();
-      const emailEnabled = this.emailService.isEmailEnabled();
+      const emailEnabled = await this.emailService.isEmailEnabled();
       const uploadEnabled = this.attachmentsService.isAttachmentsEnabled();
 
       return {

@@ -9,6 +9,7 @@ import { UserSession } from '../entities/user-session.entity';
 import { User } from '../entities/user.entity';
 import { EventsModule } from '../events/events.module';
 import { OAuthProvidersModule } from '../oauth-providers/oauth-providers.module';
+import { ServerSettingsModule } from '../server-settings/server-settings.module';
 import { AccessTokenController } from './access-token.controller';
 import { AccessTokenResolver } from './access-token.resolver';
 import { AccessTokenService } from './access-token.service';
@@ -45,6 +46,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     forwardRef(() => OAuthProvidersModule),
     CommonModule,
     EventsModule,
+    ServerSettingsModule,
   ],
   providers: [
     AuthService,

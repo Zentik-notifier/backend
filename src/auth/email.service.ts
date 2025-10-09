@@ -4,6 +4,8 @@ import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { LocaleService } from '../common/services/locale.service';
 import { Locale } from '../common/types/i18n';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 export enum EmailProvider {
   SMTP = 'smtp',
@@ -31,32 +33,65 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
   private resend: Resend;
   private provider: EmailProvider;
+  private initialized = false;
 
   constructor(
     private configService: ConfigService,
     private localeService: LocaleService,
-  ) {
-    this.initializeEmailProvider();
+    private serverSettingsService: ServerSettingsService,
+  ) {}
+
+  private async ensureInitialized() {
+    if (this.initialized) {
+      return;
+    }
+    await this.initializeEmailProvider();
+    this.initialized = true;
   }
 
-  private initializeEmailProvider() {
-    const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
+  private async initializeEmailProvider() {
+    // Read EmailType from server settings
+    const emailType = await this.serverSettingsService.getStringValue(
+      ServerSettingType.EmailType,
+      'SMTP',
+    );
 
-    if (resendApiKey) {
+    if (emailType === 'Resend') {
       this.provider = EmailProvider.RESEND;
-      this.resend = new Resend(resendApiKey);
-      this.logger.log('Email provider initialized: Resend');
+      const resendApiKey = await this.serverSettingsService.getStringValue(
+        ServerSettingType.ResendApiKey,
+      );
+      if (resendApiKey) {
+        this.resend = new Resend(resendApiKey);
+        this.logger.log('Email provider initialized: Resend');
+      } else {
+        this.logger.warn('Resend selected but API key not configured');
+      }
     } else {
       this.provider = EmailProvider.SMTP;
-      this.initializeSMTPTransporter();
+      await this.initializeSMTPTransporter();
     }
   }
 
-  private initializeSMTPTransporter() {
-    const host = this.configService.get<string>('EMAIL_HOST', 'smtp.gmail.com');
-    const port = this.configService.get<number>('EMAIL_PORT', 587);
-    const secure =
-      this.configService.get<string>('EMAIL_SECURE', 'false') === 'true';
+  private async initializeSMTPTransporter() {
+    const host = await this.serverSettingsService.getStringValue(
+      ServerSettingType.EmailHost,
+      'smtp.gmail.com',
+    );
+    const port = await this.serverSettingsService.getNumberValue(
+      ServerSettingType.EmailPort,
+      587,
+    );
+    const secure = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.EmailSecure,
+      false,
+    );
+    const user = await this.serverSettingsService.getStringValue(
+      ServerSettingType.EmailUser,
+    );
+    const pass = await this.serverSettingsService.getStringValue(
+      ServerSettingType.EmailPass,
+    );
 
     // Provider-specific configurations
     const emailConfig: any = {
@@ -64,22 +99,10 @@ export class EmailService {
       port,
       secure,
       auth: {
-        user: this.configService.get<string>('EMAIL_USER'),
-        pass: this.configService.get<string>('EMAIL_PASS'),
+        user,
+        pass,
       },
     };
-
-    // Gmail-specific configuration
-    // if (host.includes('gmail.com')) {
-    //   emailConfig = {
-    //     ...emailConfig,
-    //     port: 587,
-    //     secure: false, // Use STARTTLS
-    //     tls: {
-    //       rejectUnauthorized: false,
-    //     },
-    //   };
-    // }
 
     // Generic SSL/TLS fallback configuration
     if (secure) {
@@ -109,6 +132,8 @@ export class EmailService {
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
+    await this.ensureInitialized();
+    
     if (this.provider === EmailProvider.RESEND) {
       return this.sendEmailWithResend(options);
     } else {
@@ -125,9 +150,12 @@ export class EmailService {
     try {
       const fromEmail =
         options.from ||
-        this.configService.get<string>('EMAIL_FROM', 'noreply@zentik.app');
-      const fromName = this.configService.get<string>(
-        'EMAIL_FROM_NAME',
+        (await this.serverSettingsService.getStringValue(
+          ServerSettingType.EmailFrom,
+          'noreply@zentik.app',
+        ));
+      const fromName = await this.serverSettingsService.getStringValue(
+        ServerSettingType.EmailFromName,
         'Zentik',
       );
       const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
@@ -175,17 +203,19 @@ export class EmailService {
     }
 
     try {
+      const fromEmail =
+        options.from ||
+        (await this.serverSettingsService.getStringValue(
+          ServerSettingType.EmailFrom,
+          'noreply@zentik.app',
+        ));
+      const fromName = await this.serverSettingsService.getStringValue(
+        ServerSettingType.EmailFromName,
+      );
+      const from = fromName ? `${fromName} <${fromEmail || 'noreply@zentik.app'}>` : (fromEmail || 'noreply@zentik.app');
+
       const mailOptions = {
-        from:
-          options.from ||
-          (() => {
-            const fromEmail = this.configService.get<string>(
-              'EMAIL_FROM',
-              'noreply@zentik.app',
-            );
-            const fromName = this.configService.get<string>('EMAIL_FROM_NAME');
-            return fromName ? `${fromName} <${fromEmail}>` : fromEmail;
-          })(),
+        from,
         to: options.to,
         subject: options.subject,
         text: options.text,
@@ -195,9 +225,9 @@ export class EmailService {
         bcc: options.bcc,
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
+      const result: any = await this.transporter.sendMail(mailOptions);
       this.logger.log(
-        `Email sent successfully via SMTP to ${options.to}, messageId: ${result.messageId}`,
+        `Email sent successfully via SMTP to ${options.to}, messageId: ${result.messageId || 'unknown'}`,
       );
       return true;
     } catch (error) {
@@ -454,23 +484,25 @@ ${team}`;
     });
   }
 
-  isEmailEnabled(): boolean {
-    const emailEnabled =
-      this.configService.get<string>('EMAIL_ENABLED', 'true') ?? 'true';
-    const isEnabled = emailEnabled.toLowerCase() === 'true';
+  async isEmailEnabled(): Promise<boolean> {
+    const emailEnabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.EmailEnabled,
+      false,
+    );
 
-    if (!isEnabled) {
+    if (!emailEnabled) {
       return false;
     }
 
-    // Check if at least one provider is configured
-    const hasResend = !!this.configService.get<string>('RESEND_API_KEY');
-    const hasSmtp = !!(
-      this.configService.get<string>('EMAIL_USER') &&
-      this.configService.get<string>('EMAIL_PASS')
-    );
+    // Ensure provider is initialized
+    await this.ensureInitialized();
 
-    return hasResend || hasSmtp;
+    // Check if the initialized provider is available
+    if (this.provider === EmailProvider.RESEND) {
+      return !!this.resend;
+    } else {
+      return !!this.transporter;
+    }
   }
 
   getEmailProvider(): EmailProvider {

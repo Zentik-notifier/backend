@@ -88,7 +88,7 @@ export class AuthService {
     // Hash the password
     const hashedPassword = await this.hashPassword(password);
 
-    const emailEnabled = this.emailService.isEmailEnabled();
+    const emailEnabled = await this.emailService.isEmailEnabled();
 
     // Create the user
     const user = this.usersRepository.create({
@@ -925,7 +925,7 @@ export class AuthService {
    * Rate limiting: minimum 1 minute between requests
    */
   async requestPasswordReset(email: string, locale?: string): Promise<boolean> {
-    const emailEnabled = this.emailService.isEmailEnabled();
+    const emailEnabled = await this.emailService.isEmailEnabled();
     if (!emailEnabled) {
       this.logger.warn(`Password reset requested but EMAIL_ENABLED is false`);
       throw new BadRequestException('Email functionality is disabled');
