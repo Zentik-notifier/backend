@@ -20,6 +20,7 @@ import {
   UserSetting,
 } from '../entities';
 import { ServerSetting } from '../entities/server-setting.entity';
+import { Log } from '../entities/log.entity';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 
 config({ path: '.env' });
@@ -61,6 +62,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     OAuthProvider,
     UserSetting,
     ServerSetting,
+    Log,
   ],
   // migrations: [__sdirname + '/../database/migrations/*.ts'],
   synchronize: process.env.DB_SYNCHRONIZE === 'true',

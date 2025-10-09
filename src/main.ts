@@ -42,9 +42,6 @@ async function generateTypes(app: INestApplication) {
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
-  // Get log level from environment (will be migrated to ServerSettings after app creation)
-  const logLevel = (process.env.LOG_LEVEL || 'info') as 'error' | 'warn' | 'log' | 'debug' | 'verbose';
-
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix(String(process.env.BACKEND_API_PREFIX));
   app.useGlobalPipes(
@@ -196,7 +193,7 @@ async function bootstrap() {
     logger.error('❌ Error during admin users initialization:', err);
   }
 
-  // Initialize server settings from environment variables
+  // Initialize server settings from environment variables (includes defaults)
   try {
     const serverSettingsService = app.get(ServerSettingsService);
     await serverSettingsService.initializeFromEnv();

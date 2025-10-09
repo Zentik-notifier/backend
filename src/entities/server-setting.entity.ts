@@ -92,6 +92,11 @@ export enum ServerSettingType {
   LogLevel = 'LogLevel',
   LogStorageEnabled = 'LogStorageEnabled',
   LogRetentionDays = 'LogRetentionDays',
+  
+  // Prometheus Metrics
+  PrometheusEnabled = 'PrometheusEnabled',
+  PrometheusPath = 'PrometheusPath',
+  PrometheusRequiresAuth = 'PrometheusRequiresAuth',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

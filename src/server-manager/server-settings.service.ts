@@ -169,6 +169,13 @@ export class ServerSettingsService {
       
       // Logging
       { configType: ServerSettingType.LogLevel, envKey: 'LOG_LEVEL', type: 'string', defaultValue: 'info', possibleValues: ['error', 'warn', 'info', 'debug', 'verbose'] },
+      { configType: ServerSettingType.LogStorageEnabled, envKey: 'LOG_STORAGE_ENABLED', type: 'boolean', defaultValue: true },
+      { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
+      
+      // Prometheus
+      { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
+      { configType: ServerSettingType.PrometheusPath, envKey: 'PROMETHEUS_PATH', type: 'string', defaultValue: '/metrics' },
+      { configType: ServerSettingType.PrometheusRequiresAuth, envKey: 'PROMETHEUS_REQUIRES_AUTH', type: 'boolean', defaultValue: true },
     ];
 
     for (const mapping of envMappings) {

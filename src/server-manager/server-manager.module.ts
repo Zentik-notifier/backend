@@ -3,19 +3,26 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
 import { ServerSetting } from '../entities/server-setting.entity';
+import { Log } from '../entities/log.entity';
 import { ServerManagerService } from './server-manager.service';
 import { ServerManagerResolver } from './server-manager.resolver';
 import { ServerManagerController } from './server-manager.controller';
 import { ServerSettingsService } from './server-settings.service';
+import { LogStorageService } from './log-storage.service';
 
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([ServerSetting]),
+    TypeOrmModule.forFeature([ServerSetting, Log]),
     forwardRef(() => AuthModule),
   ],
   controllers: [ServerManagerController],
-  providers: [ServerManagerService, ServerManagerResolver, ServerSettingsService],
-  exports: [ServerManagerService, ServerSettingsService],
+  providers: [
+    ServerManagerService,
+    ServerManagerResolver,
+    ServerSettingsService,
+    LogStorageService,
+  ],
+  exports: [ServerManagerService, ServerSettingsService, LogStorageService],
 })
 export class ServerManagerModule {}

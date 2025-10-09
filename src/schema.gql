@@ -267,6 +267,14 @@ input GetEntityExecutionsInput {
   userId: String
 }
 
+input GetLogsInput {
+  context: String
+  level: LogLevel
+  limit: Int = 50
+  page: Int = 1
+  search: String
+}
+
 input GetResourcePermissionsInput {
   resourceId: String!
   resourceType: ResourceType!
@@ -293,6 +301,28 @@ enum HttpMethod {
 
 """JSON custom scalar type"""
 scalar JSON
+
+type Log {
+  context: String
+  createdAt: DateTime!
+  id: ID!
+  level: LogLevel!
+  message: String!
+  metadata: JSON
+  timestamp: DateTime!
+  trace: String
+}
+
+"""Log level enum"""
+enum LogLevel {
+  DEBUG
+  ERROR
+  HTTP
+  INFO
+  SILLY
+  VERBOSE
+  WARN
+}
 
 input LoginDto {
   deviceInfo: DeviceInfoDto
@@ -551,6 +581,14 @@ enum OAuthProviderType {
   GOOGLE
 }
 
+type PaginatedLogs {
+  limit: Int!
+  logs: [Log!]!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
 type PasswordResetResponseDto {
   message: String!
   success: Boolean!
@@ -608,6 +646,12 @@ type Query {
   """List all available database backups"""
   listBackups: [BackupInfoDto!]!
   listSystemTokens: [SystemAccessTokenDto!]!
+
+  """Get log count by level"""
+  logCountByLevel: String!
+
+  """Get logs with pagination and filtering"""
+  logs(input: GetLogsInput!): PaginatedLogs!
   me: User!
   notification(id: String!): Notification!
   notificationServices: [NotificationServiceInfo!]!
@@ -622,6 +666,9 @@ type Query {
 
   """Get all server settings"""
   serverSettings: [ServerSetting!]!
+
+  """Get total log count"""
+  totalLogCount: Float!
   user(id: String!): User!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
@@ -758,6 +805,9 @@ enum ServerSettingType {
   MessagesDeleteCronJob
   MessagesDeleteJobEnabled
   MessagesMaxAge
+  PrometheusEnabled
+  PrometheusPath
+  PrometheusRequiresAuth
   PublicBackendUrl
   PushNotificationsPassthroughServer
   PushPassthroughToken

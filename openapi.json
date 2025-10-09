@@ -1104,6 +1104,137 @@
         ]
       }
     },
+    "/api/v1/server-manager/logs": {
+      "get": {
+        "operationId": "ServerManagerController_getLogs",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warn",
+                "info",
+                "http",
+                "verbose",
+                "debug",
+                "silly"
+              ]
+            }
+          },
+          {
+            "name": "context",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedLogs"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get logs with pagination and filtering",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/logs/count": {
+      "get": {
+        "operationId": "ServerManagerController_getTotalLogCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Total log count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get total log count",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/logs/count-by-level": {
+      "get": {
+        "operationId": "ServerManagerController_getLogCountByLevel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Log count grouped by level"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get log count by level",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
     "/api/v1/oauth-providers": {
       "post": {
         "operationId": "OAuthProvidersController_create",
@@ -4848,7 +4979,10 @@
               "CorsCredentials",
               "LogLevel",
               "LogStorageEnabled",
-              "LogRetentionDays"
+              "LogRetentionDays",
+              "PrometheusEnabled",
+              "PrometheusPath",
+              "PrometheusRequiresAuth"
             ]
           },
           "valueText": {
@@ -4880,6 +5014,83 @@
           "configType",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "Log": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warn",
+              "info",
+              "http",
+              "verbose",
+              "debug",
+              "silly"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "level",
+          "message",
+          "timestamp",
+          "createdAt"
+        ]
+      },
+      "PaginatedLogs": {
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Log"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "logs",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
         ]
       },
       "OAuthProviderType": {

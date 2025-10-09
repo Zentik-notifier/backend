@@ -1,8 +1,7 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { LogLevel } from '../../entities/log-output.entity';
-import { Log } from '../../entities/log.entity';
+import { Log, LogLevel } from '../../entities/log.entity';
 
 @InputType()
 export class GetLogsInput {

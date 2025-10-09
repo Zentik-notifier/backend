@@ -2,9 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Repository, LessThan, Like, FindOptionsWhere } from 'typeorm';
-import { Log } from '../entities/log.entity';
-import { LogLevel } from '../entities/log-output.entity';
-import { ServerSettingsService } from '../server-manager/server-settings.service';
+import { Log, LogLevel } from '../entities/log.entity';
+import { ServerSettingsService } from './server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
 
@@ -92,7 +91,7 @@ export class LogStorageService {
    * Clean up old logs based on retention policy
    * Runs every day at 2 AM
    */
-  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  @Cron(CronExpression.EVERY_2ND_HOUR)
   async cleanupOldLogs(): Promise<void> {
     try {
       const storageEnabled = await this.isLogStorageEnabled();

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -15,6 +16,8 @@ import { ServerSetting, ServerSettingType } from '../entities/server-setting.ent
 import { BackupInfoDto, UpdateServerSettingDto } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
 import { ServerSettingsService } from './server-settings.service';
+import { LogStorageService } from './log-storage.service';
+import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
 
 @ApiTags('Server Manager')
 @Controller('server-manager')
@@ -24,6 +27,7 @@ export class ServerManagerController {
   constructor(
     private readonly serverManagerService: ServerManagerService,
     private readonly serverSettingsService: ServerSettingsService,
+    private readonly logStorageService: LogStorageService,
   ) {}
 
   @Get('backups')
@@ -143,5 +147,44 @@ export class ServerManagerController {
   })
   async restartServer(): Promise<{ success: boolean; message: string }> {
     return await this.serverManagerService.restartServer();
+  }
+
+  // Log Storage endpoints
+  @Get('logs')
+  @ApiOperation({ summary: 'Get logs with pagination and filtering' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated logs',
+    type: PaginatedLogs,
+  })
+  async getLogs(@Query() input: GetLogsInput): Promise<PaginatedLogs> {
+    return this.logStorageService.getLogs(input);
+  }
+
+  @Get('logs/count')
+  @ApiOperation({ summary: 'Get total log count' })
+  @ApiResponse({
+    status: 200,
+    description: 'Total log count',
+    schema: {
+      type: 'object',
+      properties: {
+        count: { type: 'number' },
+      },
+    },
+  })
+  async getTotalLogCount(): Promise<{ count: number }> {
+    const count = await this.logStorageService.getTotalLogCount();
+    return { count };
+  }
+
+  @Get('logs/count-by-level')
+  @ApiOperation({ summary: 'Get log count by level' })
+  @ApiResponse({
+    status: 200,
+    description: 'Log count grouped by level',
+  })
+  async getLogCountByLevel() {
+    return this.logStorageService.getLogCountByLevel();
   }
 }

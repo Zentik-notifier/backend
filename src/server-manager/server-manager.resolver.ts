@@ -5,6 +5,8 @@ import { ServerSetting, ServerSettingType } from '../entities/server-setting.ent
 import { BackupInfoDto, UpdateServerSettingDto, BatchUpdateSettingInput } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
 import { ServerSettingsService } from './server-settings.service';
+import { LogStorageService } from './log-storage.service';
+import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
 import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
 
 @Resolver()
@@ -13,6 +15,7 @@ export class ServerManagerResolver {
   constructor(
     private readonly serverManagerService: ServerManagerService,
     private readonly serverSettingsService: ServerSettingsService,
+    private readonly logStorageService: LogStorageService,
   ) {}
 
   @Query(() => [BackupInfoDto], {
@@ -103,5 +106,31 @@ export class ServerManagerResolver {
     } else {
       throw new Error(result.message);
     }
+  }
+
+  // Log Storage queries
+  @Query(() => PaginatedLogs, {
+    name: 'logs',
+    description: 'Get logs with pagination and filtering',
+  })
+  async getLogs(@Args('input') input: GetLogsInput): Promise<PaginatedLogs> {
+    return this.logStorageService.getLogs(input);
+  }
+
+  @Query(() => Number, {
+    name: 'totalLogCount',
+    description: 'Get total log count',
+  })
+  async getTotalLogCount(): Promise<number> {
+    return this.logStorageService.getTotalLogCount();
+  }
+
+  @Query(() => String, {
+    name: 'logCountByLevel',
+    description: 'Get log count by level',
+  })
+  async getLogCountByLevel(): Promise<string> {
+    const counts = await this.logStorageService.getLogCountByLevel();
+    return JSON.stringify(counts);
   }
 }

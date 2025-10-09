@@ -16,7 +16,6 @@ DROP TABLE IF EXISTS user_sessions CASCADE;
 DROP TABLE IF EXISTS user_devices CASCADE;
 DROP TABLE IF EXISTS buckets CASCADE;
 DROP TABLE IF EXISTS oauth_providers CASCADE;
-DROP TABLE IF EXISTS log_outputs CASCADE;
 DROP TABLE IF EXISTS logs CASCADE;
 DROP TABLE IF EXISTS server_settings CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
@@ -34,7 +33,6 @@ DROP TYPE IF EXISTS user_setting_type_enum CASCADE;
 DROP TYPE IF EXISTS oauth_provider_type_enum CASCADE;
 DROP TYPE IF EXISTS execution_type_enum CASCADE;
 DROP TYPE IF EXISTS execution_status_enum CASCADE;
-DROP TYPE IF EXISTS log_output_type_enum CASCADE;
 DROP TYPE IF EXISTS log_level_enum CASCADE;
 DROP TYPE IF EXISTS server_setting_type_enum CASCADE;
 
@@ -51,7 +49,6 @@ CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOn
 CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'CUSTOM');
 CREATE TYPE execution_type_enum AS ENUM ('WEBHOOK', 'PAYLOAD_MAPPER');
 CREATE TYPE execution_status_enum AS ENUM ('SUCCESS', 'ERROR', 'TIMEOUT');
-CREATE TYPE log_output_type_enum AS ENUM ('PROMTAIL', 'SYSLOG');
 CREATE TYPE log_level_enum AS ENUM ('error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly');
 CREATE TYPE server_setting_type_enum AS ENUM (
   'JwtAccessTokenExpiration', 'JwtRefreshTokenExpiration',
@@ -70,7 +67,8 @@ CREATE TYPE server_setting_type_enum AS ENUM (
   'RateLimitBlockMs', 'RateLimitMessagesRps', 'RateLimitMessagesTtlMs',
   'JwtSecret', 'JwtRefreshSecret',
   'CorsOrigin', 'CorsCredentials',
-  'LogLevel', 'LogStorageEnabled', 'LogRetentionDays'
+  'LogLevel', 'LogStorageEnabled', 'LogRetentionDays',
+  'PrometheusEnabled', 'PrometheusPath', 'PrometheusRequiresAuth'
 );
 
 -- Create users table
@@ -162,31 +160,6 @@ CREATE TABLE server_settings (
     "valueBool" BOOLEAN,
     "valueNumber" INTEGER,
     "possibleValues" TEXT,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create log_outputs table (similar to oauth_providers structure)
--- This table stores log output configurations for external logging systems
-CREATE TABLE log_outputs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    type log_output_type_enum NOT NULL,
-    "isEnabled" BOOLEAN DEFAULT TRUE NOT NULL,
-    -- Promtail specific fields (pushes logs to Loki)
-    "promtailUrl" VARCHAR(500),
-    "promtailUsername" VARCHAR(255),
-    "promtailPassword" VARCHAR(255),
-    "promtailLabels" JSONB, -- Additional labels for Promtail/Loki
-    -- Syslog specific fields
-    "syslogHost" VARCHAR(255),
-    "syslogPort" INTEGER,
-    "syslogProtocol" VARCHAR(10), -- 'tcp', 'udp', or 'tls'
-    "syslogAppName" VARCHAR(255),
-    "syslogFacility" VARCHAR(50),
-    -- Common fields
-    "minLevel" log_level_enum DEFAULT 'info',
-    "additionalConfig" TEXT, -- JSON string for any extra config
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -489,9 +462,6 @@ CREATE TRIGGER update_oauth_providers_updated_at BEFORE UPDATE ON oauth_provider
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_server_settings_updated_at BEFORE UPDATE ON server_settings
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_log_outputs_updated_at BEFORE UPDATE ON log_outputs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Create function to manage readAt field based on notification status

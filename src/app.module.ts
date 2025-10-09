@@ -10,10 +10,12 @@ import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { BucketsModule } from './buckets/buckets.module';
 import { CommonModule } from './common/common.module';
+import { LoggerModule } from './common/logger/logger.module';
 
 import { databaseConfig } from './config/database.config';
 // import { oauthConfig } from './config/oauth.config';
 import { ThrottlerUserOrIpGuard } from './common/guards/throttler-user-or-ip.guard';
+import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
 import { EventsModule } from './events/events.module';
 import { GraphqlModule } from './graphql/graphql.module';
 import { MessagesModule } from './messages/messages.module';
@@ -62,6 +64,7 @@ import { ServerSettingType } from './entities/server-setting.entity';
       },
     }),
     CommonModule,
+    LoggerModule,
     AuthModule,
     SystemAccessTokenModule,
     UsersModule,
@@ -83,6 +86,10 @@ import { ServerSettingType } from './entities/server-setting.entity';
     {
       provide: 'APP_GUARD',
       useClass: ThrottlerUserOrIpGuard,
+    },
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: HttpLoggingInterceptor,
     },
   ],
 })

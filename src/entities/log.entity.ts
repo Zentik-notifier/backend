@@ -1,4 +1,4 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   Column,
@@ -7,7 +7,22 @@ import {
   Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { LogLevel } from './log-output.entity';
+import { GraphQLJSON } from '../common/types/json.type';
+
+export enum LogLevel {
+  ERROR = 'error',
+  WARN = 'warn',
+  INFO = 'info',
+  HTTP = 'http',
+  VERBOSE = 'verbose',
+  DEBUG = 'debug',
+  SILLY = 'silly',
+}
+
+registerEnumType(LogLevel, {
+  name: 'LogLevel',
+  description: 'Log level enum',
+});
 
 @ObjectType()
 @Entity('logs')
@@ -44,7 +59,7 @@ export class Log {
   @Column({ type: 'text', nullable: true })
   trace?: string;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLJSON, { nullable: true })
   @ApiProperty({ required: false })
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, any>;
