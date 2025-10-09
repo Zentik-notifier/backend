@@ -381,15 +381,24 @@ export class ServerManagerService implements OnModuleInit {
     this.logger.warn('Server restart requested');
     
     try {
+      // Import the restart function dynamically to avoid circular dependencies
+      const { restartApplication } = await import('../main');
+      
       // Schedule the restart after a short delay to allow the response to be sent
-      setTimeout(() => {
+      setTimeout(async () => {
         this.logger.warn('Restarting server now...');
-        process.exit(0); // Exit with success code, process manager (PM2/systemd) will restart
+        try {
+          await restartApplication();
+        } catch (error) {
+          this.logger.error(`Failed to restart application: ${error.message}`);
+          // Fallback to process exit if restart fails
+          process.exit(0);
+        }
       }, 1000);
 
       return {
         success: true,
-        message: 'Server restart initiated. The server will restart in 1 second.',
+        message: 'Server restart initiated. The server will restart in 1 second and reload all settings.',
       };
     } catch (error) {
       this.logger.error(`Failed to restart server: ${error.message}`);

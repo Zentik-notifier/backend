@@ -56,3 +56,29 @@ export class UpdateServerSettingDto {
   @IsNumber()
   valueNumber?: number | null;
 }
+
+@InputType()
+export class BatchUpdateSettingInput {
+  @Field(() => ServerSettingType)
+  @ApiProperty({ enum: ServerSettingType })
+  @IsEnum(ServerSettingType)
+  configType: ServerSettingType;
+
+  @Field(() => String, { nullable: true })
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  valueText?: string | null;
+
+  @Field(() => Boolean, { nullable: true })
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  valueBool?: boolean | null;
+
+  @Field(() => Number, { nullable: true })
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  valueNumber?: number | null;
+}

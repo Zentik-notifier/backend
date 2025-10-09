@@ -13,6 +13,9 @@ import { createAdminUsers } from './seeds/admin-users.seed';
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { ServerSettingType } from './entities/server-setting.entity';
 
+// Global reference to the application instance
+let appInstance: INestApplication | null = null;
+
 async function generateTypes(app: INestApplication) {
   const logger = new Logger('TypesGenerator');
   logger.log('🔄 Generating TypeScript types from OpenAPI...');
@@ -215,7 +218,39 @@ async function bootstrap() {
   const port = process.env.BACKEND_PORT ?? 3000;
   await app.listen(port);
 
+  // Store the app instance globally for restart functionality
+  appInstance = app;
+
   logger.log(`🎯 Server running on http://localhost:${port}`);
+}
+
+/**
+ * Restart the application by closing and reinitializing
+ */
+export async function restartApplication(): Promise<void> {
+  const logger = new Logger('AppRestart');
+  
+  if (!appInstance) {
+    throw new Error('Application instance not available');
+  }
+
+  logger.warn('🔄 Restarting application...');
+  
+  try {
+    // Close the current application instance
+    await appInstance.close();
+    logger.log('✅ Application closed successfully');
+    
+    // Wait a moment to ensure cleanup
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Bootstrap a new instance
+    await bootstrap();
+    logger.log('✅ Application restarted successfully');
+  } catch (error) {
+    logger.error('❌ Failed to restart application:', error);
+    throw error;
+  }
 }
 
 bootstrap().catch((error) => {

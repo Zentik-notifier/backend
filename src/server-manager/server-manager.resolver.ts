@@ -2,12 +2,13 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
-import { BackupInfoDto, UpdateServerSettingDto } from './dto';
+import { BackupInfoDto, UpdateServerSettingDto, BatchUpdateSettingInput } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
 import { ServerSettingsService } from './server-settings.service';
+import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
 
 @Resolver()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminOnlyGuard)
 export class ServerManagerResolver {
   constructor(
     private readonly serverManagerService: ServerManagerService,
@@ -78,6 +79,17 @@ export class ServerManagerResolver {
     @Args('input') dto: UpdateServerSettingDto,
   ): Promise<ServerSetting> {
     return this.serverSettingsService.updateSetting(configType, dto);
+  }
+
+  @Mutation(() => [ServerSetting], {
+    name: 'batchUpdateServerSettings',
+    description: 'Batch update multiple server settings',
+  })
+  async batchUpdateServerSettings(
+    @Args('settings', { type: () => [BatchUpdateSettingInput] })
+    settings: BatchUpdateSettingInput[],
+  ): Promise<ServerSetting[]> {
+    return this.serverSettingsService.batchUpdateSettings(settings);
   }
 
   @Mutation(() => String, {

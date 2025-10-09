@@ -9,9 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
 import { BackupInfoDto, UpdateServerSettingDto } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
@@ -114,6 +113,19 @@ export class ServerManagerController {
     @Body() dto: UpdateServerSettingDto,
   ): Promise<ServerSetting> {
     return this.serverSettingsService.updateSetting(configType, dto);
+  }
+
+  @Post('settings/batch')
+  @ApiOperation({ summary: 'Batch update multiple server settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Settings updated successfully',
+    type: [ServerSetting],
+  })
+  async batchUpdateSettings(
+    @Body() settings: Array<{ configType: ServerSettingType; valueText?: string | null; valueBool?: boolean | null; valueNumber?: number | null }>,
+  ): Promise<ServerSetting[]> {
+    return this.serverSettingsService.batchUpdateSettings(settings);
   }
 
   @Post('restart')

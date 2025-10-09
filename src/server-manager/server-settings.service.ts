@@ -225,6 +225,26 @@ export class ServerSettingsService {
   }
 
   /**
+   * Batch update multiple server settings
+   */
+  async batchUpdateSettings(updates: Array<{ configType: ServerSettingType; valueText?: string | null; valueBool?: boolean | null; valueNumber?: number | null }>): Promise<ServerSetting[]> {
+    const results: ServerSetting[] = [];
+
+    for (const update of updates) {
+      const dto: UpdateServerSettingDto = {
+        valueText: update.valueText,
+        valueBool: update.valueBool,
+        valueNumber: update.valueNumber,
+      };
+      
+      const updated = await this.updateSetting(update.configType, dto);
+      results.push(updated);
+    }
+
+    return results;
+  }
+
+  /**
    * Get setting value with type-safe return
    */
   async getStringValue(configType: ServerSettingType, defaultValue?: string): Promise<string | null> {

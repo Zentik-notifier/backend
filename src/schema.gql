@@ -39,6 +39,13 @@ type BackupInfoDto {
   sizeBytes: Float!
 }
 
+input BatchUpdateSettingInput {
+  configType: ServerSettingType!
+  valueBool: Boolean
+  valueNumber: Float
+  valueText: String
+}
+
 type Bucket {
   color: String
   createdAt: DateTime!
@@ -358,6 +365,8 @@ type MessageAttachment {
 }
 
 type Mutation {
+  """Batch update multiple server settings"""
+  batchUpdateServerSettings(settings: [BatchUpdateSettingInput!]!): [ServerSetting!]!
   changePassword(input: ChangePasswordInput!): Boolean!
   cleanupExpiredPermissions: Float!
   confirmEmail(input: ConfirmEmailDto!): EmailConfirmationResponseDto!

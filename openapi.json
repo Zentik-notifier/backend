@@ -1026,6 +1026,49 @@
         ]
       }
     },
+    "/api/v1/server-manager/settings/batch": {
+      "post": {
+        "operationId": "ServerManagerController_batchUpdateSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerSetting"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Batch update multiple server settings",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
     "/api/v1/server-manager/restart": {
       "post": {
         "operationId": "ServerManagerController_restartServer",
@@ -4740,6 +4783,102 @@
             "type": "object"
           }
         }
+      },
+      "ServerSetting": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "configType": {
+            "type": "string",
+            "enum": [
+              "JwtAccessTokenExpiration",
+              "JwtRefreshTokenExpiration",
+              "ApnPush",
+              "ApnKeyId",
+              "ApnTeamId",
+              "ApnPrivateKeyPath",
+              "ApnBundleId",
+              "ApnProduction",
+              "FirebasePush",
+              "FirebaseProjectId",
+              "FirebasePrivateKey",
+              "FirebaseClientEmail",
+              "WebPush",
+              "VapidSubject",
+              "PublicBackendUrl",
+              "PushNotificationsPassthroughServer",
+              "PushPassthroughToken",
+              "AttachmentsEnabled",
+              "AttachmentsStoragePath",
+              "AttachmentsMaxFileSize",
+              "AttachmentsAllowedMimeTypes",
+              "AttachmentsDeleteJobEnabled",
+              "AttachmentsDeleteCronJob",
+              "AttachmentsMaxAge",
+              "BackupEnabled",
+              "BackupExecuteOnStart",
+              "BackupStoragePath",
+              "BackupMaxToKeep",
+              "BackupCronJob",
+              "MessagesMaxAge",
+              "MessagesDeleteJobEnabled",
+              "MessagesDeleteCronJob",
+              "EmailEnabled",
+              "EmailType",
+              "EmailHost",
+              "EmailPort",
+              "EmailSecure",
+              "EmailUser",
+              "EmailPass",
+              "EmailFrom",
+              "EmailFromName",
+              "ResendApiKey",
+              "RateLimitTrustProxyEnabled",
+              "RateLimitForwardHeader",
+              "RateLimitTtlMs",
+              "RateLimitLimit",
+              "RateLimitBlockMs",
+              "RateLimitMessagesRps",
+              "RateLimitMessagesTtlMs",
+              "JwtSecret",
+              "JwtRefreshSecret",
+              "CorsOrigin",
+              "CorsCredentials",
+              "LogLevel"
+            ]
+          },
+          "valueText": {
+            "type": "object"
+          },
+          "valueBool": {
+            "type": "object"
+          },
+          "valueNumber": {
+            "type": "object"
+          },
+          "possibleValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "configType",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "OAuthProviderType": {
         "type": "string",
