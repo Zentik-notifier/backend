@@ -6,11 +6,13 @@ import { BucketsService } from '../buckets/buckets.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
+import { ServerSettingType } from '../entities/server-setting.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { UserSettingType } from '../entities/user-setting.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { FirebasePushService } from './firebase-push.service';
@@ -46,6 +48,7 @@ export class PushNotificationOrchestratorService {
     private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly usersService: UsersService,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   /**
@@ -364,29 +367,100 @@ export class PushNotificationOrchestratorService {
   }
 
   /**
-   * Decide whether to send locally or via passthrough server, based on env configuration.
+   * Get push mode (Off/Local/Onboard/Passthrough) for a specific platform
+   */
+  private async getPushMode(
+    platform: DevicePlatform,
+  ): Promise<'Off' | 'Local' | 'Onboard' | 'Passthrough'> {
+    let settingType: ServerSettingType;
+
+    switch (platform) {
+      case DevicePlatform.IOS:
+        settingType = ServerSettingType.ApnPush;
+        break;
+      case DevicePlatform.ANDROID:
+        settingType = ServerSettingType.FirebasePush;
+        break;
+      case DevicePlatform.WEB:
+        settingType = ServerSettingType.WebPush;
+        break;
+      default:
+        return 'Off';
+    }
+
+    const mode = await this.serverSettingsService.getStringValue(
+      settingType,
+      'Off',
+    );
+    
+    // Validate the mode value
+    if (mode === 'Off' || mode === 'Local' || mode === 'Onboard' || mode === 'Passthrough') {
+      return mode;
+    }
+    
+    this.logger.warn(
+      `Invalid push mode '${mode}' for ${platform}, defaulting to 'Off'`,
+    );
+    return 'Off';
+  }
+
+  /**
+   * Decide whether to send via onboard services, passthrough, or not at all, based on server settings.
    */
   private async dispatchPush(
     notification: Notification,
     userDevice: UserDevice,
   ): Promise<{ success: boolean; error?: string }> {
-    const enabledRaw = this.configService.get<string>(
-      'PUSH_NOTIFICATIONS_PASSTHROUGH_ENABLED',
-    );
-    const isEnabled =
-      (enabledRaw || '').toLowerCase() === 'true' || enabledRaw === '1';
-    const server = this.configService.get<string>(
-      'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER',
-    );
-    const token = this.configService.get<string>('PUSH_PASSTHROUGH_TOKEN');
+    // Get the push mode for this platform
+    const mode = await this.getPushMode(userDevice.platform);
 
-    if (isEnabled && server && token) {
-      this.logger.log(`Push dispatch: using PASSTHROUGH server ${server}`);
-      return this.sendViaPassthrough(server, token, notification, userDevice);
-    } else {
-      this.logger.log('Push dispatch: using LOCAL push services');
+    // Off - don't send anything (no push, no local)
+    if (mode === 'Off') {
+      this.logger.debug(
+        `Push dispatch: ${userDevice.platform} is set to 'Off', skipping all notifications`,
+      );
+      return { success: false, error: 'Notifications completely disabled for this platform' };
+    }
+
+    // Local - device-only notifications (no server push)
+    if (mode === 'Local') {
+      this.logger.debug(
+        `Push dispatch: ${userDevice.platform} is set to 'Local', using device-only notifications`,
+      );
+      return { success: false, error: 'Local mode: notifications handled by device only' };
+    }
+
+    // Onboard - use local onboard push services (APN, Firebase, WebPush)
+    if (mode === 'Onboard') {
+      this.logger.log(
+        `Push dispatch: using ONBOARD push services for ${userDevice.platform}`,
+      );
       return this.sendPushToSingleDeviceStateless(notification, userDevice);
     }
+
+    // Passthrough - use passthrough server
+    if (mode === 'Passthrough') {
+      const server = await this.serverSettingsService.getStringValue(
+        ServerSettingType.PushNotificationsPassthroughServer,
+      );
+      const token = await this.serverSettingsService.getStringValue(
+        ServerSettingType.PushPassthroughToken,
+      );
+
+      if (!server || !token) {
+        const error = 'Passthrough mode enabled but server or token not configured';
+        this.logger.error(error);
+        return { success: false, error };
+      }
+
+      this.logger.log(
+        `Push dispatch: using PASSTHROUGH server ${server} for ${userDevice.platform}`,
+      );
+      return this.sendViaPassthrough(server, token, notification, userDevice);
+    }
+
+    // Should never reach here due to validation in getPushMode
+    return { success: false, error: 'Invalid push mode' };
   }
 
   /**

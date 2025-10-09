@@ -12,6 +12,7 @@ import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
 import { MessagesModule } from '../messages/messages.module';
 import { BucketsModule } from '../buckets/buckets.module';
+import { ServerSettingsModule } from '../server-settings/server-settings.module';
 import { SystemAccessTokenModule } from '../system-access-token/system-access-token.module';
 import { UsersModule } from '../users/users.module';
 import { FirebasePushService } from './firebase-push.service';
@@ -39,6 +40,7 @@ import { NotificationsResolver } from '../graphql/resolvers/notifications.resolv
     GraphQLSharedModule,
     forwardRef(() => MessagesModule),
     BucketsModule,
+    ServerSettingsModule,
     SystemAccessTokenModule,
   ],
   controllers: [NotificationsController],

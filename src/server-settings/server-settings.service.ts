@@ -93,7 +93,7 @@ export class ServerSettingsService {
       { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
       
       // APN Push
-      { configType: ServerSettingType.ApnPush, envKey: 'APN_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Passthrough'] },
+      { configType: ServerSettingType.ApnPush, envKey: 'APN_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
       { configType: ServerSettingType.ApnKeyId, envKey: 'APN_KEY_ID', type: 'string' },
       { configType: ServerSettingType.ApnTeamId, envKey: 'APN_TEAM_ID', type: 'string' },
       { configType: ServerSettingType.ApnPrivateKeyPath, envKey: 'APN_PRIVATE_KEY_PATH', type: 'string' },
@@ -101,13 +101,13 @@ export class ServerSettingsService {
       { configType: ServerSettingType.ApnProduction, envKey: 'APN_PRODUCTION', type: 'boolean', defaultValue: true },
       
       // Firebase Push
-      { configType: ServerSettingType.FirebasePush, envKey: 'FIREBASE_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Passthrough'] },
+      { configType: ServerSettingType.FirebasePush, envKey: 'FIREBASE_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
       { configType: ServerSettingType.FirebaseProjectId, envKey: 'FIREBASE_PROJECT_ID', type: 'string' },
       { configType: ServerSettingType.FirebasePrivateKey, envKey: 'FIREBASE_PRIVATE_KEY', type: 'string' },
       { configType: ServerSettingType.FirebaseClientEmail, envKey: 'FIREBASE_CLIENT_EMAIL', type: 'string' },
       
       // Web Push
-      { configType: ServerSettingType.WebPush, envKey: 'WEB_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Passthrough'] },
+      { configType: ServerSettingType.WebPush, envKey: 'WEB_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
       { configType: ServerSettingType.VapidSubject, envKey: 'VAPID_SUBJECT', type: 'string' },
       
       // Backend

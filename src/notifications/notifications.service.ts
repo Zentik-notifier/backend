@@ -9,6 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository, In } from 'typeorm';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Notification } from '../entities/notification.entity';
+import { ServerSettingType } from '../entities/server-setting.entity';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { NotificationServiceInfo } from './dto';
@@ -37,6 +39,7 @@ export class NotificationsService {
     private readonly firebasePushService: FirebasePushService,
     private readonly webPushService: WebPushService,
     private readonly configService: ConfigService,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   async findByUser(userId: string): Promise<Notification[]> {
@@ -333,55 +336,61 @@ export class NotificationsService {
       await this.checkPushServicesInitialization();
 
     // iOS Platform
-    const apnEnabled = this.configService.get<string>(
-      'APN_PUSH_ENABLED',
-      'true',
+    const apnMode = await this.serverSettingsService.getStringValue(
+      ServerSettingType.ApnPush,
+      'Off',
     );
-    if (apnEnabled === 'true' && pushServicesInitialized) {
+    // Onboard or Passthrough = use server push services
+    // Local = device-only notifications
+    // Off = no notifications at all
+    if ((apnMode === 'Onboard' || apnMode === 'Passthrough') && pushServicesInitialized) {
       services.push({
         devicePlatform: DevicePlatform.IOS,
         service: NotificationServiceType.PUSH,
       });
-    } else {
+    } else if (apnMode === 'Local') {
       services.push({
         devicePlatform: DevicePlatform.IOS,
         service: NotificationServiceType.LOCAL,
       });
     }
+    // If 'Off', don't add any service for this platform
 
     // Android Platform
-    const firebaseEnabled = this.configService.get<string>(
-      'FIREBASE_PUSH_ENABLED',
-      'true',
+    const firebaseMode = await this.serverSettingsService.getStringValue(
+      ServerSettingType.FirebasePush,
+      'Off',
     );
-    if (firebaseEnabled === 'true' && pushServicesInitialized) {
+    if ((firebaseMode === 'Onboard' || firebaseMode === 'Passthrough') && pushServicesInitialized) {
       services.push({
         devicePlatform: DevicePlatform.ANDROID,
         service: NotificationServiceType.PUSH,
       });
-    } else {
+    } else if (firebaseMode === 'Local') {
       services.push({
         devicePlatform: DevicePlatform.ANDROID,
         service: NotificationServiceType.LOCAL,
       });
     }
+    // If 'Off', don't add any service for this platform
 
     // Web Platform
-    const webPushEnabled = this.configService.get<string>(
-      'WEB_PUSH_ENABLED',
-      'true',
+    const webMode = await this.serverSettingsService.getStringValue(
+      ServerSettingType.WebPush,
+      'Off',
     );
-    if (webPushEnabled === 'true' && pushServicesInitialized) {
+    if ((webMode === 'Onboard' || webMode === 'Passthrough') && pushServicesInitialized) {
       services.push({
         devicePlatform: DevicePlatform.WEB,
         service: NotificationServiceType.PUSH,
       });
-    } else {
+    } else if (webMode === 'Local') {
       services.push({
         devicePlatform: DevicePlatform.WEB,
         service: NotificationServiceType.LOCAL,
       });
     }
+    // If 'Off', don't add any service for this platform
 
     return services;
   }
