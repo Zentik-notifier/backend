@@ -1270,66 +1270,6 @@
         ]
       }
     },
-    "/api/v1/server-manager/logs/cron-status": {
-      "get": {
-        "operationId": "ServerManagerController_getCronJobStatus",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Cron job status"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get cleanup cron job status",
-        "tags": [
-          "Server Manager"
-        ]
-      }
-    },
-    "/api/v1/server-manager/logs/cron-start": {
-      "post": {
-        "operationId": "ServerManagerController_startCronJob",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Cron job started"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Start the cleanup cron job",
-        "tags": [
-          "Server Manager"
-        ]
-      }
-    },
-    "/api/v1/server-manager/logs/cron-stop": {
-      "post": {
-        "operationId": "ServerManagerController_stopCronJob",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Cron job stopped"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Stop the cleanup cron job",
-        "tags": [
-          "Server Manager"
-        ]
-      }
-    },
     "/api/v1/server-manager/loki/flush": {
       "post": {
         "operationId": "ServerManagerController_flushLokiLogs",
@@ -5103,7 +5043,6 @@
               "FirebaseClientEmail",
               "WebPush",
               "VapidSubject",
-              "PublicBackendUrl",
               "PushNotificationsPassthroughServer",
               "PushPassthroughToken",
               "AttachmentsEnabled",

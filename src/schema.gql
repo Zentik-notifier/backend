@@ -459,12 +459,6 @@ type Mutation {
   setBucketSnoozeMinutes(bucketId: String!, input: SetBucketSnoozeMinutesInput!): UserBucket!
   setPassword(input: ChangePasswordInput!): Boolean!
   shareBucket(input: GrantEntityPermissionInput!): EntityPermission!
-
-  """Start the log cleanup cron job"""
-  startLogCleanupCron: Boolean!
-
-  """Stop the log cleanup cron job"""
-  stopLogCleanupCron: Boolean!
   toggleOAuthProvider(id: String!): OAuthProvider!
 
   """Manually trigger a database backup"""
@@ -662,9 +656,6 @@ type Query {
   listBackups: [BackupInfoDto!]!
   listSystemTokens: [SystemAccessTokenDto!]!
 
-  """Get the status of the log cleanup cron job"""
-  logCleanupCronStatus: String!
-
   """Get log count by level"""
   logCountByLevel: String!
 
@@ -833,7 +824,6 @@ enum ServerSettingType {
   PrometheusEnabled
   PrometheusPath
   PrometheusRequiresAuth
-  PublicBackendUrl
   PushNotificationsPassthroughServer
   PushPassthroughToken
   RateLimitBlockMs

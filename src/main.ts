@@ -211,8 +211,6 @@ async function bootstrap() {
     const serverSettingsService = app.get(ServerSettingsService);
     await serverSettingsService.initializeFromEnv();
     logger.log('✅ Server settings initialization completed.');
-
-    // Note: Log level is now handled by DatabaseLoggerService based on settings
   } catch (err) {
     logger.error('❌ Error during server settings initialization:', err);
   }

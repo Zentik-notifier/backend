@@ -55,7 +55,6 @@ CREATE TYPE server_setting_type_enum AS ENUM (
   'ApnPush', 'ApnKeyId', 'ApnTeamId', 'ApnPrivateKeyPath', 'ApnBundleId', 'ApnProduction',
   'FirebasePush', 'FirebaseProjectId', 'FirebasePrivateKey', 'FirebaseClientEmail',
   'WebPush', 'VapidSubject',
-  'PublicBackendUrl',
   'PushNotificationsPassthroughServer', 'PushPassthroughToken',
   'AttachmentsEnabled', 'AttachmentsStoragePath', 'AttachmentsMaxFileSize', 'AttachmentsAllowedMimeTypes',
   'AttachmentsDeleteJobEnabled', 'AttachmentsDeleteCronJob', 'AttachmentsMaxAge',

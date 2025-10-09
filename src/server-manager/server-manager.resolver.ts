@@ -149,41 +149,6 @@ export class ServerManagerResolver {
     }
   }
 
-  @Query(() => String, {
-    name: 'logCleanupCronStatus',
-    description: 'Get the status of the log cleanup cron job',
-  })
-  async getLogCleanupCronStatus(): Promise<string> {
-    const status = this.logStorageService.getCronJobStatus();
-    return JSON.stringify(status);
-  }
-
-  @Mutation(() => Boolean, {
-    name: 'startLogCleanupCron',
-    description: 'Start the log cleanup cron job',
-  })
-  async startLogCleanupCron(): Promise<boolean> {
-    try {
-      this.logStorageService.startCronJob();
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to start cron job: ${error.message}`);
-    }
-  }
-
-  @Mutation(() => Boolean, {
-    name: 'stopLogCleanupCron',
-    description: 'Stop the log cleanup cron job',
-  })
-  async stopLogCleanupCron(): Promise<boolean> {
-    try {
-      this.logStorageService.stopCronJob();
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to stop cron job: ${error.message}`);
-    }
-  }
-
   // Loki mutations
   @Mutation(() => Boolean, {
     name: 'flushLokiLogs',

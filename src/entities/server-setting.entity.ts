@@ -31,9 +31,6 @@ export enum ServerSettingType {
   WebPush = 'WebPush',
   VapidSubject = 'VapidSubject',
   
-  // Backend
-  PublicBackendUrl = 'PublicBackendUrl',
-  
   // Push Passthrough
   PushNotificationsPassthroughServer = 'PushNotificationsPassthroughServer',
   PushPassthroughToken = 'PushPassthroughToken',

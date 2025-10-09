@@ -218,58 +218,6 @@ export class ServerManagerController {
     }
   }
 
-  @Get('logs/cron-status')
-  @ApiOperation({ summary: 'Get cleanup cron job status' })
-  @ApiResponse({
-    status: 200,
-    description: 'Cron job status',
-  })
-  async getCronJobStatus() {
-    return this.logStorageService.getCronJobStatus();
-  }
-
-  @Post('logs/cron-start')
-  @ApiOperation({ summary: 'Start the cleanup cron job' })
-  @ApiResponse({
-    status: 200,
-    description: 'Cron job started',
-  })
-  async startCronJob(): Promise<{ success: boolean; message: string }> {
-    try {
-      this.logStorageService.startCronJob();
-      return {
-        success: true,
-        message: 'Cron job started successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to start cron job: ${error.message}`,
-      };
-    }
-  }
-
-  @Post('logs/cron-stop')
-  @ApiOperation({ summary: 'Stop the cleanup cron job' })
-  @ApiResponse({
-    status: 200,
-    description: 'Cron job stopped',
-  })
-  async stopCronJob(): Promise<{ success: boolean; message: string }> {
-    try {
-      this.logStorageService.stopCronJob();
-      return {
-        success: true,
-        message: 'Cron job stopped successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to stop cron job: ${error.message}`,
-      };
-    }
-  }
-
   // Loki endpoints
   @Post('loki/flush')
   @ApiOperation({ summary: 'Force flush all pending logs to Loki' })

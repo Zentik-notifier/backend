@@ -1,24 +1,73 @@
-import { Injectable, LoggerService, Scope, Inject, forwardRef, Logger, ConsoleLogger } from '@nestjs/common';
+import { Injectable, LoggerService, Scope, Inject, forwardRef, Logger, ConsoleLogger, LogLevel as NestLogLevel } from '@nestjs/common';
 import { LogStorageService } from './log-storage.service';
 import { LokiLoggerService } from './loki-logger.service';
 import { LogLevel } from '../entities/log.entity';
+import { ServerSettingsService } from './server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 /**
  * Custom logger that saves logs to database and sends to Loki when enabled
  * This logger wraps the default NestJS console logger and adds persistence
+ * It respects the LogLevel setting from ServerSettings
  */
 @Injectable({ scope: Scope.TRANSIENT })
 export class DatabaseLoggerService implements LoggerService {
   private context?: string;
   private readonly nestLogger: ConsoleLogger;
+  private currentLogLevel: string = 'info';
 
   constructor(
     private readonly logStorageService: LogStorageService,
     @Inject(forwardRef(() => LokiLoggerService))
     private readonly lokiLoggerService: LokiLoggerService,
+    @Inject(forwardRef(() => ServerSettingsService))
+    private readonly serverSettingsService: ServerSettingsService,
   ) {
     // Use NestJS default ConsoleLogger for formatting
     this.nestLogger = new ConsoleLogger();
+    this.loadLogLevelFromSettings();
+  }
+
+  /**
+   * Load log level from server settings and update ConsoleLogger
+   */
+  private async loadLogLevelFromSettings(): Promise<void> {
+    try {
+      const logLevel = await this.serverSettingsService.getStringValue(
+        ServerSettingType.LogLevel,
+        'info'
+      );
+      this.currentLogLevel = logLevel || 'info';
+      
+      // Map our log level to NestJS log levels
+      const logLevels: NestLogLevel[] = this.getEnabledLogLevels(this.currentLogLevel);
+      this.nestLogger.setLogLevels(logLevels);
+    } catch (error) {
+      // Fallback to default if settings not available yet
+      this.currentLogLevel = 'info';
+    }
+  }
+
+  /**
+   * Get enabled log levels based on the configured level
+   */
+  private getEnabledLogLevels(level: string): NestLogLevel[] {
+    const allLevels: NestLogLevel[] = ['error', 'warn', 'log', 'debug', 'verbose'];
+    
+    switch (level) {
+      case 'error':
+        return ['error'];
+      case 'warn':
+        return ['error', 'warn'];
+      case 'info':
+        return ['error', 'warn', 'log'];
+      case 'debug':
+        return ['error', 'warn', 'log', 'debug'];
+      case 'verbose':
+        return allLevels;
+      default:
+        return ['error', 'warn', 'log'];
+    }
   }
 
   setContext(context: string) {

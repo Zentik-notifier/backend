@@ -110,9 +110,6 @@ export class ServerSettingsService {
       { configType: ServerSettingType.WebPush, envKey: 'WEB_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
       { configType: ServerSettingType.VapidSubject, envKey: 'VAPID_SUBJECT', type: 'string' },
       
-      // Backend
-      { configType: ServerSettingType.PublicBackendUrl, envKey: 'PUBLIC_BACKEND_URL', type: 'string' },
-      
       // Push Passthrough
       { configType: ServerSettingType.PushNotificationsPassthroughServer, envKey: 'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER', type: 'string' },
       { configType: ServerSettingType.PushPassthroughToken, envKey: 'PUSH_PASSTHROUGH_TOKEN', type: 'string' },
