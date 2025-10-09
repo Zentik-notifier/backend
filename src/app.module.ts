@@ -25,6 +25,7 @@ import { UsersModule } from './users/users.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { DatabaseBackupModule } from './database-backup/database-backup.module';
 import { EntityExecutionModule } from './entity-execution/entity-execution.module';
+import { ServerSettingsModule } from './server-settings/server-settings.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { EntityExecutionModule } from './entity-execution/entity-execution.modul
     EventsModule,
     DatabaseBackupModule,
     EntityExecutionModule,
+    ServerSettingsModule,
   ],
   controllers: [AppController],
   providers: [

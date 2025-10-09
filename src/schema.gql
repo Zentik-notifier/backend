@@ -409,6 +409,7 @@ type Mutation {
   updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
   updateProfile(input: UpdateProfileInput!): User!
   updateReceivedNotifications(id: String!): UpdateReceivedResult!
+  updateServerSetting(configType: ServerSettingType!, input: UpdateServerSettingDto!): ServerSetting!
   updateSystemToken(description: String, expiresAt: String, id: String!, maxCalls: Float, requesterId: String): SystemAccessTokenDto!
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
@@ -584,6 +585,8 @@ type Query {
   payloadMapper(id: String!): PayloadMapper!
   payloadMappers: [PayloadMapper!]!
   publicAppConfig: PublicAppConfig!
+  serverSetting(configType: ServerSettingType!): ServerSetting
+  serverSettings: [ServerSetting!]!
   user(id: String!): User!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
@@ -655,6 +658,77 @@ input RevokeEntityPermissionInput {
   userEmail: String
   userId: String
   username: String
+}
+
+type ServerSetting {
+  configType: ServerSettingType!
+  createdAt: DateTime!
+  id: ID!
+
+  """Possible values for the setting (for enum-like settings)"""
+  possibleValues: [String!]
+  updatedAt: DateTime!
+
+  """Boolean value for the setting, when applicable"""
+  valueBool: Boolean
+
+  """Numeric value for the setting, when applicable"""
+  valueNumber: Float
+
+  """String value for the setting, when applicable"""
+  valueText: String
+}
+
+enum ServerSettingType {
+  ApnBundleId
+  ApnKeyId
+  ApnPrivateKeyPath
+  ApnProduction
+  ApnPush
+  ApnTeamId
+  AttachmentsAllowedMimeTypes
+  AttachmentsDeleteCronJob
+  AttachmentsDeleteJobEnabled
+  AttachmentsEnabled
+  AttachmentsMaxAge
+  AttachmentsMaxFileSize
+  AttachmentsStoragePath
+  BackupCronJob
+  BackupEnabled
+  BackupExecuteOnStart
+  BackupMaxToKeep
+  BackupStoragePath
+  EmailEnabled
+  EmailFrom
+  EmailFromName
+  EmailHost
+  EmailPass
+  EmailPort
+  EmailSecure
+  EmailType
+  EmailUser
+  FirebaseClientEmail
+  FirebasePrivateKey
+  FirebaseProjectId
+  FirebasePush
+  JwtAccessTokenExpiration
+  JwtRefreshTokenExpiration
+  MessagesDeleteCronJob
+  MessagesDeleteJobEnabled
+  MessagesMaxAge
+  PublicBackendUrl
+  PushNotificationsPassthroughServer
+  PushPassthroughToken
+  RateLimitBlockMs
+  RateLimitForwardHeader
+  RateLimitLimit
+  RateLimitMessagesRps
+  RateLimitMessagesTtlMs
+  RateLimitTrustProxy
+  RateLimitTtlMs
+  ResendApiKey
+  VapidSubject
+  WebPush
 }
 
 type SessionInfoDto {
@@ -762,6 +836,12 @@ input UpdateProfileInput {
 type UpdateReceivedResult {
   success: Boolean!
   updatedCount: Float!
+}
+
+input UpdateServerSettingDto {
+  valueBool: Boolean
+  valueNumber: Float
+  valueText: String
 }
 
 input UpdateUserDeviceInput {

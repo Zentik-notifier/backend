@@ -19,6 +19,7 @@ import {
   UserWebhook,
   UserSetting,
 } from '../entities';
+import { ServerSetting } from '../entities/server-setting.entity';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 
 config({ path: '.env' });
@@ -59,6 +60,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     Notification,
     OAuthProvider,
     UserSetting,
+    ServerSetting,
   ],
   // migrations: [__sdirname + '/../database/migrations/*.ts'],
   synchronize: process.env.DB_SYNCHRONIZE === 'true',

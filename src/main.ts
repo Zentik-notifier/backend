@@ -10,7 +10,6 @@ import type { Request, Response } from 'express';
 import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { createAdminUsers } from './seeds/admin-users.seed';
-import { initializeDatabase } from './seeds/database-init.seed';
 
 async function generateTypes(app: INestApplication) {
   const logger = new Logger('TypesGenerator');
@@ -181,14 +180,16 @@ async function bootstrap() {
     logger.error('❌ Error during admin users initialization:', err);
   }
 
-  if (process.env.DB_FILL_TEST_DATA === 'true') {
-    try {
-      const dataSource = app.get(DataSource);
-      await initializeDatabase(dataSource);
-      logger.log('✅ Database initialization completed.');
-    } catch (err) {
-      logger.error('❌ Error during database initialization:', err);
-    }
+  // Initialize server settings from environment variables
+  try {
+    const { ServerSettingsService } = await import(
+      './server-settings/server-settings.service'
+    );
+    const serverSettingsService = app.get(ServerSettingsService);
+    await serverSettingsService.initializeFromEnv();
+    logger.log('✅ Server settings initialization completed.');
+  } catch (err) {
+    logger.error('❌ Error during server settings initialization:', err);
   }
 
   const port = process.env.BACKEND_PORT ?? 3000;

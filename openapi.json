@@ -3845,6 +3845,92 @@
           "Webhooks"
         ]
       }
+    },
+    "/api/v1/server-settings": {
+      "get": {
+        "operationId": "ServerSettingsController_getAllSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all server settings",
+        "tags": [
+          "Server Settings"
+        ]
+      }
+    },
+    "/api/v1/server-settings/{configType}": {
+      "get": {
+        "operationId": "ServerSettingsController_getSettingByType",
+        "parameters": [
+          {
+            "name": "configType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a specific server setting by type",
+        "tags": [
+          "Server Settings"
+        ]
+      },
+      "patch": {
+        "operationId": "ServerSettingsController_updateSetting",
+        "parameters": [
+          {
+            "name": "configType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServerSettingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing server setting",
+        "tags": [
+          "Server Settings"
+        ]
+      }
     }
   },
   "info": {
@@ -5016,15 +5102,13 @@
             ]
           },
           "addMarkAsReadAction": {
-            "type": "boolean",
-            "default": true
+            "type": "boolean"
           },
           "addOpenNotificationAction": {
             "type": "boolean"
           },
           "addDeleteAction": {
-            "type": "boolean",
-            "default": true
+            "type": "boolean"
           },
           "snoozes": {
             "type": "array",
@@ -6174,6 +6258,20 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "UpdateServerSettingDto": {
+        "type": "object",
+        "properties": {
+          "valueText": {
+            "type": "object"
+          },
+          "valueBool": {
+            "type": "object"
+          },
+          "valueNumber": {
+            "type": "object"
+          }
+        }
       }
     }
   }
