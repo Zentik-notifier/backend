@@ -90,6 +90,8 @@ export enum ServerSettingType {
   
   // Logging
   LogLevel = 'LogLevel',
+  LogStorageEnabled = 'LogStorageEnabled',
+  LogRetentionDays = 'LogRetentionDays',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

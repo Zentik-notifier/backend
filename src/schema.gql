@@ -753,6 +753,8 @@ enum ServerSettingType {
   JwtRefreshTokenExpiration
   JwtSecret
   LogLevel
+  LogRetentionDays
+  LogStorageEnabled
   MessagesDeleteCronJob
   MessagesDeleteJobEnabled
   MessagesMaxAge

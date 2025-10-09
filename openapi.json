@@ -4846,7 +4846,9 @@
               "JwtRefreshSecret",
               "CorsOrigin",
               "CorsCredentials",
-              "LogLevel"
+              "LogLevel",
+              "LogStorageEnabled",
+              "LogRetentionDays"
             ]
           },
           "valueText": {
