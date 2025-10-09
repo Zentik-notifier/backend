@@ -31,6 +31,14 @@ type Attachment {
   userId: String!
 }
 
+type BackupInfoDto {
+  createdAt: DateTime!
+  filename: String!
+  path: String!
+  size: String!
+  sizeBytes: Float!
+}
+
 type Bucket {
   color: String
   createdAt: DateTime!
@@ -365,6 +373,9 @@ type Mutation {
   createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String): SystemAccessTokenDto!
   createWebhook(input: CreateWebhookDto!): UserWebhook!
   deleteAccount: Boolean!
+
+  """Delete a specific backup file"""
+  deleteBackup(filename: String!): Boolean!
   deleteBucket(id: String!): Boolean!
   deleteNotification(id: String!): Boolean!
   deleteOAuthProvider(id: String!): Boolean!
@@ -401,6 +412,9 @@ type Mutation {
   setPassword(input: ChangePasswordInput!): Boolean!
   shareBucket(input: GrantEntityPermissionInput!): EntityPermission!
   toggleOAuthProvider(id: String!): OAuthProvider!
+
+  """Manually trigger a database backup"""
+  triggerBackup: String!
   unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
@@ -576,6 +590,9 @@ type Query {
   getUserAccessTokens: [AccessTokenListDto!]!
   getUserSessions: [SessionInfoDto!]!
   healthcheck: String!
+
+  """List all available database backups"""
+  listBackups: [BackupInfoDto!]!
   listSystemTokens: [SystemAccessTokenDto!]!
   me: User!
   notification(id: String!): Notification!

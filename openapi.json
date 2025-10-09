@@ -3931,6 +3931,101 @@
           "Webhooks"
         ]
       }
+    },
+    "/api/v1/server-manager/backups": {
+      "get": {
+        "operationId": "ServerManagerController_listBackups",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of backup files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BackupInfoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all database backups",
+        "tags": [
+          "server-manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/backups/{filename}": {
+      "delete": {
+        "operationId": "ServerManagerController_deleteBackup",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Backup file not found"
+          }
+        },
+        "summary": "Delete a specific backup file",
+        "tags": [
+          "server-manager"
+        ]
+      }
+    },
+    "/api/v1/server-manager/backups/trigger": {
+      "post": {
+        "operationId": "ServerManagerController_triggerBackup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Backup triggered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "filename": {
+                      "type": "string"
+                    },
+                    "size": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Manually trigger a database backup",
+        "tags": [
+          "server-manager"
+        ]
+      }
     }
   },
   "info": {
@@ -6271,6 +6366,39 @@
           "user",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "BackupInfoDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "The filename of the backup"
+          },
+          "path": {
+            "type": "string",
+            "description": "The full path of the backup file"
+          },
+          "size": {
+            "type": "string",
+            "description": "The size of the backup file in human-readable format"
+          },
+          "sizeBytes": {
+            "type": "number",
+            "description": "The size of the backup file in bytes"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "The creation date of the backup"
+          }
+        },
+        "required": [
+          "filename",
+          "path",
+          "size",
+          "sizeBytes",
+          "createdAt"
         ]
       }
     }

@@ -23,7 +23,7 @@ import { PayloadMapperModule } from './payload-mapper/payload-mapper.module';
 import { SystemAccessTokenModule } from './system-access-token/system-access-token.module';
 import { UsersModule } from './users/users.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
-import { DatabaseBackupModule } from './database-backup/database-backup.module';
+import { ServerManagerModule } from './server-manager/server-manager.module';
 import { EntityExecutionModule } from './entity-execution/entity-execution.module';
 import { ServerSettingsModule } from './server-settings/server-settings.module';
 import { ServerSettingsService } from './server-settings/server-settings.service';
@@ -74,7 +74,7 @@ import { ServerSettingType } from './entities/server-setting.entity';
     PayloadMapperModule,
     AttachmentsModule,
     EventsModule,
-    DatabaseBackupModule,
+    ServerManagerModule,
     EntityExecutionModule,
     ServerSettingsModule,
   ],

@@ -31,8 +31,8 @@ export interface BackupResult {
 }
 
 @Injectable()
-export class DatabaseBackupService implements OnModuleInit {
-  private readonly logger = new Logger(DatabaseBackupService.name);
+export class ServerManagerService implements OnModuleInit {
+  private readonly logger = new Logger(ServerManagerService.name);
   private config: BackupConfig;
 
   constructor(
@@ -285,5 +285,92 @@ export class DatabaseBackupService implements OnModuleInit {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  /**
+   * List all backup files in the storage directory
+   */
+  async listBackups(): Promise<Array<{
+    filename: string;
+    path: string;
+    size: string;
+    sizeBytes: number;
+    createdAt: Date;
+  }>> {
+    try {
+      const files = fs.readdirSync(this.config.storagePath);
+      const backupFiles: Array<{
+        filename: string;
+        path: string;
+        size: string;
+        sizeBytes: number;
+        createdAt: Date;
+      }> = [];
+
+      for (const file of files) {
+        if (
+          file.startsWith('zentik_backup_') &&
+          (file.endsWith('.sql') || file.endsWith('.sql.gz'))
+        ) {
+          const filePath = path.join(this.config.storagePath, file);
+          const stats = fs.statSync(filePath);
+
+          backupFiles.push({
+            filename: file,
+            path: filePath,
+            size: this.formatBytes(stats.size),
+            sizeBytes: stats.size,
+            createdAt: stats.mtime,
+          });
+        }
+      }
+
+      // Sort by creation date (newest first)
+      backupFiles.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      return backupFiles;
+    } catch (error) {
+      this.logger.error(`Failed to list backups: ${error.message}`);
+      throw new Error(`Failed to list backups: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a specific backup file
+   */
+  async deleteBackup(filename: string): Promise<boolean> {
+    try {
+      // Security check: ensure filename is a valid backup file
+      if (
+        !filename.startsWith('zentik_backup_') ||
+        (!filename.endsWith('.sql') && !filename.endsWith('.sql.gz'))
+      ) {
+        throw new Error('Invalid backup filename');
+      }
+
+      const filePath = path.join(this.config.storagePath, filename);
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        throw new Error('Backup file not found');
+      }
+
+      // Delete the file
+      fs.unlinkSync(filePath);
+      this.logger.log(`Deleted backup file: ${filename}`);
+
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to delete backup: ${error.message}`);
+      throw new Error(`Failed to delete backup: ${error.message}`);
+    }
+  }
+
+  /**
+   * Manually trigger a database backup
+   */
+  async triggerBackup(): Promise<BackupResult> {
+    this.logger.log('Manually triggered database backup');
+    return await this.createBackup();
   }
 }
