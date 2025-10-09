@@ -29,7 +29,7 @@ import {
 } from './dto/auth.dto';
 import { EmailService } from './email.service';
 import { SessionService } from './session.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
 export interface JwtPayload {

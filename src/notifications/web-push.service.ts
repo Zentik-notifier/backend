@@ -6,7 +6,7 @@ import { MediaType, NotificationActionType } from './notifications.types';
 import { generateAutomaticActions } from './notification-actions.util';
 import { DevicePlatform } from '../users/dto';
 import { LocaleService } from '../common/services/locale.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
 interface WebPushSendResult {

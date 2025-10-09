@@ -15,7 +15,7 @@ import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { UserRole } from '../users/users.types';
 import { AuthService } from './auth.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import {
   ChangePasswordDto,
   LoginDto,

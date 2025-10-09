@@ -15,7 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Attachment } from '../entities/attachment.entity';
 import { MediaType } from '../notifications/notifications.types';
 import { UploadAttachmentDto } from './dto';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
 @Injectable()

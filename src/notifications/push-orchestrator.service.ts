@@ -12,7 +12,7 @@ import { UserSettingType } from '../entities/user-setting.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { FirebasePushService } from './firebase-push.service';

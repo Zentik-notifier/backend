@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebPushService } from './web-push.service';
 import { LocaleService } from '../common/services/locale.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 
 // Mock web-push
 jest.mock('web-push', () => ({

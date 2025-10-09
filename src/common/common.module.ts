@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ServerSettingsModule } from '../server-settings/server-settings.module';
+import { ServerManagerModule } from '../server-manager/server-manager.module';
 import { LocaleService } from './services/locale.service';
 import { UrlBuilderService } from './services/url-builder.service';
 
 @Module({
-  imports: [ServerSettingsModule],
+  imports: [ServerManagerModule],
   providers: [UrlBuilderService, LocaleService],
   exports: [UrlBuilderService, LocaleService],
 })

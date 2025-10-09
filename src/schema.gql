@@ -423,6 +423,8 @@ type Mutation {
   updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
   updateProfile(input: UpdateProfileInput!): User!
   updateReceivedNotifications(id: String!): UpdateReceivedResult!
+
+  """Update an existing server setting"""
   updateServerSetting(configType: ServerSettingType!, input: UpdateServerSettingDto!): ServerSetting!
   updateSystemToken(description: String, expiresAt: String, id: String!, maxCalls: Float, requesterId: String): SystemAccessTokenDto!
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
@@ -602,7 +604,11 @@ type Query {
   payloadMapper(id: String!): PayloadMapper!
   payloadMappers: [PayloadMapper!]!
   publicAppConfig: PublicAppConfig!
+
+  """Get a specific server setting by type"""
   serverSetting(configType: ServerSettingType!): ServerSetting
+
+  """Get all server settings"""
   serverSettings: [ServerSetting!]!
   user(id: String!): User!
   userDevice: UserDevice

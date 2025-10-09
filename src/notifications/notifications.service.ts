@@ -10,7 +10,7 @@ import { IsNull, Repository, In } from 'typeorm';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Notification } from '../entities/notification.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { NotificationServiceInfo } from './dto';

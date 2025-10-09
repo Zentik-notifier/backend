@@ -3,7 +3,7 @@ import { FirebasePushService } from './firebase-push.service';
 import { LocaleService } from '../common/services/locale.service';
 import { IOSPushService } from './ios-push.service';
 import { ConfigService } from '@nestjs/config';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 
 // Mock firebase-admin
 const mockSendEachForMulticast = jest.fn();

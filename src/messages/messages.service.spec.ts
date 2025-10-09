@@ -9,7 +9,7 @@ import { Notification } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import {
   MediaType,
   NotificationActionType,

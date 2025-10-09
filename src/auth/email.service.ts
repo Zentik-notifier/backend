@@ -4,7 +4,7 @@ import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { LocaleService } from '../common/services/locale.service';
 import { Locale } from '../common/types/i18n';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
 export enum EmailProvider {

@@ -7,7 +7,7 @@ import { DevicePlatform } from '../users/dto';
 import { IOSPushService } from './ios-push.service';
 import { generateAutomaticActions } from './notification-actions.util';
 import { MediaType, NotificationActionType } from './notifications.types';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
 interface FirebaseMulticastResult {

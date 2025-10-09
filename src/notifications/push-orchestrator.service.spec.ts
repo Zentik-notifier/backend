@@ -17,7 +17,7 @@ import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { Message } from '../entities/message.entity';
 import { DevicePlatform } from '../users/dto';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 
 // Mock fetch globally
 global.fetch = jest.fn();

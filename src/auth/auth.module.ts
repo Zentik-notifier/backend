@@ -9,8 +9,8 @@ import { UserSession } from '../entities/user-session.entity';
 import { User } from '../entities/user.entity';
 import { EventsModule } from '../events/events.module';
 import { OAuthProvidersModule } from '../oauth-providers/oauth-providers.module';
-import { ServerSettingsModule } from '../server-settings/server-settings.module';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerManagerModule } from '../server-manager/server-manager.module';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 import { AccessTokenController } from './access-token.controller';
 import { AccessTokenResolver } from './access-token.resolver';
@@ -40,7 +40,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     PassportModule,
     JwtModule.registerAsync({
       global: true,
-      imports: [ServerSettingsModule],
+      imports: [ServerManagerModule],
       useFactory: async (serverSettingsService: ServerSettingsService) => {
         // Get JWT secret from ServerSettings, fallback to env variable
         const jwtSecret = (await serverSettingsService.getSettingByType(ServerSettingType.JwtSecret))?.valueText 
@@ -61,7 +61,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     forwardRef(() => OAuthProvidersModule),
     CommonModule,
     EventsModule,
-    ServerSettingsModule,
+    ServerManagerModule,
   ],
   providers: [
     AuthService,

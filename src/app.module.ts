@@ -25,8 +25,7 @@ import { UsersModule } from './users/users.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { ServerManagerModule } from './server-manager/server-manager.module';
 import { EntityExecutionModule } from './entity-execution/entity-execution.module';
-import { ServerSettingsModule } from './server-settings/server-settings.module';
-import { ServerSettingsService } from './server-settings/server-settings.service';
+import { ServerSettingsService } from './server-manager/server-settings.service';
 import { ServerSettingType } from './entities/server-setting.entity';
 
 @Module({
@@ -40,7 +39,7 @@ import { ServerSettingType } from './entities/server-setting.entity';
     ScheduleModule.forRoot(),
     GraphqlModule,
     ThrottlerModule.forRootAsync({
-      imports: [ServerSettingsModule],
+      imports: [ServerManagerModule],
       inject: [ServerSettingsService],
       useFactory: async (serverSettingsService: ServerSettingsService) => {
         const ttlMsSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitTtlMs);
@@ -76,7 +75,6 @@ import { ServerSettingType } from './entities/server-setting.entity';
     EventsModule,
     ServerManagerModule,
     EntityExecutionModule,
-    ServerSettingsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,22 +1,31 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { BackupInfoDto } from './dto';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
+import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
+import { BackupInfoDto, UpdateServerSettingDto } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
-import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
+import { ServerSettingsService } from './server-settings.service';
 
-@ApiTags('server-manager')
+@ApiTags('Server Manager')
 @Controller('server-manager')
 @UseGuards(JwtAuthGuard, AdminOnlyGuard)
+@ApiBearerAuth()
 export class ServerManagerController {
-  constructor(private readonly serverManagerService: ServerManagerService) {}
+  constructor(
+    private readonly serverManagerService: ServerManagerService,
+    private readonly serverSettingsService: ServerSettingsService,
+  ) {}
 
   @Get('backups')
   @ApiOperation({ summary: 'List all database backups' })
@@ -65,7 +74,8 @@ export class ServerManagerController {
     size?: string;
     message: string;
   }> {
-    const result: BackupResult = await this.serverManagerService.triggerBackup();
+    const result: BackupResult =
+      await this.serverManagerService.triggerBackup();
 
     if (result.success) {
       return {
@@ -80,5 +90,29 @@ export class ServerManagerController {
         message: `Backup failed: ${result.error}`,
       };
     }
+  }
+
+  // Server Settings endpoints
+  @Get('settings')
+  @ApiOperation({ summary: 'Get all server settings' })
+  async getAllSettings(): Promise<ServerSetting[]> {
+    return this.serverSettingsService.getAllSettings();
+  }
+
+  @Get('settings/:configType')
+  @ApiOperation({ summary: 'Get a specific server setting by type' })
+  async getSettingByType(
+    @Param('configType') configType: ServerSettingType,
+  ): Promise<ServerSetting | null> {
+    return this.serverSettingsService.getSettingByType(configType);
+  }
+
+  @Patch('settings/:configType')
+  @ApiOperation({ summary: 'Update an existing server setting' })
+  async updateSetting(
+    @Param('configType') configType: ServerSettingType,
+    @Body() dto: UpdateServerSettingDto,
+  ): Promise<ServerSetting> {
+    return this.serverSettingsService.updateSetting(configType, dto);
   }
 }

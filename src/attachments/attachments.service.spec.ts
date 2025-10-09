@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AttachmentsService } from './attachments.service';
 import { Attachment } from '../entities/attachment.entity';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 
 describe('AttachmentsService', () => {
   let service: AttachmentsService;

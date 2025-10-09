@@ -12,7 +12,7 @@ import {
   NotificationActionType,
   NotificationDeliveryType,
 } from './notifications.types';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
 export interface NotificationResult {

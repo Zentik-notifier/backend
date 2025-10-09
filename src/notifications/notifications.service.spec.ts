@@ -12,7 +12,7 @@ import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
 import { WebPushService } from './web-push.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import {
   ExternalNotifyRequestDto,
   ExternalPlatform,

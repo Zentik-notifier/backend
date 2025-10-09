@@ -15,7 +15,7 @@ import { Notification } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import {
   MediaType,
   NotificationActionType,

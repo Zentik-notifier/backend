@@ -1,13 +1,18 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { BackupInfoDto } from './dto';
+import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
+import { BackupInfoDto, UpdateServerSettingDto } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
+import { ServerSettingsService } from './server-settings.service';
 
 @Resolver()
 @UseGuards(JwtAuthGuard)
 export class ServerManagerResolver {
-  constructor(private readonly serverManagerService: ServerManagerService) {}
+  constructor(
+    private readonly serverManagerService: ServerManagerService,
+    private readonly serverSettingsService: ServerSettingsService,
+  ) {}
 
   @Query(() => [BackupInfoDto], {
     name: 'listBackups',
@@ -32,12 +37,46 @@ export class ServerManagerResolver {
     description: 'Manually trigger a database backup',
   })
   async triggerBackup(): Promise<string> {
-    const result: BackupResult = await this.serverManagerService.triggerBackup();
-    
+    const result: BackupResult =
+      await this.serverManagerService.triggerBackup();
+
     if (result.success) {
       return `Backup created successfully: ${result.filename} (${result.size})`;
     } else {
       throw new Error(`Backup failed: ${result.error}`);
     }
+  }
+
+  // Server Settings queries and mutations
+  @Query(() => [ServerSetting], {
+    name: 'serverSettings',
+    description: 'Get all server settings',
+  })
+  async getAllSettings(): Promise<ServerSetting[]> {
+    return this.serverSettingsService.getAllSettings();
+  }
+
+  @Query(() => ServerSetting, {
+    name: 'serverSetting',
+    nullable: true,
+    description: 'Get a specific server setting by type',
+  })
+  async getSettingByType(
+    @Args('configType', { type: () => ServerSettingType })
+    configType: ServerSettingType,
+  ): Promise<ServerSetting | null> {
+    return this.serverSettingsService.getSettingByType(configType);
+  }
+
+  @Mutation(() => ServerSetting, {
+    name: 'updateServerSetting',
+    description: 'Update an existing server setting',
+  })
+  async updateServerSetting(
+    @Args('configType', { type: () => ServerSettingType })
+    configType: ServerSettingType,
+    @Args('input') dto: UpdateServerSettingDto,
+  ): Promise<ServerSetting> {
+    return this.serverSettingsService.updateSetting(configType, dto);
   }
 }

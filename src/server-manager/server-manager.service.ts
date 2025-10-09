@@ -6,7 +6,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from './server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
 const execAsync = promisify(exec);

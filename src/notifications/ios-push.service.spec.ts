@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { IOSPushService } from './ios-push.service';
 import { LocaleService } from '../common/services/locale.service';
 import { NotificationActionType } from './notifications.types';
-import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 
 // Mock the crypto utils
 jest.mock('../common/utils/cryptoUtils', () => ({
