@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { IOSPushService } from './ios-push.service';
 import { LocaleService } from '../common/services/locale.service';
 import { NotificationActionType } from './notifications.types';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 
 // Mock the crypto utils
 jest.mock('../common/utils/cryptoUtils', () => ({
@@ -41,6 +42,14 @@ describe('IOSPushService', () => {
         {
           provide: LocaleService,
           useValue: mockLocaleService,
+        },
+        {
+          provide: ServerSettingsService,
+          useValue: {
+            getSettingByType: jest.fn().mockResolvedValue({
+              valueText: 'com.test.app',
+            }),
+          },
         },
       ],
     }).compile();

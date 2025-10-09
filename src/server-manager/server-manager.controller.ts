@@ -10,10 +10,11 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BackupInfoDto } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
+import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
 
 @ApiTags('server-manager')
 @Controller('server-manager')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminOnlyGuard)
 export class ServerManagerController {
   constructor(private readonly serverManagerService: ServerManagerService) {}
 

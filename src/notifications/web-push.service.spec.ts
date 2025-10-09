@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebPushService } from './web-push.service';
 import { LocaleService } from '../common/services/locale.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 
 // Mock web-push
 jest.mock('web-push', () => ({
@@ -30,6 +31,14 @@ describe('WebPushService', () => {
           provide: LocaleService,
           useValue: {
             getLocale: jest.fn().mockReturnValue('en'),
+          },
+        },
+        {
+          provide: ServerSettingsService,
+          useValue: {
+            getSettingByType: jest.fn().mockResolvedValue({
+              valueText: 'test-vapid-subject',
+            }),
           },
         },
       ],
@@ -90,7 +99,7 @@ describe('WebPushService', () => {
         payload,
         {
           vapidDetails: {
-            subject: 'mailto:gianlucaruoccoios@gmail.com',
+            subject: 'test-vapid-subject',
             publicKey: 'test_vapid_public_key',
             privateKey: 'test_vapid_private_key',
           },
@@ -159,7 +168,7 @@ describe('WebPushService', () => {
         payload,
         {
           vapidDetails: {
-            subject: 'mailto:gianlucaruoccoios@gmail.com',
+            subject: 'test-vapid-subject',
             publicKey: 'test_vapid_public_key',
             privateKey: 'test_vapid_private_key',
           },
@@ -167,10 +176,10 @@ describe('WebPushService', () => {
       );
     });
 
-    it('should use custom VAPID subject when provided', async () => {
-      const originalSubject = process.env.VAPID_SUBJECT;
-      process.env.VAPID_SUBJECT = 'mailto:custom@example.com';
-
+    it('should use VAPID subject from ServerSettings', async () => {
+      // Test verifies that the service correctly uses the VAPID subject from ServerSettings
+      // The mock already returns 'test-vapid-subject' as configured in beforeEach
+      
       const deviceData = {
         endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
         p256dh: 'test_p256dh_key',
@@ -194,19 +203,12 @@ describe('WebPushService', () => {
         payload,
         {
           vapidDetails: {
-            subject: 'mailto:custom@example.com',
+            subject: 'test-vapid-subject',
             publicKey: 'test_vapid_public_key',
             privateKey: 'test_vapid_private_key',
           },
         },
       );
-
-      // Restore original subject
-      if (originalSubject) {
-        process.env.VAPID_SUBJECT = originalSubject;
-      } else {
-        delete process.env.VAPID_SUBJECT;
-      }
     });
 
     it('should handle web-push throwing error', async () => {

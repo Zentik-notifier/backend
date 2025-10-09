@@ -9,6 +9,7 @@ import { Notification } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 import {
   MediaType,
   NotificationActionType,
@@ -164,6 +165,7 @@ describe('MessagesService', () => {
               filename: 'downloaded.jpg',
               mediaType: MediaType.IMAGE,
             }),
+            isAttachmentsEnabled: jest.fn().mockResolvedValue(true),
           },
         },
         {
@@ -199,6 +201,14 @@ describe('MessagesService', () => {
               body: 'Test Body',
               deliveryType: NotificationDeliveryType.NORMAL,
               bucketId: 'bucket-1',
+            }),
+          },
+        },
+        {
+          provide: ServerSettingsService,
+          useValue: {
+            getSettingByType: jest.fn().mockResolvedValue({
+              valueText: '7d',
             }),
           },
         },
@@ -1106,8 +1116,8 @@ describe('MessagesService', () => {
 
   describe('attachments validation', () => {
     it('should throw BadRequestException when saveOnServer is true but attachments are disabled', async () => {
-      // Mock config service to return attachments disabled
-      jest.spyOn(configService, 'get').mockReturnValue('false');
+      // Mock attachments service to return disabled
+      jest.spyOn(attachmentsService, 'isAttachmentsEnabled').mockResolvedValue(false);
 
       const createMessageDto: CreateMessageDto = {
         bucketId: 'bucket-1',
@@ -1129,8 +1139,8 @@ describe('MessagesService', () => {
     });
 
     it('should proceed normally when saveOnServer is true and attachments are enabled', async () => {
-      // Mock config service to return attachments enabled
-      jest.spyOn(configService, 'get').mockReturnValue('true');
+      // Mock attachments service to return enabled
+      jest.spyOn(attachmentsService, 'isAttachmentsEnabled').mockResolvedValue(true);
 
       const createMessageDto: CreateMessageDto = {
         bucketId: 'bucket-1',

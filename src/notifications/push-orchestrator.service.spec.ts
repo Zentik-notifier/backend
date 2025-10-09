@@ -17,6 +17,7 @@ import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { Message } from '../entities/message.entity';
 import { DevicePlatform } from '../users/dto';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -110,6 +111,15 @@ describe('PushNotificationOrchestratorService', () => {
     get: jest.fn(),
   };
 
+  const mockServerSettingsService = {
+    getSettingByType: jest.fn().mockResolvedValue({
+      valueNumber: 1000,
+    }),
+    getStringValue: jest.fn().mockResolvedValue('Off'),
+    getBoolValue: jest.fn().mockResolvedValue(false),
+    getNumberValue: jest.fn().mockResolvedValue(1000),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -173,6 +183,10 @@ describe('PushNotificationOrchestratorService', () => {
               },
             ),
           },
+        },
+        {
+          provide: ServerSettingsService,
+          useValue: mockServerSettingsService,
         },
       ],
     }).compile();
@@ -292,15 +306,14 @@ describe('PushNotificationOrchestratorService', () => {
   });
 
   describe('Passthrough Push Notifications', () => {
-    beforeEach(() => {
-      // Mock environment variables for passthrough
-      mockConfigService.get
-        .mockReturnValueOnce('true') // PUSH_NOTIFICATIONS_PASSTHROUGH_ENABLED
-        .mockReturnValueOnce('https://passthrough-server.com') // PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER
-        .mockReturnValueOnce('passthrough-token-123'); // PUSH_PASSTHROUGH_TOKEN
-    });
-
     it('should send push notification via passthrough server successfully', async () => {
+      // Configure ServerSettingsService mock for this test
+      // First call will be for IOSPush mode, second for server, third for token
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Passthrough')  // IOSPush mode
+        .mockResolvedValueOnce('https://passthrough-server.com')  // Server URL
+        .mockResolvedValueOnce('passthrough-token-123');  // Token
+
       // Mock buildAPNsPayload to return valid data
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
         payload: {
@@ -337,6 +350,12 @@ describe('PushNotificationOrchestratorService', () => {
     });
 
     it('should handle passthrough server HTTP error', async () => {
+      // Configure ServerSettingsService mock for this test
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Passthrough')  // IOSPush mode
+        .mockResolvedValueOnce('https://passthrough-server.com')  // Server URL
+        .mockResolvedValueOnce('passthrough-token-123');  // Token
+
       // Mock buildAPNsPayload to return valid data
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
         payload: {
@@ -363,6 +382,12 @@ describe('PushNotificationOrchestratorService', () => {
     });
 
     it('should handle passthrough server network error', async () => {
+      // Configure ServerSettingsService mock for this test
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Passthrough')  // IOSPush mode
+        .mockResolvedValueOnce('https://passthrough-server.com')  // Server URL
+        .mockResolvedValueOnce('passthrough-token-123');  // Token
+
       // Mock buildAPNsPayload to return valid data
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
         payload: {

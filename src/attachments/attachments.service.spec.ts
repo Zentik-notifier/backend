@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AttachmentsService } from './attachments.service';
 import { Attachment } from '../entities/attachment.entity';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 
 describe('AttachmentsService', () => {
   let service: AttachmentsService;
@@ -30,6 +31,16 @@ describe('AttachmentsService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: ServerSettingsService,
+          useValue: {
+            getSettingByType: jest.fn().mockResolvedValue({
+              valueBool: true,
+              valueText: '/tmp/attachments',
+              valueNumber: 10485760,
+            }),
+          },
         },
       ],
     }).compile();

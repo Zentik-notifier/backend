@@ -3,6 +3,7 @@ import { FirebasePushService } from './firebase-push.service';
 import { LocaleService } from '../common/services/locale.service';
 import { IOSPushService } from './ios-push.service';
 import { ConfigService } from '@nestjs/config';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 
 // Mock firebase-admin
 const mockSendEachForMulticast = jest.fn();
@@ -27,7 +28,28 @@ describe('FirebasePushService', () => {
     get: jest.fn(),
   };
 
+  const mockServerSettingsService = {
+    getSettingByType: jest.fn(),
+  };
+
   beforeEach(async () => {
+    // Reset mocks
+    mockServerSettingsService.getSettingByType.mockReset();
+    
+    // Setup default Firebase configuration
+    mockServerSettingsService.getSettingByType.mockImplementation((type: any) => {
+      switch (type) {
+        case 'FirebaseProjectId':
+          return Promise.resolve({ valueText: 'test-project-id' });
+        case 'FirebasePrivateKey':
+          return Promise.resolve({ valueText: 'test-private-key' });
+        case 'FirebaseClientEmail':
+          return Promise.resolve({ valueText: 'test@example.com' });
+        default:
+          return Promise.resolve({ valueText: 'test-value' });
+      }
+    });
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FirebasePushService,
@@ -43,12 +65,19 @@ describe('FirebasePushService', () => {
           provide: ConfigService,
           useValue: mockConfigService,
         },
+        {
+          provide: ServerSettingsService,
+          useValue: mockServerSettingsService,
+        },
       ],
     }).compile();
 
     service = module.get<FirebasePushService>(FirebasePushService);
 
-    // Mock Firebase app
+    // Initialize the service manually for tests
+    await (service as any).ensureInitialized();
+
+    // Mock Firebase app after initialization
     (service as any).app = {
       messaging: () => ({
         sendEachForMulticast: mockSendEachForMulticast,

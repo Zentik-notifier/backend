@@ -12,6 +12,7 @@ import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
 import { WebPushService } from './web-push.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
 import {
   ExternalNotifyRequestDto,
   ExternalPlatform,
@@ -105,6 +106,16 @@ describe('NotificationsService', () => {
     get: jest.fn(),
   };
 
+  const mockServerSettingsService = {
+    getSettingByType: jest.fn().mockResolvedValue({
+      valueBool: true,
+      valueText: 'test-value',
+    }),
+    getStringValue: jest.fn().mockResolvedValue('Local'),
+    getBoolValue: jest.fn().mockResolvedValue(true),
+    getNumberValue: jest.fn().mockResolvedValue(1000),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -144,6 +155,10 @@ describe('NotificationsService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: ServerSettingsService,
+          useValue: mockServerSettingsService,
         },
       ],
     }).compile();
@@ -394,6 +409,12 @@ describe('NotificationsService', () => {
 
   describe('getNotificationServices', () => {
     it('should return notification services for all platforms when push services are initialized', async () => {
+      // Configure ServerSettingsService to return 'Onboard' for push modes (3 calls: IOS, Android, Web)
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Onboard')
+        .mockResolvedValueOnce('Onboard')
+        .mockResolvedValueOnce('Onboard');
+      
       // Mock the checkPushServicesInitialization to return true
       jest
         .spyOn(service as any, 'checkPushServicesInitialization')

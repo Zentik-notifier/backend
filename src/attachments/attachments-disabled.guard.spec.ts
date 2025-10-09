@@ -20,7 +20,7 @@ describe('AttachmentsDisabledGuard', () => {
         {
           provide: AttachmentsService,
           useValue: {
-            isAttachmentsEnabled: jest.fn().mockReturnValue(true),
+            isAttachmentsEnabled: jest.fn().mockResolvedValue(true),
           },
         },
       ],
@@ -34,24 +34,24 @@ describe('AttachmentsDisabledGuard', () => {
     expect(guard).toBeDefined();
   });
 
-  it('should allow access when attachments are enabled', () => {
+  it('should allow access when attachments are enabled', async () => {
     jest
       .spyOn(attachmentsService, 'isAttachmentsEnabled')
-      .mockReturnValue(true);
+      .mockResolvedValue(true);
 
-    const result = guard.canActivate(mockExecutionContext);
+    const result = await guard.canActivate(mockExecutionContext);
     expect(result).toBe(true);
   });
 
-  it('should throw ForbiddenException when attachments are disabled', () => {
+  it('should throw ForbiddenException when attachments are disabled', async () => {
     jest
       .spyOn(attachmentsService, 'isAttachmentsEnabled')
-      .mockReturnValue(false);
+      .mockResolvedValue(false);
 
-    expect(() => guard.canActivate(mockExecutionContext)).toThrow(
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
       ForbiddenException,
     );
-    expect(() => guard.canActivate(mockExecutionContext)).toThrow(
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
       'Attachments are currently disabled',
     );
   });
