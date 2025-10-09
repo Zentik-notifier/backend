@@ -18,7 +18,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
@@ -38,12 +37,6 @@ export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
   @Post()
-  @Throttle({
-    messagesCreate: {
-      limit: () => Number(process.env.RATE_LIMIT_MESSAGES_RPS ?? 10),
-      ttl: () => Number(process.env.RATE_LIMIT_MESSAGES_TTL_MS ?? 1000),
-    },
-  })
   @ApiOperation({
     summary: 'Create a message and send notifications',
     description:
@@ -77,12 +70,6 @@ export class MessagesController {
   }
 
   @Post('with-attachment')
-  @Throttle({
-    messagesCreateWithAttachment: {
-      limit: () => Number(process.env.RATE_LIMIT_MESSAGES_RPS ?? 10),
-      ttl: () => Number(process.env.RATE_LIMIT_MESSAGES_TTL_MS ?? 1000),
-    },
-  })
   @UseGuards(JwtOrAccessTokenGuard, AttachmentsDisabledGuard)
   @ApiOperation({
     summary:
@@ -116,12 +103,6 @@ export class MessagesController {
 
   @Get()
   @UseGuards(AccessTokenGuard)
-  @Throttle({
-    messagesCreate: {
-      limit: () => Number(process.env.RATE_LIMIT_MESSAGES_RPS ?? 10),
-      ttl: () => Number(process.env.RATE_LIMIT_MESSAGES_TTL_MS ?? 1000),
-    },
-  })
   @ApiOperation({
     summary: 'Send a message via GET request',
     description:
@@ -150,12 +131,6 @@ export class MessagesController {
   }
 
   @Post('transform')
-  @Throttle({
-    messagesTransform: {
-      limit: () => Number(process.env.RATE_LIMIT_MESSAGES_RPS ?? 10),
-      ttl: () => Number(process.env.RATE_LIMIT_MESSAGES_TTL_MS ?? 1000),
-    },
-  })
   @ApiOperation({
     summary: 'Transform payload using builtin parser and create message',
     description:

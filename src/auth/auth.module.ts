@@ -39,8 +39,10 @@ import { LocalStrategy } from './strategies/local.strategy';
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET || 'fallback-secret',
+      // Note: expiresIn is now managed dynamically in AuthService via ServerSettings
+      // Default value here is just a fallback
       signOptions: {
-        expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION || '15m',
+        expiresIn: '15m',
       },
     }),
     forwardRef(() => OAuthProvidersModule),

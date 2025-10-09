@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -26,6 +26,8 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { DatabaseBackupModule } from './database-backup/database-backup.module';
 import { EntityExecutionModule } from './entity-execution/entity-execution.module';
 import { ServerSettingsModule } from './server-settings/server-settings.module';
+import { ServerSettingsService } from './server-settings/server-settings.service';
+import { ServerSettingType } from './entities/server-setting.entity';
 
 @Module({
   imports: [
@@ -38,22 +40,23 @@ import { ServerSettingsModule } from './server-settings/server-settings.module';
     ScheduleModule.forRoot(),
     GraphqlModule,
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const ttlMs = Number(config.get('RATE_LIMIT_TTL_MS') ?? 60_000);
-        const limit = Number(config.get('RATE_LIMIT_LIMIT') ?? 100);
-        const maybeBlock = config.get('RATE_LIMIT_BLOCK_MS');
-        const blockMs =
-          typeof maybeBlock === 'string' || typeof maybeBlock === 'number'
-            ? Number(maybeBlock)
-            : undefined;
-        const common =
-          blockMs && !Number.isNaN(blockMs) ? { blockDuration: blockMs } : {};
+      imports: [ServerSettingsModule],
+      inject: [ServerSettingsService],
+      useFactory: async (serverSettingsService: ServerSettingsService) => {
+        const ttlMsSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitTtlMs);
+        const limitSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitLimit);
+        const blockMsSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitBlockMs);
+
+        const ttlMs = ttlMsSetting?.valueNumber ?? 60_000;
+        const limit = limitSetting?.valueNumber ?? 100;
+        const blockMs = blockMsSetting?.valueNumber;
+
+        const common = blockMs ? { blockDuration: blockMs } : {};
+        
         return [
           {
-            ttl: Number.isNaN(ttlMs) ? 60_000 : ttlMs,
-            limit: Number.isNaN(limit) ? 100 : limit,
+            ttl: ttlMs,
+            limit: limit,
             ...common,
           },
         ];

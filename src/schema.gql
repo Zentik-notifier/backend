@@ -724,7 +724,7 @@ enum ServerSettingType {
   RateLimitLimit
   RateLimitMessagesRps
   RateLimitMessagesTtlMs
-  RateLimitTrustProxy
+  RateLimitTrustProxyEnabled
   RateLimitTtlMs
   ResendApiKey
   VapidSubject

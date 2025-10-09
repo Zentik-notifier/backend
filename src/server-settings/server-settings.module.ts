@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { ServerSetting } from '../entities/server-setting.entity';
@@ -9,7 +9,7 @@ import { ServerSettingsResolver } from './server-settings.resolver';
 @Module({
   imports: [
     TypeOrmModule.forFeature([ServerSetting]),
-    AuthModule,
+    forwardRef(() => AuthModule),
   ],
   controllers: [ServerSettingsController],
   providers: [ServerSettingsService, ServerSettingsResolver],

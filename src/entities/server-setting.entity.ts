@@ -72,7 +72,7 @@ export enum ServerSettingType {
   ResendApiKey = 'ResendApiKey',
   
   // Rate Limiting
-  RateLimitTrustProxy = 'RateLimitTrustProxy',
+  RateLimitTrustProxyEnabled = 'RateLimitTrustProxyEnabled',
   RateLimitForwardHeader = 'RateLimitForwardHeader',
   RateLimitTtlMs = 'RateLimitTtlMs',
   RateLimitLimit = 'RateLimitLimit',

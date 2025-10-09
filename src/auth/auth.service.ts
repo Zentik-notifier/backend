@@ -29,6 +29,8 @@ import {
 } from './dto/auth.dto';
 import { EmailService } from './email.service';
 import { SessionService } from './session.service';
+import { ServerSettingsService } from '../server-settings/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 export interface JwtPayload {
   sub: string;
@@ -55,6 +57,7 @@ export class AuthService {
     private sessionService: SessionService,
     private emailService: EmailService,
     private eventTrackingService: EventTrackingService,
+    private serverSettingsService: ServerSettingsService,
   ) {}
 
   async register(
@@ -145,7 +148,7 @@ export class AuthService {
       // Genera token e sessione come nel login
       const { accessToken, refreshToken, tokenId } =
         await this.generateTokens(savedUser);
-      const expiresAt = this.calculateRefreshTokenExpiration();
+      const expiresAt = await this.calculateRefreshTokenExpiration();
       await this.sessionService.createSession(
         savedUser.id,
         tokenId,
@@ -215,7 +218,7 @@ export class AuthService {
       await this.generateTokens(user);
 
     // Calculate token expiration based on refresh token
-    const expiresAt = this.calculateRefreshTokenExpiration();
+    const expiresAt = await this.calculateRefreshTokenExpiration();
 
     // Create session with device info from client
     await this.sessionService.createSession(user.id, tokenId, expiresAt, {
@@ -387,7 +390,7 @@ export class AuthService {
     const { accessToken, refreshToken, tokenId } =
       await this.generateTokens(user);
 
-    const expiresAt = this.calculateRefreshTokenExpiration();
+    const expiresAt = await this.calculateRefreshTokenExpiration();
 
     // Extract device info from User-Agent for OAuth sessions
     const deviceInfo = this.extractDeviceInfoFromUserAgent(context?.userAgent);
@@ -551,22 +554,25 @@ export class AuthService {
       jti: tokenId,
     };
 
+    const accessTokenExpiration = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtAccessTokenExpiration))?.valueText || '15m';
+    const refreshTokenExpiration = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshTokenExpiration))?.valueText || '7d';
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_SECRET,
-        expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION || '15m',
+        expiresIn: accessTokenExpiration,
       }),
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION || '7d',
+        expiresIn: refreshTokenExpiration,
       }),
     ]);
 
     return { accessToken, refreshToken, tokenId };
   }
 
-  private calculateRefreshTokenExpiration(): Date {
-    const expirationString = process.env.JWT_REFRESH_TOKEN_EXPIRATION || '7d';
+  private async calculateRefreshTokenExpiration(): Promise<Date> {
+    const expirationString = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshTokenExpiration))?.valueText || '7d';
     const expiresAt = new Date();
 
     // Parse the expiration string (e.g., "14d", "7d", "1h", "30m")

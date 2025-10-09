@@ -151,7 +151,7 @@ export class ServerSettingsService {
       { configType: ServerSettingType.ResendApiKey, envKey: 'RESEND_API_KEY', type: 'string' },
       
       // Rate Limiting
-      { configType: ServerSettingType.RateLimitTrustProxy, envKey: 'RATE_LIMIT_TRUST_PROXY', type: 'string' },
+      { configType: ServerSettingType.RateLimitTrustProxyEnabled, envKey: 'RATE_LIMIT_TRUST_PROXY', type: 'boolean', defaultValue: false },
       { configType: ServerSettingType.RateLimitForwardHeader, envKey: 'RATE_LIMIT_FORWARD_HEADER', type: 'string', defaultValue: 'x-forwarded-for' },
       { configType: ServerSettingType.RateLimitTtlMs, envKey: 'RATE_LIMIT_TTL_MS', type: 'number', defaultValue: 60000 },
       { configType: ServerSettingType.RateLimitLimit, envKey: 'RATE_LIMIT_LIMIT', type: 'number', defaultValue: 100 },

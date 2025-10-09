@@ -1,5 +1,4 @@
 import { ExecutionContext, Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import {
   ThrottlerGuard,
@@ -8,6 +7,8 @@ import {
   getOptionsToken,
   getStorageToken,
 } from '@nestjs/throttler';
+import { ServerSettingsService } from '../../server-settings/server-settings.service';
+import { ServerSettingType } from '../../entities/server-setting.entity';
 
 @Injectable()
 export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
@@ -15,7 +16,7 @@ export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
     @Inject(getOptionsToken()) options: ThrottlerModuleOptions,
     @Inject(getStorageToken()) storageService: ThrottlerStorage,
     reflector: Reflector,
-    private readonly configService: ConfigService,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {
     super(options, storageService, reflector);
   }
@@ -34,9 +35,9 @@ export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
     }
 
     // Otherwise, fall back to client IP (public routes)
-    const trustProxy = this.getBooleanEnv('RATE_LIMIT_TRUST_PROXY', false);
+    const trustProxy = (await this.serverSettingsService.getSettingByType(ServerSettingType.RateLimitTrustProxyEnabled))?.valueBool ?? false;
     const fwdHeader = (
-      this.configService.get<string>('RATE_LIMIT_FORWARD_HEADER') ||
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.RateLimitForwardHeader))?.valueText ||
       'x-forwarded-for'
     ).toLowerCase();
 
@@ -82,15 +83,5 @@ export class ThrottlerUserOrIpGuard extends ThrottlerGuard {
     }
 
     return { req, res };
-  }
-
-  private getBooleanEnv(key: string, defaultValue: boolean): boolean {
-    const raw = this.configService.get<string | boolean | undefined>(key);
-    if (typeof raw === 'boolean') return raw;
-    if (typeof raw === 'string') {
-      const val = raw.toLowerCase();
-      return val === 'true' || val === '1' || val === 'yes';
-    }
-    return defaultValue;
   }
 }
