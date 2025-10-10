@@ -15,6 +15,8 @@ import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 import { UserSetting, UserSettingType } from '../entities/user-setting.entity';
+import { AdminSubscription } from '../entities/admin-subscription.entity';
+import { EventType } from '../entities/event.entity';
 import {
   DevicePlatform,
   RegisterDeviceDto,
@@ -39,6 +41,8 @@ export class UsersService {
     private readonly systemAccessTokensRepository: Repository<SystemAccessToken>,
     @InjectRepository(UserSetting)
     private readonly userSettingsRepository: Repository<UserSetting>,
+    @InjectRepository(AdminSubscription)
+    private readonly adminSubscriptionRepository: Repository<AdminSubscription>,
     private readonly eventTrackingService: EventTrackingService,
   ) {}
 
@@ -441,5 +445,55 @@ export class UsersService {
       { id: deviceId },
       { lastUsed: new Date() },
     );
+  }
+
+  /**
+   * Get admin subscription for current user
+   */
+  async getMyAdminSubscription(userId: string): Promise<EventType[] | null> {
+    // Verify user is admin
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user || user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('User must be an admin');
+    }
+
+    const subscription = await this.adminSubscriptionRepository.findOne({
+      where: { userId },
+    });
+
+    return subscription ? subscription.eventTypes : null;
+  }
+
+  /**
+   * Upsert admin subscription for current user
+   */
+  async upsertMyAdminSubscription(
+    userId: string,
+    eventTypes: EventType[],
+  ): Promise<EventType[]> {
+    // Verify user is admin
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user || user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('User must be an admin');
+    }
+
+    // Check if subscription already exists
+    let subscription = await this.adminSubscriptionRepository.findOne({
+      where: { userId },
+    });
+
+    if (subscription) {
+      // Update existing
+      subscription.eventTypes = eventTypes;
+    } else {
+      // Create new
+      subscription = this.adminSubscriptionRepository.create({
+        userId,
+        eventTypes,
+      });
+    }
+
+    await this.adminSubscriptionRepository.save(subscription);
+    return eventTypes;
   }
 }

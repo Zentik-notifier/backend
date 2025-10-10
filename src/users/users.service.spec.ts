@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { UserSetting } from '../entities/user-setting.entity';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
+import { AdminSubscription } from '../entities/admin-subscription.entity';
 import {
   DevicePlatform,
   RegisterDeviceDto,
@@ -121,6 +122,16 @@ describe('UsersService', () => {
     delete: jest.fn(),
   };
 
+  const mockAdminSubscriptionRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+    remove: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
   const mockEventTrackingService = {
     trackDeviceRegister: jest.fn(),
     trackDeviceUnregister: jest.fn(),
@@ -154,6 +165,10 @@ describe('UsersService', () => {
         {
           provide: getRepositoryToken(SystemAccessToken),
           useValue: mockSystemAccessTokensRepository,
+        },
+        {
+          provide: getRepositoryToken(AdminSubscription),
+          useValue: mockAdminSubscriptionRepository,
         },
         {
           provide: EventTrackingService,

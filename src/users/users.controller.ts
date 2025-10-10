@@ -196,4 +196,44 @@ export class UsersController {
       input.deviceId,
     );
   }
+
+  @Get('admin-subscriptions/me')
+  @UseGuards(AdminOnlyGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my admin event subscriptions' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin event subscriptions',
+    type: [String],
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  async getMyAdminSubscription(@GetUser('id') userId: string) {
+    return this.usersService.getMyAdminSubscription(userId);
+  }
+
+  @Post('admin-subscriptions/me')
+  @UseGuards(AdminOnlyGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upsert my admin event subscriptions' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin event subscriptions updated',
+    type: [String],
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  async upsertMyAdminSubscription(
+    @GetUser('id') userId: string,
+    @Body() body: { eventTypes: string[] },
+  ) {
+    return this.usersService.upsertMyAdminSubscription(
+      userId,
+      body.eventTypes as any,
+    );
+  }
 }

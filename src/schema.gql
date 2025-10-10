@@ -19,15 +19,6 @@ type AccessTokenResponseDto {
   token: String!
 }
 
-type AdminSubscription {
-  createdAt: DateTime!
-  eventTypes: [String!]!
-  id: ID!
-  updatedAt: DateTime!
-  user: User!
-  userId: String!
-}
-
 type Attachment {
   createdAt: DateTime!
   filename: String!
@@ -87,10 +78,6 @@ input CreateAccessTokenDto {
   expiresAt: DateTime
   name: String!
   scopes: [String!]
-}
-
-input CreateAdminSubscriptionDto {
-  eventTypes: [String!]!
 }
 
 input CreateBucketDto {
@@ -415,7 +402,6 @@ type Mutation {
   cleanupExpiredPermissions: Float!
   confirmEmail(input: ConfirmEmailDto!): EmailConfirmationResponseDto!
   createAccessToken(input: CreateAccessTokenDto!): AccessTokenResponseDto!
-  createAdminSubscription(input: CreateAdminSubscriptionDto!): AdminSubscription!
   createBucket(input: CreateBucketDto!): Bucket!
 
   """
@@ -427,7 +413,6 @@ type Mutation {
   createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String): SystemAccessTokenDto!
   createWebhook(input: CreateWebhookDto!): UserWebhook!
   deleteAccount: Boolean!
-  deleteAdminSubscription(id: String!): Boolean!
 
   """Delete a specific backup file"""
   deleteBackup(filename: String!): Boolean!
@@ -477,7 +462,6 @@ type Mutation {
   """Manually trigger log cleanup based on retention policy"""
   triggerLogCleanup: Boolean!
   unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
-  updateAdminSubscription(id: String!, input: UpdateAdminSubscriptionDto!): AdminSubscription!
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
   updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
@@ -492,6 +476,7 @@ type Mutation {
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
   updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
+  upsertMyAdminSubscription(eventTypes: [String!]!): [String!]!
   upsertUserSetting(input: UpsertUserSettingInput!): UserSetting!
   validateResetToken(resetToken: String!): Boolean!
 }
@@ -647,8 +632,6 @@ type PublicAppConfig {
 }
 
 type Query {
-  adminSubscription(id: String!): AdminSubscription!
-  adminSubscriptions: [AdminSubscription!]!
   allOAuthProviders: [OAuthProvider!]!
   bucket(id: String!): Bucket!
   bucketPermissions(bucketId: String!): [EntityPermission!]!
@@ -672,7 +655,7 @@ type Query {
   """Get logs with pagination and filtering"""
   logs(input: GetLogsInput!): PaginatedLogs!
   me: User!
-  myAdminSubscription: AdminSubscription
+  myAdminSubscription: [String!]
   notification(id: String!): Notification!
   notificationServices: [NotificationServiceInfo!]!
   notifications: [Notification!]!
@@ -897,10 +880,6 @@ type SystemAccessTokenDto {
   rawToken: String
   requester: User
   updatedAt: DateTime!
-}
-
-input UpdateAdminSubscriptionDto {
-  eventTypes: [String!]!
 }
 
 input UpdateBucketDto {

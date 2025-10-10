@@ -204,4 +204,21 @@ export class UsersResolver {
   userPasswordChanged() {
     return this.subscriptionService.userPasswordChanged();
   }
+
+  @Query(() => [String], { nullable: true })
+  @UseGuards(AdminOnlyGuard)
+  async myAdminSubscription(
+    @CurrentUser('id') userId: string,
+  ): Promise<string[] | null> {
+    return this.usersService.getMyAdminSubscription(userId);
+  }
+
+  @Mutation(() => [String])
+  @UseGuards(AdminOnlyGuard)
+  async upsertMyAdminSubscription(
+    @CurrentUser('id') userId: string,
+    @Args({ name: 'eventTypes', type: () => [String] }) eventTypes: string[],
+  ): Promise<string[]> {
+    return this.usersService.upsertMyAdminSubscription(userId, eventTypes as any);
+  }
 }

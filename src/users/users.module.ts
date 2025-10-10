@@ -11,9 +11,6 @@ import { EventsModule } from '../events/events.module';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import { AdminSubscriptionsController } from './admin-subscriptions.controller';
-import { AdminSubscriptionsService } from './admin-subscriptions.service';
-import { AdminSubscriptionsResolver } from './admin-subscriptions.resolver';
 
 @Module({
   imports: [
@@ -29,8 +26,8 @@ import { AdminSubscriptionsResolver } from './admin-subscriptions.resolver';
     AuthModule,
     EventsModule,
   ],
-  providers: [UsersService, AdminSubscriptionsService, AdminSubscriptionsResolver],
-  controllers: [UsersController, AdminSubscriptionsController],
-  exports: [UsersService, AdminSubscriptionsService],
+  providers: [UsersService],
+  controllers: [UsersController],
+  exports: [UsersService],
 })
 export class UsersModule {}
