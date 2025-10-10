@@ -50,7 +50,9 @@ export function generateAutomaticActions(
 
   const platformIcons = icons[platform] ?? icons[DevicePlatform.WEB];
 
-  if (message.addDeleteAction) {
+  // Default behavior: add action if flag is undefined or true
+  // Only skip if explicitly set to false
+  if (message.addDeleteAction !== false) {
     actions.push({
       type: NotificationActionType.DELETE,
       value: 'delete_notification',
@@ -60,7 +62,7 @@ export function generateAutomaticActions(
     });
   }
 
-  if (message.addMarkAsReadAction) {
+  if (message.addMarkAsReadAction !== false) {
     actions.push({
       type: NotificationActionType.MARK_AS_READ,
       value: 'mark_as_read_notification',
