@@ -1250,41 +1250,6 @@
         ]
       }
     },
-    "/api/v1/server-manager/loki/flush": {
-      "post": {
-        "operationId": "ServerManagerController_flushLokiLogs",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Logs flushed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Force flush all pending logs to Loki",
-        "tags": [
-          "Server Manager"
-        ]
-      }
-    },
     "/api/v1/server-manager/metrics": {
       "get": {
         "operationId": "ServerManagerController_getMetrics",

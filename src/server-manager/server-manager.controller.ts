@@ -218,35 +218,6 @@ export class ServerManagerController {
     }
   }
 
-  // Loki endpoints
-  @Post('loki/flush')
-  @ApiOperation({ summary: 'Force flush all pending logs to Loki' })
-  @ApiResponse({
-    status: 200,
-    description: 'Logs flushed successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        message: { type: 'string' },
-      },
-    },
-  })
-  async flushLokiLogs(): Promise<{ success: boolean; message: string }> {
-    try {
-      await this.lokiLoggerService.forceFlush();
-      return {
-        success: true,
-        message: 'Logs flushed to Loki successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to flush logs: ${error.message}`,
-      };
-    }
-  }
-
   // Prometheus endpoints
   /**
    * Metrics endpoint - protected by SystemAccessTokenGuard

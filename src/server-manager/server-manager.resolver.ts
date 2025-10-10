@@ -139,18 +139,4 @@ export class ServerManagerResolver {
       throw new Error(`Failed to cleanup logs: ${error.message}`);
     }
   }
-
-  // Loki mutations
-  @Mutation(() => Boolean, {
-    name: 'flushLokiLogs',
-    description: 'Force flush all pending logs to Loki',
-  })
-  async flushLokiLogs(): Promise<boolean> {
-    try {
-      await this.lokiLoggerService.forceFlush();
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to flush logs to Loki: ${error.message}`);
-    }
-  }
 }

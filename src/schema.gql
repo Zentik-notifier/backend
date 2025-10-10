@@ -422,9 +422,6 @@ type Mutation {
   deleteWebhook(id: ID!): Boolean!
   deviceReportNotificationReceived(id: String!): Notification!
   executeWebhook(id: ID!): Boolean!
-
-  """Force flush all pending logs to Loki"""
-  flushLokiLogs: Boolean!
   grantEntityPermission(input: GrantEntityPermissionInput!): EntityPermission!
   login(input: LoginDto!): LoginResponse!
   logout: String!

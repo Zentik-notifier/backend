@@ -247,19 +247,12 @@ export class LokiLoggerService {
   }
 
   /**
-   * Force flush all pending logs
-   */
-  async forceFlush(): Promise<void> {
-    await this.flush();
-  }
-
-  /**
    * Cleanup on module destroy
    */
   async onModuleDestroy(): Promise<void> {
     if (this.flushTimeout) {
       clearTimeout(this.flushTimeout);
     }
-    await this.forceFlush();
+    await this.flush();
   }
 }
