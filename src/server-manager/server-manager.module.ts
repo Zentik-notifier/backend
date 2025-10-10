@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { PrometheusController, PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AuthModule } from '../auth/auth.module';
 import { SystemAccessTokenModule } from '../system-access-token/system-access-token.module';
 import { ServerSetting } from '../entities/server-setting.entity';
@@ -13,25 +13,20 @@ import { ServerSettingsService } from './server-settings.service';
 import { LogStorageService } from './log-storage.service';
 import { LokiLoggerService } from './loki-logger.service';
 import { DatabaseLoggerService } from './database-logger.service';
-import { PrometheusService } from './prometheus.service';
+import { CustomPrometheusController } from './prometheus.controller';
 
 @Module({
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([ServerSetting, Log]),
-    PrometheusModule.register({
-      defaultMetrics: {
-        enabled: true,
-        config: {
-          prefix: 'zentik_',
-        },
-      },
-      defaultLabels: {
-        app: 'zentik-notifier',
-      },
-    }),
     forwardRef(() => AuthModule),
     forwardRef(() => SystemAccessTokenModule),
+    PrometheusModule.register({
+      controller: CustomPrometheusController
+      // defaultMetrics: {
+      //   enabled: true,
+      // },
+    }),
   ],
   controllers: [ServerManagerController],
   providers: [
@@ -41,7 +36,6 @@ import { PrometheusService } from './prometheus.service';
     LogStorageService,
     LokiLoggerService,
     DatabaseLoggerService,
-    PrometheusService,
   ],
   exports: [
     ServerManagerService,
@@ -49,7 +43,6 @@ import { PrometheusService } from './prometheus.service';
     LogStorageService,
     LokiLoggerService,
     DatabaseLoggerService,
-    PrometheusService,
   ],
 })
-export class ServerManagerModule {}
+export class ServerManagerModule { }

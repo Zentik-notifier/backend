@@ -28,14 +28,12 @@ import { ServerManagerModule } from './server-manager/server-manager.module';
 import { EntityExecutionModule } from './entity-execution/entity-execution.module';
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { ServerSettingType } from './entities/server-setting.entity';
-import { HttpMetricsInterceptor } from './prometheus/interceptors/http-metrics.interceptor';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
-      // no custom loaders; use env variables directly
     }),
     TypeOrmModule.forRoot(databaseConfig),
     ScheduleModule.forRoot(),
@@ -53,7 +51,7 @@ import { HttpMetricsInterceptor } from './prometheus/interceptors/http-metrics.i
         const blockMs = blockMsSetting?.valueNumber;
 
         const common = blockMs ? { blockDuration: blockMs } : {};
-        
+
         return [
           {
             ttl: ttlMs,
@@ -90,10 +88,6 @@ import { HttpMetricsInterceptor } from './prometheus/interceptors/http-metrics.i
       provide: 'APP_INTERCEPTOR',
       useClass: HttpLoggingInterceptor,
     },
-    {
-      provide: 'APP_INTERCEPTOR',
-      useClass: HttpMetricsInterceptor,
-    },
   ],
 })
-export class AppModule {}
+export class AppModule { }

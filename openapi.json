@@ -1250,50 +1250,6 @@
         ]
       }
     },
-    "/api/v1/server-manager/metrics": {
-      "get": {
-        "operationId": "ServerManagerController_getMetrics",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Prometheus metrics in text format",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - missing or invalid system access token"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get Prometheus metrics (requires System Access Token)",
-        "tags": [
-          "Server Manager"
-        ]
-      }
-    },
-    "/api/v1/metrics": {
-      "get": {
-        "operationId": "PrometheusController_index",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Prometheus"
-        ]
-      }
-    },
     "/api/v1/oauth-providers": {
       "post": {
         "operationId": "OAuthProvidersController_create",
@@ -2121,6 +2077,20 @@
         ],
         "tags": [
           "System Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/metrics": {
+      "get": {
+        "operationId": "PrometheusController_index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Prometheus"
         ]
       }
     },

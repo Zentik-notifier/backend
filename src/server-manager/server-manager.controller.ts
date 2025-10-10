@@ -8,17 +8,10 @@ import {
   Post,
   Query,
   UseGuards,
-  Header,
-  Req,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SystemAccessTokenGuard } from '../system-access-token/system-access-token.guard';
-import { GetSystemAccessToken } from '../system-access-token/decorators/get-system-access-token.decorator';
-import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
 import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
 import { BackupInfoDto, UpdateServerSettingDto } from './dto';
 import { BackupResult, ServerManagerService } from './server-manager.service';
@@ -26,7 +19,6 @@ import { ServerSettingsService } from './server-settings.service';
 import { LogStorageService } from './log-storage.service';
 import { LokiLoggerService } from './loki-logger.service';
 import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
-import { PrometheusService } from './prometheus.service';
 
 @ApiTags('Server Manager')
 @Controller('server-manager')
@@ -38,8 +30,6 @@ export class ServerManagerController {
     private readonly serverSettingsService: ServerSettingsService,
     private readonly logStorageService: LogStorageService,
     private readonly lokiLoggerService: LokiLoggerService,
-    private readonly prometheusService: PrometheusService,
-    private readonly systemAccessTokenService: SystemAccessTokenService,
   ) { }
 
   @Get('backups')
@@ -218,51 +208,4 @@ export class ServerManagerController {
     }
   }
 
-  // Prometheus endpoints
-  /**
-   * Metrics endpoint - protected by SystemAccessTokenGuard
-   * Requires a System Access Token with format: Bearer sat_xxxxx
-   * Authentication is always required
-   */
-  @Get('metrics')
-  @UseGuards(SystemAccessTokenGuard)
-  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
-  @ApiOperation({ summary: 'Get Prometheus metrics (requires System Access Token)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Prometheus metrics in text format',
-    content: {
-      'text/plain': {
-        schema: {
-          type: 'string',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - missing or invalid system access token',
-  })
-  async getMetrics(
-    @Req() request: Request,
-    @GetSystemAccessToken() sat: any,
-  ): Promise<string> {
-    // Check if Prometheus is enabled
-    const prometheusEnabledSetting = await this.serverSettingsService.getSettingByType(
-      ServerSettingType.PrometheusEnabled,
-    );
-    const isEnabled = prometheusEnabledSetting?.valueBool ?? false;
-
-    if (!isEnabled) {
-      throw new UnauthorizedException('Prometheus metrics are disabled');
-    }
-
-    // Increment system access token call count
-    if (sat?.id) {
-      await this.systemAccessTokenService.incrementCalls(sat.id);
-    }
-
-    // Return metrics
-    return this.prometheusService.getMetrics();
-  }
 }
