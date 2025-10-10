@@ -28,6 +28,7 @@ import { ServerManagerModule } from './server-manager/server-manager.module';
 import { EntityExecutionModule } from './entity-execution/entity-execution.module';
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { ServerSettingType } from './entities/server-setting.entity';
+import { HttpMetricsInterceptor } from './prometheus/interceptors/http-metrics.interceptor';
 
 @Module({
   imports: [
@@ -88,6 +89,10 @@ import { ServerSettingType } from './entities/server-setting.entity';
     {
       provide: 'APP_INTERCEPTOR',
       useClass: HttpLoggingInterceptor,
+    },
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: HttpMetricsInterceptor,
     },
   ],
 })

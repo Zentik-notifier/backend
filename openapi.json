@@ -1340,6 +1340,50 @@
         ]
       }
     },
+    "/api/v1/server-manager/metrics": {
+      "get": {
+        "operationId": "ServerManagerController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Prometheus metrics in text format",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid system access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get Prometheus metrics (requires System Access Token)",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
+    "/api/v1/metrics": {
+      "get": {
+        "operationId": "PrometheusController_index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Prometheus"
+        ]
+      }
+    },
     "/api/v1/oauth-providers": {
       "post": {
         "operationId": "OAuthProvidersController_create",
@@ -2102,6 +2146,71 @@
         ],
         "tags": [
           "Events"
+        ]
+      }
+    },
+    "/api/v1/system-access-tokens": {
+      "post": {
+        "operationId": "SystemAccessTokenController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create system access token",
+        "tags": [
+          "System Access Tokens"
+        ]
+      },
+      "get": {
+        "operationId": "SystemAccessTokenController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "System Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/system-access-tokens/{id}": {
+      "delete": {
+        "operationId": "SystemAccessTokenController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "System Access Tokens"
         ]
       }
     },
@@ -4072,71 +4181,6 @@
         ]
       }
     },
-    "/api/v1/system-access-tokens": {
-      "post": {
-        "operationId": "SystemAccessTokenController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create system access token",
-        "tags": [
-          "System Access Tokens"
-        ]
-      },
-      "get": {
-        "operationId": "SystemAccessTokenController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "System Access Tokens"
-        ]
-      }
-    },
-    "/api/v1/system-access-tokens/{id}": {
-      "delete": {
-        "operationId": "SystemAccessTokenController_revoke",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "System Access Tokens"
-        ]
-      }
-    },
     "/api/v1/payload-mappers": {
       "post": {
         "operationId": "PayloadMapperController_create",
@@ -5092,8 +5136,7 @@
               "LokiBatchSize",
               "LokiBatchIntervalMs",
               "PrometheusEnabled",
-              "PrometheusPath",
-              "PrometheusRequiresAuth"
+              "PrometheusPath"
             ]
           },
           "valueText": {

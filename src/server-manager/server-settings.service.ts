@@ -46,9 +46,40 @@ export class ServerSettingsService {
       throw new NotFoundException(`Setting with type ${configType} not found`);
     }
 
-    if (dto.valueText !== undefined) setting.valueText = dto.valueText;
-    if (dto.valueBool !== undefined) setting.valueBool = dto.valueBool;
-    if (dto.valueNumber !== undefined) setting.valueNumber = dto.valueNumber;
+    // Track changes for logging
+    const changes: string[] = [];
+    const oldValues: any = {};
+    const newValues: any = {};
+
+    if (dto.valueText !== undefined && setting.valueText !== dto.valueText) {
+      oldValues.valueText = setting.valueText;
+      newValues.valueText = dto.valueText;
+      changes.push(`valueText: "${setting.valueText}" → "${dto.valueText}"`);
+      setting.valueText = dto.valueText;
+    }
+    
+    if (dto.valueBool !== undefined && setting.valueBool !== dto.valueBool) {
+      oldValues.valueBool = setting.valueBool;
+      newValues.valueBool = dto.valueBool;
+      changes.push(`valueBool: ${setting.valueBool} → ${dto.valueBool}`);
+      setting.valueBool = dto.valueBool;
+    }
+    
+    if (dto.valueNumber !== undefined && setting.valueNumber !== dto.valueNumber) {
+      oldValues.valueNumber = setting.valueNumber;
+      newValues.valueNumber = dto.valueNumber;
+      changes.push(`valueNumber: ${setting.valueNumber} → ${dto.valueNumber}`);
+      setting.valueNumber = dto.valueNumber;
+    }
+
+    if (changes.length > 0) {
+      this.logger.log(
+        `🔧 Server setting updated: ${configType}\n` +
+        `   Changes: ${changes.join(', ')}`
+      );
+    } else {
+      this.logger.debug(`No changes detected for setting: ${configType}`);
+    }
 
     return this.serverSettingsRepository.save(setting);
   }
@@ -181,7 +212,6 @@ export class ServerSettingsService {
       // Prometheus
       { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
       { configType: ServerSettingType.PrometheusPath, envKey: 'PROMETHEUS_PATH', type: 'string', defaultValue: '/metrics' },
-      { configType: ServerSettingType.PrometheusRequiresAuth, envKey: 'PROMETHEUS_REQUIRES_AUTH', type: 'boolean', defaultValue: true },
     ];
 
     for (const mapping of envMappings) {
@@ -241,6 +271,7 @@ export class ServerSettingsService {
    * Batch update multiple server settings
    */
   async batchUpdateSettings(updates: Array<{ configType: ServerSettingType; valueText?: string | null; valueBool?: boolean | null; valueNumber?: number | null }>): Promise<ServerSetting[]> {
+    this.logger.log(`📦 Batch updating ${updates.length} server setting(s)...`);
     const results: ServerSetting[] = [];
 
     for (const update of updates) {
@@ -254,6 +285,7 @@ export class ServerSettingsService {
       results.push(updated);
     }
 
+    this.logger.log(`✅ Batch update completed: ${results.length} setting(s) processed`);
     return results;
   }
 

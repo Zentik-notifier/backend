@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { User } from '../entities/user.entity';
@@ -9,7 +9,7 @@ import { SystemAccessTokenResolver } from './system-access-token.resolver';
 import { SystemAccessTokenService } from './system-access-token.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SystemAccessToken, User]), AuthModule],
+  imports: [TypeOrmModule.forFeature([SystemAccessToken, User]), forwardRef(() => AuthModule)],
   providers: [
     SystemAccessTokenService,
     SystemAccessTokenResolver,
