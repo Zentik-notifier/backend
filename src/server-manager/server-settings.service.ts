@@ -11,7 +11,7 @@ export class ServerSettingsService {
   constructor(
     @InjectRepository(ServerSetting)
     private readonly serverSettingsRepository: Repository<ServerSetting>,
-  ) {}
+  ) { }
 
   /**
    * Get all server settings
@@ -57,14 +57,14 @@ export class ServerSettingsService {
       changes.push(`valueText: "${setting.valueText}" → "${dto.valueText}"`);
       setting.valueText = dto.valueText;
     }
-    
+
     if (dto.valueBool !== undefined && setting.valueBool !== dto.valueBool) {
       oldValues.valueBool = setting.valueBool;
       newValues.valueBool = dto.valueBool;
       changes.push(`valueBool: ${setting.valueBool} → ${dto.valueBool}`);
       setting.valueBool = dto.valueBool;
     }
-    
+
     if (dto.valueNumber !== undefined && setting.valueNumber !== dto.valueNumber) {
       oldValues.valueNumber = setting.valueNumber;
       newValues.valueNumber = dto.valueNumber;
@@ -119,105 +119,104 @@ export class ServerSettingsService {
       defaultValue?: string | boolean | number;
       possibleValues?: string[];
     }> = [
-      // JWT
-      { configType: ServerSettingType.JwtAccessTokenExpiration, envKey: 'JWT_ACCESS_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
-      { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
-      
-      // APN Push
-      { configType: ServerSettingType.ApnPush, envKey: 'APN_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
-      { configType: ServerSettingType.ApnKeyId, envKey: 'APN_KEY_ID', type: 'string' },
-      { configType: ServerSettingType.ApnTeamId, envKey: 'APN_TEAM_ID', type: 'string' },
-      { configType: ServerSettingType.ApnPrivateKeyPath, envKey: 'APN_PRIVATE_KEY_PATH', type: 'string' },
-      { configType: ServerSettingType.ApnBundleId, envKey: 'APN_BUNDLE_ID', type: 'string' },
-      { configType: ServerSettingType.ApnProduction, envKey: 'APN_PRODUCTION', type: 'boolean', defaultValue: true },
-      
-      // Firebase Push
-      { configType: ServerSettingType.FirebasePush, envKey: 'FIREBASE_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
-      { configType: ServerSettingType.FirebaseProjectId, envKey: 'FIREBASE_PROJECT_ID', type: 'string' },
-      { configType: ServerSettingType.FirebasePrivateKey, envKey: 'FIREBASE_PRIVATE_KEY', type: 'string' },
-      { configType: ServerSettingType.FirebaseClientEmail, envKey: 'FIREBASE_CLIENT_EMAIL', type: 'string' },
-      
-      // Web Push
-      { configType: ServerSettingType.WebPush, envKey: 'WEB_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
-      { configType: ServerSettingType.VapidSubject, envKey: 'VAPID_SUBJECT', type: 'string' },
-      
-      // Push Passthrough
-      { configType: ServerSettingType.PushNotificationsPassthroughServer, envKey: 'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER', type: 'string' },
-      { configType: ServerSettingType.PushPassthroughToken, envKey: 'PUSH_PASSTHROUGH_TOKEN', type: 'string' },
-      
-      // Attachments
-      { configType: ServerSettingType.AttachmentsEnabled, envKey: 'ATTACHMENTS_ENABLED', type: 'boolean', defaultValue: false },
-      { configType: ServerSettingType.AttachmentsStoragePath, envKey: 'ATTACHMENTS_STORAGE_PATH', type: 'string' },
-      { configType: ServerSettingType.AttachmentsMaxFileSize, envKey: 'ATTACHMENTS_MAX_FILE_SIZE', type: 'number', defaultValue: 10485760 },
-      { configType: ServerSettingType.AttachmentsAllowedMimeTypes, envKey: 'ATTACHMENTS_ALLOWED_MIME_TYPES', type: 'string' },
-      { configType: ServerSettingType.AttachmentsDeleteJobEnabled, envKey: 'ATTACHMENTS_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },
-      { configType: ServerSettingType.AttachmentsDeleteCronJob, envKey: 'ATTACHMENTS_DELETE_CRON_JOB', type: 'string', defaultValue: '0 0 * * * *' },
-      { configType: ServerSettingType.AttachmentsMaxAge, envKey: 'ATTACHMENTS_MAX_AGE', type: 'string', defaultValue: '7d' },
-      
-      // Backup
-      { configType: ServerSettingType.BackupEnabled, envKey: 'BACKUP_ENABLED', type: 'boolean', defaultValue: false },
-      { configType: ServerSettingType.BackupExecuteOnStart, envKey: 'BACKUP_EXECUTE_ON_START', type: 'boolean', defaultValue: true },
-      { configType: ServerSettingType.BackupStoragePath, envKey: 'BACKUP_STORAGE_PATH', type: 'string' },
-      { configType: ServerSettingType.BackupMaxToKeep, envKey: 'BACKUP_MAX_TO_KEEP', type: 'number', defaultValue: 10 },
-      { configType: ServerSettingType.BackupCronJob, envKey: 'BACKUP_CRON_JOB', type: 'string', defaultValue: '0 */12 * * *' },
-      
-      // Messages
-      { configType: ServerSettingType.MessagesMaxAge, envKey: 'MESSAGES_MAX_AGE', type: 'string', defaultValue: '7d' },
-      { configType: ServerSettingType.MessagesDeleteJobEnabled, envKey: 'MESSAGES_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },
-      { configType: ServerSettingType.MessagesDeleteCronJob, envKey: 'MESSAGES_DELETE_CRON_JOB', type: 'string', defaultValue: '0 * * * *' },
-      
-      // Email
-      { configType: ServerSettingType.EmailEnabled, envKey: 'EMAIL_ENABLED', type: 'boolean', defaultValue: false },
-      { configType: ServerSettingType.EmailType, envKey: 'EMAIL_TYPE', type: 'string', defaultValue: 'SMTP', possibleValues: ['SMTP', 'Resend'] },
-      { configType: ServerSettingType.EmailHost, envKey: 'EMAIL_HOST', type: 'string' },
-      { configType: ServerSettingType.EmailPort, envKey: 'EMAIL_PORT', type: 'number' },
-      { configType: ServerSettingType.EmailSecure, envKey: 'EMAIL_SECURE', type: 'boolean' },
-      { configType: ServerSettingType.EmailUser, envKey: 'EMAIL_USER', type: 'string' },
-      { configType: ServerSettingType.EmailPass, envKey: 'EMAIL_PASS', type: 'string' },
-      { configType: ServerSettingType.EmailFrom, envKey: 'EMAIL_FROM', type: 'string' },
-      { configType: ServerSettingType.EmailFromName, envKey: 'EMAIL_FROM_NAME', type: 'string' },
-      { configType: ServerSettingType.ResendApiKey, envKey: 'RESEND_API_KEY', type: 'string' },
-      
-      // Rate Limiting
-      { configType: ServerSettingType.RateLimitTrustProxyEnabled, envKey: 'RATE_LIMIT_TRUST_PROXY', type: 'boolean', defaultValue: false },
-      { configType: ServerSettingType.RateLimitForwardHeader, envKey: 'RATE_LIMIT_FORWARD_HEADER', type: 'string', defaultValue: 'x-forwarded-for' },
-      { configType: ServerSettingType.RateLimitTtlMs, envKey: 'RATE_LIMIT_TTL_MS', type: 'number', defaultValue: 60000 },
-      { configType: ServerSettingType.RateLimitLimit, envKey: 'RATE_LIMIT_LIMIT', type: 'number', defaultValue: 100 },
-      { configType: ServerSettingType.RateLimitBlockMs, envKey: 'RATE_LIMIT_BLOCK_MS', type: 'number', defaultValue: 10000 },
-      { configType: ServerSettingType.RateLimitMessagesRps, envKey: 'RATE_LIMIT_MESSAGES_RPS', type: 'number', defaultValue: 10 },
-      { configType: ServerSettingType.RateLimitMessagesTtlMs, envKey: 'RATE_LIMIT_MESSAGES_TTL_MS', type: 'number', defaultValue: 1000 },
-      
-      // JWT Secrets
-      { configType: ServerSettingType.JwtSecret, envKey: 'JWT_SECRET', type: 'string' },
-      { configType: ServerSettingType.JwtRefreshSecret, envKey: 'JWT_REFRESH_SECRET', type: 'string' },
-      
-      // CORS
-      { configType: ServerSettingType.CorsOrigin, envKey: 'CORS_ORIGIN', type: 'string', defaultValue: '*' },
-      { configType: ServerSettingType.CorsCredentials, envKey: 'CORS_CREDENTIALS', type: 'boolean', defaultValue: true },
-      
-      // Logging
-      { configType: ServerSettingType.LogLevel, envKey: 'LOG_LEVEL', type: 'string', defaultValue: 'info', possibleValues: ['error', 'warn', 'info', 'debug', 'verbose'] },
-      { configType: ServerSettingType.LogStorageEnabled, envKey: 'LOG_STORAGE_ENABLED', type: 'boolean', defaultValue: true },
-      { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
-      
-      // Loki Remote Logging
-      { configType: ServerSettingType.LokiEnabled, envKey: 'LOKI_ENABLED', type: 'boolean', defaultValue: false },
-      { configType: ServerSettingType.LokiUrl, envKey: 'LOKI_URL', type: 'string' },
-      { configType: ServerSettingType.LokiUsername, envKey: 'LOKI_USERNAME', type: 'string' },
-      { configType: ServerSettingType.LokiPassword, envKey: 'LOKI_PASSWORD', type: 'string' },
-      { configType: ServerSettingType.LokiLabels, envKey: 'LOKI_LABELS', type: 'string', defaultValue: 'app=zentik-notifier,environment=production' },
-      { configType: ServerSettingType.LokiBatchSize, envKey: 'LOKI_BATCH_SIZE', type: 'number', defaultValue: 100 },
-      { configType: ServerSettingType.LokiBatchIntervalMs, envKey: 'LOKI_BATCH_INTERVAL_MS', type: 'number', defaultValue: 5000 },
-      
-      // Prometheus
-      { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
-      { configType: ServerSettingType.PrometheusPath, envKey: 'PROMETHEUS_PATH', type: 'string', defaultValue: '/metrics' },
-    ];
+        // JWT
+        { configType: ServerSettingType.JwtAccessTokenExpiration, envKey: 'JWT_ACCESS_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
+        { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
+
+        // APN Push
+        { configType: ServerSettingType.ApnPush, envKey: 'APN_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
+        { configType: ServerSettingType.ApnKeyId, envKey: 'APN_KEY_ID', type: 'string' },
+        { configType: ServerSettingType.ApnTeamId, envKey: 'APN_TEAM_ID', type: 'string' },
+        { configType: ServerSettingType.ApnPrivateKeyPath, envKey: 'APN_PRIVATE_KEY_PATH', type: 'string' },
+        { configType: ServerSettingType.ApnBundleId, envKey: 'APN_BUNDLE_ID', type: 'string' },
+        { configType: ServerSettingType.ApnProduction, envKey: 'APN_PRODUCTION', type: 'boolean', defaultValue: true },
+
+        // Firebase Push
+        { configType: ServerSettingType.FirebasePush, envKey: 'FIREBASE_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
+        { configType: ServerSettingType.FirebaseProjectId, envKey: 'FIREBASE_PROJECT_ID', type: 'string' },
+        { configType: ServerSettingType.FirebasePrivateKey, envKey: 'FIREBASE_PRIVATE_KEY', type: 'string' },
+        { configType: ServerSettingType.FirebaseClientEmail, envKey: 'FIREBASE_CLIENT_EMAIL', type: 'string' },
+
+        // Web Push
+        { configType: ServerSettingType.WebPush, envKey: 'WEB_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
+        { configType: ServerSettingType.VapidSubject, envKey: 'VAPID_SUBJECT', type: 'string' },
+
+        // Push Passthrough
+        { configType: ServerSettingType.PushNotificationsPassthroughServer, envKey: 'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER', type: 'string' },
+        { configType: ServerSettingType.PushPassthroughToken, envKey: 'PUSH_PASSTHROUGH_TOKEN', type: 'string' },
+
+        // Attachments
+        { configType: ServerSettingType.AttachmentsEnabled, envKey: 'ATTACHMENTS_ENABLED', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.AttachmentsStoragePath, envKey: 'ATTACHMENTS_STORAGE_PATH', type: 'string' },
+        { configType: ServerSettingType.AttachmentsMaxFileSize, envKey: 'ATTACHMENTS_MAX_FILE_SIZE', type: 'number', defaultValue: 10485760 },
+        { configType: ServerSettingType.AttachmentsAllowedMimeTypes, envKey: 'ATTACHMENTS_ALLOWED_MIME_TYPES', type: 'string' },
+        { configType: ServerSettingType.AttachmentsDeleteJobEnabled, envKey: 'ATTACHMENTS_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },
+        { configType: ServerSettingType.AttachmentsDeleteCronJob, envKey: 'ATTACHMENTS_DELETE_CRON_JOB', type: 'string', defaultValue: '0 0 * * * *' },
+        { configType: ServerSettingType.AttachmentsMaxAge, envKey: 'ATTACHMENTS_MAX_AGE', type: 'string', defaultValue: '7d' },
+
+        // Backup
+        { configType: ServerSettingType.BackupEnabled, envKey: 'BACKUP_ENABLED', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.BackupExecuteOnStart, envKey: 'BACKUP_EXECUTE_ON_START', type: 'boolean', defaultValue: true },
+        { configType: ServerSettingType.BackupStoragePath, envKey: 'BACKUP_STORAGE_PATH', type: 'string' },
+        { configType: ServerSettingType.BackupMaxToKeep, envKey: 'BACKUP_MAX_TO_KEEP', type: 'number', defaultValue: 10 },
+        { configType: ServerSettingType.BackupCronJob, envKey: 'BACKUP_CRON_JOB', type: 'string', defaultValue: '0 */12 * * *' },
+
+        // Messages
+        { configType: ServerSettingType.MessagesMaxAge, envKey: 'MESSAGES_MAX_AGE', type: 'string', defaultValue: '7d' },
+        { configType: ServerSettingType.MessagesDeleteJobEnabled, envKey: 'MESSAGES_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },
+        { configType: ServerSettingType.MessagesDeleteCronJob, envKey: 'MESSAGES_DELETE_CRON_JOB', type: 'string', defaultValue: '0 * * * *' },
+
+        // Email
+        { configType: ServerSettingType.EmailEnabled, envKey: 'EMAIL_ENABLED', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.EmailType, envKey: 'EMAIL_TYPE', type: 'string', defaultValue: 'SMTP', possibleValues: ['SMTP', 'Resend'] },
+        { configType: ServerSettingType.EmailHost, envKey: 'EMAIL_HOST', type: 'string' },
+        { configType: ServerSettingType.EmailPort, envKey: 'EMAIL_PORT', type: 'number' },
+        { configType: ServerSettingType.EmailSecure, envKey: 'EMAIL_SECURE', type: 'boolean' },
+        { configType: ServerSettingType.EmailUser, envKey: 'EMAIL_USER', type: 'string' },
+        { configType: ServerSettingType.EmailPass, envKey: 'EMAIL_PASS', type: 'string' },
+        { configType: ServerSettingType.EmailFrom, envKey: 'EMAIL_FROM', type: 'string' },
+        { configType: ServerSettingType.EmailFromName, envKey: 'EMAIL_FROM_NAME', type: 'string' },
+        { configType: ServerSettingType.ResendApiKey, envKey: 'RESEND_API_KEY', type: 'string' },
+
+        // Rate Limiting
+        { configType: ServerSettingType.RateLimitTrustProxyEnabled, envKey: 'RATE_LIMIT_TRUST_PROXY', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.RateLimitForwardHeader, envKey: 'RATE_LIMIT_FORWARD_HEADER', type: 'string', defaultValue: 'x-forwarded-for' },
+        { configType: ServerSettingType.RateLimitTtlMs, envKey: 'RATE_LIMIT_TTL_MS', type: 'number', defaultValue: 60000 },
+        { configType: ServerSettingType.RateLimitLimit, envKey: 'RATE_LIMIT_LIMIT', type: 'number', defaultValue: 100 },
+        { configType: ServerSettingType.RateLimitBlockMs, envKey: 'RATE_LIMIT_BLOCK_MS', type: 'number', defaultValue: 10000 },
+        { configType: ServerSettingType.RateLimitMessagesRps, envKey: 'RATE_LIMIT_MESSAGES_RPS', type: 'number', defaultValue: 10 },
+        { configType: ServerSettingType.RateLimitMessagesTtlMs, envKey: 'RATE_LIMIT_MESSAGES_TTL_MS', type: 'number', defaultValue: 1000 },
+
+        // JWT Secrets
+        { configType: ServerSettingType.JwtSecret, envKey: 'JWT_SECRET', type: 'string' },
+        { configType: ServerSettingType.JwtRefreshSecret, envKey: 'JWT_REFRESH_SECRET', type: 'string' },
+
+        // CORS
+        { configType: ServerSettingType.CorsOrigin, envKey: 'CORS_ORIGIN', type: 'string', defaultValue: '*' },
+        { configType: ServerSettingType.CorsCredentials, envKey: 'CORS_CREDENTIALS', type: 'boolean', defaultValue: true },
+
+        // Logging
+        { configType: ServerSettingType.LogLevel, envKey: 'LOG_LEVEL', type: 'string', defaultValue: 'info', possibleValues: ['error', 'warn', 'info', 'debug', 'verbose'] },
+        { configType: ServerSettingType.LogStorageEnabled, envKey: 'LOG_STORAGE_ENABLED', type: 'boolean', defaultValue: true },
+        { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
+
+        // Loki Remote Logging
+        { configType: ServerSettingType.LokiEnabled, envKey: 'LOKI_ENABLED', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.LokiUrl, envKey: 'LOKI_URL', type: 'string' },
+        { configType: ServerSettingType.LokiUsername, envKey: 'LOKI_USERNAME', type: 'string' },
+        { configType: ServerSettingType.LokiPassword, envKey: 'LOKI_PASSWORD', type: 'string' },
+        { configType: ServerSettingType.LokiLabels, envKey: 'LOKI_LABELS', type: 'string', defaultValue: 'app=zentik-notifier,environment=production' },
+        { configType: ServerSettingType.LokiBatchSize, envKey: 'LOKI_BATCH_SIZE', type: 'number', defaultValue: 100 },
+        { configType: ServerSettingType.LokiBatchIntervalMs, envKey: 'LOKI_BATCH_INTERVAL_MS', type: 'number', defaultValue: 5000 },
+
+        // Prometheus
+        { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
+      ];
 
     for (const mapping of envMappings) {
       const envValue = process.env[mapping.envKey];
       const valueToUse = envValue !== undefined ? envValue : mapping.defaultValue;
-      
+
       // Skip if no env value and no default
       if (valueToUse === undefined) {
         continue;
@@ -255,8 +254,8 @@ export class ServerSettingsService {
         this.logger.log(`Created ${mapping.configType} = ${valueToUse}`);
       } else {
         // Update only possibleValues to keep it in sync, preserve user-modified values
-        if (mapping.possibleValues && 
-            JSON.stringify(existing.possibleValues) !== JSON.stringify(mapping.possibleValues)) {
+        if (mapping.possibleValues &&
+          JSON.stringify(existing.possibleValues) !== JSON.stringify(mapping.possibleValues)) {
           existing.possibleValues = mapping.possibleValues;
           await this.serverSettingsRepository.save(existing);
           this.logger.log(`Updated possibleValues for ${mapping.configType}`);
@@ -280,7 +279,7 @@ export class ServerSettingsService {
         valueBool: update.valueBool,
         valueNumber: update.valueNumber,
       };
-      
+
       const updated = await this.updateSetting(update.configType, dto);
       results.push(updated);
     }

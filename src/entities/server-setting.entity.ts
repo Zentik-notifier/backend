@@ -101,7 +101,6 @@ export enum ServerSettingType {
   
   // Prometheus Metrics
   PrometheusEnabled = 'PrometheusEnabled',
-  PrometheusPath = 'PrometheusPath',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

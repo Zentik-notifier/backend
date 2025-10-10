@@ -813,7 +813,6 @@ enum ServerSettingType {
   MessagesDeleteJobEnabled
   MessagesMaxAge
   PrometheusEnabled
-  PrometheusPath
   PushNotificationsPassthroughServer
   PushPassthroughToken
   RateLimitBlockMs

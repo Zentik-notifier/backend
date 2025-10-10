@@ -68,7 +68,7 @@ CREATE TYPE server_setting_type_enum AS ENUM (
   'CorsOrigin', 'CorsCredentials',
   'LogLevel', 'LogStorageEnabled', 'LogRetentionDays',
   'LokiEnabled', 'LokiUrl', 'LokiUsername', 'LokiPassword', 'LokiLabels', 'LokiBatchSize', 'LokiBatchIntervalMs',
-  'PrometheusEnabled', 'PrometheusPath'
+  'PrometheusEnabled'
 );
 
 -- Create users table
