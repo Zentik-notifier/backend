@@ -10,8 +10,10 @@ import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository, In } from 'typeorm';
 import { Bucket } from '../entities/bucket.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
+import { User } from '../entities/user.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { UserRole } from '../users/users.types';
 import { CreateBucketDto, UpdateBucketDto } from './dto/index';
 
 @Injectable()
@@ -21,6 +23,8 @@ export class BucketsService {
     private readonly bucketsRepository: Repository<Bucket>,
     @InjectRepository(UserBucket)
     private readonly userBucketRepository: Repository<UserBucket>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly entityPermissionService: EntityPermissionService,
     private readonly eventTrackingService: EventTrackingService,
   ) {}
@@ -87,8 +91,26 @@ export class BucketsService {
       order: { createdAt: 'DESC' },
     });
 
+    // Get admin buckets if user is admin
+    let adminBuckets: Bucket[] = [];
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (user && user.role === UserRole.ADMIN) {
+      adminBuckets = await this.bucketsRepository.find({
+        where: { isAdmin: true },
+        relations: ['messages', 'messages.bucket', 'user', 'userBuckets'],
+        order: { createdAt: 'DESC' },
+      });
+    }
+
     // Combine and remove duplicates
-    const allBuckets = [...ownedBuckets, ...sharedBuckets, ...publicBuckets];
+    const allBuckets = [
+      ...ownedBuckets,
+      ...sharedBuckets,
+      ...publicBuckets,
+      ...adminBuckets,
+    ];
     const uniqueBuckets = allBuckets.filter(
       (bucket, index, self) =>
         index === self.findIndex((b) => b.id === bucket.id),
@@ -123,7 +145,15 @@ export class BucketsService {
 
     // Check if user owns the bucket or has read permissions
     const isOwner = baseBucket.user.id === userId;
-    if (!isOwner) {
+    
+    // Check if it's an admin bucket and user is admin
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    const isAdminAccessingAdminBucket = 
+      baseBucket.isAdmin && user && user.role === UserRole.ADMIN;
+
+    if (!isOwner && !isAdminAccessingAdminBucket) {
       const hasPermission = await this.entityPermissionService.hasPermissions(
         userId,
         ResourceType.BUCKET,

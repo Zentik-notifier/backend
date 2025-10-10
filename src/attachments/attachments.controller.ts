@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Post,
   Res,
@@ -30,7 +31,9 @@ import { DownloadFromUrlDto, UploadAttachmentDto } from './dto';
 @ApiTags('Attachments')
 @Controller('attachments')
 export class AttachmentsController {
-  constructor(private readonly attachmentsService: AttachmentsService) {}
+  private readonly logger = new Logger(AttachmentsController.name);
+
+  constructor(private readonly attachmentsService: AttachmentsService) { }
 
   @Post('upload')
   @UseGuards(JwtOrAccessTokenGuard, AttachmentsDisabledGuard)
@@ -74,16 +77,27 @@ export class AttachmentsController {
     type: Attachment,
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  downloadFromUrl(
+  async downloadFromUrl(
     @GetUser('id') userId: string,
     @Body() downloadDto: DownloadFromUrlDto,
   ) {
-    return this.attachmentsService.downloadAndSaveFromUrl(
-      userId,
-      downloadDto.url,
-      downloadDto.filename,
-      downloadDto.mediaType,
-    );
+    try {
+      const result = await this.attachmentsService.downloadAndSaveFromUrl(
+        userId,
+        downloadDto.url,
+        downloadDto.filename,
+        downloadDto.mediaType,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to download from URL ${downloadDto.url}, details: ${JSON.stringify({
+        message: error.message,
+        code: error.code,
+        statusCode: error.statusCode,
+        response: error.response?.data || error.response,
+      })}`);
+      throw error;
+    }
   }
 
   @Get('proxy-media')
@@ -115,7 +129,14 @@ export class AttachmentsController {
       const result = await this.attachmentsService.proxyMediaFromUrl(url, res);
       return result;
     } catch (error) {
-      console.error('[AttachmentsController] Proxy media error:', error);
+      this.logger.error(`Proxy media error for URL: ${url}`, error.stack);
+      this.logger.error(`Error details: ${JSON.stringify({
+        message: error.message,
+        code: error.code,
+        statusCode: error.statusCode,
+        response: error.response?.data || error.response,
+        headers: error.response?.headers,
+      })}`);
 
       if (error.message?.includes('timeout')) {
         return res.status(408).json({ error: 'Request timeout' });
@@ -125,7 +146,10 @@ export class AttachmentsController {
         return res.status(413).json({ error: 'Media too large' });
       }
 
-      return res.status(500).json({ error: 'Failed to proxy media' });
+      return res.status(500).json({
+        error: 'Failed to proxy media',
+        message: error.message
+      });
     }
   }
 
@@ -174,25 +198,39 @@ export class AttachmentsController {
   @ApiResponse({ status: 200, description: 'File downloaded successfully' })
   @ApiResponse({ status: 404, description: 'Attachment not found' })
   async downloadFilePublic(@Param('id') id: string, @Res() res: Response) {
-    const attachment = await this.attachmentsService.findOnePublic(id);
+    try {
+      this.logger.log(`Public download requested for attachment: ${id}`);
+      const attachment = await this.attachmentsService.findOnePublic(id);
 
-    res.setHeader('Content-Type', this.getMimeType(attachment.filename));
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename="${attachment.filename}"`,
-    );
+      res.setHeader('Content-Type', this.getMimeType(attachment.filename));
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${attachment.filename}"`,
+      );
 
-    const absolutePath = resolve(attachment.filepath);
+      const absolutePath = resolve(attachment.filepath);
 
-    const fs = require('fs');
-    if (!fs.existsSync(absolutePath)) {
-      console.error(`[ERROR] File does not exist: ${absolutePath}`);
-      return res.status(404).json({ error: 'File not found' });
+      const fs = require('fs');
+      if (!fs.existsSync(absolutePath)) {
+        this.logger.error(
+          `File does not exist for attachment ${id}: ${absolutePath}`,
+        );
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      const stats = fs.statSync(absolutePath);
+      this.logger.log(
+        `Sending file ${attachment.filename} (${stats.size} bytes)`,
+      );
+
+      res.sendFile(absolutePath);
+    } catch (error) {
+      this.logger.error(
+        `Failed to download public attachment ${id}`,
+        error.stack,
+      );
+      throw error;
     }
-
-    const stats = fs.statSync(absolutePath);
-
-    res.sendFile(absolutePath);
   }
 
   private getMimeType(filename: string): string {

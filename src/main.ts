@@ -197,6 +197,16 @@ async function bootstrap() {
     logger.error('❌ Error during admin users initialization:', err);
   }
 
+  // Initialize admin bucket at startup (after admin users)
+  try {
+    const dataSource = app.get(DataSource);
+    const { ensureAdminBucket } = await import('./seeds/admin-bucket.seed');
+    await ensureAdminBucket(dataSource);
+    logger.log('✅ Admin bucket initialization completed.');
+  } catch (err) {
+    logger.error('❌ Error during admin bucket initialization:', err);
+  }
+
   // Set up custom database logger to intercept all logs
   try {
     const databaseLogger = await app.resolve(DatabaseLoggerService);

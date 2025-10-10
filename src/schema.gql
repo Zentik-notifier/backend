@@ -52,6 +52,7 @@ type Bucket {
   description: String
   icon: String
   id: ID!
+  isAdmin: Boolean
   isProtected: Boolean
   isPublic: Boolean
   messages: [Message!]

@@ -5684,6 +5684,11 @@
             "description": "Whether the bucket is publicly accessible",
             "default": false
           },
+          "isAdmin": {
+            "type": "boolean",
+            "description": "Whether the bucket is an admin-only system bucket",
+            "default": false
+          },
           "user": {
             "$ref": "#/components/schemas/User"
           },

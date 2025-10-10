@@ -25,7 +25,7 @@ export class AttachmentsService {
     @InjectRepository(Attachment)
     private readonly attachmentsRepository: Repository<Attachment>,
     private readonly serverSettingsService: ServerSettingsService,
-  ) {}
+  ) { }
 
   private async getStoragePath(): Promise<string> {
     const storagePath =
@@ -96,18 +96,18 @@ export class AttachmentsService {
     // Validate MIME type
     const allowedMimeTypes = (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsAllowedMimeTypes))?.valueText
       ?.split(',') || [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'video/mp4',
-      'video/webm',
-      'audio/mpeg',
-      'audio/wav',
-      'audio/ogg',
-      'application/pdf',
-      'text/plain',
-    ];
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'video/mp4',
+        'video/webm',
+        'audio/mpeg',
+        'audio/wav',
+        'audio/ogg',
+        'application/pdf',
+        'text/plain',
+      ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
         `File type ${file.mimetype} is not allowed`,
@@ -118,13 +118,13 @@ export class AttachmentsService {
     const filepath = join(attachmentPath, uniqueFilename);
 
     // Debug file buffer
-    this.logger.log(
-      `[DEBUG] File buffer info: size=${file.buffer?.length || 0} originalSize=${file.size} mimetype=${file.mimetype}`,
+    this.logger.debug(
+      `File buffer info: size=${file.buffer?.length || 0} originalSize=${file.size} mimetype=${file.mimetype}`,
     );
 
     // Write file to storage
     await writeFile(filepath, file.buffer);
-    this.logger.log(
+    this.logger.debug(
       `Attachment file saved on filesystem: path=${filepath} size=${file.size}B userId=${userId}`,
     );
 
@@ -132,11 +132,11 @@ export class AttachmentsService {
     const fs = require('fs');
     if (fs.existsSync(filepath)) {
       const stats = fs.statSync(filepath);
-      this.logger.log(
-        `[DEBUG] File verification: exists=${fs.existsSync(filepath)} size=${stats.size} bytes`,
+      this.logger.debug(
+        `File verification: exists=${fs.existsSync(filepath)} size=${stats.size} bytes`,
       );
     } else {
-      this.logger.error(`[ERROR] File was not created: ${filepath}`);
+      this.logger.error(`File was not created: ${filepath}`);
     }
 
     // Create attachment record
@@ -174,95 +174,163 @@ export class AttachmentsService {
     return mimeTypes[ext || ''] || 'application/octet-stream';
   }
 
+  /**
+   * Helper method to download a file from URL with automatic redirect following
+   * @param url - The URL to download from
+   * @param maxFileSize - Maximum allowed file size in bytes
+   * @param maxRedirects - Maximum number of redirects to follow (default 5)
+   * @returns Promise<Buffer> - The downloaded file as a Buffer
+   */
+  private async downloadFromUrlWithRedirects(
+    url: string,
+    maxFileSize: number,
+    maxRedirects: number = 5,
+  ): Promise<Buffer> {
+    // Check if we've exceeded max redirects
+    if (maxRedirects <= 0) {
+      throw new BadRequestException('Too many redirects');
+    }
+
+    const urlObj = new URL(url);
+    const protocol = urlObj.protocol === 'https:' ? https : http;
+
+    return new Promise((resolve, reject) => {
+      const request = protocol.get(url, async (response) => {
+        const statusCode = response.statusCode || 0;
+
+        // Handle redirects (3xx) - follow them automatically
+        if (statusCode >= 300 && statusCode < 400) {
+          const redirectUrl = response.headers.location;
+          if (!redirectUrl) {
+            reject(
+              new BadRequestException(
+                `Received redirect (${statusCode}) but no Location header provided`,
+              ),
+            );
+            return;
+          }
+
+          this.logger.log(`Following redirect ${statusCode} to: ${redirectUrl}`);
+
+          // Recursively follow the redirect
+          try {
+            const buffer = await this.downloadFromUrlWithRedirects(
+              redirectUrl,
+              maxFileSize,
+              maxRedirects - 1,
+            );
+            resolve(buffer);
+          } catch (error) {
+            reject(error);
+          }
+          return;
+        }
+
+        // Check for successful response
+        if (statusCode !== 200) {
+          const errorMsg = `Failed to download file from URL - Status: ${statusCode}, Status Message: ${response.statusMessage}`;
+          if (statusCode >= 400) {
+            this.logger.error(errorMsg);
+          } else {
+            this.logger.warn(errorMsg);
+          }
+          reject(new BadRequestException(errorMsg));
+          return;
+        }
+
+        // Check content length for security
+        const contentLength = response.headers['content-length'];
+        if (contentLength && parseInt(contentLength) > maxFileSize) {
+          reject(
+            new BadRequestException(
+              `File size exceeds maximum allowed size of ${maxFileSize} bytes`,
+            ),
+          );
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        let totalSize = 0;
+
+        response.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+          totalSize += chunk.length;
+
+          // Check size as we go to avoid memory issues
+          if (totalSize > maxFileSize) {
+            request.destroy();
+            reject(
+              new BadRequestException(`File too large: ${totalSize} bytes`),
+            );
+            return;
+          }
+        });
+
+        response.on('end', () => {
+          try {
+            const buffer = Buffer.concat(chunks);
+            this.logger.log(`Download completed - Received ${buffer.length} bytes`);
+            resolve(buffer);
+          } catch (error) {
+            reject(error);
+          }
+        });
+
+        response.on('error', (error) => {
+          this.logger.error(`Response stream error for ${url}:`, error);
+          reject(new BadRequestException(`Response error: ${error.message}`));
+        });
+      });
+
+      request.on('error', (error) => {
+        this.logger.error(`Request error for ${url}:`, error);
+        this.logger.error(`Error details: ${JSON.stringify({
+          message: error.message,
+          code: (error as any).code,
+          errno: (error as any).errno,
+          syscall: (error as any).syscall,
+          hostname: (error as any).hostname,
+        })}`);
+        reject(
+          new BadRequestException(`Failed to download file: ${error.message}`),
+        );
+      });
+
+      request.setTimeout(30000, () => {
+        this.logger.warn(`Download timeout (30s) for URL: ${url}`);
+        request.destroy();
+        reject(new BadRequestException('Download timeout'));
+      });
+    });
+  }
+
   async proxyMediaFromUrl(url: string, res: any): Promise<void> {
     try {
       const urlObj = new URL(url);
-      const protocol = urlObj.protocol === 'https:' ? https : http;
-      
-      // Load max file size before entering the Promise
+
+      // Load max file size before downloading
       const maxFileSize =
         (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxFileSize))?.valueNumber ||
         10485760; // 10MB default
 
-      return new Promise((resolve, reject) => {
-        const request = protocol.get(url, (response) => {
-          if (response.statusCode !== 200) {
-            reject(
-              new Error(
-                `Failed to download file from URL: ${response.statusCode}`,
-              ),
-            );
-            return;
-          }
+      // Use the common download helper with redirect support
+      const buffer = await this.downloadFromUrlWithRedirects(url, maxFileSize);
 
-          // Check content length for security
-          const contentLength = response.headers['content-length'];
+      // Determine MIME type from URL or filename
+      const filename = urlObj.pathname.split('/').pop() || 'file';
+      const mimeType = this.getMimeType(filename);
 
-          if (contentLength && parseInt(contentLength) > maxFileSize) {
-            reject(
-              new Error(
-                `File size exceeds maximum allowed size of ${maxFileSize} bytes`,
-              ),
-            );
-            return;
-          }
+      // Set appropriate headers
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
 
-          const chunks: Buffer[] = [];
-          let totalSize = 0;
+      // Send the binary data
+      res.end(buffer);
 
-          response.on('data', (chunk: Buffer) => {
-            chunks.push(chunk);
-            totalSize += chunk.length;
-
-            // Check size as we go to avoid memory issues
-            if (totalSize > maxFileSize) {
-              reject(new Error(`File too large: ${totalSize} bytes`));
-              request.destroy();
-              return;
-            }
-          });
-
-          response.on('end', () => {
-            try {
-              const buffer = Buffer.concat(chunks);
-
-              // Determine MIME type from URL or filename
-              const filename = urlObj.pathname.split('/').pop() || 'file';
-              const mimeType = this.getMimeType(filename);
-
-              // Set appropriate headers
-              res.setHeader('Content-Type', mimeType);
-              res.setHeader('Content-Length', buffer.length);
-              res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-
-              // Send the binary data
-              res.end(buffer);
-
-              this.logger.log(
-                `Media proxied successfully: url=${url} size=${buffer.length}B mimeType=${mimeType}`,
-              );
-              resolve();
-            } catch (error) {
-              reject(error);
-            }
-          });
-
-          response.on('error', (error) => {
-            reject(error);
-          });
-        });
-
-        // Set timeout
-        request.setTimeout(30000, () => {
-          // 30 second timeout
-          request.destroy();
-          reject(new Error('Request timeout'));
-        });
-
-        request.on('error', (error) => {
-          reject(error);
-        });
-      });
+      this.logger.log(
+        `Media proxied successfully: url=${url} size=${buffer.length}B mimeType=${mimeType}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to proxy media from URL ${url}:`, error);
       throw error;
@@ -277,119 +345,75 @@ export class AttachmentsService {
   ): Promise<Attachment> {
     try {
       const urlObj = new URL(url);
-      const protocol = urlObj.protocol === 'https:' ? https : http;
-      
-      // Load max file size before entering the Promise
+
+      // Load max file size
       const maxFileSize =
         (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxFileSize))?.valueNumber ||
         10485760;
 
-      return new Promise((resolve, reject) => {
-        const request = protocol.get(url, (response) => {
-          if (response.statusCode !== 200) {
-            reject(
-              new BadRequestException(
-                `Failed to download file from URL: ${response.statusCode}`,
-              ),
-            );
-            return;
-          }
+      // Use the common download helper with redirect support
+      const buffer = await this.downloadFromUrlWithRedirects(url, maxFileSize);
 
-          const chunks: Buffer[] = [];
-          response.on('data', (chunk) => chunks.push(chunk));
+      // Get filename from URL if not provided
+      const finalFilename =
+        filename ||
+        urlObj.pathname.split('/').pop() ||
+        'downloaded_file';
 
-          response.on('end', async () => {
-            try {
-              const buffer = Buffer.concat(chunks);
+      // Generate unique attachment ID
+      const attachmentId = uuidv4();
+      const fileExtension = extname(finalFilename);
+      const uniqueFilename = `${attachmentId}${fileExtension}`;
 
-              // Validate file size
-              if (buffer.length > maxFileSize) {
-                reject(
-                  new BadRequestException(
-                    `File size exceeds maximum allowed size of ${maxFileSize} bytes`,
-                  ),
-                );
-                return;
-              }
+      // Determine final media type
+      let finalMediaType = mediaType;
+      if (!finalMediaType) {
+        // Try to infer from URL or filename
+        if (finalFilename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          finalMediaType = MediaType.IMAGE;
+        } else if (finalFilename.match(/\.(mp4|webm|avi|mov)$/i)) {
+          finalMediaType = MediaType.VIDEO;
+        } else if (finalFilename.match(/\.(mp3|wav|ogg|m4a)$/i)) {
+          finalMediaType = MediaType.AUDIO;
+        } else {
+          finalMediaType = MediaType.ICON; // Default fallback
+        }
+      }
 
-              // Get filename from URL if not provided
-              const finalFilename =
-                filename ||
-                urlObj.pathname.split('/').pop() ||
-                'downloaded_file';
+      // Get user-specific media type path: /attachments/userid/mediatype/id/
+      const attachmentPath = await this.getUserMediaTypePath(
+        userId,
+        finalMediaType,
+        attachmentId,
+      );
 
-              // Generate unique attachment ID
-              const attachmentId = uuidv4();
-              const fileExtension = extname(finalFilename);
-              const uniqueFilename = `${attachmentId}${fileExtension}`;
+      // Full file path: /attachments/userid/mediatype/id/filename
+      const filepath = join(attachmentPath, uniqueFilename);
 
-              // Determine final media type
-              let finalMediaType = mediaType;
-              if (!finalMediaType) {
-                // Try to infer from URL or filename
-                if (finalFilename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                  finalMediaType = MediaType.IMAGE;
-                } else if (finalFilename.match(/\.(mp4|webm|avi|mov)$/i)) {
-                  finalMediaType = MediaType.VIDEO;
-                } else if (finalFilename.match(/\.(mp3|wav|ogg|m4a)$/i)) {
-                  finalMediaType = MediaType.AUDIO;
-                } else {
-                  finalMediaType = MediaType.ICON; // Default fallback
-                }
-              }
+      // Write file to storage
+      await writeFile(filepath, buffer);
+      this.logger.log(
+        `Attachment file saved on filesystem: path=${filepath} size=${buffer.length}B userId=${userId}`,
+      );
 
-              // Get user-specific media type path: /attachments/userid/mediatype/id/
-              const attachmentPath = await this.getUserMediaTypePath(
-                userId,
-                finalMediaType,
-                attachmentId,
-              );
-
-              // Full file path: /attachments/userid/mediatype/id/filename
-              const filepath = join(attachmentPath, uniqueFilename);
-
-              // Write file to storage
-              await writeFile(filepath, buffer);
-              this.logger.log(
-                `Attachment file saved on filesystem: path=${filepath} size=${buffer.length}B userId=${userId}`,
-              );
-
-              // Create attachment record
-              const attachment = this.attachmentsRepository.create({
-                id: attachmentId,
-                filename: finalFilename,
-                filepath,
-                mediaType: finalMediaType,
-                userId,
-              });
-
-              const savedAttachment =
-                await this.attachmentsRepository.save(attachment);
-              this.logger.log(
-                `Attachment entity created: id=${savedAttachment.id} filename=${finalFilename} path=${filepath} mediaType=${finalMediaType}`,
-              );
-              resolve(savedAttachment);
-            } catch (error) {
-              reject(error);
-            }
-          });
-        });
-
-        request.on('error', (error) => {
-          reject(
-            new BadRequestException(
-              `Failed to download file: ${error.message}`,
-            ),
-          );
-        });
-
-        request.setTimeout(30000, () => {
-          request.destroy();
-          reject(new BadRequestException('Download timeout'));
-        });
+      // Create attachment record
+      const attachment = this.attachmentsRepository.create({
+        id: attachmentId,
+        filename: finalFilename,
+        filepath,
+        mediaType: finalMediaType,
+        userId,
       });
+
+      const savedAttachment =
+        await this.attachmentsRepository.save(attachment);
+      this.logger.log(
+        `Attachment entity created: id=${savedAttachment.id} filename=${finalFilename} path=${filepath} mediaType=${finalMediaType}`,
+      );
+      return savedAttachment;
     } catch (error) {
-      throw new BadRequestException(`Invalid URL: ${error.message}`);
+      this.logger.error(`Invalid URL or download error for ${url}:`, error);
+      throw new BadRequestException(`Failed to download: ${error.message}`);
     }
   }
 
@@ -453,7 +477,7 @@ export class AttachmentsService {
     const attachment = await this.findOne(id, userId);
     try {
       await rm(attachment.filepath, { force: true });
-    } catch {}
+    } catch { }
     await this.attachmentsRepository.remove(attachment);
   }
 
@@ -472,7 +496,7 @@ export class AttachmentsService {
     for (const att of oldAttachments) {
       try {
         await rm(att.filepath, { force: true });
-      } catch {}
+      } catch { }
       await this.attachmentsRepository.remove(att);
       deleted += 1;
     }

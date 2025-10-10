@@ -63,6 +63,15 @@ export class Bucket {
   @Column({ default: false })
   isPublic?: boolean;
 
+  @Field({ nullable: true })
+  @ApiProperty({
+    description: 'Whether the bucket is an admin-only system bucket',
+    default: false,
+    required: false,
+  })
+  @Column({ default: false })
+  isAdmin?: boolean;
+
   @Field(() => User)
   @ApiProperty({ type: () => User })
   @ManyToOne(() => User, (user) => user.buckets, { onDelete: 'CASCADE' })
