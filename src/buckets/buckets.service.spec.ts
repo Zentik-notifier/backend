@@ -5,10 +5,12 @@ import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository } from 'typeorm';
 import { Bucket } from '../entities/bucket.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
+import { User } from '../entities/user.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { BucketsService } from './buckets.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto';
+import { UserRole } from '../users/users.types';
 
 describe('BucketsService', () => {
   let service: BucketsService;
@@ -86,6 +88,15 @@ describe('BucketsService', () => {
             create: jest.fn().mockImplementation((d) => d),
             save: jest.fn().mockImplementation((d) => ({ id: 'ub-1', ...d })),
             remove: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: {
+            findOne: jest.fn().mockResolvedValue({ 
+              id: 'user-1', 
+              role: UserRole.USER 
+            }),
           },
         },
         {

@@ -3012,6 +3012,167 @@
         ]
       }
     },
+    "/api/v1/admin-subscriptions": {
+      "post": {
+        "operationId": "AdminSubscriptionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create or update admin subscription for current user",
+        "tags": [
+          "Admin Subscriptions"
+        ]
+      },
+      "get": {
+        "operationId": "AdminSubscriptionsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all admin subscriptions (admin only)",
+        "tags": [
+          "Admin Subscriptions"
+        ]
+      }
+    },
+    "/api/v1/admin-subscriptions/me": {
+      "get": {
+        "operationId": "AdminSubscriptionsController_findMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user admin subscription",
+        "tags": [
+          "Admin Subscriptions"
+        ]
+      }
+    },
+    "/api/v1/admin-subscriptions/{id}": {
+      "get": {
+        "operationId": "AdminSubscriptionsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get admin subscription by ID",
+        "tags": [
+          "Admin Subscriptions"
+        ]
+      },
+      "put": {
+        "operationId": "AdminSubscriptionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update admin subscription",
+        "tags": [
+          "Admin Subscriptions"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminSubscriptionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete admin subscription",
+        "tags": [
+          "Admin Subscriptions"
+        ]
+      }
+    },
     "/api/v1/entity-permissions/resource-permissions": {
       "get": {
         "operationId": "EntityPermissionsController_getResourcePermissions",
@@ -6257,6 +6418,72 @@
         },
         "required": [
           "configType"
+        ]
+      },
+      "CreateAdminSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "eventTypes": {
+            "type": "array",
+            "description": "Array of EventType subscriptions",
+            "example": [
+              "LOGIN",
+              "MESSAGE"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "LOGIN",
+                "LOGIN_OAUTH",
+                "LOGOUT",
+                "REGISTER",
+                "PUSH_PASSTHROUGH",
+                "MESSAGE",
+                "NOTIFICATION",
+                "BUCKET_SHARING",
+                "BUCKET_UNSHARING",
+                "DEVICE_REGISTER",
+                "DEVICE_UNREGISTER",
+                "ACCOUNT_DELETE"
+              ]
+            }
+          }
+        },
+        "required": [
+          "eventTypes"
+        ]
+      },
+      "UpdateAdminSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "eventTypes": {
+            "type": "array",
+            "description": "Array of EventType subscriptions",
+            "example": [
+              "LOGIN",
+              "MESSAGE"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "LOGIN",
+                "LOGIN_OAUTH",
+                "LOGOUT",
+                "REGISTER",
+                "PUSH_PASSTHROUGH",
+                "MESSAGE",
+                "NOTIFICATION",
+                "BUCKET_SHARING",
+                "BUCKET_UNSHARING",
+                "DEVICE_REGISTER",
+                "DEVICE_UNREGISTER",
+                "ACCOUNT_DELETE"
+              ]
+            }
+          }
+        },
+        "required": [
+          "eventTypes"
         ]
       },
       "GrantEntityPermissionInput": {

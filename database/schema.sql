@@ -5,6 +5,7 @@
 -- Drop tables if they exist (in correct order due to foreign keys)
 DROP TABLE IF EXISTS entity_permissions CASCADE;
 DROP TABLE IF EXISTS user_settings CASCADE;
+DROP TABLE IF EXISTS admin_subscriptions CASCADE;
 DROP TABLE IF EXISTS payload_mappers CASCADE;
 DROP TABLE IF EXISTS entity_executions CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
@@ -296,6 +297,16 @@ CREATE TABLE user_settings (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE("userId", "deviceId", "configType")
+);
+
+-- Create admin_subscriptions table for admin event type subscriptions
+CREATE TABLE admin_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "eventTypes" TEXT[] DEFAULT '{}' NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE("userId")
 );
 
 -- Create user_webhooks table

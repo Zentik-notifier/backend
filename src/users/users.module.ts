@@ -6,10 +6,14 @@ import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { User } from '../entities/user.entity';
 import { UserSetting } from '../entities/user-setting.entity';
+import { AdminSubscription } from '../entities/admin-subscription.entity';
 import { EventsModule } from '../events/events.module';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { AdminSubscriptionsController } from './admin-subscriptions.controller';
+import { AdminSubscriptionsService } from './admin-subscriptions.service';
+import { AdminSubscriptionsResolver } from './admin-subscriptions.resolver';
 
 @Module({
   imports: [
@@ -20,12 +24,13 @@ import { UsersService } from './users.service';
       Notification,
       SystemAccessToken,
       UserSetting,
+      AdminSubscription,
     ]),
     AuthModule,
     EventsModule,
   ],
-  providers: [UsersService],
-  controllers: [UsersController],
-  exports: [UsersService],
+  providers: [UsersService, AdminSubscriptionsService, AdminSubscriptionsResolver],
+  controllers: [UsersController, AdminSubscriptionsController],
+  exports: [UsersService, AdminSubscriptionsService],
 })
 export class UsersModule {}

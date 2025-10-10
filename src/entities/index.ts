@@ -1,3 +1,4 @@
+export { AdminSubscription } from './admin-subscription.entity';
 export { Attachment } from './attachment.entity';
 export { Bucket } from './bucket.entity';
 export { EntityPermission } from './entity-permission.entity';
