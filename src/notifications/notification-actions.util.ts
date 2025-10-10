@@ -72,7 +72,7 @@ export function generateAutomaticActions(
     });
   }
 
-  if (message.addOpenNotificationAction) {
+  if (message.addOpenNotificationAction !== false) {
     actions.push({
       type: NotificationActionType.OPEN_NOTIFICATION,
       value: notification.id, // Use notification ID instead of fixed string
