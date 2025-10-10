@@ -1264,6 +1264,111 @@
         ]
       }
     },
+    "/api/v1/loki/logs": {
+      "get": {
+        "description": "Returns logs in Loki/Promtail compatible format. Requires authentication with a System Access Token (Bearer sat_xxxxx).",
+        "operationId": "LokiController_getLogs",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of logs to return (default: 100, max: 5000)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "description": "Filter logs by level",
+            "schema": {
+              "enum": [
+                "error",
+                "warn",
+                "info",
+                "http",
+                "verbose",
+                "debug",
+                "silly"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "context",
+            "required": false,
+            "in": "query",
+            "description": "Filter logs by context",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search in log messages",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs in Loki format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "streams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "stream": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid system access token"
+          },
+          "403": {
+            "description": "Forbidden - Log storage is disabled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get logs in Loki format for Promtail (requires System Access Token)",
+        "tags": [
+          "Loki"
+        ]
+      }
+    },
     "/api/v1/oauth-providers": {
       "post": {
         "operationId": "OAuthProvidersController_create",
@@ -5009,12 +5114,6 @@
               "LogStorageEnabled",
               "LogRetentionDays",
               "LokiEnabled",
-              "LokiUrl",
-              "LokiUsername",
-              "LokiPassword",
-              "LokiLabels",
-              "LokiBatchSize",
-              "LokiBatchIntervalMs",
               "PrometheusEnabled"
             ]
           },

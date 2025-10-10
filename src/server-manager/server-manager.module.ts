@@ -14,6 +14,7 @@ import { LogStorageService } from './log-storage.service';
 import { LokiLoggerService } from './loki-logger.service';
 import { DatabaseLoggerService } from './database-logger.service';
 import { CustomPrometheusController } from './prometheus.controller';
+import { LokiController } from './loki.controller';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { CustomPrometheusController } from './prometheus.controller';
       },
     }),
   ],
-  controllers: [ServerManagerController, CustomPrometheusController],
+  controllers: [ServerManagerController, CustomPrometheusController, LokiController],
   providers: [
     ServerManagerService,
     ServerManagerResolver,

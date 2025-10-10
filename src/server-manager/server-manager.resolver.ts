@@ -6,7 +6,6 @@ import { BackupInfoDto, UpdateServerSettingDto, BatchUpdateSettingInput } from '
 import { BackupResult, ServerManagerService } from './server-manager.service';
 import { ServerSettingsService } from './server-settings.service';
 import { LogStorageService } from './log-storage.service';
-import { LokiLoggerService } from './loki-logger.service';
 import { GetLogsInput, PaginatedLogs } from './dto/get-logs.dto';
 import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
 
@@ -17,8 +16,7 @@ export class ServerManagerResolver {
     private readonly serverManagerService: ServerManagerService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly logStorageService: LogStorageService,
-    private readonly lokiLoggerService: LokiLoggerService,
-  ) {}
+  ) { }
 
   @Query(() => [BackupInfoDto], {
     name: 'listBackups',

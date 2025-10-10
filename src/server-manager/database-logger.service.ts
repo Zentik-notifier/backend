@@ -1,6 +1,5 @@
 import { Injectable, LoggerService, Scope, Inject, forwardRef, Logger, ConsoleLogger, LogLevel as NestLogLevel } from '@nestjs/common';
 import { LogStorageService } from './log-storage.service';
-import { LokiLoggerService } from './loki-logger.service';
 import { LogLevel } from '../entities/log.entity';
 import { ServerSettingsService } from './server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
@@ -18,8 +17,6 @@ export class DatabaseLoggerService implements LoggerService {
 
   constructor(
     private readonly logStorageService: LogStorageService,
-    @Inject(forwardRef(() => LokiLoggerService))
-    private readonly lokiLoggerService: LokiLoggerService,
     @Inject(forwardRef(() => ServerSettingsService))
     private readonly serverSettingsService: ServerSettingsService,
   ) {
@@ -38,7 +35,7 @@ export class DatabaseLoggerService implements LoggerService {
         'info'
       );
       this.currentLogLevel = logLevel || 'info';
-      
+
       // Map our log level to NestJS log levels
       const logLevels: NestLogLevel[] = this.getEnabledLogLevels(this.currentLogLevel);
       this.nestLogger.setLogLevels(logLevels);
@@ -53,7 +50,7 @@ export class DatabaseLoggerService implements LoggerService {
    */
   private getEnabledLogLevels(level: string): NestLogLevel[] {
     const allLevels: NestLogLevel[] = ['error', 'warn', 'log', 'debug', 'verbose'];
-    
+
     switch (level) {
       case 'error':
         return ['error'];
@@ -120,8 +117,8 @@ export class DatabaseLoggerService implements LoggerService {
     trace?: string,
   ): void {
     // Convert message to string if it's an object
-    const messageStr = typeof message === 'string' 
-      ? message 
+    const messageStr = typeof message === 'string'
+      ? message
       : JSON.stringify(message);
 
     const metadata = typeof message === 'object' && message !== null ? message : undefined;
@@ -135,21 +132,6 @@ export class DatabaseLoggerService implements LoggerService {
         .catch((error) => {
           // Silently fail to avoid infinite loops
           console.error('Failed to save log to database:', error);
-        });
-
-      // Send to Loki
-      this.lokiLoggerService
-        .pushLog({
-          timestamp,
-          level,
-          message: messageStr,
-          context,
-          trace,
-          metadata,
-        })
-        .catch((error) => {
-          // Silently fail to avoid infinite loops
-          console.error('Failed to send log to Loki:', error);
         });
     });
   }
