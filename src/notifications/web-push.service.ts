@@ -61,7 +61,6 @@ export class WebPushService {
     }
 
     const payload = JSON.stringify(this.buildWebPayload(notification));
-    // console.log('payload', payload);
 
     const results: Array<{
       endpoint: string;

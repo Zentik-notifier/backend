@@ -29,7 +29,7 @@ export class PayloadMapperService {
     private readonly payloadMapperRepository: Repository<PayloadMapper>,
     private readonly builtinParserService: BuiltinParserService,
     private readonly entityExecutionService: EntityExecutionService,
-  ) {}
+  ) { }
 
   async create(
     userId: string,
@@ -151,7 +151,6 @@ export class PayloadMapperService {
     userId: string,
     bucketId: string,
   ): Promise<CreateMessageDto> {
-    console.log(`[PayloadMapper] 🚀 transformPayload called for parser '${parserName}' by user ${userId}`);
 
     let parserResult: ParserResult;
     let parserInfo: { entityName: string; entityId?: string; parserType: 'builtin' | 'user' };
@@ -159,7 +158,6 @@ export class PayloadMapperService {
     try {
       // Check if it's a builtin parser
       if (this.builtinParserService.hasParser(parserName)) {
-        console.log(`[PayloadMapper] 🔧 Using builtin parser '${parserName}'`);
         // Get the builtin parser to extract the builtInType
         const builtinParser = this.builtinParserService.getAllParsers().find(p => p.name === parserName);
         parserInfo = {
@@ -173,7 +171,6 @@ export class PayloadMapperService {
         );
       } else {
         // Look up user-created payload mapper by name or ID
-        console.log(`[PayloadMapper] 🔍 Looking for user parser '${parserName}'`);
         const payloadMapper = await this.findUserPayloadMapperByNameOrId(
           parserName,
           userId,
@@ -183,7 +180,6 @@ export class PayloadMapperService {
           throw new NotFoundException(`User parser '${parserName}' not found`);
         }
 
-        console.log(`[PayloadMapper] ✅ Found user parser '${payloadMapper.name}' (ID: ${payloadMapper.id})`);
         parserInfo = {
           entityName: payloadMapper.name,
           entityId: payloadMapper.id,
@@ -218,9 +214,6 @@ export class PayloadMapperService {
         errors: parserResult.errors,
         durationMs: parserResult.executionTimeMs,
       });
-
-      console.log(`[PayloadMapper] 💾 Execution tracked for ${parserInfo.parserType} parser '${parserName}' - Status: ${parserResult.status} (${parserResult.executionTimeMs}ms)`);
-
     } catch (trackingError) {
       // Log but don't throw - tracking shouldn't break the main flow
       console.error('[PayloadMapper] ❌ Failed to track payload mapper execution:', trackingError);
@@ -276,22 +269,15 @@ export class PayloadMapperService {
     let executionErrors: string | undefined;
     let result: CreateMessageDto | undefined;
 
-    console.log(`[PayloadMapper] 🔄 Executing user parser '${payloadMapper.name}' (ID: ${payloadMapper.id})`);
-    console.log(`[PayloadMapper] 📥 Input payload:`, JSON.stringify(payload, null, 2));
-    console.log(`[PayloadMapper] 🪣 Bucket ID: ${bucketId}`);
-
     try {
       // Create a function from the stored JavaScript code
-      console.log(`[PayloadMapper] ⚡ Evaluating JavaScript function for parser '${payloadMapper.name}'`);
       const userFunction = eval(payloadMapper.jsEvalFn);
 
       // Execute the user function with the payload
-      console.log(`[PayloadMapper] 🚀 Executing parser function...`);
       const transformedPayload = userFunction(payload);
 
       // Check if result is null/undefined (SKIPPED status)
       if (transformedPayload === null || transformedPayload === undefined) {
-        console.log(`[PayloadMapper] ⏭️ Parser '${payloadMapper.name}' returned null/undefined - marking as SKIPPED`);
         executionStatus = ExecutionStatus.SKIPPED;
         return {
           status: executionStatus,
@@ -310,15 +296,9 @@ export class PayloadMapperService {
         bucketId: bucketId,
       };
 
-      console.log(`[PayloadMapper] ✅ User parser '${payloadMapper.name}' executed successfully`);
-      console.log(`[PayloadMapper] 📤 Output result:`, JSON.stringify(result, null, 2));
-
     } catch (error: any) {
       executionStatus = ExecutionStatus.ERROR;
       executionErrors = error.message;
-
-      console.error(`[PayloadMapper] ❌ Error executing user parser '${payloadMapper.name}':`, error.message);
-      console.error(`[PayloadMapper] ❌ Error stack:`, error.stack);
 
       return {
         status: executionStatus,
@@ -347,13 +327,8 @@ export class PayloadMapperService {
     let executionErrors: string | undefined;
     let result: CreateMessageDto | undefined;
 
-    console.log(`[PayloadMapper] 🔄 Executing builtin parser '${parserName}'`);
-    console.log(`[PayloadMapper] 📥 Input payload:`, JSON.stringify(payload, null, 2));
-    console.log(`[PayloadMapper] 🪣 Bucket ID: ${bucketId}`);
-
     try {
       // Transform the payload using the builtin parser
-      console.log(`[PayloadMapper] 🚀 Executing builtin parser '${parserName}'...`);
       const transformedPayload = this.builtinParserService.transformPayload(
         parserName,
         payload,
@@ -361,7 +336,6 @@ export class PayloadMapperService {
 
       // Check if result is null/undefined (SKIPPED status)
       if (transformedPayload === null || transformedPayload === undefined) {
-        console.log(`[PayloadMapper] ⏭️ Builtin parser '${parserName}' returned null/undefined - marking as SKIPPED`);
         executionStatus = ExecutionStatus.SKIPPED;
         return {
           status: executionStatus,
@@ -380,15 +354,9 @@ export class PayloadMapperService {
         bucketId: bucketId,
       };
 
-      console.log(`[PayloadMapper] ✅ Builtin parser '${parserName}' executed successfully`);
-      console.log(`[PayloadMapper] 📤 Output result:`, JSON.stringify(result, null, 2));
-
     } catch (error: any) {
       executionStatus = ExecutionStatus.ERROR;
       executionErrors = error.message;
-
-      console.error(`[PayloadMapper] ❌ Error executing builtin parser '${parserName}':`, error.message);
-      console.error(`[PayloadMapper] ❌ Error stack:`, error.stack);
 
       return {
         status: executionStatus,
