@@ -40,7 +40,7 @@ export class ServerManagerController {
     private readonly lokiLoggerService: LokiLoggerService,
     private readonly prometheusService: PrometheusService,
     private readonly systemAccessTokenService: SystemAccessTokenService,
-  ) {}
+  ) { }
 
   @Get('backups')
   @ApiOperation({ summary: 'List all database backups' })
@@ -190,16 +190,6 @@ export class ServerManagerController {
     return { count };
   }
 
-  @Get('logs/count-by-level')
-  @ApiOperation({ summary: 'Get log count by level' })
-  @ApiResponse({
-    status: 200,
-    description: 'Log count grouped by level',
-  })
-  async getLogCountByLevel() {
-    return this.logStorageService.getLogCountByLevel();
-  }
-
   @Post('logs/cleanup')
   @ApiOperation({ summary: 'Manually trigger log cleanup' })
   @ApiResponse({
@@ -253,34 +243,6 @@ export class ServerManagerController {
       return {
         success: false,
         message: `Failed to flush logs: ${error.message}`,
-      };
-    }
-  }
-
-  @Post('loki/reload')
-  @ApiOperation({ summary: 'Reload Loki configuration from settings' })
-  @ApiResponse({
-    status: 200,
-    description: 'Loki configuration reloaded successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        message: { type: 'string' },
-      },
-    },
-  })
-  async reloadLokiConfig(): Promise<{ success: boolean; message: string }> {
-    try {
-      await this.lokiLoggerService.reloadSettings();
-      return {
-        success: true,
-        message: 'Loki configuration reloaded successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to reload Loki configuration: ${error.message}`,
       };
     }
   }

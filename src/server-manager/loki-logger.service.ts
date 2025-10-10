@@ -254,16 +254,6 @@ export class LokiLoggerService {
   }
 
   /**
-   * Reload settings (call this when settings are updated)
-   */
-  async reloadSettings(): Promise<void> {
-    if (this.flushTimeout) {
-      clearTimeout(this.flushTimeout);
-    }
-    await this.initializeSettings();
-  }
-
-  /**
    * Cleanup on module destroy
    */
   async onModuleDestroy(): Promise<void> {

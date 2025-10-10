@@ -127,15 +127,6 @@ export class ServerManagerResolver {
     return this.logStorageService.getTotalLogCount();
   }
 
-  @Query(() => String, {
-    name: 'logCountByLevel',
-    description: 'Get log count by level',
-  })
-  async getLogCountByLevel(): Promise<string> {
-    const counts = await this.logStorageService.getLogCountByLevel();
-    return JSON.stringify(counts);
-  }
-
   @Mutation(() => Boolean, {
     name: 'triggerLogCleanup',
     description: 'Manually trigger log cleanup based on retention policy',
@@ -160,19 +151,6 @@ export class ServerManagerResolver {
       return true;
     } catch (error) {
       throw new Error(`Failed to flush logs to Loki: ${error.message}`);
-    }
-  }
-
-  @Mutation(() => Boolean, {
-    name: 'reloadLokiConfig',
-    description: 'Reload Loki configuration from settings',
-  })
-  async reloadLokiConfig(): Promise<boolean> {
-    try {
-      await this.lokiLoggerService.reloadSettings();
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to reload Loki configuration: ${error.message}`);
     }
   }
 }

@@ -187,27 +187,4 @@ export class LogStorageService implements OnModuleInit {
   async getTotalLogCount(): Promise<number> {
     return this.logRepository.count();
   }
-
-  /**
-   * Get log count by level
-   */
-  async getLogCountByLevel(): Promise<Record<LogLevel, number>> {
-    const counts = await this.logRepository
-      .createQueryBuilder('log')
-      .select('log.level', 'level')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('log.level')
-      .getRawMany();
-
-    const result: any = {};
-    for (const level of Object.values(LogLevel)) {
-      result[level] = 0;
-    }
-
-    counts.forEach((item) => {
-      result[item.level] = parseInt(item.count, 10);
-    });
-
-    return result;
-  }
 }

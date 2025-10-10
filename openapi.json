@@ -1215,26 +1215,6 @@
         ]
       }
     },
-    "/api/v1/server-manager/logs/count-by-level": {
-      "get": {
-        "operationId": "ServerManagerController_getLogCountByLevel",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Log count grouped by level"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get log count by level",
-        "tags": [
-          "Server Manager"
-        ]
-      }
-    },
     "/api/v1/server-manager/logs/cleanup": {
       "post": {
         "operationId": "ServerManagerController_triggerLogCleanup",
@@ -1300,41 +1280,6 @@
           }
         ],
         "summary": "Force flush all pending logs to Loki",
-        "tags": [
-          "Server Manager"
-        ]
-      }
-    },
-    "/api/v1/server-manager/loki/reload": {
-      "post": {
-        "operationId": "ServerManagerController_reloadLokiConfig",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Loki configuration reloaded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Reload Loki configuration from settings",
         "tags": [
           "Server Manager"
         ]

@@ -438,9 +438,6 @@ type Mutation {
   refreshAccessToken(refreshToken: String!): RefreshTokenResponse!
   register(input: RegisterDto!): RegisterResponse!
   registerDevice(input: RegisterDeviceDto!): UserDevice!
-
-  """Reload Loki configuration from settings"""
-  reloadLokiConfig: Boolean!
   removeDevice(deviceId: String!): Boolean!
   removeDeviceByToken(deviceToken: String!): Boolean!
   requestEmailConfirmation(input: RequestEmailConfirmationDto!): EmailConfirmationResponseDto!
@@ -655,9 +652,6 @@ type Query {
   """List all available database backups"""
   listBackups: [BackupInfoDto!]!
   listSystemTokens: [SystemAccessTokenDto!]!
-
-  """Get log count by level"""
-  logCountByLevel: String!
 
   """Get logs with pagination and filtering"""
   logs(input: GetLogsInput!): PaginatedLogs!
