@@ -16,7 +16,7 @@ export class CustomPrometheusController extends PrometheusController {
   }
 
   @Get()
-//   @UseGuards(SystemAccessTokenGuard)
+  @UseGuards(SystemAccessTokenGuard)
   @ApiBearerAuth()
   @ApiOperation({ 
     summary: 'Get Prometheus metrics (requires System Access Token)',

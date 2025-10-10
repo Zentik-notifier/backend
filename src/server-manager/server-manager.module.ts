@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { PrometheusController, PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AuthModule } from '../auth/auth.module';
 import { SystemAccessTokenModule } from '../system-access-token/system-access-token.module';
 import { ServerSetting } from '../entities/server-setting.entity';
@@ -22,13 +22,12 @@ import { CustomPrometheusController } from './prometheus.controller';
     forwardRef(() => AuthModule),
     forwardRef(() => SystemAccessTokenModule),
     PrometheusModule.register({
-      controller: CustomPrometheusController
-      // defaultMetrics: {
-      //   enabled: true,
-      // },
+      defaultMetrics: {
+        enabled: true,
+      },
     }),
   ],
-  controllers: [ServerManagerController],
+  controllers: [ServerManagerController, CustomPrometheusController],
   providers: [
     ServerManagerService,
     ServerManagerResolver,
