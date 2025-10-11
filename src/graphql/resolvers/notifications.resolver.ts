@@ -64,7 +64,13 @@ export class UserNotificationStats {
   thisWeek: number;
 
   @Field()
+  last7Days: number;
+
+  @Field()
   thisMonth: number;
+
+  @Field()
+  last30Days: number;
 
   @Field()
   total: number;
@@ -355,7 +361,11 @@ export class NotificationsResolver {
     const now = new Date();
     const today = startOfDay(now);
     const thisWeek = startOfWeek(now, { weekStartsOn: 1 }); // Monday as start of week
+    const last7Days = new Date(now);
+    last7Days.setDate(now.getDate() - 7);
     const thisMonth = startOfMonth(now);
+    const last30Days = new Date(now);
+    last30Days.setDate(now.getDate() - 30);
 
     const events = await this.eventsService.findByUserId(targetUserId);
 
@@ -380,6 +390,14 @@ export class NotificationsResolver {
       );
     }).length;
 
+    const last7DaysCount = notificationEvents.filter((e) => {
+      const eventDate = new Date(e.createdAt);
+      return (
+        isAfter(eventDate, last7Days) ||
+        eventDate.getTime() === last7Days.getTime()
+      );
+    }).length;
+
     const monthCount = notificationEvents.filter((e) => {
       const eventDate = new Date(e.createdAt);
       return (
@@ -388,16 +406,26 @@ export class NotificationsResolver {
       );
     }).length;
 
+    const last30DaysCount = notificationEvents.filter((e) => {
+      const eventDate = new Date(e.createdAt);
+      return (
+        isAfter(eventDate, last30Days) ||
+        eventDate.getTime() === last30Days.getTime()
+      );
+    }).length;
+
     const totalCount = notificationEvents.length;
 
     this.logger.debug(
-      `User ${targetUserId} stats: today=${todayCount}, week=${weekCount}, month=${monthCount}, total=${totalCount} (total events: ${notificationEvents.length})`,
+      `User ${targetUserId} stats: today=${todayCount}, week=${weekCount}, last7Days=${last7DaysCount}, month=${monthCount}, last30Days=${last30DaysCount}, total=${totalCount} (total events: ${notificationEvents.length})`,
     );
 
     return {
       today: todayCount,
       thisWeek: weekCount,
+      last7Days: last7DaysCount,
       thisMonth: monthCount,
+      last30Days: last30DaysCount,
       total: totalCount,
     };
   }
