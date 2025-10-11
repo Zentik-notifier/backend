@@ -13,10 +13,12 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { EventTrackingService } from 'src/events/event-tracking.service';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { Notification } from '../entities/notification.entity';
@@ -25,23 +27,20 @@ import { GetSystemAccessToken } from '../system-access-token/decorators/get-syst
 import { SystemAccessTokenGuard } from '../system-access-token/system-access-token.guard';
 import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
 import {
-  ExternalNotifyRequestDto,
-  ExternalPlatform,
-} from './dto/external-notify.dto';
-import { ApiBody } from '@nestjs/swagger';
-import {
-  MarkReceivedDto,
   DeviceReportReceivedDto,
-  UpdateReceivedUpToDto,
   ExternalNotifyRequestDocDto,
+  MarkReceivedDto,
   NotificationServicesInfoDto,
+  UpdateReceivedUpToDto,
 } from './dto';
-import { NotificationsService } from './notifications.service';
-import { IOSPushService } from './ios-push.service';
+import {
+  ExternalNotifyRequestDto
+} from './dto/external-notify.dto';
 import { FirebasePushService } from './firebase-push.service';
-import { WebPushService } from './web-push.service';
+import { IOSPushService } from './ios-push.service';
+import { NotificationsService } from './notifications.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
-import { EventTrackingService } from 'src/events/event-tracking.service';
+import { WebPushService } from './web-push.service';
 
 @UseGuards(JwtOrAccessTokenGuard)
 @Controller('notifications')
