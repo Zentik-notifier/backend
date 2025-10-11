@@ -289,6 +289,7 @@ describe('MessagesService', () => {
         expect.any(Object),
         'user-1',
         ['user-1', 'user-2', 'user-3'],
+        false,
       );
       expect(result).toEqual(mockMessage);
     });
@@ -300,6 +301,7 @@ describe('MessagesService', () => {
         expect.any(Object),
         'user-1',
         [],
+        false,
       );
       expect(result).toEqual(mockMessage);
     });
@@ -329,6 +331,7 @@ describe('MessagesService', () => {
         expect.any(Object),
         'user-1',
         [],
+        false,
       );
       expect(result).toEqual(mockMessage);
     });
@@ -694,6 +697,7 @@ describe('MessagesService', () => {
           '550e8400-e29b-41d4-a716-446655440000',
           '550e8400-e29b-41d4-a716-446655440001',
         ], // Should use actual user IDs
+        false,
       );
       expect(result).toEqual(mockMessage);
     });
@@ -754,6 +758,7 @@ describe('MessagesService', () => {
           '550e8400-e29b-41d4-a716-446655440000',
           '550e8400-e29b-41d4-a716-446655440001',
         ], // Should use actual user IDs
+        false,
       );
       expect(result).toEqual(mockMessage);
     });
