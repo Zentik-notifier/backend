@@ -15,7 +15,6 @@ export class AttachmentsResolver {
     @Args('userId', { type: () => ID }) userId: string,
     @GetUser('id') requestingUserId: string,
   ): Promise<Attachment[]> {
-    // Verifica che l'utente possa accedere solo ai propri attachments
     if (userId !== requestingUserId) {
       throw new Error('You can only access your own attachments');
     }
