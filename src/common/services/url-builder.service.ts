@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UrlBuilderService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   /**
    * Builds a complete URL for a given endpoint path
@@ -15,8 +15,7 @@ export class UrlBuilderService {
       this.configService.get<string>('PUBLIC_BACKEND_URL') ||
       'http://localhost:3000'
     ).replace(/\/$/, '');
-    const apiPrefix =
-      this.configService.get<string>('BACKEND_API_PREFIX') || '/api/v1';
+    const apiPrefix = '/api/v1';
 
     // Normalize API prefix to start with one / and no trailing /
     const normalizedPrefix = `/${apiPrefix}`
@@ -51,25 +50,6 @@ export class UrlBuilderService {
     }
 
     return this.buildUrl(`/auth/${providerId}/callback`);
-  }
-
-  /**
-   * Gets the base URL from configuration
-   * @returns Base URL
-   */
-  getBaseUrl(): string {
-    return (
-      this.configService.get<string>('PUBLIC_BACKEND_URL') ||
-      'http://localhost:3000'
-    );
-  }
-
-  /**
-   * Gets the API prefix from configuration
-   * @returns API prefix
-   */
-  getApiPrefix(): string {
-    return this.configService.get<string>('BACKEND_API_PREFIX') || '/api/v1';
   }
 
   /**

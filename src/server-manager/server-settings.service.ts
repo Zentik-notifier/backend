@@ -142,7 +142,7 @@ export class ServerSettingsService {
         { configType: ServerSettingType.VapidSubject, envKey: 'VAPID_SUBJECT', type: 'string' },
 
         // Push Passthrough
-        { configType: ServerSettingType.PushNotificationsPassthroughServer, envKey: 'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER', type: 'string' },
+        { configType: ServerSettingType.PushNotificationsPassthroughServer, envKey: 'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER', type: 'string', defaultValue: 'https://notifier-api.zentik.app/api/v1' },
         { configType: ServerSettingType.PushPassthroughToken, envKey: 'PUSH_PASSTHROUGH_TOKEN', type: 'string' },
 
         // Attachments

@@ -24,7 +24,7 @@ import { EventsResolver } from 'src/events/events.resolver';
 import { MessagesResolver } from 'src/messages/messages.resolver';
 import { UsersResolver } from 'src/users/users.resolver';
 
-const GRAPHQL_PATH = `${process.env.BACKEND_API_PREFIX}/graphql`;
+const GRAPHQL_PATH = `/api/v1/graphql`;
 
 @Module({
   imports: [

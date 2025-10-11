@@ -47,7 +47,7 @@ async function bootstrap() {
     bufferLogs: true, // Buffer logs until custom logger is set
   });
   
-  app.setGlobalPrefix(String(process.env.BACKEND_API_PREFIX));
+  app.setGlobalPrefix('/api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -141,7 +141,7 @@ async function bootstrap() {
             if (!u || !p) { setStatus('Missing credentials', false); return; }
             try {
               const base = window.location.origin;
-              const prefix = ${JSON.stringify(String(process.env.BACKEND_API_PREFIX) || '/api/v1')};
+              const prefix = '/api/v1';
               const res = await fetch(base + prefix + '/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
