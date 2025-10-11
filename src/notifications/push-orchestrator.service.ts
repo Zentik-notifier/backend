@@ -125,6 +125,7 @@ export class PushNotificationOrchestratorService {
     message: Message,
     requesterId: string,
     userIds?: string[],
+    skipNotificationTracking = false,
   ): Promise<Notification[]> {
     // Get authorized users for the bucket
     let authorizedUsers =
@@ -166,12 +167,14 @@ export class PushNotificationOrchestratorService {
       `Found ${targetDevices.length} target devices for ${authorizedUsers.length} users (platforms: ${platforms}, onlyLocal: ${localOnlyCount}, bucket: ${message.bucketId})`,
     );
 
-    // Track notification events for each device
-    for (const device of targetDevices) {
-      await this.eventTrackingService.trackNotification(
-        device.userId,
-        device.id,
-      );
+    // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
+    if (!skipNotificationTracking) {
+      for (const device of targetDevices) {
+        await this.eventTrackingService.trackNotification(
+          device.userId,
+          device.id,
+        );
+      }
     }
 
     // Create one notification per device (user + device pair) - ALWAYS create notifications

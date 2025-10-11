@@ -9,6 +9,7 @@ import { Bucket } from '../entities/bucket.entity';
 import { MessagesService } from '../messages/messages.service';
 import { EventsService } from '../events/events.service';
 import { NotificationDeliveryType } from '../notifications/notifications.types';
+import { UserRole } from '../users/users.types';
 
 @Injectable()
 export class AdminNotificationsService implements OnModuleInit {
@@ -26,7 +27,7 @@ export class AdminNotificationsService implements OnModuleInit {
     private bucketRepository: Repository<Bucket>,
     private messagesService: MessagesService,
     private eventsService: EventsService,
-  ) {}
+  ) { }
 
   onModuleInit() {
     this.eventsService.onEventCreated((event) => this.handleEventCreated(event));
@@ -69,7 +70,7 @@ export class AdminNotificationsService implements OnModuleInit {
       .createQueryBuilder('subscription')
       .leftJoinAndSelect('subscription.user', 'user')
       .where(':eventType = ANY(subscription.eventTypes)', { eventType })
-      .andWhere('user.isAdmin = :isAdmin', { isAdmin: true })
+      .andWhere('user.role = :role', { role: UserRole.ADMIN })
       .getMany();
 
     return subscriptions.map((sub) => sub.userId);
@@ -80,19 +81,15 @@ export class AdminNotificationsService implements OnModuleInit {
       const adminUserIds = await this.getSubscribedAdmins(event.type);
 
       if (adminUserIds.length === 0) {
-        this.logger.debug(
-          `No admins subscribed to event type ${event.type}, skipping notifications`,
-        );
         return;
       }
 
       this.logger.log(
-        `Sending notifications to ${adminUserIds.length} admins for event ${event.type}`,
+        `Sending notification to ${adminUserIds.length} admins for event ${event.type}`,
       );
 
-      for (const userId of adminUserIds) {
-        await this.sendAdminNotification(userId, event);
-      }
+      // Create a single message for all subscribed admins
+      await this.sendAdminNotification(adminUserIds, event);
     } catch (error) {
       this.logger.error('Error notifying subscribed admins:', error);
       throw error;
@@ -100,7 +97,7 @@ export class AdminNotificationsService implements OnModuleInit {
   }
 
   private async sendAdminNotification(
-    userId: string,
+    adminUserIds: string[],
     event: Event,
   ): Promise<void> {
     try {
@@ -113,9 +110,9 @@ export class AdminNotificationsService implements OnModuleInit {
       const bucketWithUser = adminBucket.user
         ? adminBucket
         : await this.bucketRepository.findOne({
-            where: { id: adminBucket.id },
-            relations: ['user'],
-          });
+          where: { id: adminBucket.id },
+          relations: ['user'],
+        });
 
       if (!bucketWithUser || !bucketWithUser.user) {
         this.logger.error('Admin bucket has no owner user');
@@ -124,23 +121,25 @@ export class AdminNotificationsService implements OnModuleInit {
 
       const eventDetails = await this.getEventDetails(event);
 
+      // Create a single message with all admin users as recipients
       const message = await this.messagesService.create(
         {
           bucketId: adminBucket.id,
           title: this.formatEventTitle(event.type),
           body: this.formatEventMessage(event, eventDetails),
-          userIds: [userId], 
+          userIds: adminUserIds, // Send to all subscribed admins
           deliveryType: NotificationDeliveryType.NORMAL
         },
         bucketWithUser.user.id,
+        true, // Skip event tracking to prevent infinite loops
       );
 
       this.logger.debug(
-        `Created admin notification message ${message.id} for event ${event.id} to admin ${userId}`,
+        `Created admin notification message ${message.id} for event ${event.id} to ${adminUserIds.length} admin(s): ${adminUserIds.join(', ')}`,
       );
     } catch (error) {
       this.logger.error(
-        `Error sending notification to admin ${userId}:`,
+        `Error sending notification to admins:`,
         error,
       );
     }

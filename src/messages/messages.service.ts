@@ -168,8 +168,8 @@ export class MessagesService {
   async create(
     createMessageDto: CreateMessageDto,
     requesterId: string,
+    skipEventTracking = false,
   ): Promise<Message> {
-    // Validate bucket exists to avoid FK violation
     this.logger.log(
       `Creating message for bucketId=${createMessageDto.bucketId} by user=${requesterId}`,
     );
@@ -259,8 +259,10 @@ export class MessagesService {
     );
     this.logger.log(`Message created with ID: ${savedMessage.id}`);
 
-    // Track message event
-    await this.eventTrackingService.trackMessage(requesterId);
+    // Track message event (skip for admin notifications to prevent infinite loops)
+    if (!skipEventTracking) {
+      await this.eventTrackingService.trackMessage(requesterId);
+    }
 
     // Link attachments to the message
     if (attachmentUuids.length > 0) {
@@ -280,6 +282,7 @@ export class MessagesService {
         baseMessage,
         requesterId,
         processedUserIds,
+        skipEventTracking, // Also skip notification tracking to prevent infinite loop
       );
       this.logger.log(
         `Created ${notifications.length} notifications for message ${baseMessage.id}`,

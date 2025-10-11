@@ -501,6 +501,17 @@ export class EntityPermissionService {
     // Add bucket owner
     userIds.add(bucket.user.id);
 
+    // Special case: If this is an admin bucket, all admins have access
+    if (bucket.isAdmin) {
+      const adminUsers = await this.userRepository.find({
+        where: { role: UserRole.ADMIN },
+      });
+      adminUsers.forEach((admin) => userIds.add(admin.id));
+      this.logger.debug(
+        `Admin bucket ${bucketId}: Added ${adminUsers.length} admins as authorized users`,
+      );
+    }
+
     // Get all permissions for this bucket to find users with access
     const permissions = await this.entityPermissionRepository.find({
       where: {
