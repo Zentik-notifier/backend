@@ -38,6 +38,7 @@ DROP TYPE IF EXISTS execution_status_enum CASCADE;
 DROP TYPE IF EXISTS log_level_enum CASCADE;
 DROP TYPE IF EXISTS server_setting_type_enum CASCADE;
 DROP TYPE IF EXISTS media_type_enum CASCADE;
+DROP TYPE IF EXISTS system_access_token_request_status_enum CASCADE;
 
 -- Create custom enum types
 CREATE TYPE device_platform_enum AS ENUM ('IOS', 'ANDROID', 'WEB');
@@ -54,6 +55,7 @@ CREATE TYPE execution_type_enum AS ENUM ('WEBHOOK', 'PAYLOAD_MAPPER');
 CREATE TYPE execution_status_enum AS ENUM ('SUCCESS', 'ERROR', 'TIMEOUT');
 CREATE TYPE log_level_enum AS ENUM ('error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly');
 CREATE TYPE media_type_enum AS ENUM ('VIDEO', 'IMAGE', 'GIF', 'AUDIO', 'ICON');
+CREATE TYPE system_access_token_request_status_enum AS ENUM ('pending', 'approved', 'declined');
 CREATE TYPE server_setting_type_enum AS ENUM (
   'JwtAccessTokenExpiration', 'JwtRefreshTokenExpiration',
   'ApnPush', 'ApnKeyId', 'ApnTeamId', 'ApnPrivateKeyPath', 'ApnBundleId', 'ApnProduction',
@@ -237,6 +239,28 @@ CREATE TABLE system_access_tokens (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create system_access_token_requests table
+CREATE TABLE system_access_token_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL,
+    "systemAccessTokenId" UUID,
+    "plainTextToken" TEXT,
+    "maxRequests" INTEGER NOT NULL,
+    status system_access_token_request_status_enum DEFAULT 'pending' NOT NULL,
+    description TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    
+    CONSTRAINT fk_system_access_token_requests_user
+        FOREIGN KEY ("userId") 
+        REFERENCES users(id) 
+        ON DELETE CASCADE,
+    
+    CONSTRAINT fk_system_access_token_requests_token
+        FOREIGN KEY ("systemAccessTokenId") 
+        REFERENCES system_access_tokens(id) 
+        ON DELETE SET NULL
+);
 
 -- Create user_identities table
 CREATE TABLE user_identities (
@@ -440,6 +464,10 @@ CREATE INDEX idx_entity_permissions_user_id ON entity_permissions("userId");
 CREATE INDEX idx_entity_permissions_granted_by_id ON entity_permissions("grantedById");
 CREATE INDEX idx_entity_permissions_expires_at ON entity_permissions("expiresAt");
 CREATE INDEX idx_entity_permissions_resource_type_id ON entity_permissions("resourceType", "resourceId");
+CREATE INDEX idx_system_access_token_requests_user_id ON system_access_token_requests("userId");
+CREATE INDEX idx_system_access_token_requests_token_id ON system_access_token_requests("systemAccessTokenId");
+CREATE INDEX idx_system_access_token_requests_status ON system_access_token_requests(status);
+CREATE INDEX idx_system_access_token_requests_created_at ON system_access_token_requests("createdAt" DESC);
 
 -- Create indexes for oauth_providers table
 CREATE INDEX idx_oauth_providers_type ON oauth_providers(type);
@@ -495,6 +523,9 @@ CREATE TRIGGER update_oauth_providers_updated_at BEFORE UPDATE ON oauth_provider
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_server_settings_updated_at BEFORE UPDATE ON server_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_system_access_token_requests_updated_at BEFORE UPDATE ON system_access_token_requests
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Create function to manage readAt field based on notification status
