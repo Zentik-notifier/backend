@@ -9,15 +9,15 @@ import {
   Subscription,
 } from '@nestjs/graphql';
 import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { Notification } from '../../entities/notification.entity';
-import { NotificationServiceInfo } from '../../notifications/dto';
-import { NotificationsService } from '../../notifications/notifications.service';
-import { EventsService } from '../../events/events.service';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { DeviceToken } from '../decorators/device-token.decorator';
-import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
-import { EventType } from '../../entities/event.entity';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { Notification } from '../entities/notification.entity';
+import { NotificationServiceInfo } from './dto';
+import { NotificationsService } from './notifications.service';
+import { EventsService } from '../events/events.service';
+import { CurrentUser } from '../graphql/decorators/current-user.decorator';
+import { DeviceToken } from '../graphql/decorators/device-token.decorator';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
+import { EventType } from '../entities/event.entity';
 
 @ObjectType()
 export class MarkAllAsReadResult {

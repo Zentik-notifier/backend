@@ -11,7 +11,7 @@ import { User } from '../entities/user.entity';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
 import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
-import { MessagesResolver } from '../graphql/resolvers/messages.resolver';
+import { MessagesResolver } from './messages.resolver';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ServerManagerModule } from '../server-manager/server-manager.module';
 import { MessagesCleanupScheduler } from './messages.cleanup.scheduler';

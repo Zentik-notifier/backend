@@ -1,10 +1,10 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Query, Resolver } from '@nestjs/graphql';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { EntityExecution, ExecutionType } from '../../entities';
-import { EntityExecutionService } from '../../entity-execution/entity-execution.service';
-import { GetEntityExecutionsInput } from '../../entity-execution/dto/entity-execution.dto';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { EntityExecution, ExecutionType } from '../entities';
+import { EntityExecutionService } from './entity-execution.service';
+import { GetEntityExecutionsInput } from './dto/entity-execution.dto';
+import { CurrentUser } from '../graphql/decorators/current-user.decorator';
 
 @Resolver(() => EntityExecution)
 @UseGuards(JwtOrAccessTokenGuard)

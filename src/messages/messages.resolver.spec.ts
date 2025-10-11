@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { Message } from '../../entities/message.entity';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { Message } from '../entities/message.entity';
 import {
   CreateMessageDto,
   MessagesQueryDto,
   MessagesResponseDto,
-} from '../../messages/dto';
-import { MessagesService } from '../../messages/messages.service';
+} from './dto';
+import { MessagesService } from './messages.service';
 import {
   MediaType,
   NotificationActionType,
   NotificationDeliveryType,
-} from '../../notifications/notifications.types';
+} from '../notifications/notifications.types';
 import { MessagesResolver } from './messages.resolver';
 
 describe('MessagesResolver', () => {

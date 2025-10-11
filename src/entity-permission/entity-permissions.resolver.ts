@@ -1,14 +1,14 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { EntityPermission } from '../../entities/entity-permission.entity';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { EntityPermission } from '../entities/entity-permission.entity';
 import {
   GetResourcePermissionsInput,
   GrantEntityPermissionInput,
   RevokeEntityPermissionInput,
-} from '../../entity-permission/dto/entity-permission.dto';
-import { EntityPermissionService } from '../../entity-permission/entity-permission.service';
-import { CurrentUser } from '../decorators/current-user.decorator';
+} from './dto/entity-permission.dto';
+import { EntityPermissionService } from './entity-permission.service';
+import { CurrentUser } from '../graphql/decorators/current-user.decorator';
 
 @Resolver(() => EntityPermission)
 @UseGuards(JwtOrAccessTokenGuard)

@@ -1,23 +1,23 @@
 import { Injectable, Logger, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
-import { AuthService } from '../../auth/auth.service';
-import { ChangePasswordDto, UpdateProfileDto } from '../../auth/dto';
-import { AdminOnlyGuard } from '../../auth/guards/admin-only.guard';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { UserDevice } from '../../entities/user-device.entity';
-import { User } from '../../entities/user.entity';
+import { AuthService } from '../auth/auth.service';
+import { ChangePasswordDto, UpdateProfileDto } from '../auth/dto';
+import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { UserDevice } from '../entities/user-device.entity';
+import { User } from '../entities/user.entity';
 import {
   RegisterDeviceDto,
   UpdateDeviceTokenDto,
   UpdateUserDeviceDto,
   UpdateUserRoleInput,
-} from '../../users/dto';
-import { UsersService } from '../../users/users.service';
-import { UserSetting } from '../../entities/user-setting.entity';
-import { UpsertUserSettingInput } from '../../users/dto';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { DeviceToken } from '../decorators/device-token.decorator';
-import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
+} from './dto';
+import { UsersService } from './users.service';
+import { UserSetting } from '../entities/user-setting.entity';
+import { UpsertUserSettingInput } from './dto';
+import { CurrentUser } from '../graphql/decorators/current-user.decorator';
+import { DeviceToken } from '../graphql/decorators/device-token.decorator';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 
 @Resolver(() => User)
 @UseGuards(JwtOrAccessTokenGuard)

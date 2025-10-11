@@ -21,7 +21,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
 import { WebPushService } from './web-push.service';
-import { NotificationsResolver } from '../graphql/resolvers/notifications.resolver';
+import { NotificationsResolver } from './notifications.resolver';
 
 @Module({
   imports: [

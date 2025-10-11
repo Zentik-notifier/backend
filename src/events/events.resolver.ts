@@ -1,14 +1,14 @@
 import { UseGuards, ForbiddenException } from '@nestjs/common';
 import { Args, Query, Resolver } from '@nestjs/graphql';
-import { AdminOnlyGuard } from '../../auth/guards/admin-only.guard';
-import { Event } from '../../entities';
-import { EventsService } from '../../events/events.service';
+import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
+import { Event } from '../entities';
+import { EventsService } from './events.service';
 import {
   EventsQueryDto,
   EventsResponseDto,
   EventsPaginatedQueryDto,
-} from '../../events/dto';
-import { JwtOrAccessTokenGuard } from 'src/auth/guards/jwt-or-access-token.guard';
+} from './dto';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 
 @Resolver(() => Event)
 @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)

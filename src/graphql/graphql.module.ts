@@ -15,14 +15,14 @@ import { OAuthProvidersModule } from '../oauth-providers/oauth-providers.module'
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 import { UsersModule } from '../users/users.module';
 import { GraphQLSharedModule } from './graphql-shared.module';
-import { AuthResolver } from './resolvers/auth.resolver';
-import { BucketsResolver } from './resolvers/buckets.resolver';
-import { EntityExecutionsResolver } from './resolvers/entity-executions.resolver';
-import { EntityPermissionsResolver } from './resolvers/entity-permissions.resolver';
-import { EventsResolver } from './resolvers/events.resolver';
-import { MessagesResolver } from './resolvers/messages.resolver';
 import { PayloadMapperResolver } from '../payload-mapper/payload-mapper.resolver';
-import { UsersResolver } from './resolvers/users.resolver';
+import { AuthResolver } from 'src/auth/auth.resolver';
+import { BucketsResolver } from 'src/buckets/buckets.resolver';
+import { EntityExecutionsResolver } from 'src/entity-execution/entity-executions.resolver';
+import { EntityPermissionsResolver } from 'src/entity-permission/entity-permissions.resolver';
+import { EventsResolver } from 'src/events/events.resolver';
+import { MessagesResolver } from 'src/messages/messages.resolver';
+import { UsersResolver } from 'src/users/users.resolver';
 
 const GRAPHQL_PATH = `${process.env.BACKEND_API_PREFIX}/graphql`;
 

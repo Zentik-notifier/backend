@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { NotificationsService } from '../../notifications/notifications.service';
-import { PushNotificationOrchestratorService } from '../../notifications/push-orchestrator.service';
-import { UsersService } from '../../users/users.service';
-import { EventsService } from '../../events/events.service';
-import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { NotificationsService } from './notifications.service';
+import { PushNotificationOrchestratorService } from './push-orchestrator.service';
+import { UsersService } from '../users/users.service';
+import { EventsService } from '../events/events.service';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { NotificationsResolver } from './notifications.resolver';
-import { EventType } from '../../entities/event.entity';
+import { EventType } from '../entities/event.entity';
 
 describe('NotificationsResolver', () => {
   let resolver: NotificationsResolver;

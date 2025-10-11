@@ -1,10 +1,10 @@
 import { Injectable, Logger, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { Message } from '../../entities/message.entity';
-import { CreateMessageDto } from '../../messages/dto';
-import { MessagesService } from '../../messages/messages.service';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { Message } from '../entities/message.entity';
+import { CreateMessageDto } from './dto';
+import { MessagesService } from './messages.service';
+import { CurrentUser } from '../graphql/decorators/current-user.decorator';
 
 @Resolver(() => Message)
 @UseGuards(JwtOrAccessTokenGuard)

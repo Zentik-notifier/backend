@@ -5,14 +5,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { AuthService } from '../../auth/auth.service';
-import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
 import {
   ConfirmEmailDto,
   EmailConfirmationResponseDto,
   EmailStatusResponseDto,
   RequestEmailConfirmationDto,
-} from '../../auth/dto';
+} from './dto';
 import {
   LoginDto,
   LoginResponse,
@@ -23,14 +23,14 @@ import {
   RegisterResponse,
   RequestPasswordResetDto,
   ResetPasswordDto,
-} from '../../auth/dto/auth.dto';
-import { EmailService } from '../../auth/email.service';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { SessionService } from '../../auth/session.service';
-import { Locale } from '../../common/types/i18n';
-import { AttachmentsService } from '../../attachments/attachments.service';
-import { EventTrackingService } from '../../events/event-tracking.service';
-import { OAuthProvidersService } from '../../oauth-providers/oauth-providers.service';
+} from './dto/auth.dto';
+import { EmailService } from './email.service';
+import { JwtOrAccessTokenGuard } from './guards/jwt-or-access-token.guard';
+import { SessionService } from './session.service';
+import { Locale } from '../common/types/i18n';
+import { AttachmentsService } from '../attachments/attachments.service';
+import { EventTrackingService } from '../events/event-tracking.service';
+import { OAuthProvidersService } from '../oauth-providers/oauth-providers.service';
 
 @Resolver()
 @Injectable()

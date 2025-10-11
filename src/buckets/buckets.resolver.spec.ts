@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
-import { JwtOrAccessTokenGuard } from '../../auth/guards/jwt-or-access-token.guard';
-import { BucketsService } from '../../buckets/buckets.service';
-import { CreateBucketDto, UpdateBucketDto } from '../../buckets/dto';
-import { Bucket } from '../../entities/bucket.entity';
-import { EntityPermission } from '../../entities/entity-permission.entity';
+import { Permission, ResourceType } from '../auth/dto/auth.dto';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { BucketsService } from './buckets.service';
+import { CreateBucketDto, UpdateBucketDto } from './dto';
+import { Bucket } from '../entities/bucket.entity';
+import { EntityPermission } from '../entities/entity-permission.entity';
 import {
   GrantEntityPermissionInput,
   RevokeEntityPermissionInput,
-} from '../../entity-permission/dto/entity-permission.dto';
-import { EntityPermissionService } from '../../entity-permission/entity-permission.service';
-import { EventTrackingService } from '../../events/event-tracking.service';
-import { GraphQLSubscriptionService } from '../services/graphql-subscription.service';
+} from '../entity-permission/dto/entity-permission.dto';
+import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { EventTrackingService } from '../events/event-tracking.service';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { BucketsResolver } from './buckets.resolver';
 
 describe('BucketsResolver', () => {
