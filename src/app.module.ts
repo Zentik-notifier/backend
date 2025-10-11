@@ -10,14 +10,13 @@ import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { BucketsModule } from './buckets/buckets.module';
 import { CommonModule } from './common/common.module';
-
 import { databaseConfig } from './config/database.config';
-// import { oauthConfig } from './config/oauth.config';
 import { ThrottlerUserOrIpGuard } from './common/guards/throttler-user-or-ip.guard';
 import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
 import { EventsModule } from './events/events.module';
 import { GraphqlModule } from './graphql/graphql.module';
 import { MessagesModule } from './messages/messages.module';
+import { AdminNotificationsModule } from './admin-notifications/admin-notifications.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OAuthProvidersModule } from './oauth-providers/oauth-providers.module';
 import { PayloadMapperModule } from './payload-mapper/payload-mapper.module';
@@ -73,6 +72,7 @@ import { ServerSettingType } from './entities/server-setting.entity';
     PayloadMapperModule,
     AttachmentsModule,
     EventsModule,
+    AdminNotificationsModule,
     ServerManagerModule,
     EntityExecutionModule,
   ],
