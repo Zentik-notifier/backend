@@ -367,6 +367,33 @@ export class ServerManagerService implements OnModuleInit {
   }
 
   /**
+   * Get backup file path for download
+   */
+  async getBackupFilePath(filename: string): Promise<string> {
+    try {
+      // Security check: ensure filename is a valid backup file
+      if (
+        !filename.startsWith('zentik_backup_') ||
+        (!filename.endsWith('.sql') && !filename.endsWith('.sql.gz'))
+      ) {
+        throw new Error('Invalid backup filename');
+      }
+
+      const filePath = path.join(this.config.storagePath, filename);
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        throw new Error('Backup file not found');
+      }
+
+      return filePath;
+    } catch (error) {
+      this.logger.error(`Failed to get backup file: ${error.message}`);
+      throw new Error(`Failed to get backup file: ${error.message}`);
+    }
+  }
+
+  /**
    * Manually trigger a database backup
    */
   async triggerBackup(): Promise<BackupResult> {

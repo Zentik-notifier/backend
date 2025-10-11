@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -39,6 +40,21 @@ export class ServerManagerController {
   })
   async listBackups(): Promise<BackupInfoDto[]> {
     return await this.serverManagerService.listBackups();
+  }
+
+  @Get('backups/:filename/download')
+  @ApiOperation({ summary: 'Download a specific backup file' })
+  @ApiResponse({
+    status: 200,
+    description: 'Backup file stream',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Backup file not found',
+  })
+  async downloadBackup(@Param('filename') filename: string, @Res() res: any): Promise<void> {
+    const filePath = await this.serverManagerService.getBackupFilePath(filename);
+    res.download(filePath, filename);
   }
 
   @Delete('backups/:filename')

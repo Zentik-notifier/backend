@@ -268,6 +268,26 @@ export class AttachmentsController {
     return this.attachmentsService.findByMessage(messageId, userId);
   }
 
+  @Get('user/:userId')
+  @UseGuards(JwtOrAccessTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all attachments for a specific user' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of attachments',
+    type: [Attachment],
+  })
+  findByUser(
+    @Param('userId') userId: string,
+    @GetUser('id') requestingUserId: string,
+  ) {
+    // Verifica che l'utente possa accedere solo ai propri attachments
+    if (userId !== requestingUserId) {
+      throw new Error('You can only access your own attachments');
+    }
+    return this.attachmentsService.findByUser(userId);
+  }
+
   @Delete(':id')
   @UseGuards(JwtOrAccessTokenGuard)
   @ApiBearerAuth()

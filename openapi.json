@@ -860,6 +860,38 @@
         ]
       }
     },
+    "/api/v1/server-manager/backups/{filename}/download": {
+      "get": {
+        "operationId": "ServerManagerController_downloadBackup",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup file stream"
+          },
+          "404": {
+            "description": "Backup file not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download a specific backup file",
+        "tags": [
+          "Server Manager"
+        ]
+      }
+    },
     "/api/v1/server-manager/backups/{filename}": {
       "delete": {
         "operationId": "ServerManagerController_deleteBackup",
@@ -4225,6 +4257,45 @@
           }
         ],
         "summary": "Get all attachments for a specific message",
+        "tags": [
+          "Attachments"
+        ]
+      }
+    },
+    "/api/v1/attachments/user/{userId}": {
+      "get": {
+        "operationId": "AttachmentsController_findByUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of attachments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Attachment"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all attachments for a specific user",
         "tags": [
           "Attachments"
         ]

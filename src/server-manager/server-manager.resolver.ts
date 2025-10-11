@@ -26,6 +26,19 @@ export class ServerManagerResolver {
     return await this.serverManagerService.listBackups();
   }
 
+  @Query(() => String, {
+    name: 'getBackupDownloadUrl',
+    description: 'Get the download URL for a specific backup file',
+  })
+  async getBackupDownloadUrl(
+    @Args('filename', { type: () => String }) filename: string,
+  ): Promise<string> {
+    // Validate that the backup exists
+    await this.serverManagerService.getBackupFilePath(filename);
+    // Return the REST API download URL
+    return `/api/server-manager/backups/${filename}/download`;
+  }
+
   @Mutation(() => Boolean, {
     name: 'deleteBackup',
     description: 'Delete a specific backup file',

@@ -508,4 +508,12 @@ export class AttachmentsService {
       (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsEnabled))?.valueBool ?? true;
     return attachmentsEnabled;
   }
+
+  async findByUser(userId: string): Promise<Attachment[]> {
+    return this.attachmentsRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      relations: ['user'],
+    });
+  }
 }

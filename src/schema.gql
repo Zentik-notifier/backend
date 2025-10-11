@@ -633,6 +633,7 @@ type PublicAppConfig {
 
 type Query {
   allOAuthProviders: [OAuthProvider!]!
+  attachment(id: ID!): Attachment!
   bucket(id: String!): Bucket!
   bucketPermissions(bucketId: String!): [EntityPermission!]!
   buckets: [Bucket!]!
@@ -641,6 +642,9 @@ type Query {
   entityExecution(id: String!): EntityExecution
   events(query: EventsQueryDto!): EventsResponseDto!
   getBackendVersion: String!
+
+  """Get the download URL for a specific backup file"""
+  getBackupDownloadUrl(filename: String!): String!
   getEntityExecutions(input: GetEntityExecutionsInput!): [EntityExecution!]!
   getResourcePermissions(input: GetResourcePermissionsInput!): [EntityPermission!]!
   getSystemToken(id: String!): SystemAccessTokenDto
@@ -655,6 +659,7 @@ type Query {
   """Get logs with pagination and filtering"""
   logs(input: GetLogsInput!): PaginatedLogs!
   me: User!
+  messageAttachments(messageId: ID!): [Attachment!]!
   myAdminSubscription: [String!]
   notification(id: String!): Notification!
   notificationServices: [NotificationServiceInfo!]!
@@ -673,6 +678,7 @@ type Query {
   """Get total log count"""
   totalLogCount: Float!
   user(id: String!): User!
+  userAttachments(userId: ID!): [Attachment!]!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
   userNotificationStats(userId: String): UserNotificationStats!
