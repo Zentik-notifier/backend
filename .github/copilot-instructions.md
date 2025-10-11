@@ -9,6 +9,29 @@ This is the backend API for Zentik Notifier, built with:
 - **JWT** authentication
 - **WebSocket** support for real-time updates
 
+## Code Style and Documentation
+
+### Language and Comments
+- **Always use English** for all code comments, documentation, commit messages, and PR descriptions
+- **Add comments only for critical or complex logic** - avoid self-explanatory comments
+- **Don't create README files** or test scripts unless explicitly requested
+- Keep comments concise and meaningful
+
+**Examples:**
+```typescript
+// ✅ Good - explains why, not what
+// Using forwardRef to avoid circular dependency between EventsModule and MessagesModule
+@Inject(forwardRef(() => MessagesService))
+
+// ❌ Bad - self-explanatory
+// Set the user email
+user.email = email;
+
+// ❌ Bad - in Italian
+// Crea un nuovo utente
+async createUser() { }
+```
+
 ## Important Development Guidelines
 
 ### 1. Module Structure

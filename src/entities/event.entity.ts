@@ -23,7 +23,7 @@ export enum EventType {
 
 registerEnumType(EventType, {
   name: 'EventType',
-  description: 'Tipo di evento tracciato',
+  description: 'Tracked event type',
 });
 
 @ObjectType()

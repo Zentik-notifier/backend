@@ -212,7 +212,7 @@ type Event {
   userId: String
 }
 
-"""Tipo di evento tracciato"""
+"""Tracked event type"""
 enum EventType {
   ACCOUNT_DELETE
   BUCKET_SHARING
