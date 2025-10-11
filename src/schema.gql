@@ -26,6 +26,8 @@ type Attachment {
   id: ID!
   mediaType: MediaType
   messageId: String
+  originalFilename: String
+  size: Float
   updatedAt: DateTime!
   user: User!
   userId: String!

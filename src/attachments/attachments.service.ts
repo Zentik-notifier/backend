@@ -143,6 +143,8 @@ export class AttachmentsService {
     const attachment = this.attachmentsRepository.create({
       id: attachmentId,
       filename,
+      originalFilename: file.originalname,
+      size: file.size,
       filepath,
       mediaType: finalMediaType,
       userId,
@@ -400,6 +402,8 @@ export class AttachmentsService {
       const attachment = this.attachmentsRepository.create({
         id: attachmentId,
         filename: finalFilename,
+        originalFilename: finalFilename,
+        size: buffer.length,
         filepath,
         mediaType: finalMediaType,
         userId,

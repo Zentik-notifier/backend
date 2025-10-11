@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS admin_subscriptions CASCADE;
 DROP TABLE IF EXISTS payload_mappers CASCADE;
 DROP TABLE IF EXISTS entity_executions CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS attachments CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
 DROP TABLE IF EXISTS user_buckets CASCADE;
 DROP TABLE IF EXISTS user_webhooks CASCADE;
@@ -36,6 +37,7 @@ DROP TYPE IF EXISTS execution_type_enum CASCADE;
 DROP TYPE IF EXISTS execution_status_enum CASCADE;
 DROP TYPE IF EXISTS log_level_enum CASCADE;
 DROP TYPE IF EXISTS server_setting_type_enum CASCADE;
+DROP TYPE IF EXISTS media_type_enum CASCADE;
 
 -- Create custom enum types
 CREATE TYPE device_platform_enum AS ENUM ('IOS', 'ANDROID', 'WEB');
@@ -51,6 +53,7 @@ CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'CUSTOM');
 CREATE TYPE execution_type_enum AS ENUM ('WEBHOOK', 'PAYLOAD_MAPPER');
 CREATE TYPE execution_status_enum AS ENUM ('SUCCESS', 'ERROR', 'TIMEOUT');
 CREATE TYPE log_level_enum AS ENUM ('error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly');
+CREATE TYPE media_type_enum AS ENUM ('VIDEO', 'IMAGE', 'GIF', 'AUDIO', 'ICON');
 CREATE TYPE server_setting_type_enum AS ENUM (
   'JwtAccessTokenExpiration', 'JwtRefreshTokenExpiration',
   'ApnPush', 'ApnKeyId', 'ApnTeamId', 'ApnPrivateKeyPath', 'ApnBundleId', 'ApnProduction',
@@ -344,6 +347,20 @@ CREATE TABLE messages (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create attachments table for file uploads
+CREATE TABLE attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    filename VARCHAR(255) NOT NULL,
+    "originalFilename" VARCHAR(255),
+    size BIGINT,
+    filepath VARCHAR(500) NOT NULL,
+    "mediaType" media_type_enum,
+    "messageId" UUID REFERENCES messages(id) ON DELETE SET NULL,
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create notifications table (thin, references message)
 CREATE TABLE notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -414,6 +431,9 @@ CREATE INDEX idx_notifications_read_at ON notifications("readAt");
 CREATE INDEX idx_notifications_message_id ON notifications("messageId");
 CREATE INDEX idx_notifications_user_device_id ON notifications("userDeviceId");
 CREATE INDEX idx_messages_bucket_id ON messages("bucketId");
+CREATE INDEX idx_attachments_user_id ON attachments("userId");
+CREATE INDEX idx_attachments_message_id ON attachments("messageId");
+CREATE INDEX idx_attachments_media_type ON attachments("mediaType");
 CREATE INDEX idx_entity_permissions_resource_type ON entity_permissions("resourceType");
 CREATE INDEX idx_entity_permissions_resource_id ON entity_permissions("resourceId");
 CREATE INDEX idx_entity_permissions_user_id ON entity_permissions("userId");
@@ -463,6 +483,9 @@ CREATE TRIGGER update_user_identities_updated_at BEFORE UPDATE ON user_identitie
 CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_attachments_updated_at BEFORE UPDATE ON attachments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
  
 CREATE TRIGGER update_entity_permissions_updated_at BEFORE UPDATE ON entity_permissions

@@ -26,6 +26,16 @@ export class Attachment {
   @Column()
   filename: string;
 
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  @Column({ nullable: true })
+  originalFilename?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  @Column({ type: 'bigint', nullable: true })
+  size?: number;
+
   @Field()
   @ApiProperty()
   @Column()

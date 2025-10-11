@@ -6904,6 +6904,12 @@
           "filename": {
             "type": "string"
           },
+          "originalFilename": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
           "filepath": {
             "type": "string"
           },
