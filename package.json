@@ -23,7 +23,7 @@
     "deploy:patch": "node scripts/deploy.js patch",
     "deploy:minor": "node scripts/deploy.js minor",
     "deploy:major": "node scripts/deploy.js major",
-    "build:web": "node scripts/build-and-deploy-web.js"
+    "deploy:deploy:full": "node scripts/build-and-deploy-web.js"
   },
   "dependencies": {
     "@apollo/server": "4.12.2",
