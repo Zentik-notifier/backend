@@ -90,16 +90,19 @@ describe('NotificationsService', () => {
   const mockIOSPushService = {
     provider: null as any,
     sendPrebuilt: jest.fn(),
+    ensureInitialized: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockFirebasePushService = {
     app: null as any,
     sendPrebuilt: jest.fn(),
+    ensureInitialized: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockWebPushService = {
     configured: false,
     sendPrebuilt: jest.fn(),
+    ensureInitialized: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockConfigService = {

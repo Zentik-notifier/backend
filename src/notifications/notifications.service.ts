@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
@@ -26,7 +27,7 @@ import { NotificationServiceType } from './notifications.types';
 import { WebPushService } from './web-push.service';
 
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleInit {
   private readonly logger = new Logger('NotificationsService');
 
   constructor(
@@ -39,6 +40,88 @@ export class NotificationsService {
     private readonly webPushService: WebPushService,
     private readonly serverSettingsService: ServerSettingsService,
   ) { }
+
+  async onModuleInit() {
+    this.logger.log('Initializing push notification services...');
+    await this.initializePushServices();
+  }
+
+  /**
+   * Get push modes for all platforms
+   */
+  private async getPushModes(): Promise<{
+    apnMode: string;
+    firebaseMode: string;
+    webMode: string;
+  }> {
+    const apnMode = (await this.serverSettingsService.getStringValue(
+      ServerSettingType.ApnPush,
+      'Off',
+    )) || 'Off';
+    const firebaseMode = (await this.serverSettingsService.getStringValue(
+      ServerSettingType.FirebasePush,
+      'Off',
+    )) || 'Off';
+    const webMode = (await this.serverSettingsService.getStringValue(
+      ServerSettingType.WebPush,
+      'Off',
+    )) || 'Off';
+
+    return { apnMode, firebaseMode, webMode };
+  }
+
+  /**
+   * Initialize push services based on server settings
+   */
+  private async initializePushServices(): Promise<void> {
+    try {
+      const { apnMode, firebaseMode, webMode } = await this.getPushModes();
+
+      // Initialize iOS Push Service if enabled
+      if (apnMode === 'Onboard') {
+        this.logger.log('Initializing iOS Push Service (APNs)...');
+        try {
+          // Trigger initialization by accessing private method through ensureInitialized
+          await (this.iosPushService as any).ensureInitialized();
+          this.logger.log('iOS Push Service initialized successfully');
+        } catch (error) {
+          this.logger.error('Failed to initialize iOS Push Service:', error);
+        }
+      } else {
+        this.logger.log(`iOS Push Service mode: ${apnMode} (skipping initialization)`);
+      }
+
+      // Initialize Firebase Push Service if enabled
+      if (firebaseMode === 'Onboard') {
+        this.logger.log('Initializing Firebase Push Service...');
+        try {
+          await (this.firebasePushService as any).ensureInitialized();
+          this.logger.log('Firebase Push Service initialized successfully');
+        } catch (error) {
+          this.logger.error('Failed to initialize Firebase Push Service:', error);
+        }
+      } else {
+        this.logger.log(`Firebase Push Service mode: ${firebaseMode} (skipping initialization)`);
+      }
+
+      // Initialize Web Push Service if enabled
+      if (webMode === 'Onboard') {
+        this.logger.log('Initializing Web Push Service...');
+        try {
+          await (this.webPushService as any).ensureInitialized();
+          this.logger.log('Web Push Service initialized successfully');
+        } catch (error) {
+          this.logger.error('Failed to initialize Web Push Service:', error);
+        }
+      } else {
+        this.logger.log(`Web Push Service mode: ${webMode} (skipping initialization)`);
+      }
+
+      this.logger.log('Push notification services initialization completed');
+    } catch (error) {
+      this.logger.error('Error during push services initialization:', error);
+    }
+  }
 
   async findByUser(userId: string): Promise<Notification[]> {
     const notifications = await this.notificationsRepository
@@ -328,12 +411,9 @@ export class NotificationsService {
    */
   async getNotificationServices(): Promise<NotificationServiceInfo[]> {
     const services: NotificationServiceInfo[] = [];
+    const { apnMode, firebaseMode, webMode } = await this.getPushModes();
 
     // iOS Platform
-    const apnMode = await this.serverSettingsService.getStringValue(
-      ServerSettingType.ApnPush,
-      'Off',
-    );
     // Onboard or Passthrough = use server push services
     // Local = device-only notifications
     // Off = no notifications at all
@@ -354,10 +434,6 @@ export class NotificationsService {
     // If 'Off', don't add any service for this platform
 
     // Android Platform
-    const firebaseMode = await this.serverSettingsService.getStringValue(
-      ServerSettingType.FirebasePush,
-      'Off',
-    );
     if (firebaseMode === 'Onboard' || firebaseMode === 'Passthrough') {
       // Check if Firebase push service is properly initialized
       if (firebaseMode === 'Passthrough' || (this.firebasePushService && (this.firebasePushService as any).app)) {
@@ -375,10 +451,6 @@ export class NotificationsService {
     // If 'Off', don't add any service for this platform
 
     // Web Platform
-    const webMode = await this.serverSettingsService.getStringValue(
-      ServerSettingType.WebPush,
-      'Off',
-    );
     if (webMode === 'Onboard' || webMode === 'Passthrough') {
       // Check if Web push service is properly initialized
       if (webMode === 'Passthrough' || (this.webPushService && (this.webPushService as any).configured)) {
