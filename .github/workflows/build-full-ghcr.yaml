@@ -33,7 +33,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend-repo/frontend
         run: |
-          npm ci
+          npm install
           npm run build:web
 
       - name: Copy frontend build to backend public folder
