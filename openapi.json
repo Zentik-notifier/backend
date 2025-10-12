@@ -6402,6 +6402,11 @@
       "RegisterDeviceDto": {
         "type": "object",
         "properties": {
+          "deviceId": {
+            "type": "string",
+            "description": "Device ID for updating existing device",
+            "example": "uuid-string"
+          },
           "deviceToken": {
             "type": "string",
             "description": "Device token for push notifications",

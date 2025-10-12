@@ -36,11 +36,7 @@ import {
 import {
   ExternalNotifyRequestDto
 } from './dto/external-notify.dto';
-import { FirebasePushService } from './firebase-push.service';
-import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
-import { PushNotificationOrchestratorService } from './push-orchestrator.service';
-import { WebPushService } from './web-push.service';
 
 @UseGuards(JwtOrAccessTokenGuard)
 @Controller('notifications')
@@ -52,13 +48,9 @@ export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly subscriptionService: GraphQLSubscriptionService,
-    private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly systemAccessTokenService: SystemAccessTokenService,
     private readonly eventsTrackingService: EventTrackingService,
-    private readonly iosPushService: IOSPushService,
-    private readonly firebasePushService: FirebasePushService,
-    private readonly webPushService: WebPushService,
-  ) {}
+  ) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all notifications for the authenticated user' })
@@ -385,7 +377,7 @@ export class NotificationsController {
       await this.systemAccessTokenService.incrementCalls(sat.id);
       try {
         await this.eventsTrackingService.trackPushPassthrough(sat.id);
-      } catch {}
+      } catch { }
     } else if (sat && !result.success) {
       this.logger.warn(
         `External notification failed for system access token: ${sat.id}, not incrementing call count`,

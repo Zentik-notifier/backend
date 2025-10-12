@@ -716,6 +716,7 @@ type RefreshTokenResponse {
 }
 
 input RegisterDeviceDto {
+  deviceId: String
   deviceModel: String
   deviceName: String
   deviceToken: String

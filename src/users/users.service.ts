@@ -119,14 +119,24 @@ export class UsersService {
     }
 
     // Check if device already exists for this user
-    const existingDevice = registerDeviceDto.deviceToken
-      ? await this.userDevicesRepository.findOne({
-          where: {
-            user: { id: userId },
-            deviceToken: registerDeviceDto.deviceToken,
-          },
-        })
-      : null;
+    // First check by deviceId if provided, otherwise by deviceToken
+    let existingDevice: UserDevice | null = null;
+    
+    if (registerDeviceDto.deviceId) {
+      existingDevice = await this.userDevicesRepository.findOne({
+        where: {
+          id: registerDeviceDto.deviceId,
+          user: { id: userId },
+        },
+      });
+    } else if (registerDeviceDto.deviceToken) {
+      existingDevice = await this.userDevicesRepository.findOne({
+        where: {
+          user: { id: userId },
+          deviceToken: registerDeviceDto.deviceToken,
+        },
+      });
+    }
 
     let publicKeyNew: string | undefined;
     let privateKeyNew: string | undefined;

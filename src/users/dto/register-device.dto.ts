@@ -32,6 +32,16 @@ export class WebPushSubscriptionFieldsInput {
 export class RegisterDeviceDto {
   @Field({ nullable: true })
   @ApiProperty({
+    description: 'Device ID for updating existing device',
+    example: 'uuid-string',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({
     description: 'Device token for push notifications',
     example: 'a1b2...',
     required: false,
