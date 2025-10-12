@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/undefined/health": {
+    "/api/v1/health": {
       "get": {
         "operationId": "AppController_getHealth",
         "parameters": [],
@@ -15,7 +15,7 @@
         ]
       }
     },
-    "/undefined/version": {
+    "/api/v1/version": {
       "get": {
         "operationId": "AppController_getVersion",
         "parameters": [],
@@ -34,7 +34,7 @@
         ]
       }
     },
-    "/undefined/public/app-config": {
+    "/api/v1/public/app-config": {
       "get": {
         "operationId": "AppController_getPublicAppConfig",
         "parameters": [],
@@ -48,7 +48,7 @@
         ]
       }
     },
-    "/undefined/auth/register": {
+    "/api/v1/auth/register": {
       "post": {
         "operationId": "AuthController_register",
         "parameters": [],
@@ -83,7 +83,7 @@
         ]
       }
     },
-    "/undefined/auth/login": {
+    "/api/v1/auth/login": {
       "post": {
         "operationId": "AuthController_login",
         "parameters": [],
@@ -118,7 +118,7 @@
         ]
       }
     },
-    "/undefined/auth/refresh": {
+    "/api/v1/auth/refresh": {
       "post": {
         "operationId": "AuthController_refreshToken",
         "parameters": [],
@@ -153,7 +153,7 @@
         ]
       }
     },
-    "/undefined/auth/providers": {
+    "/api/v1/auth/providers": {
       "get": {
         "operationId": "AuthController_getEnabledProviders",
         "parameters": [],
@@ -171,7 +171,7 @@
         ]
       }
     },
-    "/undefined/auth/profile": {
+    "/api/v1/auth/profile": {
       "get": {
         "operationId": "AuthController_getProfile",
         "parameters": [],
@@ -233,7 +233,7 @@
         ]
       }
     },
-    "/undefined/auth/change-password": {
+    "/api/v1/auth/change-password": {
       "post": {
         "operationId": "AuthController_changePassword",
         "parameters": [],
@@ -273,7 +273,7 @@
         ]
       }
     },
-    "/undefined/auth/set-password": {
+    "/api/v1/auth/set-password": {
       "post": {
         "operationId": "AuthController_setPassword",
         "parameters": [],
@@ -313,7 +313,7 @@
         ]
       }
     },
-    "/undefined/auth/my-identities": {
+    "/api/v1/auth/my-identities": {
       "get": {
         "operationId": "AuthController_getMyIdentities",
         "parameters": [],
@@ -343,7 +343,7 @@
         ]
       }
     },
-    "/undefined/auth/{provider}": {
+    "/api/v1/auth/{provider}": {
       "get": {
         "operationId": "AuthController_startOAuth",
         "parameters": [],
@@ -361,7 +361,7 @@
         ]
       }
     },
-    "/undefined/auth/{provider}/callback": {
+    "/api/v1/auth/{provider}/callback": {
       "get": {
         "operationId": "AuthController_providerCallback",
         "parameters": [],
@@ -383,7 +383,7 @@
         ]
       }
     },
-    "/undefined/auth/request-password-reset": {
+    "/api/v1/auth/request-password-reset": {
       "post": {
         "operationId": "AuthController_requestPasswordReset",
         "parameters": [],
@@ -418,7 +418,7 @@
         ]
       }
     },
-    "/undefined/auth/validate-reset-token": {
+    "/api/v1/auth/validate-reset-token": {
       "post": {
         "operationId": "AuthController_validateResetToken",
         "parameters": [],
@@ -448,7 +448,7 @@
         ]
       }
     },
-    "/undefined/auth/reset-password": {
+    "/api/v1/auth/reset-password": {
       "post": {
         "operationId": "AuthController_resetPassword",
         "parameters": [],
@@ -483,7 +483,7 @@
         ]
       }
     },
-    "/undefined/auth/logout": {
+    "/api/v1/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
         "parameters": [],
@@ -508,7 +508,7 @@
         ]
       }
     },
-    "/undefined/auth/validate": {
+    "/api/v1/auth/validate": {
       "get": {
         "operationId": "AuthController_validateToken",
         "parameters": [],
@@ -535,7 +535,7 @@
         ]
       }
     },
-    "/undefined/auth/request-email-confirmation": {
+    "/api/v1/auth/request-email-confirmation": {
       "post": {
         "operationId": "AuthController_requestEmailConfirmation",
         "parameters": [],
@@ -567,7 +567,7 @@
         ]
       }
     },
-    "/undefined/auth/confirm-email": {
+    "/api/v1/auth/confirm-email": {
       "post": {
         "operationId": "AuthController_confirmEmail",
         "parameters": [],
@@ -602,7 +602,7 @@
         ]
       }
     },
-    "/undefined/auth/email-status/{email}": {
+    "/api/v1/auth/email-status/{email}": {
       "get": {
         "operationId": "AuthController_checkEmailStatus",
         "parameters": [
@@ -641,7 +641,7 @@
         ]
       }
     },
-    "/undefined/access-tokens": {
+    "/api/v1/access-tokens": {
       "post": {
         "operationId": "AccessTokenController_createAccessToken",
         "parameters": [],
@@ -724,7 +724,7 @@
         ]
       }
     },
-    "/undefined/access-tokens/{tokenId}": {
+    "/api/v1/access-tokens/{tokenId}": {
       "delete": {
         "operationId": "AccessTokenController_revokeAccessToken",
         "parameters": [
@@ -753,7 +753,7 @@
         ]
       }
     },
-    "/undefined/sessions": {
+    "/api/v1/sessions": {
       "get": {
         "operationId": "SessionController_getUserSessions",
         "parameters": [],
@@ -801,7 +801,7 @@
         ]
       }
     },
-    "/undefined/sessions/{sessionId}": {
+    "/api/v1/sessions/{sessionId}": {
       "delete": {
         "operationId": "SessionController_revokeSession",
         "parameters": [
@@ -830,7 +830,7 @@
         ]
       }
     },
-    "/undefined/server-manager/backups": {
+    "/api/v1/server-manager/backups": {
       "get": {
         "operationId": "ServerManagerController_listBackups",
         "parameters": [],
@@ -860,7 +860,7 @@
         ]
       }
     },
-    "/undefined/server-manager/backups/{filename}/download": {
+    "/api/v1/server-manager/backups/{filename}/download": {
       "get": {
         "operationId": "ServerManagerController_downloadBackup",
         "parameters": [
@@ -892,7 +892,7 @@
         ]
       }
     },
-    "/undefined/server-manager/backups/{filename}": {
+    "/api/v1/server-manager/backups/{filename}": {
       "delete": {
         "operationId": "ServerManagerController_deleteBackup",
         "parameters": [
@@ -931,7 +931,7 @@
         ]
       }
     },
-    "/undefined/server-manager/backups/trigger": {
+    "/api/v1/server-manager/backups/trigger": {
       "post": {
         "operationId": "ServerManagerController_triggerBackup",
         "parameters": [],
@@ -972,7 +972,7 @@
         ]
       }
     },
-    "/undefined/server-manager/settings": {
+    "/api/v1/server-manager/settings": {
       "get": {
         "operationId": "ServerManagerController_getAllSettings",
         "parameters": [],
@@ -992,7 +992,7 @@
         ]
       }
     },
-    "/undefined/server-manager/settings/{configType}": {
+    "/api/v1/server-manager/settings/{configType}": {
       "get": {
         "operationId": "ServerManagerController_getSettingByType",
         "parameters": [
@@ -1058,7 +1058,7 @@
         ]
       }
     },
-    "/undefined/server-manager/settings/batch": {
+    "/api/v1/server-manager/settings/batch": {
       "post": {
         "operationId": "ServerManagerController_batchUpdateSettings",
         "parameters": [],
@@ -1101,7 +1101,7 @@
         ]
       }
     },
-    "/undefined/server-manager/restart": {
+    "/api/v1/server-manager/restart": {
       "post": {
         "operationId": "ServerManagerController_restartServer",
         "parameters": [],
@@ -1136,7 +1136,7 @@
         ]
       }
     },
-    "/undefined/server-manager/logs": {
+    "/api/v1/server-manager/logs": {
       "get": {
         "operationId": "ServerManagerController_getLogs",
         "parameters": [
@@ -1215,7 +1215,7 @@
         ]
       }
     },
-    "/undefined/server-manager/logs/count": {
+    "/api/v1/server-manager/logs/count": {
       "get": {
         "operationId": "ServerManagerController_getTotalLogCount",
         "parameters": [],
@@ -1247,7 +1247,7 @@
         ]
       }
     },
-    "/undefined/server-manager/logs/cleanup": {
+    "/api/v1/server-manager/logs/cleanup": {
       "post": {
         "operationId": "ServerManagerController_triggerLogCleanup",
         "parameters": [],
@@ -1282,7 +1282,7 @@
         ]
       }
     },
-    "/undefined/metrics": {
+    "/api/v1/metrics": {
       "get": {
         "operationId": "PrometheusController_index",
         "parameters": [],
@@ -1296,7 +1296,7 @@
         ]
       }
     },
-    "/undefined/loki/logs": {
+    "/api/v1/loki/logs": {
       "get": {
         "description": "Returns logs in Loki/Promtail compatible format. Requires authentication with a System Access Token (Bearer sat_xxxxx).",
         "operationId": "LokiController_getLogs",
@@ -1401,7 +1401,7 @@
         ]
       }
     },
-    "/undefined/oauth-providers": {
+    "/api/v1/oauth-providers": {
       "post": {
         "operationId": "OAuthProvidersController_create",
         "parameters": [],
@@ -1484,7 +1484,7 @@
         ]
       }
     },
-    "/undefined/oauth-providers/{id}": {
+    "/api/v1/oauth-providers/{id}": {
       "get": {
         "operationId": "OAuthProvidersController_findOne",
         "parameters": [
@@ -1627,7 +1627,7 @@
         ]
       }
     },
-    "/undefined/oauth-providers/by-provider/{providerId}": {
+    "/api/v1/oauth-providers/by-provider/{providerId}": {
       "get": {
         "operationId": "OAuthProvidersController_findByProviderId",
         "parameters": [
@@ -1673,7 +1673,7 @@
         ]
       }
     },
-    "/undefined/oauth-providers/{id}/toggle": {
+    "/api/v1/oauth-providers/{id}/toggle": {
       "patch": {
         "operationId": "OAuthProvidersController_toggleEnabled",
         "parameters": [
@@ -1719,7 +1719,7 @@
         ]
       }
     },
-    "/undefined/oauth-providers/{id}/config": {
+    "/api/v1/oauth-providers/{id}/config": {
       "get": {
         "operationId": "OAuthProvidersController_getProviderConfig",
         "parameters": [
@@ -1808,7 +1808,7 @@
         ]
       }
     },
-    "/undefined/events": {
+    "/api/v1/events": {
       "get": {
         "operationId": "EventsController_findAll",
         "parameters": [
@@ -1901,7 +1901,7 @@
         ]
       }
     },
-    "/undefined/events/paginated": {
+    "/api/v1/events/paginated": {
       "get": {
         "operationId": "EventsController_findAllPaginated",
         "parameters": [
@@ -1994,7 +1994,7 @@
         ]
       }
     },
-    "/undefined/events/count": {
+    "/api/v1/events/count": {
       "get": {
         "operationId": "EventsController_getEventCount",
         "parameters": [],
@@ -2013,7 +2013,7 @@
         ]
       }
     },
-    "/undefined/events/by-type": {
+    "/api/v1/events/by-type": {
       "get": {
         "operationId": "EventsController_findByType",
         "parameters": [
@@ -2064,7 +2064,7 @@
         ]
       }
     },
-    "/undefined/events/by-user": {
+    "/api/v1/events/by-user": {
       "get": {
         "operationId": "EventsController_findByUserId",
         "parameters": [
@@ -2115,7 +2115,7 @@
         ]
       }
     },
-    "/undefined/events/by-object": {
+    "/api/v1/events/by-object": {
       "get": {
         "operationId": "EventsController_findByObjectId",
         "parameters": [
@@ -2166,7 +2166,7 @@
         ]
       }
     },
-    "/undefined/system-access-tokens": {
+    "/api/v1/system-access-tokens": {
       "post": {
         "operationId": "SystemAccessTokenController_create",
         "parameters": [],
@@ -2203,7 +2203,7 @@
         ]
       }
     },
-    "/undefined/system-access-tokens/{id}": {
+    "/api/v1/system-access-tokens/{id}": {
       "delete": {
         "operationId": "SystemAccessTokenController_revoke",
         "parameters": [
@@ -2231,7 +2231,153 @@
         ]
       }
     },
-    "/undefined/notifications": {
+    "/api/v1/system-access-token-requests": {
+      "post": {
+        "operationId": "SystemAccessTokenRequestController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSystemAccessTokenRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request created successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new system access token request",
+        "tags": [
+          "System Access Token Requests"
+        ]
+      },
+      "get": {
+        "operationId": "SystemAccessTokenRequestController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all system access token requests (Admin only)",
+        "tags": [
+          "System Access Token Requests"
+        ]
+      }
+    },
+    "/api/v1/system-access-token-requests/{id}/approve": {
+      "post": {
+        "operationId": "SystemAccessTokenRequestController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveSystemAccessTokenRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request approved and token generated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve a system access token request (Admin only)",
+        "tags": [
+          "System Access Token Requests"
+        ]
+      }
+    },
+    "/api/v1/system-access-token-requests/{id}/decline": {
+      "post": {
+        "operationId": "SystemAccessTokenRequestController_decline",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineSystemAccessTokenRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request declined"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decline a system access token request (Admin only)",
+        "tags": [
+          "System Access Token Requests"
+        ]
+      }
+    },
+    "/api/v1/system-access-token-requests/my-requests": {
+      "get": {
+        "operationId": "SystemAccessTokenRequestController_findMyRequests",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user's system access token requests",
+        "tags": [
+          "System Access Token Requests"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
       "get": {
         "operationId": "NotificationsController_findAll",
         "parameters": [],
@@ -2261,7 +2407,7 @@
         ]
       }
     },
-    "/undefined/notifications/{id}/read": {
+    "/api/v1/notifications/{id}/read": {
       "patch": {
         "operationId": "NotificationsController_markAsRead",
         "parameters": [
@@ -2290,7 +2436,7 @@
         ]
       }
     },
-    "/undefined/notifications/{id}/unread": {
+    "/api/v1/notifications/{id}/unread": {
       "patch": {
         "operationId": "NotificationsController_markAsUnread",
         "parameters": [
@@ -2319,7 +2465,7 @@
         ]
       }
     },
-    "/undefined/notifications/mark-all-read": {
+    "/api/v1/notifications/mark-all-read": {
       "patch": {
         "operationId": "NotificationsController_markAllAsRead",
         "parameters": [],
@@ -2339,7 +2485,7 @@
         ]
       }
     },
-    "/undefined/notifications/{id}": {
+    "/api/v1/notifications/{id}": {
       "get": {
         "operationId": "NotificationsController_findOne",
         "parameters": [
@@ -2408,7 +2554,7 @@
         ]
       }
     },
-    "/undefined/notifications/{id}/sent": {
+    "/api/v1/notifications/{id}/sent": {
       "patch": {
         "operationId": "NotificationsController_markAsSent",
         "parameters": [
@@ -2447,7 +2593,7 @@
         ]
       }
     },
-    "/undefined/notifications/update-received": {
+    "/api/v1/notifications/update-received": {
       "patch": {
         "operationId": "NotificationsController_updateReceived",
         "parameters": [],
@@ -2492,7 +2638,7 @@
         ]
       }
     },
-    "/undefined/notifications/{id}/received": {
+    "/api/v1/notifications/{id}/received": {
       "patch": {
         "operationId": "NotificationsController_markAsReceived",
         "parameters": [
@@ -2547,7 +2693,7 @@
         ]
       }
     },
-    "/undefined/notifications/{id}/device-received": {
+    "/api/v1/notifications/{id}/device-received": {
       "patch": {
         "operationId": "NotificationsController_deviceReportReceived",
         "parameters": [
@@ -2599,7 +2745,7 @@
         ]
       }
     },
-    "/undefined/notifications/notification-services": {
+    "/api/v1/notifications/notification-services": {
       "get": {
         "operationId": "NotificationsController_getNotificationServices",
         "parameters": [],
@@ -2629,7 +2775,7 @@
         ]
       }
     },
-    "/undefined/notifications/notify-external": {
+    "/api/v1/notifications/notify-external": {
       "post": {
         "operationId": "NotificationsController_notifyExternal",
         "parameters": [],
@@ -2685,7 +2831,7 @@
         ]
       }
     },
-    "/undefined/users": {
+    "/api/v1/users": {
       "get": {
         "operationId": "UsersController_getAllUsers",
         "parameters": [],
@@ -2718,7 +2864,7 @@
         ]
       }
     },
-    "/undefined/users/{userId}/role": {
+    "/api/v1/users/{userId}/role": {
       "patch": {
         "operationId": "UsersController_updateUserRole",
         "parameters": [
@@ -2770,7 +2916,7 @@
         ]
       }
     },
-    "/undefined/users/{userId}": {
+    "/api/v1/users/{userId}": {
       "get": {
         "operationId": "UsersController_getUserById",
         "parameters": [
@@ -2812,7 +2958,7 @@
         ]
       }
     },
-    "/undefined/users/devices": {
+    "/api/v1/users/devices": {
       "post": {
         "operationId": "UsersController_registerDevice",
         "parameters": [],
@@ -2867,7 +3013,7 @@
         ]
       }
     },
-    "/undefined/users/devices/{deviceId}": {
+    "/api/v1/users/devices/{deviceId}": {
       "delete": {
         "operationId": "UsersController_removeDevice",
         "parameters": [
@@ -2933,7 +3079,7 @@
         ]
       }
     },
-    "/undefined/users/devices/token": {
+    "/api/v1/users/devices/token": {
       "patch": {
         "operationId": "UsersController_updateDeviceToken",
         "parameters": [],
@@ -2965,7 +3111,7 @@
         ]
       }
     },
-    "/undefined/users/account": {
+    "/api/v1/users/account": {
       "delete": {
         "operationId": "UsersController_deleteAccount",
         "parameters": [],
@@ -2980,7 +3126,7 @@
         ]
       }
     },
-    "/undefined/users/settings": {
+    "/api/v1/users/settings": {
       "get": {
         "operationId": "UsersController_getUserSettings",
         "parameters": [
@@ -3044,7 +3190,7 @@
         ]
       }
     },
-    "/undefined/users/admin-subscriptions/me": {
+    "/api/v1/users/admin-subscriptions/me": {
       "get": {
         "operationId": "UsersController_getMyAdminSubscription",
         "parameters": [],
@@ -3108,7 +3254,7 @@
         ]
       }
     },
-    "/undefined/entity-permissions/resource-permissions": {
+    "/api/v1/entity-permissions/resource-permissions": {
       "get": {
         "operationId": "EntityPermissionsController_getResourcePermissions",
         "parameters": [
@@ -3155,7 +3301,7 @@
         ]
       }
     },
-    "/undefined/entity-permissions/grant": {
+    "/api/v1/entity-permissions/grant": {
       "post": {
         "operationId": "EntityPermissionsController_grantPermissions",
         "parameters": [],
@@ -3192,7 +3338,7 @@
         ]
       }
     },
-    "/undefined/entity-permissions/revoke": {
+    "/api/v1/entity-permissions/revoke": {
       "delete": {
         "operationId": "EntityPermissionsController_revokePermissions",
         "parameters": [],
@@ -3222,7 +3368,7 @@
         ]
       }
     },
-    "/undefined/entity-permissions/cleanup-expired": {
+    "/api/v1/entity-permissions/cleanup-expired": {
       "post": {
         "operationId": "EntityPermissionsController_cleanupExpiredPermissions",
         "parameters": [],
@@ -3242,7 +3388,7 @@
         ]
       }
     },
-    "/undefined/messages": {
+    "/api/v1/messages": {
       "post": {
         "description": "Supports multiple content types and data sources. Data can be combined from body, query parameters, path parameters, and headers (x-message-*). Headers take highest precedence, followed by path params, query params, and body.",
         "operationId": "MessagesController_create",
@@ -3532,7 +3678,7 @@
         ]
       }
     },
-    "/undefined/messages/with-attachment": {
+    "/api/v1/messages/with-attachment": {
       "post": {
         "operationId": "MessagesController_createWithAttachment",
         "parameters": [],
@@ -3572,7 +3718,7 @@
         ]
       }
     },
-    "/undefined/messages/transform": {
+    "/api/v1/messages/transform": {
       "post": {
         "description": "Transform a payload using a builtin parser (e.g., Authentik) and create a message with the transformed data. Requires bucketId query parameter to specify the target bucket.",
         "operationId": "MessagesController_transformAndCreate",
@@ -3623,7 +3769,7 @@
         ]
       }
     },
-    "/undefined/buckets": {
+    "/api/v1/buckets": {
       "post": {
         "operationId": "BucketsController_create",
         "parameters": [],
@@ -3691,7 +3837,7 @@
         ]
       }
     },
-    "/undefined/buckets/{id}": {
+    "/api/v1/buckets/{id}": {
       "get": {
         "operationId": "BucketsController_findOne",
         "parameters": [
@@ -3807,7 +3953,7 @@
         ]
       }
     },
-    "/undefined/buckets/{id}/notifications/count": {
+    "/api/v1/buckets/{id}/notifications/count": {
       "get": {
         "operationId": "BucketsController_getNotificationsCount",
         "parameters": [
@@ -3851,7 +3997,7 @@
         ]
       }
     },
-    "/undefined/buckets/{id}/snooze-status": {
+    "/api/v1/buckets/{id}/snooze-status": {
       "get": {
         "operationId": "BucketsController_getSnoozeStatus",
         "parameters": [
@@ -3887,7 +4033,7 @@
         ]
       }
     },
-    "/undefined/buckets/{id}/snooze": {
+    "/api/v1/buckets/{id}/snooze": {
       "post": {
         "description": "Pass a JSON body {\"snoozeUntil\": \"<ISO date>\"}. Use null or omit the field to clear.",
         "operationId": "BucketsController_setBucketSnooze",
@@ -3930,7 +4076,7 @@
         ]
       }
     },
-    "/undefined/buckets/{id}/snooze-minutes": {
+    "/api/v1/buckets/{id}/snooze-minutes": {
       "post": {
         "description": "Snooze bucket for specified number of minutes from current time",
         "operationId": "BucketsController_setBucketSnoozeMinutes",
@@ -3976,7 +4122,7 @@
         ]
       }
     },
-    "/undefined/attachments/upload": {
+    "/api/v1/attachments/upload": {
       "post": {
         "operationId": "AttachmentsController_uploadAttachment",
         "parameters": [],
@@ -4019,7 +4165,7 @@
         ]
       }
     },
-    "/undefined/attachments/download-from-url": {
+    "/api/v1/attachments/download-from-url": {
       "post": {
         "operationId": "AttachmentsController_downloadFromUrl",
         "parameters": [],
@@ -4059,7 +4205,7 @@
         ]
       }
     },
-    "/undefined/attachments/proxy-media": {
+    "/api/v1/attachments/proxy-media": {
       "get": {
         "description": "Downloads media from an external URL and returns it as binary data. Useful for bypassing CORS restrictions.",
         "operationId": "AttachmentsController_proxyMedia",
@@ -4092,7 +4238,7 @@
         ]
       }
     },
-    "/undefined/attachments/{id}": {
+    "/api/v1/attachments/{id}": {
       "get": {
         "operationId": "AttachmentsController_findOne",
         "parameters": [
@@ -4161,7 +4307,7 @@
         ]
       }
     },
-    "/undefined/attachments/{id}/download": {
+    "/api/v1/attachments/{id}/download": {
       "get": {
         "operationId": "AttachmentsController_downloadFile",
         "parameters": [
@@ -4196,7 +4342,7 @@
         ]
       }
     },
-    "/undefined/attachments/{id}/download/public": {
+    "/api/v1/attachments/{id}/download/public": {
       "get": {
         "operationId": "AttachmentsController_downloadFilePublic",
         "parameters": [
@@ -4223,7 +4369,7 @@
         ]
       }
     },
-    "/undefined/attachments/message/{messageId}": {
+    "/api/v1/attachments/message/{messageId}": {
       "get": {
         "operationId": "AttachmentsController_findByMessage",
         "parameters": [
@@ -4262,7 +4408,7 @@
         ]
       }
     },
-    "/undefined/attachments/user/{userId}": {
+    "/api/v1/attachments/user/{userId}": {
       "get": {
         "operationId": "AttachmentsController_findByUser",
         "parameters": [
@@ -4301,7 +4447,7 @@
         ]
       }
     },
-    "/undefined/payload-mappers": {
+    "/api/v1/payload-mappers": {
       "post": {
         "operationId": "PayloadMapperController_create",
         "parameters": [],
@@ -4337,7 +4483,7 @@
         ]
       }
     },
-    "/undefined/payload-mappers/{id}": {
+    "/api/v1/payload-mappers/{id}": {
       "get": {
         "operationId": "PayloadMapperController_findOne",
         "parameters": [
@@ -4412,7 +4558,7 @@
         ]
       }
     },
-    "/undefined/webhooks": {
+    "/api/v1/webhooks": {
       "get": {
         "operationId": "WebhooksController_getUserWebhooks",
         "parameters": [],
@@ -4442,7 +4588,7 @@
         ]
       }
     },
-    "/undefined/webhooks/{id}": {
+    "/api/v1/webhooks/{id}": {
       "get": {
         "operationId": "WebhooksController_getWebhook",
         "parameters": [
@@ -4484,7 +4630,7 @@
         ]
       }
     },
-    "/undefined/webhooks/{id}/execute": {
+    "/api/v1/webhooks/{id}/execute": {
       "post": {
         "operationId": "WebhooksController_executeWebhook",
         "parameters": [
@@ -5648,6 +5794,40 @@
           "additionalConfig": {
             "type": "string",
             "description": "Additional configuration as JSON string"
+          }
+        }
+      },
+      "CreateSystemAccessTokenRequestDto": {
+        "type": "object",
+        "properties": {
+          "maxRequests": {
+            "type": "number",
+            "description": "Maximum number of requests allowed"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description"
+          }
+        },
+        "required": [
+          "maxRequests"
+        ]
+      },
+      "ApproveSystemAccessTokenRequestDto": {
+        "type": "object",
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "description": "Optional expiration date"
+          }
+        }
+      },
+      "DeclineSystemAccessTokenRequestDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Optional reason for declining"
           }
         }
       },

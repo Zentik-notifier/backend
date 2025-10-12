@@ -1,111 +1,98 @@
 <?xml version="1.0"?>
 <Container version="2">
-  <Name>Zentik-Notifier-Backend</Name>
+  <Name>Zentik-Notifier</Name>
   <Repository>ghcr.io/zentik-notifier/zentik-notifier-backend:latest</Repository>
   <Registry>https://ghcr.io/</Registry>
   <Network>bridge</Network>
-  <MyIP/>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support>https://github.com/Zentik-notifier/zentik-notifier</Support>
   <Project>https://github.com/Zentik-notifier/zentik-notifier</Project>
-  <Overview>Zentik Notifier Backend - Multi-platform notification system with support for iOS, Android and Web. Manages push notifications, webhooks, attachments and shared buckets.</Overview>
+  <Overview>Zentik Notifier Backend - Multi-platform notification system with support for iOS, Android and Web. Most of the env variables are configurable through the admin panel. After the first boot they won't take any effect</Overview>
   <Category>Tools: Network:Other Status:Stable</Category>
   <WebUI>http://[IP]:[PORT:3000]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/Zentik-notifier/zentik-notifier/main/backend/unraid-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/Zentik-notifier/zentik-notifier/main/backend/assets/Zentik-admin.png</Icon>
+  <Icon>https://github.com/Zentik-notifier/frontend/blob/main/assets/images/favicon.png?raw=true</Icon>
   <Description>Zentik Notifier is a comprehensive notification management system that supports multiple platforms including iOS (APN), Android (Firebase), and Web Push. Features include webhook support, file attachments, shared notification buckets, GraphQL and REST APIs, and admin management. Requires a PostgreSQL 14+ database.</Description>
-  <Networking>
-    <Mode>bridge</Mode>
-    <Publish>
-      <Port>
-        <HostPort>3000</HostPort>
-        <ContainerPort>3000</ContainerPort>
-        <Protocol>tcp</Protocol>
-      </Port>
-    </Publish>
-  </Networking>
-  <ExtraParams/>
-  <PostArgs/>
-  <CPUset/>
-  <DateInstalled/>
-  <DonateText/>
-  <DonateLink/>
   <Requires>Requires a PostgreSQL 14+ database</Requires>
-  <Config Name="Backend Port" Target="3000" Default="3000" Mode="tcp" Description="HTTP port for the backend API" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="Backend Port" Target="3000" Default="3000" Mode="tcp" Description="Host port to access the app" Type="Port" Display="always" Required="true" Mask="false"/>
   
   <!-- Database Configuration -->
-  <Config Name="DB Host" Target="DB_HOST" Default="postgres" Mode="" Description="PostgreSQL server hostname or IP address" Type="Variable" Display="always" Required="true" Mask="false">postgres</Config>
-  <Config Name="DB Port" Target="DB_PORT" Default="5432" Mode="" Description="PostgreSQL server port" Type="Variable" Display="always" Required="true" Mask="false">5432</Config>
-  <Config Name="DB Name" Target="DB_NAME" Default="zentik" Mode="" Description="PostgreSQL database name" Type="Variable" Display="always" Required="true" Mask="false">zentik</Config>
-  <Config Name="DB Username" Target="DB_USERNAME" Default="zentik_user" Mode="" Description="Database connection username" Type="Variable" Display="always" Required="true" Mask="false">zentik_user</Config>
-  <Config Name="DB Password" Target="DB_PASSWORD" Default="" Mode="" Description="Database connection password" Type="Variable" Display="always" Required="true" Mask="true">zentik_password</Config>
-  <Config Name="DB SSL" Target="DB_SSL" Default="false" Mode="" Description="Enable SSL for database connection (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="DB Synchronize" Target="DB_SYNCHRONIZE" Default="true" Mode="" Description="Automatically synchronize database schema (false in production)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="DB Drop Schema" Target="DB_DROP_SCHEMA" Default="false" Mode="" Description="Drop and recreate database schema on startup (DANGEROUS - development only)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+  <Config Name="DB Host" Target="DB_HOST" Default="postgres" Mode="" Description="PostgreSQL server hostname or IP address" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="DB Port" Target="DB_PORT" Default="5432" Mode="" Description="PostgreSQL server port" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="DB Name" Target="DB_NAME" Default="zentik" Mode="" Description="PostgreSQL database name" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="DB Username" Target="DB_USERNAME" Default="zentik_user" Mode="" Description="Database connection username" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="DB Password" Target="DB_PASSWORD" Default="" Mode="" Description="Database connection password" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="DB SSL" Target="DB_SSL" Default="false|true" Mode="" Description="Enable SSL for database connection" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="DB Synchronize" Target="DB_SYNCHRONIZE" Default="true|false" Mode="" Description="Automatically synchronize database schema" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="DB Drop Schema" Target="DB_DROP_SCHEMA" Default="false|true" Mode="" Description="Drop and recreate database schema on startup (DANGEROUS - development only)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Admin Configuration -->
-  <Config Name="Admin Users" Target="ADMIN_USERS" Default="admin" Mode="" Description="Admin usernames (comma separated)" Type="Variable" Display="always" Required="true" Mask="false">admin</Config>
-  <Config Name="Admin Default Password" Target="ADMIN_DEFAULT_PASSWORD" Default="" Mode="" Description="Default password for admin users" Type="Variable" Display="always" Required="true" Mask="true">admin</Config>
+  <Config Name="Admin Users" Target="ADMIN_USERS" Default="admin" Mode="" Description="Admin usernames (comma separated)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="Admin Default Password" Target="ADMIN_DEFAULT_PASSWORD" Default="" Mode="" Description="Default password for admin users" Type="Variable" Display="always" Required="true" Mask="true"/>
   
   <!-- JWT Configuration -->
-  <Config Name="JWT Secret" Target="JWT_SECRET" Default="" Mode="" Description="Secret for JWT access token generation (generate a long random string)" Type="Variable" Display="always" Required="true" Mask="true">changeme_generate_random_secret_64chars_minimum</Config>
-  <Config Name="JWT Refresh Secret" Target="JWT_REFRESH_SECRET" Default="" Mode="" Description="Secret for JWT refresh token generation (generate a different long random string)" Type="Variable" Display="always" Required="true" Mask="true">changeme_generate_different_random_secret_64chars_minimum</Config>
+  <Config Name="JWT Secret" Target="JWT_SECRET" Default="" Mode="" Description="Secret for JWT access token generation (generate a long random string)" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="JWT Refresh Secret" Target="JWT_REFRESH_SECRET" Default="" Mode="" Description="Secret for JWT refresh token generation (generate a different long random string)" Type="Variable" Display="always" Required="true" Mask="true"/>
   
   <!-- Backend Configuration -->
-  <Config Name="Backend Port (Internal)" Target="BACKEND_PORT" Default="3000" Mode="" Description="Internal application port (usually 3000)" Type="Variable" Display="advanced" Required="false" Mask="false">3000</Config>
-  <Config Name="Public Backend URL" Target="PUBLIC_BACKEND_URL" Default="" Mode="" Description="Public backend URL (e.g. https://api.example.com)" Type="Variable" Display="always" Required="true" Mask="false">http://localhost:3000</Config>
+  <Config Name="Backend Port (Internal)" Target="BACKEND_PORT" Default="3000" Mode="" Description="Internal application port (usually 3000)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Public Backend URL" Target="PUBLIC_BACKEND_URL" Default="" Mode="" Description="Public backend URL (e.g. https://api.example.com)" Type="Variable" Display="always" Required="true" Mask="false"/>
   
   <!-- Optional: Push Notifications - Apple (APN) -->
-  <Config Name="APN Push Enabled" Target="APN_PUSH" Default="false" Mode="" Description="Enable Apple push notifications (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="APN Key ID" Target="APN_KEY_ID" Default="" Mode="" Description="Apple Push Notification Key ID" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="APN Team ID" Target="APN_TEAM_ID" Default="" Mode="" Description="Apple Developer Team ID" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="APN Bundle ID" Target="APN_BUNDLE_ID" Default="" Mode="" Description="iOS App Bundle ID" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="APN Production" Target="APN_PRODUCTION" Default="false" Mode="" Description="Use APN production environment (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+  <Config Name="APN Push Mode" Target="APN_PUSH" Default="Passthrough|Off|Local|Onboard" Mode="" Description="Apple push notifications mode: Off (disabled), Local (self-hosted), Onboard (device-to-device), Passthrough (via Zentik cloud)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="APN Key ID" Target="APN_KEY_ID" Default="" Mode="" Description="Apple Push Notification Key ID" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="APN Team ID" Target="APN_TEAM_ID" Default="" Mode="" Description="Apple Developer Team ID" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="APN Bundle ID" Target="APN_BUNDLE_ID" Default="" Mode="" Description="iOS App Bundle ID" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="APN Production" Target="APN_PRODUCTION" Default="false|true" Mode="" Description="Use APN production environment" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Optional: Push Notifications - Firebase -->
-  <Config Name="Firebase Push Enabled" Target="FIREBASE_PUSH" Default="false" Mode="" Description="Enable Firebase push notifications (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="Firebase Project ID" Target="FIREBASE_PROJECT_ID" Default="" Mode="" Description="Firebase Project ID" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="Firebase Client Email" Target="FIREBASE_CLIENT_EMAIL" Default="" Mode="" Description="Firebase Service Account Client Email" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="Firebase Private Key" Target="FIREBASE_PRIVATE_KEY" Default="" Mode="" Description="Firebase Service Account Private Key (escaped JSON format)" Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="Firebase Push Mode" Target="FIREBASE_PUSH" Default="Passthrough|Off|Local|Onboard" Mode="" Description="Firebase push notifications mode: Off (disabled), Local (self-hosted), Onboard (device-to-device), Passthrough (via Zentik cloud)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Firebase Project ID" Target="FIREBASE_PROJECT_ID" Default="" Mode="" Description="Firebase Project ID" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Firebase Client Email" Target="FIREBASE_CLIENT_EMAIL" Default="" Mode="" Description="Firebase Service Account Client Email" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Firebase Private Key" Target="FIREBASE_PRIVATE_KEY" Default="" Mode="" Description="Firebase Service Account Private Key (escaped JSON format)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
   
   <!-- Optional: Web Push -->
-  <Config Name="Web Push Enabled" Target="WEB_PUSH" Default="false" Mode="" Description="Enable Web push notifications (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="VAPID Subject" Target="VAPID_SUBJECT" Default="" Mode="" Description="VAPID Subject (e.g. mailto:admin@example.com)" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="Web Push Mode" Target="WEB_PUSH" Default="Passthrough|Off|Local|Onboard" Mode="" Description="Web push notifications mode: Off (disabled), Local (self-hosted), Onboard (device-to-device), Passthrough (via Zentik cloud)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="VAPID Subject" Target="VAPID_SUBJECT" Default="" Mode="" Description="VAPID Subject (e.g. mailto:admin@example.com)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  
+  <!-- Optional: Push Passthrough Configuration -->
+  <Config Name="Push Passthrough Server" Target="PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER" Default="https://notifier-api.zentik.app/api/v1" Mode="" Description="Passthrough server URL (used when push mode is Passthrough)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Push Passthrough Token" Target="PUSH_PASSTHROUGH_TOKEN" Default="" Mode="" Description="Authentication token for passthrough server (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
   
   <!-- Optional: Attachments -->
-  <Config Name="Attachments Enabled" Target="ATTACHMENTS_ENABLED" Default="true" Mode="" Description="Enable attachment uploads (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
-  <Config Name="Attachments Storage Path" Target="ATTACHMENTS_STORAGE_PATH" Default="/app/attachments" Mode="" Description="Attachments storage path" Type="Variable" Display="advanced" Required="false" Mask="false">/app/attachments</Config>
-  <Config Name="Attachments Max File Size" Target="ATTACHMENTS_MAX_FILE_SIZE" Default="10485760" Mode="" Description="Maximum file size in bytes (default: 10MB)" Type="Variable" Display="advanced" Required="false" Mask="false">10485760</Config>
-  <Config Name="Attachments Allowed Mime Types" Target="ATTACHMENTS_ALLOWED_MIME_TYPES" Default="image/*,video/*,audio/*" Mode="" Description="Allowed MIME types (comma separated)" Type="Variable" Display="advanced" Required="false" Mask="false">image/*,video/*,audio/*</Config>
+  <Config Name="Attachments Enabled" Target="ATTACHMENTS_ENABLED" Default="true|false" Mode="" Description="Enable attachment uploads" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Attachments Max File Size" Target="ATTACHMENTS_MAX_FILE_SIZE" Default="10485760" Mode="" Description="Maximum file size in bytes (default: 10MB)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Attachments Allowed Mime Types" Target="ATTACHMENTS_ALLOWED_MIME_TYPES" Default="image/*,video/*,audio/*" Mode="" Description="Allowed MIME types (comma separated)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Optional: Email -->
-  <Config Name="Email Enabled" Target="EMAIL_ENABLED" Default="false" Mode="" Description="Enable email sending (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="Email Type" Target="EMAIL_TYPE" Default="smtp" Mode="" Description="Email service type (smtp or resend)" Type="Variable" Display="advanced" Required="false" Mask="false">smtp</Config>
-  <Config Name="Email Host" Target="EMAIL_HOST" Default="" Mode="" Description="SMTP Host" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="Email Port" Target="EMAIL_PORT" Default="587" Mode="" Description="SMTP Port" Type="Variable" Display="advanced" Required="false" Mask="false">587</Config>
-  <Config Name="Email Secure" Target="EMAIL_SECURE" Default="false" Mode="" Description="Use TLS for SMTP (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="Email User" Target="EMAIL_USER" Default="" Mode="" Description="SMTP Username" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="Email Password" Target="EMAIL_PASS" Default="" Mode="" Description="SMTP Password" Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
-  <Config Name="Email From" Target="EMAIL_FROM" Default="" Mode="" Description="Sender email address" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="Email From Name" Target="EMAIL_FROM_NAME" Default="Zentik Notifier" Mode="" Description="Sender name" Type="Variable" Display="advanced" Required="false" Mask="false">Zentik Notifier</Config>
+  <Config Name="Email Enabled" Target="EMAIL_ENABLED" Default="false|true" Mode="" Description="Enable email sending" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Email Type" Target="EMAIL_TYPE" Default="smtp|resend" Mode="" Description="Email service type" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Email Host" Target="EMAIL_HOST" Default="" Mode="" Description="SMTP Host" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Email Port" Target="EMAIL_PORT" Default="587" Mode="" Description="SMTP Port" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Email Secure" Target="EMAIL_SECURE" Default="false|true" Mode="" Description="Use TLS for SMTP" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Email User" Target="EMAIL_USER" Default="" Mode="" Description="SMTP Username" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Email Password" Target="EMAIL_PASS" Default="" Mode="" Description="SMTP Password" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="Email From" Target="EMAIL_FROM" Default="" Mode="" Description="Sender email address" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Email From Name" Target="EMAIL_FROM_NAME" Default="Zentik Notifier" Mode="" Description="Sender name" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Optional: CORS -->
-  <Config Name="CORS Origin" Target="CORS_ORIGIN" Default="*" Mode="" Description="Allowed CORS origins (comma separated or * for all)" Type="Variable" Display="advanced" Required="false" Mask="false">*</Config>
-  <Config Name="CORS Credentials" Target="CORS_CREDENTIALS" Default="true" Mode="" Description="Enable CORS credentials (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="CORS Origin" Target="CORS_ORIGIN" Default="*" Mode="" Description="Allowed CORS origins (comma separated or * for all)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="CORS Credentials" Target="CORS_CREDENTIALS" Default="true|false" Mode="" Description="Enable CORS credentials" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Optional: Logging -->
-  <Config Name="Log Level" Target="LOG_LEVEL" Default="info" Mode="" Description="Log level (error, warn, info, http, verbose, debug, silly)" Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
-  <Config Name="Log Storage Enabled" Target="LOG_STORAGE_ENABLED" Default="false" Mode="" Description="Store logs in database (true/false)" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
-  <Config Name="Log Retention Days" Target="LOG_RETENTION_DAYS" Default="30" Mode="" Description="Database log retention days" Type="Variable" Display="advanced" Required="false" Mask="false">30</Config>
+  <Config Name="Log Level" Target="LOG_LEVEL" Default="info|error|warn|http|verbose|debug|silly" Mode="" Description="Log level" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Log Storage Enabled" Target="LOG_STORAGE_ENABLED" Default="true|false" Mode="" Description="Store logs in database" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Log Retention Days" Target="LOG_RETENTION_DAYS" Default="30" Mode="" Description="Database log retention days" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Optional: Rate Limiting -->
-  <Config Name="Rate Limit TTL (ms)" Target="RATE_LIMIT_TTL_MS" Default="60000" Mode="" Description="Rate limit time window in milliseconds" Type="Variable" Display="advanced" Required="false" Mask="false">60000</Config>
-  <Config Name="Rate Limit Max Requests" Target="RATE_LIMIT_LIMIT" Default="100" Mode="" Description="Maximum requests per time window" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="Rate Limit TTL (ms)" Target="RATE_LIMIT_TTL_MS" Default="60000" Mode="" Description="Rate limit time window in milliseconds" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Rate Limit Max Requests" Target="RATE_LIMIT_LIMIT" Default="100" Mode="" Description="Maximum requests per time window" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Volume Mappings -->
-  <Config Name="Attachments Storage" Target="/app/attachments" Default="/mnt/user/appdata/zentik-notifier/attachments" Mode="rw" Description="Attachments storage path" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/zentik-notifier/attachments</Config>
-  <Config Name="APN Key File" Target="/app/keys/apn-key.p8" Default="" Mode="ro" Description="Path to APN .p8 key file (optional)" Type="Path" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="Logs" Target="/app/logs" Default="/mnt/user/appdata/zentik-notifier/logs" Mode="rw" Description="Log files path" Type="Path" Display="advanced" Required="false" Mask="false">/mnt/user/appdata/zentik-notifier/logs</Config>
-  <Config Name="Backups" Target="/app/backups" Default="/mnt/user/appdata/zentik-notifier/backups" Mode="rw" Description="Database backups path" Type="Path" Display="advanced" Required="false" Mask="false">/mnt/user/appdata/zentik-notifier/backups</Config>
+  <Config Name="Attachments Storage" Target="/app/attachments" Default="/mnt/user/appdata/zentik-notifier/attachments" Mode="rw" Description="Attachments storage path" Type="Path" Display="always" Required="false" Mask="false"/>
+  <Config Name="APN Key File" Target="/app/keys/apn-key.p8" Default="" Mode="ro" Description="Path to APN .p8 key file (optional)" Type="Path" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Backups" Target="/app/backups" Default="/mnt/user/appdata/zentik-notifier/backups" Mode="rw" Description="Backups path" Type="Path" Display="always" Required="false" Mask="false"/>
+  
+  <Config Name="Attachments Storage Path" Target="ATTACHMENTS_STORAGE_PATH" Default="/app/attachments" Mode="" Description="Attachments storage path (internal)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Backup Storage Path" Target="BACKUP_STORAGE_PATH" Default="/app/backups" Mode="" Description="Backup storage path (internal)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
 </Container>

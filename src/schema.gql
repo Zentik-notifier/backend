@@ -19,6 +19,10 @@ type AccessTokenResponseDto {
   token: String!
 }
 
+input ApproveSystemAccessTokenRequestDto {
+  expiresAt: String
+}
+
 type Attachment {
   createdAt: DateTime!
   filename: String!
@@ -140,6 +144,11 @@ input CreatePayloadMapperDto {
   userId: String
 }
 
+input CreateSystemAccessTokenRequestDto {
+  description: String
+  maxRequests: Int!
+}
+
 input CreateWebhookDto {
   body: JSON
   headers: [WebhookHeaderDto!]!
@@ -152,6 +161,10 @@ input CreateWebhookDto {
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
+
+input DeclineSystemAccessTokenRequestDto {
+  reason: String
+}
 
 input DeviceInfoDto {
   deviceModel: String
@@ -398,6 +411,8 @@ type MessageAttachment {
 }
 
 type Mutation {
+  approveSystemAccessTokenRequest(id: String!, input: ApproveSystemAccessTokenRequestDto): SystemAccessTokenRequest!
+
   """Batch update multiple server settings"""
   batchUpdateServerSettings(settings: [BatchUpdateSettingInput!]!): [ServerSetting!]!
   changePassword(input: ChangePasswordInput!): Boolean!
@@ -412,8 +427,10 @@ type Mutation {
   createMessage(input: CreateMessageDto!): Message!
   createOAuthProvider(input: CreateOAuthProviderDto!): OAuthProvider!
   createPayloadMapper(input: CreatePayloadMapperDto!): PayloadMapper!
+  createSystemAccessTokenRequest(input: CreateSystemAccessTokenRequestDto!): SystemAccessTokenRequest!
   createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String): SystemAccessTokenDto!
   createWebhook(input: CreateWebhookDto!): UserWebhook!
+  declineSystemAccessTokenRequest(id: String!, input: DeclineSystemAccessTokenRequestDto): SystemAccessTokenRequest!
   deleteAccount: Boolean!
 
   """Delete a specific backup file"""
@@ -663,6 +680,7 @@ type Query {
   me: User!
   messageAttachments(messageId: ID!): [Attachment!]!
   myAdminSubscription: [String!]
+  mySystemAccessTokenRequests: [SystemAccessTokenRequest!]!
   notification(id: String!): Notification!
   notificationServices: [NotificationServiceInfo!]!
   notifications: [Notification!]!
@@ -676,6 +694,7 @@ type Query {
 
   """Get all server settings"""
   serverSettings: [ServerSetting!]!
+  systemAccessTokenRequests: [SystemAccessTokenRequest!]!
 
   """Get total log count"""
   totalLogCount: Float!
@@ -878,6 +897,19 @@ type Subscription {
   userProfileUpdated: User!
 }
 
+type SystemAccessToken {
+  calls: Float!
+  createdAt: DateTime!
+  description: String
+  expiresAt: DateTime
+  id: String!
+  maxCalls: Float!
+  requester: User
+  requesterId: String
+  tokenHash: String!
+  updatedAt: DateTime!
+}
+
 type SystemAccessTokenDto {
   calls: Float!
   createdAt: DateTime!
@@ -888,6 +920,27 @@ type SystemAccessTokenDto {
   rawToken: String
   requester: User
   updatedAt: DateTime!
+}
+
+type SystemAccessTokenRequest {
+  createdAt: DateTime!
+  description: String
+  id: String!
+  maxRequests: Float!
+  plainTextToken: String
+  status: SystemAccessTokenRequestStatus!
+  systemAccessToken: SystemAccessToken
+  systemAccessTokenId: String
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+}
+
+"""Status of a system access token request"""
+enum SystemAccessTokenRequestStatus {
+  APPROVED
+  DECLINED
+  PENDING
 }
 
 input UpdateBucketDto {
