@@ -186,6 +186,15 @@ async function bootstrap() {
     path.join(__dirname, '..', 'openapi.json'),
     JSON.stringify(document, null, 2),
   );
+  
+  // Check if frontend is available
+  const publicPath = path.join(__dirname, '..', 'public');
+  if (fs.existsSync(publicPath)) {
+    logger.log('✅ Frontend web app detected - serving from /public');
+  } else {
+    logger.log('⚠️  No public directory found - running in API-only mode');
+  }
+  
   logger.log('🚀 Zentik Backend starting...');
 
   // Always create admin users at startup

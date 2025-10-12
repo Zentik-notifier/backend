@@ -22,7 +22,8 @@
     "typecheck": "tsc --noEmit",
     "deploy:patch": "node scripts/deploy.js patch",
     "deploy:minor": "node scripts/deploy.js minor",
-    "deploy:major": "node scripts/deploy.js major"
+    "deploy:major": "node scripts/deploy.js major",
+    "build:web": "node scripts/build-and-deploy-web.js"
   },
   "dependencies": {
     "@apollo/server": "4.12.2",
@@ -36,6 +37,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.0.1",
+    "@nestjs/serve-static": "^5.0.4",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.0",

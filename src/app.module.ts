@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
@@ -36,6 +38,11 @@ import { ServerSettingType } from './entities/server-setting.entity';
     }),
     TypeOrmModule.forRoot(databaseConfig),
     ScheduleModule.forRoot(),
+    // Serve static frontend files
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      exclude: ['/api', '/graphql'],
+    }),
     GraphqlModule,
     ThrottlerModule.forRootAsync({
       imports: [ServerManagerModule],
