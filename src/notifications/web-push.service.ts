@@ -101,7 +101,7 @@ export class WebPushService {
 
         const publicKey = device.publicKey;
         const privateKey = device.privateKey;
-        const subject = this.vapidSubject || 'mailto:gianlucaruoccoios@gmail.com';
+        const subject = this.vapidSubject || 'mailto:notifier@zentik.app';
         await this.webpush.sendNotification(sub, payload, {
           vapidDetails: {
             subject,

@@ -4,9 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository, In } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Notification } from '../entities/notification.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
@@ -38,9 +37,8 @@ export class NotificationsService {
     private readonly iosPushService: IOSPushService,
     private readonly firebasePushService: FirebasePushService,
     private readonly webPushService: WebPushService,
-    private readonly configService: ConfigService,
     private readonly serverSettingsService: ServerSettingsService,
-  ) {}
+  ) { }
 
   async findByUser(userId: string): Promise<Notification[]> {
     const notifications = await this.notificationsRepository
@@ -331,10 +329,6 @@ export class NotificationsService {
   async getNotificationServices(): Promise<NotificationServiceInfo[]> {
     const services: NotificationServiceInfo[] = [];
 
-    // Check if push notification services are properly initialized
-    const pushServicesInitialized =
-      await this.checkPushServicesInitialization();
-
     // iOS Platform
     const apnMode = await this.serverSettingsService.getStringValue(
       ServerSettingType.ApnPush,
@@ -343,11 +337,14 @@ export class NotificationsService {
     // Onboard or Passthrough = use server push services
     // Local = device-only notifications
     // Off = no notifications at all
-    if ((apnMode === 'Onboard' || apnMode === 'Passthrough') && pushServicesInitialized) {
-      services.push({
-        devicePlatform: DevicePlatform.IOS,
-        service: NotificationServiceType.PUSH,
-      });
+    if (apnMode === 'Onboard' || apnMode === 'Passthrough') {
+      // Check if iOS push service is properly initialized
+      if (apnMode === 'Passthrough' || (this.iosPushService && (this.iosPushService as any).provider)) {
+        services.push({
+          devicePlatform: DevicePlatform.IOS,
+          service: NotificationServiceType.PUSH,
+        });
+      }
     } else if (apnMode === 'Local') {
       services.push({
         devicePlatform: DevicePlatform.IOS,
@@ -361,11 +358,14 @@ export class NotificationsService {
       ServerSettingType.FirebasePush,
       'Off',
     );
-    if ((firebaseMode === 'Onboard' || firebaseMode === 'Passthrough') && pushServicesInitialized) {
-      services.push({
-        devicePlatform: DevicePlatform.ANDROID,
-        service: NotificationServiceType.PUSH,
-      });
+    if (firebaseMode === 'Onboard' || firebaseMode === 'Passthrough') {
+      // Check if Firebase push service is properly initialized
+      if (firebaseMode === 'Passthrough' || (this.firebasePushService && (this.firebasePushService as any).app)) {
+        services.push({
+          devicePlatform: DevicePlatform.ANDROID,
+          service: NotificationServiceType.PUSH,
+        });
+      }
     } else if (firebaseMode === 'Local') {
       services.push({
         devicePlatform: DevicePlatform.ANDROID,
@@ -379,11 +379,14 @@ export class NotificationsService {
       ServerSettingType.WebPush,
       'Off',
     );
-    if ((webMode === 'Onboard' || webMode === 'Passthrough') && pushServicesInitialized) {
-      services.push({
-        devicePlatform: DevicePlatform.WEB,
-        service: NotificationServiceType.PUSH,
-      });
+    if (webMode === 'Onboard' || webMode === 'Passthrough') {
+      // Check if Web push service is properly initialized
+      if (webMode === 'Passthrough' || (this.webPushService && (this.webPushService as any).configured)) {
+        services.push({
+          devicePlatform: DevicePlatform.WEB,
+          service: NotificationServiceType.PUSH,
+        });
+      }
     } else if (webMode === 'Local') {
       services.push({
         devicePlatform: DevicePlatform.WEB,
@@ -393,63 +396,6 @@ export class NotificationsService {
     // If 'Off', don't add any service for this platform
 
     return services;
-  }
-
-  /**
-   * Check if push notification services are properly initialized
-   */
-  private async checkPushServicesInitialization(): Promise<boolean> {
-    try {
-      // Check if services are enabled via environment variables
-      const firebaseEnabled = this.configService.get<boolean>(
-        'FIREBASE_PUSH_ENABLED',
-        true,
-      );
-      const apnEnabled = this.configService.get<boolean>(
-        'APN_PUSH_ENABLED',
-        true,
-      );
-      const webPushEnabled = this.configService.get<boolean>(
-        'WEB_PUSH_ENABLED',
-        true,
-      );
-
-      // Check iOS push service initialization (only if APN is enabled)
-      if (
-        apnEnabled &&
-        this.iosPushService &&
-        (this.iosPushService as any).provider
-      ) {
-        // iOS service is initialized if provider exists
-        return true;
-      }
-
-      // Check Firebase push service initialization (only if Firebase is enabled)
-      if (
-        firebaseEnabled &&
-        this.firebasePushService &&
-        (this.firebasePushService as any).app
-      ) {
-        // Firebase service is initialized if app exists
-        return true;
-      }
-
-      // Check Web push service initialization (only if Web Push is enabled)
-      if (
-        webPushEnabled &&
-        this.webPushService &&
-        (this.webPushService as any).configured
-      ) {
-        // Web push service is initialized if configured is true
-        return true;
-      }
-
-      // If none of the enabled push services are properly initialized, return false
-      return false;
-    } catch (error) {
-      this.logger.warn('Error checking push services initialization:', error);
-      return false;
-    }
   }
 
   /**
