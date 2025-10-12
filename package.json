@@ -22,8 +22,7 @@
     "typecheck": "tsc --noEmit",
     "deploy:patch": "node scripts/deploy.js patch",
     "deploy:minor": "node scripts/deploy.js minor",
-    "deploy:major": "node scripts/deploy.js major",
-    "deploy:deploy:full": "node scripts/build-and-deploy-web.js"
+    "deploy:major": "node scripts/deploy.js major"
   },
   "dependencies": {
     "@apollo/server": "4.12.2",
