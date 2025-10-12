@@ -177,21 +177,10 @@ describe('NotificationsService', () => {
 
     jest.clearAllMocks();
 
-    // Default configuration: all services enabled
-    mockConfigService.get.mockImplementation(
-      (key: string, defaultValue?: any) => {
-        switch (key) {
-          case 'FIREBASE_PUSH_ENABLED':
-            return defaultValue !== undefined ? defaultValue : true;
-          case 'APN_PUSH_ENABLED':
-            return defaultValue !== undefined ? defaultValue : true;
-          case 'WEB_PUSH_ENABLED':
-            return defaultValue !== undefined ? defaultValue : true;
-          default:
-            return defaultValue;
-        }
-      },
-    );
+    // Reset mock service initialization states
+    mockIOSPushService.provider = { isInitialized: true };
+    mockFirebasePushService.app = { isInitialized: true };
+    mockWebPushService.configured = true;
   });
 
   describe('findByUser', () => {
@@ -408,127 +397,146 @@ describe('NotificationsService', () => {
   });
 
   describe('getNotificationServices', () => {
-    it('should return notification services for all platforms when push services are initialized', async () => {
-      // Configure ServerSettingsService to return 'Onboard' for push modes (3 calls: IOS, Android, Web)
+    it('should return PUSH services for all platforms when mode is Onboard and services are initialized', async () => {
+      // Configure ServerSettingsService to return 'Onboard' for push modes
       mockServerSettingsService.getStringValue
         .mockResolvedValueOnce('Onboard')
         .mockResolvedValueOnce('Onboard')
         .mockResolvedValueOnce('Onboard');
+
+      // All services are initialized by default in beforeEach
+      const result = await service.getNotificationServices();
+
+      expect(result).toHaveLength(3); // iOS, Android, Web
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            devicePlatform: 'IOS',
+            service: 'PUSH',
+          }),
+          expect.objectContaining({
+            devicePlatform: 'ANDROID',
+            service: 'PUSH',
+          }),
+          expect.objectContaining({
+            devicePlatform: 'WEB',
+            service: 'PUSH',
+          }),
+        ]),
+      );
+    });
+
+    it('should return LOCAL services when mode is Local', async () => {
+      // Configure ServerSettingsService to return 'Local' for all platforms
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Local')
+        .mockResolvedValueOnce('Local')
+        .mockResolvedValueOnce('Local');
+
+      const result = await service.getNotificationServices();
+
+      expect(result).toHaveLength(3); // iOS, Android, Web
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            devicePlatform: 'IOS',
+            service: 'LOCAL',
+          }),
+          expect.objectContaining({
+            devicePlatform: 'ANDROID',
+            service: 'LOCAL',
+          }),
+          expect.objectContaining({
+            devicePlatform: 'WEB',
+            service: 'LOCAL',
+          }),
+        ]),
+      );
+    });
+
+    it('should return empty array when all modes are Off', async () => {
+      // Configure ServerSettingsService to return 'Off' for all platforms
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Off')
+        .mockResolvedValueOnce('Off')
+        .mockResolvedValueOnce('Off');
+
+      const result = await service.getNotificationServices();
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should not return PUSH service for iOS when provider is not initialized', async () => {
+      // iOS mode is Onboard but provider not initialized
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Onboard')
+        .mockResolvedValueOnce('Local')
+        .mockResolvedValueOnce('Local');
       
-      // Mock the checkPushServicesInitialization to return true
-      jest
-        .spyOn(service as any, 'checkPushServicesInitialization')
-        .mockResolvedValue(true);
-
-      const result = await service.getNotificationServices();
-
-      expect(result).toHaveLength(3); // iOS, Android, Web
-      expect(result).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            devicePlatform: 'IOS',
-            service: 'PUSH',
-          }),
-          expect.objectContaining({
-            devicePlatform: 'ANDROID',
-            service: 'PUSH',
-          }),
-          expect.objectContaining({
-            devicePlatform: 'WEB',
-            service: 'PUSH',
-          }),
-        ]),
-      );
-    });
-
-    it('should return local notification services when push services are not initialized', async () => {
-      // Mock the checkPushServicesInitialization to return false
-      jest
-        .spyOn(service as any, 'checkPushServicesInitialization')
-        .mockResolvedValue(false);
-
-      const result = await service.getNotificationServices();
-
-      expect(result).toHaveLength(3); // iOS, Android, Web
-      expect(result).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            devicePlatform: 'IOS',
-            service: 'LOCAL',
-          }),
-          expect.objectContaining({
-            devicePlatform: 'ANDROID',
-            service: 'LOCAL',
-          }),
-          expect.objectContaining({
-            devicePlatform: 'WEB',
-            service: 'LOCAL',
-          }),
-        ]),
-      );
-    });
-
-    it('should respect environment variable settings for APN', async () => {
-      // Mock APN disabled
-      jest
-        .spyOn(configService, 'get')
-        .mockImplementation((key: string, defaultValue?: any) => {
-          if (key === 'APN_PUSH_ENABLED') return false;
-          if (key === 'FIREBASE_PUSH_ENABLED') return true;
-          if (key === 'WEB_PUSH_ENABLED') return true;
-          return defaultValue;
-        });
-
-      jest
-        .spyOn(service as any, 'checkPushServicesInitialization')
-        .mockResolvedValue(true);
+      mockIOSPushService.provider = null;
 
       const result = await service.getNotificationServices();
 
       const iosService = result.find((s) => s.devicePlatform === 'IOS');
-      expect(iosService?.service).toBe('LOCAL');
+      expect(iosService).toBeUndefined();
     });
 
-    it('should respect environment variable settings for Firebase', async () => {
-      // Mock Firebase disabled
-      jest
-        .spyOn(configService, 'get')
-        .mockImplementation((key: string, defaultValue?: any) => {
-          if (key === 'APN_PUSH_ENABLED') return true;
-          if (key === 'FIREBASE_PUSH_ENABLED') return false;
-          if (key === 'WEB_PUSH_ENABLED') return true;
-          return defaultValue;
-        });
-
-      jest
-        .spyOn(service as any, 'checkPushServicesInitialization')
-        .mockResolvedValue(true);
+    it('should not return PUSH service for Android when app is not initialized', async () => {
+      // Android mode is Onboard but app not initialized
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Local')
+        .mockResolvedValueOnce('Onboard')
+        .mockResolvedValueOnce('Local');
+      
+      mockFirebasePushService.app = null;
 
       const result = await service.getNotificationServices();
 
       const androidService = result.find((s) => s.devicePlatform === 'ANDROID');
-      expect(androidService?.service).toBe('LOCAL');
+      expect(androidService).toBeUndefined();
     });
 
-    it('should respect environment variable settings for Web Push', async () => {
-      // Mock Web Push disabled
-      jest
-        .spyOn(configService, 'get')
-        .mockImplementation((key: string, defaultValue?: any) => {
-          if (key === 'APN_PUSH_ENABLED') return true;
-          if (key === 'FIREBASE_PUSH_ENABLED') return true;
-          if (key === 'WEB_PUSH_ENABLED') return false;
-          return defaultValue;
-        });
-
-      jest
-        .spyOn(service as any, 'checkPushServicesInitialization')
-        .mockResolvedValue(true);
+    it('should not return PUSH service for Web when not configured', async () => {
+      // Web mode is Onboard but not configured
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Local')
+        .mockResolvedValueOnce('Local')
+        .mockResolvedValueOnce('Onboard');
+      
+      mockWebPushService.configured = false;
 
       const result = await service.getNotificationServices();
 
       const webService = result.find((s) => s.devicePlatform === 'WEB');
-      expect(webService?.service).toBe('LOCAL');
+      expect(webService).toBeUndefined();
+    });
+
+    it('should return PUSH service for Passthrough mode when service is initialized', async () => {
+      // Test Passthrough mode
+      mockServerSettingsService.getStringValue
+        .mockResolvedValueOnce('Passthrough')
+        .mockResolvedValueOnce('Passthrough')
+        .mockResolvedValueOnce('Passthrough');
+
+      const result = await service.getNotificationServices();
+
+      expect(result).toHaveLength(3);
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            devicePlatform: 'IOS',
+            service: 'PUSH',
+          }),
+          expect.objectContaining({
+            devicePlatform: 'ANDROID',
+            service: 'PUSH',
+          }),
+          expect.objectContaining({
+            devicePlatform: 'WEB',
+            service: 'PUSH',
+          }),
+        ]),
+      );
     });
   });
 
