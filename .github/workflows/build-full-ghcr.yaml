@@ -25,13 +25,13 @@ jobs:
       - name: Checkout frontend repository
         uses: actions/checkout@v4
         with:
-          repository: Zentik-notifier/zentik-notifier
+          repository: Zentik-notifier/frontend
           ref: main
           path: frontend-repo
           fetch-depth: 1
 
       - name: Build frontend
-        working-directory: frontend-repo/frontend
+        working-directory: frontend-repo
         run: |
           npm install
           npm run build:web
