@@ -96,10 +96,7 @@ export class AttachmentsService {
     // Validate MIME type
     const allowedMimeTypes = (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsAllowedMimeTypes))?.valueText
       ?.split(',') || [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
+        'image/*',
         'video/mp4',
         'video/webm',
         'audio/mpeg',
@@ -108,7 +105,17 @@ export class AttachmentsService {
         'application/pdf',
         'text/plain',
       ];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
+    
+    // Check if mime type is allowed (supports wildcards like image/*)
+    const isAllowed = allowedMimeTypes.some(allowedType => {
+      if (allowedType.endsWith('/*')) {
+        const prefix = allowedType.slice(0, -2);
+        return file.mimetype.startsWith(prefix + '/');
+      }
+      return allowedType === file.mimetype;
+    });
+    
+    if (!isAllowed) {
       throw new BadRequestException(
         `File type ${file.mimetype} is not allowed`,
       );
