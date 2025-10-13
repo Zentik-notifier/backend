@@ -5,6 +5,7 @@ import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { AuthentikParser } from './authentik.parser';
 import { ServarrParser } from './servarr.parser';
 import { RailwayParser } from './railway.parser';
+import { GitHubParser } from './github.parser';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class BuiltinParserService {
     private readonly authentikParser: AuthentikParser,
     private readonly servarrParser: ServarrParser,
     private readonly railwayParser: RailwayParser,
+    private readonly githubParser: GitHubParser,
     private readonly loggerService: BuiltinParserLoggerService,
   ) {
     this.registerParsers();
@@ -37,6 +39,10 @@ export class BuiltinParserService {
       PayloadMapperBuiltInType.ZENTIK_RAILWAY,
       this.railwayParser,
     );
+    this.parsers.set(
+      PayloadMapperBuiltInType.ZENTIK_GITHUB,
+      this.githubParser,
+    );
 
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
@@ -46,6 +52,9 @@ export class BuiltinParserService {
     this.parsersByName.set('railway', this.railwayParser);
     this.parsersByName.set('Railway', this.railwayParser);
     this.parsersByName.set('ZentikRailway', this.railwayParser);
+    this.parsersByName.set('github', this.githubParser);
+    this.parsersByName.set('GitHub', this.githubParser);
+    this.parsersByName.set('ZentikGitHub', this.githubParser);
   }
 
   /**

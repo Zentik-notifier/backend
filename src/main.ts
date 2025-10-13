@@ -43,10 +43,22 @@ async function generateTypes(app: INestApplication) {
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
+  // Log very first step before any initialization
+  logger.log('🏁 Zentik Backend initialization started');
+  logger.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.log(`🗄️  Database type: ${process.env.DB_TYPE || 'postgres'}`);
+  logger.log(`🔌 Database host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}`);
+  logger.log(`📦 Database name: ${process.env.DB_NAME || 'zentik'}`);
+  logger.log(`🔧 Synchronize: ${process.env.DB_SYNCHRONIZE === 'true' ? 'enabled' : 'disabled'}`);
+  logger.log(`🔊 Logging: ${process.env.DB_LOGGING === 'true' || process.env.LOG_LEVEL === 'debug' ? 'enabled' : 'disabled'}`);
+  logger.log('⏳ Creating NestJS application...');
+
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true, // Buffer logs until custom logger is set
   });
-  
+
+  logger.log('✅ NestJS application created successfully');
+
   app.setGlobalPrefix('/api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
@@ -186,7 +198,7 @@ async function bootstrap() {
     path.join(__dirname, '..', 'openapi.json'),
     JSON.stringify(document, null, 2),
   );
-  
+
   // Check if frontend is available
   const publicPath = path.join(__dirname, '..', 'public');
   if (fs.existsSync(publicPath)) {
@@ -194,7 +206,7 @@ async function bootstrap() {
   } else {
     logger.log('⚠️  No public directory found - running in API-only mode');
   }
-  
+
   logger.log('🚀 Zentik Backend starting...');
 
   // Always create admin users at startup
@@ -248,21 +260,21 @@ async function bootstrap() {
  */
 export async function restartApplication(): Promise<void> {
   const logger = new Logger('AppRestart');
-  
+
   if (!appInstance) {
     throw new Error('Application instance not available');
   }
 
   logger.warn('🔄 Restarting application...');
-  
+
   try {
     // Close the current application instance
     await appInstance.close();
     logger.log('✅ Application closed successfully');
-    
+
     // Wait a moment to ensure cleanup
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     // Bootstrap a new instance
     await bootstrap();
     logger.log('✅ Application restarted successfully');

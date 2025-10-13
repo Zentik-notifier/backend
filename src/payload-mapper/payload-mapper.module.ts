@@ -11,6 +11,7 @@ import {
   AuthentikParser,
   ServarrParser,
   RailwayParser,
+  GitHubParser,
   BuiltinParserLoggerService,
 } from './builtin';
 
@@ -28,6 +29,7 @@ import {
     AuthentikParser,
     ServarrParser,
     RailwayParser,
+    GitHubParser,
     BuiltinParserLoggerService,
   ],
   exports: [PayloadMapperService],

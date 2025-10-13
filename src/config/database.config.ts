@@ -32,17 +32,18 @@ export const databaseConfig: TypeOrmModuleOptions = {
   type: dbType,
   ...(dbType === 'sqlite'
     ? {
-        database: process.env.DB_DATABASE || ':memory:',
-      }
+      database: process.env.DB_DATABASE || ':memory:',
+    }
     : {
-        host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT || '5432'),
-        username: process.env.DB_USERNAME || 'zentik_user',
-        password: process.env.DB_PASSWORD || 'zentik_password',
-        database: process.env.DB_NAME || 'zentik',
-        ssl:
-          process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      }),
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      username: process.env.DB_USERNAME || 'zentik_user',
+      password: process.env.DB_PASSWORD || 'zentik_password',
+      database: process.env.DB_NAME || 'zentik',
+      ssl:
+        process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      retryAttempts: 20
+    }),
   entities: [
     SystemAccessToken,
     PayloadMapper,
