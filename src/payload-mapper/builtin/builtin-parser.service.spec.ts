@@ -3,6 +3,7 @@ import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 import { AuthentikParser } from './authentik.parser';
 import { ServarrParser } from './servarr.parser';
 import { RailwayParser } from './railway.parser';
+import { GitHubParser } from './github.parser';
 import { BuiltinParserService } from './builtin-parser.service';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
@@ -18,6 +19,7 @@ describe('BuiltinParserService', () => {
         AuthentikParser,
         ServarrParser,
         RailwayParser,
+        GitHubParser,
         BuiltinParserLoggerService,
       ],
     }).compile();
@@ -109,7 +111,7 @@ describe('BuiltinParserService', () => {
     it('should return all registered parsers', () => {
       const parsers = service.getAllParsers();
 
-      expect(parsers).toHaveLength(3);
+      expect(parsers).toHaveLength(4);
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
@@ -127,6 +129,12 @@ describe('BuiltinParserService', () => {
         type: PayloadMapperBuiltInType.ZENTIK_RAILWAY,
         description:
           'Parser for Railway webhooks - handles deployment and alert events',
+      });
+      expect(parsers).toContainEqual({
+        name: 'ZentikGitHub',
+        type: PayloadMapperBuiltInType.ZENTIK_GITHUB,
+        description:
+          'Parser for GitHub webhooks - handles push, pull requests, issues, releases, workflows, and more',
       });
     });
   });
