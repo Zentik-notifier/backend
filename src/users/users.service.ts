@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import * as webpush from 'web-push';
 import { generateRSAKeyPair } from '../common/utils/cryptoUtils';
 import { Bucket } from '../entities/bucket.entity';
@@ -439,6 +439,49 @@ export class UsersService {
       where: { userId, deviceId: IsNull(), configType },
     });
     return userOnly || null;
+  }
+
+  /**
+   * Get multiple user settings efficiently in a single query
+   * Falls back to device-specific settings if available, otherwise returns user-level settings
+   */
+  async getMultipleUserSettings(
+    userId: string,
+    configTypes: UserSettingType[],
+    deviceId?: string | null,
+  ): Promise<Map<UserSettingType, UserSetting | null>> {
+    const result = new Map<UserSettingType, UserSetting | null>();
+
+    // Fetch all relevant settings in one query
+    const settings = await this.userSettingsRepository.find({
+      where: [
+        // Device-specific settings
+        ...(deviceId ? [{ userId, deviceId, configType: In(configTypes) as any }] : []),
+        // User-level settings (fallback)
+        { userId, deviceId: IsNull(), configType: In(configTypes) as any },
+      ],
+    });
+
+    // Build a map for quick lookup
+    const deviceSettingsMap = new Map<UserSettingType, UserSetting>();
+    const userSettingsMap = new Map<UserSettingType, UserSetting>();
+
+    for (const setting of settings) {
+      if (setting.deviceId === deviceId) {
+        deviceSettingsMap.set(setting.configType, setting);
+      } else if (setting.deviceId === null) {
+        userSettingsMap.set(setting.configType, setting);
+      }
+    }
+
+    // For each requested config type, prefer device-specific, fall back to user-level
+    for (const configType of configTypes) {
+      const deviceSetting = deviceSettingsMap.get(configType);
+      const userSetting = userSettingsMap.get(configType);
+      result.set(configType, deviceSetting || userSetting || null);
+    }
+
+    return result;
   }
 
   /**

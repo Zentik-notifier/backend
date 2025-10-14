@@ -5,7 +5,7 @@ import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { DevicePlatform } from '../users/dto';
 import { IOSPushService } from './ios-push.service';
-import { generateAutomaticActions } from './notification-actions.util';
+import { AutoActionSettings, generateAutomaticActions } from './notification-actions.util';
 import { MediaType, NotificationActionType } from './notifications.types';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
@@ -83,6 +83,7 @@ export class FirebasePushService {
   async send(
     notification: Notification,
     devices: UserDevice[],
+    userSettings?: AutoActionSettings,
   ): Promise<FirebaseMulticastResult> {
     await this.ensureInitialized();
 
@@ -129,6 +130,7 @@ export class FirebasePushService {
       const firebaseMessage = await this.buildFirebaseMessage(
         notification,
         tokens,
+        userSettings,
       );
       this.logger.log(
         `Sending notification "${notification.id}" to ${devices.length} device(s)`,
@@ -205,7 +207,8 @@ export class FirebasePushService {
    */
   public async buildFirebaseMessage(
     notification: Notification,
-    tokens: string[],
+    deviceTokens: string[],
+    userSettings?: AutoActionSettings,
   ): Promise<admin.messaging.MulticastMessage> {
     const message = notification.message;
     // Generate automatic actions for Android
@@ -213,6 +216,7 @@ export class FirebasePushService {
       notification,
       DevicePlatform.ANDROID,
       this.localeService,
+      userSettings,
     );
 
     const { payload: iosPayload, customPayload } =
@@ -222,7 +226,7 @@ export class FirebasePushService {
       );
     // Build basic notification payload
     const payload: admin.messaging.MulticastMessage = {
-      tokens,
+      tokens: deviceTokens,
       apns: {
         payload: {
           ...iosPayload,

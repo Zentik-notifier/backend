@@ -214,6 +214,168 @@ describe('PushNotificationOrchestratorService', () => {
     (global.fetch as jest.Mock).mockClear();
   });
 
+  describe('User Settings Integration', () => {
+    it('should pass user settings to iOS push service', async () => {
+      const mockUsersService = {
+        getMultipleUserSettings: jest.fn().mockResolvedValue(
+          new Map([
+            [UserSettingType.AutoAddDeleteAction, { valueBool: false }],
+            [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
+            [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
+          ]),
+        ),
+      };
+
+      // Replace UsersService mock for this test
+      (service as any).usersService = mockUsersService;
+
+      mockIOSPushService.send.mockResolvedValue({ success: true });
+
+      const result = await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockUsersService.getMultipleUserSettings).toHaveBeenCalledWith(
+        'user-1',
+        [
+          UserSettingType.AutoAddDeleteAction,
+          UserSettingType.AutoAddMarkAsReadAction,
+          UserSettingType.AutoAddOpenNotificationAction,
+        ],
+        'device-1',
+      );
+      expect(mockIOSPushService.send).toHaveBeenCalledWith(
+        mockNotification,
+        [mockUserDevice],
+        {
+          autoAddDeleteAction: false,
+          autoAddMarkAsReadAction: true,
+          autoAddOpenNotificationAction: false,
+        },
+      );
+    });
+
+    it('should use provided user settings if available', async () => {
+      const userSettings = {
+        autoAddDeleteAction: false,
+        autoAddMarkAsReadAction: false,
+        autoAddOpenNotificationAction: true,
+      };
+
+      mockIOSPushService.send.mockResolvedValue({ success: true });
+
+      const result = await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockIOSPushService.send).toHaveBeenCalledWith(
+        mockNotification,
+        [mockUserDevice],
+        userSettings,
+      );
+    });
+
+    it('should default to true when user settings are not found', async () => {
+      const mockUsersService = {
+        getMultipleUserSettings: jest.fn().mockResolvedValue(
+          new Map([
+            [UserSettingType.AutoAddDeleteAction, null],
+            [UserSettingType.AutoAddMarkAsReadAction, null],
+            [UserSettingType.AutoAddOpenNotificationAction, null],
+          ]),
+        ),
+      };
+
+      (service as any).usersService = mockUsersService;
+
+      mockIOSPushService.send.mockResolvedValue({ success: true });
+
+      const result = await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockIOSPushService.send).toHaveBeenCalledWith(
+        mockNotification,
+        [mockUserDevice],
+        {
+          autoAddDeleteAction: true,
+          autoAddMarkAsReadAction: true,
+          autoAddOpenNotificationAction: true,
+        },
+      );
+    });
+
+    it('should pass user settings to Android push service', async () => {
+      const androidDevice = {
+        ...mockUserDevice,
+        platform: DevicePlatform.ANDROID,
+      };
+
+      const userSettings = {
+        autoAddDeleteAction: true,
+        autoAddMarkAsReadAction: false,
+        autoAddOpenNotificationAction: true,
+      };
+
+      mockFirebasePushService.send.mockResolvedValue({
+        success: true,
+        successCount: 1,
+        results: [{ success: true }],
+      });
+
+      const result = await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        androidDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockFirebasePushService.send).toHaveBeenCalledWith(
+        mockNotification,
+        [androidDevice],
+        userSettings,
+      );
+    });
+
+    it('should pass user settings to Web push service', async () => {
+      const webDevice = {
+        ...mockUserDevice,
+        platform: DevicePlatform.WEB,
+      };
+
+      const userSettings = {
+        autoAddDeleteAction: false,
+        autoAddMarkAsReadAction: false,
+        autoAddOpenNotificationAction: false,
+      };
+
+      mockWebPushService.send.mockResolvedValue({
+        success: true,
+        results: [{ success: true }],
+      });
+
+      const result = await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        webDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockWebPushService.send).toHaveBeenCalledWith(
+        mockNotification,
+        [webDevice],
+        userSettings,
+      );
+    });
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -222,15 +384,24 @@ describe('PushNotificationOrchestratorService', () => {
     it('should send iOS push notification successfully', async () => {
       mockIOSPushService.send.mockResolvedValue({ success: true });
 
+      const userSettings = {
+        autoAddDeleteAction: true,
+        autoAddMarkAsReadAction: true,
+        autoAddOpenNotificationAction: true,
+      };
+
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
         mockUserDevice as UserDevice,
+        userSettings,
       );
 
-      // userBucketsService removed
-      expect(mockIOSPushService.send).toHaveBeenCalledWith(mockNotification, [
-        mockUserDevice,
-      ]);
+      expect(result.success).toBe(true);
+      expect(mockIOSPushService.send).toHaveBeenCalledWith(
+        mockNotification,
+        [mockUserDevice],
+        userSettings,
+      );
     });
 
     it('should send Android push notification successfully', async () => {
@@ -244,15 +415,23 @@ describe('PushNotificationOrchestratorService', () => {
         results: [{ success: true }],
       });
 
+      const userSettings = {
+        autoAddDeleteAction: true,
+        autoAddMarkAsReadAction: true,
+        autoAddOpenNotificationAction: true,
+      };
+
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
         androidDevice as UserDevice,
+        userSettings,
       );
 
       expect(result.success).toBe(true);
       expect(mockFirebasePushService.send).toHaveBeenCalledWith(
         mockNotification,
         [androidDevice],
+        userSettings,
       );
     });
 
@@ -263,15 +442,24 @@ describe('PushNotificationOrchestratorService', () => {
         results: [{ success: true }],
       });
 
+      const userSettings = {
+        autoAddDeleteAction: true,
+        autoAddMarkAsReadAction: true,
+        autoAddOpenNotificationAction: true,
+      };
+
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
         webDevice as UserDevice,
+        userSettings,
       );
 
       expect(result.success).toBe(true);
-      expect(mockWebPushService.send).toHaveBeenCalledWith(mockNotification, [
-        webDevice,
-      ]);
+      expect(mockWebPushService.send).toHaveBeenCalledWith(
+        mockNotification,
+        [webDevice],
+        userSettings,
+      );
     });
 
     it('should handle iOS push notification failure', async () => {
@@ -280,9 +468,16 @@ describe('PushNotificationOrchestratorService', () => {
         error: 'APNS error',
       });
 
+      const userSettings = {
+        autoAddDeleteAction: true,
+        autoAddMarkAsReadAction: true,
+        autoAddOpenNotificationAction: true,
+      };
+
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
         mockUserDevice as UserDevice,
+        userSettings,
       );
 
       expect(result.success).toBe(false);
@@ -295,9 +490,16 @@ describe('PushNotificationOrchestratorService', () => {
         platform: 'UNSUPPORTED' as any,
       };
 
+      const userSettings = {
+        autoAddDeleteAction: true,
+        autoAddMarkAsReadAction: true,
+        autoAddOpenNotificationAction: true,
+      };
+
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
         unsupportedDevice as UserDevice,
+        userSettings,
       );
 
       expect(result.success).toBe(false);

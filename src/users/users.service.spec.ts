@@ -637,4 +637,158 @@ describe('UsersService', () => {
       ).rejects.toThrow('Access denied: device not owned by user');
     });
   });
+
+  describe('getMultipleUserSettings', () => {
+    it('should retrieve multiple user settings efficiently', async () => {
+      const userId = 'user-1';
+      const configTypes = [
+        'AutoAddDeleteAction' as any,
+        'AutoAddMarkAsReadAction' as any,
+        'AutoAddOpenNotificationAction' as any,
+      ];
+
+      const mockSettings = [
+        {
+          id: 'setting-1',
+          userId,
+          deviceId: null,
+          configType: 'AutoAddDeleteAction',
+          valueBool: true,
+        },
+        {
+          id: 'setting-2',
+          userId,
+          deviceId: null,
+          configType: 'AutoAddMarkAsReadAction',
+          valueBool: false,
+        },
+      ];
+
+      mockUserSettingsRepository.find.mockResolvedValue(mockSettings as UserSetting[]);
+
+      const result = await service.getMultipleUserSettings(
+        userId,
+        configTypes,
+        null,
+      );
+
+      expect(result.size).toBe(3);
+      expect(result.get('AutoAddDeleteAction' as any)?.valueBool).toBe(true);
+      expect(result.get('AutoAddMarkAsReadAction' as any)?.valueBool).toBe(false);
+      expect(result.get('AutoAddOpenNotificationAction' as any)).toBeNull();
+      expect(mockUserSettingsRepository.find).toHaveBeenCalledTimes(1);
+      // Verify the query structure (TypeORM operators are complex objects)
+      const callArgs = mockUserSettingsRepository.find.mock.calls[0][0];
+      expect(callArgs.where).toHaveLength(1);
+      expect(callArgs.where[0].userId).toBe(userId);
+      expect(callArgs.where[0].deviceId).toBeDefined(); // IsNull() operator
+      expect(callArgs.where[0].configType).toBeDefined(); // In() operator
+    });
+
+    it('should prefer device-specific settings over user-level settings', async () => {
+      const userId = 'user-1';
+      const deviceId = 'device-1';
+      const configTypes = ['AutoAddDeleteAction' as any];
+
+      const mockSettings = [
+        {
+          id: 'setting-1',
+          userId,
+          deviceId: null,
+          configType: 'AutoAddDeleteAction',
+          valueBool: true,
+        },
+        {
+          id: 'setting-2',
+          userId,
+          deviceId,
+          configType: 'AutoAddDeleteAction',
+          valueBool: false,
+        },
+      ];
+
+      mockUserSettingsRepository.find.mockResolvedValue(mockSettings as UserSetting[]);
+
+      const result = await service.getMultipleUserSettings(
+        userId,
+        configTypes,
+        deviceId,
+      );
+
+      // Device-specific setting (false) should take precedence over user-level (true)
+      expect(result.get('AutoAddDeleteAction' as any)?.valueBool).toBe(false);
+    });
+
+    it('should fall back to user-level settings when device-specific not available', async () => {
+      const userId = 'user-1';
+      const deviceId = 'device-1';
+      const configTypes = ['AutoAddDeleteAction' as any];
+
+      const mockSettings = [
+        {
+          id: 'setting-1',
+          userId,
+          deviceId: null,
+          configType: 'AutoAddDeleteAction',
+          valueBool: true,
+        },
+      ];
+
+      mockUserSettingsRepository.find.mockResolvedValue(mockSettings as UserSetting[]);
+
+      const result = await service.getMultipleUserSettings(
+        userId,
+        configTypes,
+        deviceId,
+      );
+
+      // Should fall back to user-level setting
+      expect(result.get('AutoAddDeleteAction' as any)?.valueBool).toBe(true);
+    });
+
+    it('should return null for settings that do not exist', async () => {
+      const userId = 'user-1';
+      const configTypes = [
+        'AutoAddDeleteAction' as any,
+        'NonExistentSetting' as any,
+      ];
+
+      const mockSettings = [
+        {
+          id: 'setting-1',
+          userId,
+          deviceId: null,
+          configType: 'AutoAddDeleteAction',
+          valueBool: true,
+        },
+      ];
+
+      mockUserSettingsRepository.find.mockResolvedValue(mockSettings as UserSetting[]);
+
+      const result = await service.getMultipleUserSettings(
+        userId,
+        configTypes,
+        null,
+      );
+
+      expect(result.get('AutoAddDeleteAction' as any)?.valueBool).toBe(true);
+      expect(result.get('NonExistentSetting' as any)).toBeNull();
+    });
+
+    it('should handle empty settings array', async () => {
+      const userId = 'user-1';
+      const configTypes = ['AutoAddDeleteAction' as any];
+
+      mockUserSettingsRepository.find.mockResolvedValue([]);
+
+      const result = await service.getMultipleUserSettings(
+        userId,
+        configTypes,
+        null,
+      );
+
+      expect(result.size).toBe(1);
+      expect(result.get('AutoAddDeleteAction' as any)).toBeNull();
+    });
+  });
 });

@@ -7,7 +7,7 @@ import { NotificationAction } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { DevicePlatform } from '../users/dto';
-import { generateAutomaticActions } from './notification-actions.util';
+import { AutoActionSettings, generateAutomaticActions } from './notification-actions.util';
 import {
   NotificationActionType,
   NotificationDeliveryType,
@@ -303,6 +303,7 @@ export class IOSPushService {
   async send(
     notification: Notification,
     devices: UserDevice[],
+    userSettings?: AutoActionSettings,
   ): Promise<SendResult> {
     await this.ensureInitialized();
 
@@ -335,6 +336,7 @@ export class IOSPushService {
         notification,
         DevicePlatform.IOS,
         this.localeService,
+        userSettings,
       );
 
       // Send to all device tokens, encrypting per-device sensitive values in build

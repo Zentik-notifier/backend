@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { BucketsService } from '../buckets/buckets.service';
@@ -17,6 +16,7 @@ import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
+import { AutoActionSettings } from './notification-actions.util';
 import { WebPushService } from './web-push.service';
 
 export interface PushResult {
@@ -45,11 +45,54 @@ export class PushNotificationOrchestratorService {
     private readonly webPushService: WebPushService,
     private readonly urlBuilderService: UrlBuilderService,
     private readonly bucketsService: BucketsService,
-    private readonly configService: ConfigService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly usersService: UsersService,
     private readonly serverSettingsService: ServerSettingsService,
   ) {}
+
+  /**
+   * Get user notification settings for multiple users efficiently
+   * Returns a map with key format: "userId" -> settings
+   * Makes only ONE query per user (not per device) since settings are user-level
+   */
+  private async getUserSettingsForMultipleUsers(
+    userIds: string[],
+  ): Promise<Map<string, AutoActionSettings>> {
+    const settingsMap = new Map<string, AutoActionSettings>();
+
+    // Get all settings for all users in one query
+    const configTypes = [
+      UserSettingType.AutoAddDeleteAction,
+      UserSettingType.AutoAddMarkAsReadAction,
+      UserSettingType.AutoAddOpenNotificationAction,
+    ];
+
+    // Fetch settings once per user in parallel
+    const settingsPromises = userIds.map(async (userId) => {
+      const settings = await this.usersService.getMultipleUserSettings(
+        userId,
+        configTypes,
+        null, // No device-specific filtering, get user-level settings
+      );
+
+      const userSettings: AutoActionSettings = {
+        autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
+        autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
+        autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? true,
+      };
+
+      return { userId, userSettings };
+    });
+
+    const results = await Promise.all(settingsPromises);
+    
+    // Build map: userId -> settings
+    results.forEach(({ userId, userSettings }) => {
+      settingsMap.set(userId, userSettings);
+    });
+
+    return settingsMap;
+  }
 
   /**
    * Check if a bucket is snoozed for a specific user using pre-loaded data
@@ -167,6 +210,10 @@ export class PushNotificationOrchestratorService {
       `Found ${targetDevices.length} target devices for ${authorizedUsers.length} users (platforms: ${platforms}, onlyLocal: ${localOnlyCount}, bucket: ${message.bucketId})`,
     );
 
+    const userSettingsMap = await this.getUserSettingsForMultipleUsers(
+      authorizedUsers,
+    );
+
     // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
     if (!skipNotificationTracking) {
       for (const device of targetDevices) {
@@ -271,8 +318,10 @@ export class PushNotificationOrchestratorService {
         continue;
       }
 
-      // Use DB-updating variant inside orchestrated flow
-      const result = await this.dispatchPush(notif, device);
+      // Get user settings (shared across all devices of the same user)
+      const userSettings = userSettingsMap.get(device.userId);
+
+      const result = await this.dispatchPush(notif, device, userSettings);
       try {
         if (result.success) {
           await this.notificationsRepository.update(notif.id, {
@@ -333,24 +382,45 @@ export class PushNotificationOrchestratorService {
   public async sendPushToSingleDeviceStateless(
     notification: Notification,
     userDevice: UserDevice,
+    userSettings?: AutoActionSettings,
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      // If userSettings not provided, fetch from database
+      let settings = userSettings;
+      if (!settings) {
+        const userSettingsMap = await this.usersService.getMultipleUserSettings(
+          userDevice.userId,
+          [
+            UserSettingType.AutoAddDeleteAction,
+            UserSettingType.AutoAddMarkAsReadAction,
+            UserSettingType.AutoAddOpenNotificationAction,
+          ],
+          userDevice.id,
+        );
+
+        settings = {
+          autoAddDeleteAction: userSettingsMap.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
+          autoAddMarkAsReadAction: userSettingsMap.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
+          autoAddOpenNotificationAction: userSettingsMap.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? true,
+        };
+      }
+
       if (userDevice.platform === DevicePlatform.IOS) {
         const result = await this.iosPushService.send(notification, [
           userDevice,
-        ]);
+        ], settings);
         return { success: !!result.success, error: result.error };
       } else if (userDevice.platform === DevicePlatform.ANDROID) {
         const result = await this.firebasePushService.send(notification, [
           userDevice,
-        ]);
+        ], settings);
         const ok = result.success && (result.successCount || 0) > 0;
         const firstError = result.results?.find((r) => !r.success)?.error;
         return { success: ok, error: ok ? undefined : firstError };
       } else if (userDevice.platform === DevicePlatform.WEB) {
         const result = await this.webPushService.send(notification, [
           userDevice,
-        ]);
+        ], settings);
         const ok = !!result.success;
         const firstError = result.results?.find((r) => !r.success)?.error;
         return { success: ok, error: ok ? undefined : firstError };
@@ -413,6 +483,7 @@ export class PushNotificationOrchestratorService {
   private async dispatchPush(
     notification: Notification,
     userDevice: UserDevice,
+    userSettings?: AutoActionSettings,
   ): Promise<{ success: boolean; error?: string }> {
     // Get the push mode for this platform
     const mode = await this.getPushMode(userDevice.platform);
@@ -438,7 +509,7 @@ export class PushNotificationOrchestratorService {
       this.logger.log(
         `Push dispatch: using ONBOARD push services for ${userDevice.platform}`,
       );
-      return this.sendPushToSingleDeviceStateless(notification, userDevice);
+      return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings);
     }
 
     // Passthrough - use passthrough server

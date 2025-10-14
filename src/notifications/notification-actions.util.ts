@@ -5,10 +5,17 @@ import { Notification } from '../entities/notification.entity';
 import { DevicePlatform } from '../users/dto';
 import { NotificationActionType } from './notifications.types';
 
+export interface AutoActionSettings {
+  autoAddDeleteAction?: boolean;
+  autoAddMarkAsReadAction?: boolean;
+  autoAddOpenNotificationAction?: boolean;
+}
+
 export function generateAutomaticActions(
   notification: Notification,
   platform: DevicePlatform,
   localeService: LocaleService,
+  userSettings?: AutoActionSettings,
 ): NotificationAction[] {
   const message = notification.message;
   const actions: NotificationAction[] = [];
@@ -50,9 +57,27 @@ export function generateAutomaticActions(
 
   const platformIcons = icons[platform] ?? icons[DevicePlatform.WEB];
 
-  // Default behavior: add action if flag is undefined or true
-  // Only skip if explicitly set to false
-  if (message.addDeleteAction !== false) {
+  // Determine whether to add each action based on:
+  // 1. Explicit payload flag (if defined, use it)
+  // 2. User settings (if payload flag is undefined and user setting is defined, use it)
+  // 3. Default behavior (if both undefined, add action - backward compatibility)
+  
+  const shouldAddDeleteAction = 
+    message.addDeleteAction !== undefined 
+      ? message.addDeleteAction 
+      : (userSettings?.autoAddDeleteAction ?? true);
+  
+  const shouldAddMarkAsReadAction = 
+    message.addMarkAsReadAction !== undefined 
+      ? message.addMarkAsReadAction 
+      : (userSettings?.autoAddMarkAsReadAction ?? true);
+  
+  const shouldAddOpenNotificationAction = 
+    message.addOpenNotificationAction !== undefined 
+      ? message.addOpenNotificationAction 
+      : (userSettings?.autoAddOpenNotificationAction ?? true);
+
+  if (shouldAddDeleteAction) {
     actions.push({
       type: NotificationActionType.DELETE,
       value: 'delete_notification',
@@ -62,7 +87,7 @@ export function generateAutomaticActions(
     });
   }
 
-  if (message.addMarkAsReadAction !== false) {
+  if (shouldAddMarkAsReadAction) {
     actions.push({
       type: NotificationActionType.MARK_AS_READ,
       value: 'mark_as_read_notification',
@@ -72,7 +97,7 @@ export function generateAutomaticActions(
     });
   }
 
-  if (message.addOpenNotificationAction !== false) {
+  if (shouldAddOpenNotificationAction) {
     actions.push({
       type: NotificationActionType.OPEN_NOTIFICATION,
       value: notification.id, // Use notification ID instead of fixed string

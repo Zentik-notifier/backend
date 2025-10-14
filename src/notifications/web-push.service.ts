@@ -3,7 +3,7 @@ import * as webpush from 'web-push';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { MediaType, NotificationActionType } from './notifications.types';
-import { generateAutomaticActions } from './notification-actions.util';
+import { AutoActionSettings, generateAutomaticActions } from './notification-actions.util';
 import { DevicePlatform } from '../users/dto';
 import { LocaleService } from '../common/services/locale.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
@@ -49,9 +49,10 @@ export class WebPushService {
     }
   }
 
-  public async send(
+  async send(
     notification: Notification,
     devices: UserDevice[],
+    userSettings?: AutoActionSettings,
   ): Promise<WebPushSendResult> {
     await this.ensureInitialized();
 
@@ -60,7 +61,7 @@ export class WebPushService {
       return { success: false, results: [] };
     }
 
-    const payload = JSON.stringify(this.buildWebPayload(notification));
+    const payload = JSON.stringify(this.buildWebPayload(notification, userSettings));
 
     const results: Array<{
       endpoint: string;
@@ -129,7 +130,10 @@ export class WebPushService {
   /**
    * Build a web push payload object (not stringified) from a notification.
    */
-  public buildWebPayload(notification: Notification) {
+  buildWebPayload(
+    notification: Notification,
+    userSettings?: AutoActionSettings,
+  ): any {
     const message = notification.message;
 
     // Generate automatic actions for web (same as iOS/Android)
@@ -137,6 +141,7 @@ export class WebPushService {
       notification,
       DevicePlatform.WEB,
       this.localeService,
+      userSettings,
     );
 
     // Combine manual actions with automatic actions

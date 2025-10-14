@@ -19,6 +19,10 @@ export enum UserSettingType {
   ExpoKey = 'ExpoKey',
   HomeassistantUrl = 'HomeassistantUrl',
   HomeassistantToken = 'HomeassistantToken',
+  // Auto-add notification actions settings
+  AutoAddDeleteAction = 'AutoAddDeleteAction',
+  AutoAddMarkAsReadAction = 'AutoAddMarkAsReadAction',
+  AutoAddOpenNotificationAction = 'AutoAddOpenNotificationAction',
 }
 
 registerEnumType(UserSettingType, { name: 'UserSettingType' });

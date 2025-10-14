@@ -6525,7 +6525,10 @@
               "UnencryptOnBigPayload",
               "ExpoKey",
               "HomeassistantUrl",
-              "HomeassistantToken"
+              "HomeassistantToken",
+              "AutoAddDeleteAction",
+              "AutoAddMarkAsReadAction",
+              "AutoAddOpenNotificationAction"
             ]
           },
           "valueText": {
@@ -6562,7 +6565,10 @@
               "UnencryptOnBigPayload",
               "ExpoKey",
               "HomeassistantUrl",
-              "HomeassistantToken"
+              "HomeassistantToken",
+              "AutoAddDeleteAction",
+              "AutoAddMarkAsReadAction",
+              "AutoAddOpenNotificationAction"
             ]
           },
           "valueText": {

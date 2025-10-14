@@ -1161,6 +1161,9 @@ type UserSetting {
 }
 
 enum UserSettingType {
+  AutoAddDeleteAction
+  AutoAddMarkAsReadAction
+  AutoAddOpenNotificationAction
   ExpoKey
   HomeassistantToken
   HomeassistantUrl
