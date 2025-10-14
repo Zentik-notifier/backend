@@ -311,7 +311,7 @@ describe('notification-actions.util', () => {
         expect(openAction?.icon).toBe('⬆️');
       });
 
-      it('should use Web-specific icons (Material Design)', () => {
+      it('should use Web-specific icons (Emoji)', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.WEB,
@@ -323,10 +323,10 @@ describe('notification-actions.util', () => {
         const markAsReadAction = actions.find(a => a.type === NotificationActionType.MARK_AS_READ);
         const openAction = actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION);
 
-        // Web uses Material Design Icons
-        expect(deleteAction?.icon).toBe('delete');
-        expect(markAsReadAction?.icon).toBe('check_circle');
-        expect(openAction?.icon).toBe('arrow_upward');
+        // Web uses Emoji (same as Android)
+        expect(deleteAction?.icon).toBe('🗑️');
+        expect(markAsReadAction?.icon).toBe('✅');
+        expect(openAction?.icon).toBe('⬆️');
       });
 
       it('should use correct snooze icons for each platform', () => {
@@ -363,7 +363,7 @@ describe('notification-actions.util', () => {
           mockLocaleService,
         );
         snoozeAction = actions.find(a => a.type === NotificationActionType.SNOOZE);
-        expect(snoozeAction?.icon).toBe('schedule');
+        expect(snoozeAction?.icon).toBe('⏰');
       });
     });
 
