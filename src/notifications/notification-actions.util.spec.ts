@@ -284,7 +284,7 @@ describe('notification-actions.util', () => {
     });
 
     describe('Platform-specific icons', () => {
-      it('should use iOS-specific icons', () => {
+      it('should use iOS-specific icons (SF Symbols)', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.IOS,
@@ -292,10 +292,16 @@ describe('notification-actions.util', () => {
         );
 
         const deleteAction = actions.find(a => a.type === NotificationActionType.DELETE);
-        expect(deleteAction?.icon).toBe('trash');
+        const markAsReadAction = actions.find(a => a.type === NotificationActionType.MARK_AS_READ);
+        const openAction = actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION);
+
+        // iOS uses SF Symbols
+        expect(deleteAction?.icon).toBe('trash.fill');
+        expect(markAsReadAction?.icon).toBe('checkmark.circle.fill');
+        expect(openAction?.icon).toBe('arrow.up');
       });
 
-      it('should use Android-specific icons', () => {
+      it('should use Android-specific icons (Emoji)', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.ANDROID,
@@ -303,10 +309,16 @@ describe('notification-actions.util', () => {
         );
 
         const deleteAction = actions.find(a => a.type === NotificationActionType.DELETE);
-        expect(deleteAction?.icon).toBe('ic_delete');
+        const markAsReadAction = actions.find(a => a.type === NotificationActionType.MARK_AS_READ);
+        const openAction = actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION);
+
+        // Android uses Emoji
+        expect(deleteAction?.icon).toBe('🗑️');
+        expect(markAsReadAction?.icon).toBe('✅');
+        expect(openAction?.icon).toBe('⬆️');
       });
 
-      it('should use Web-specific icons', () => {
+      it('should use Web-specific icons (Material Design)', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.WEB,
@@ -314,7 +326,50 @@ describe('notification-actions.util', () => {
         );
 
         const deleteAction = actions.find(a => a.type === NotificationActionType.DELETE);
-        expect(deleteAction?.icon).toBe('🗑️');
+        const markAsReadAction = actions.find(a => a.type === NotificationActionType.MARK_AS_READ);
+        const openAction = actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION);
+
+        // Web uses Material Design Icons
+        expect(deleteAction?.icon).toBe('delete');
+        expect(markAsReadAction?.icon).toBe('check_circle');
+        expect(openAction?.icon).toBe('arrow_upward');
+      });
+
+      it('should use correct snooze icons for each platform', () => {
+        const notificationWithSnooze: Partial<Notification> = {
+          ...mockNotification,
+          message: {
+            ...mockNotification.message,
+            snoozes: [15],
+          } as any,
+        };
+
+        // iOS
+        let actions = generateAutomaticActions(
+          notificationWithSnooze as Notification,
+          DevicePlatform.IOS,
+          mockLocaleService,
+        );
+        let snoozeAction = actions.find(a => a.type === NotificationActionType.SNOOZE);
+        expect(snoozeAction?.icon).toBe('clock.fill');
+
+        // Android
+        actions = generateAutomaticActions(
+          notificationWithSnooze as Notification,
+          DevicePlatform.ANDROID,
+          mockLocaleService,
+        );
+        snoozeAction = actions.find(a => a.type === NotificationActionType.SNOOZE);
+        expect(snoozeAction?.icon).toBe('⏰');
+
+        // Web
+        actions = generateAutomaticActions(
+          notificationWithSnooze as Notification,
+          DevicePlatform.WEB,
+          mockLocaleService,
+        );
+        snoozeAction = actions.find(a => a.type === NotificationActionType.SNOOZE);
+        expect(snoozeAction?.icon).toBe('schedule');
       });
     });
 

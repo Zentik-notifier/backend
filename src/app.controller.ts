@@ -5,6 +5,11 @@ import { AttachmentsService } from './attachments/attachments.service';
 import { EmailService } from './auth/email.service';
 import { JwtOrAccessTokenGuard } from './auth/guards/jwt-or-access-token.guard';
 import { OAuthProvidersService } from './oauth-providers/oauth-providers.service';
+import {
+  getAllIconMappings,
+  listAllIcons,
+  ZentikIcon,
+} from './common/icon-mapping.util';
 
 @ApiTags('App')
 @Controller()
@@ -51,5 +56,23 @@ export class AppController {
     } catch (error) {
       throw error;
     }
+  }
+
+  @Get('public/icon-mappings')
+  getIconMappings() {
+    const mappings = getAllIconMappings();
+    const icons = listAllIcons();
+
+    return {
+      icons: icons,
+      mappings: mappings,
+      count: icons.length,
+      description:
+        'Zentik cross-platform icon mappings (iOS SF Symbols, Web Material Icons, Android Emoji)',
+      example: {
+        icon: ZentikIcon.BELL,
+        platforms: mappings[ZentikIcon.BELL],
+      },
+    };
   }
 }

@@ -48,6 +48,20 @@
         ]
       }
     },
+    "/api/v1/public/icon-mappings": {
+      "get": {
+        "operationId": "AppController_getIconMappings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "operationId": "AuthController_register",

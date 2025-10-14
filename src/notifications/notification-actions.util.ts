@@ -4,6 +4,7 @@ import { NotificationAction } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { DevicePlatform } from '../users/dto';
 import { NotificationActionType } from './notifications.types';
+import { ZentikIcon, getIconForPlatform } from '../common/icon-mapping.util';
 
 export interface AutoActionSettings {
   autoAddDeleteAction?: boolean;
@@ -34,28 +35,14 @@ export function generateAutomaticActions(
     'notifications.actions.open',
   );
 
-  const icons = {
-    [DevicePlatform.IOS]: {
-      delete: 'trash',
-      markAsRead: 'checkmark.circle',
-      open: 'arrow.up.circle',
-      snooze: 'clock',
-    },
-    [DevicePlatform.ANDROID]: {
-      delete: 'ic_delete',
-      markAsRead: 'ic_check_circle',
-      open: 'ic_open_in_new',
-      snooze: 'ic_access_time',
-    },
-    [DevicePlatform.WEB]: {
-      delete: '🗑️',
-      markAsRead: '✅',
-      open: '🔗',
-      snooze: '⏰',
-    },
-  } as const;
-
-  const platformIcons = icons[platform] ?? icons[DevicePlatform.WEB];
+  // Get platform-specific icons using ZentikIcon mapping
+  // getIconForPlatform now accepts DevicePlatform directly
+  const platformIcons = {
+    delete: getIconForPlatform(ZentikIcon.TRASH, platform),
+    markAsRead: getIconForPlatform(ZentikIcon.CHECKMARK, platform),
+    open: getIconForPlatform(ZentikIcon.ARROW_UP, platform),
+    snooze: getIconForPlatform(ZentikIcon.CLOCK, platform),
+  };
 
   // Determine whether to add each action based on:
   // 1. Explicit payload flag (if defined, use it)
