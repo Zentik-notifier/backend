@@ -17,10 +17,10 @@ describe('IconMappingUtil', () => {
       expect(getIconForPlatform(ZentikIcon.STAR, DevicePlatform.IOS)).toBe('star.fill');
     });
 
-    it('should return Material Icon for web platform', () => {
-      expect(getIconForPlatform(ZentikIcon.BELL, DevicePlatform.WEB)).toBe('notifications');
-      expect(getIconForPlatform(ZentikIcon.HEART, DevicePlatform.WEB)).toBe('favorite');
-      expect(getIconForPlatform(ZentikIcon.HOME, DevicePlatform.WEB)).toBe('home');
+    it('should return emoji for web platform', () => {
+      expect(getIconForPlatform(ZentikIcon.BELL, DevicePlatform.WEB)).toBe('🔔');
+      expect(getIconForPlatform(ZentikIcon.HEART, DevicePlatform.WEB)).toBe('❤️');
+      expect(getIconForPlatform(ZentikIcon.HOME, DevicePlatform.WEB)).toBe('🏠');
     });
 
     it('should return emoji for android platform', () => {
@@ -35,19 +35,19 @@ describe('IconMappingUtil', () => {
       const bellIcons = getAllPlatformIcons(ZentikIcon.BELL);
       expect(bellIcons).toBeDefined();
       expect(bellIcons?.ios).toBe('bell.fill');
-      expect(bellIcons?.web).toBe('notifications');
+      expect(bellIcons?.web).toBe('🔔');
       expect(bellIcons?.android).toBe('🔔');
     });
 
     it('should return platform icons for different icon types', () => {
       const heartIcons = getAllPlatformIcons(ZentikIcon.HEART);
       expect(heartIcons?.ios).toBe('heart.fill');
-      expect(heartIcons?.web).toBe('favorite');
+      expect(heartIcons?.web).toBe('❤️');
       expect(heartIcons?.android).toBe('❤️');
 
       const homeIcons = getAllPlatformIcons(ZentikIcon.HOME);
       expect(homeIcons?.ios).toBe('house.fill');
-      expect(homeIcons?.web).toBe('home');
+      expect(homeIcons?.web).toBe('🏠');
       expect(homeIcons?.android).toBe('🏠');
     });
   });
@@ -133,7 +133,7 @@ describe('IconMappingUtil', () => {
   describe('Common use cases', () => {
     it('should handle notification bell icons across platforms', () => {
       expect(getIconForPlatform(ZentikIcon.BELL, DevicePlatform.IOS)).toBe('bell.fill');
-      expect(getIconForPlatform(ZentikIcon.BELL, DevicePlatform.WEB)).toBe('notifications');
+      expect(getIconForPlatform(ZentikIcon.BELL, DevicePlatform.WEB)).toBe('🔔');
       expect(getIconForPlatform(ZentikIcon.BELL, DevicePlatform.ANDROID)).toBe('🔔');
     });
 
@@ -146,7 +146,7 @@ describe('IconMappingUtil', () => {
 
     it('should handle social icons across platforms', () => {
       expect(getIconForPlatform(ZentikIcon.HEART, DevicePlatform.IOS)).toBe('heart.fill');
-      expect(getIconForPlatform(ZentikIcon.HEART, DevicePlatform.WEB)).toBe('favorite');
+      expect(getIconForPlatform(ZentikIcon.HEART, DevicePlatform.WEB)).toBe('❤️');
       expect(getIconForPlatform(ZentikIcon.HEART, DevicePlatform.ANDROID)).toBe('❤️');
 
       expect(getIconForPlatform(ZentikIcon.STAR, DevicePlatform.ANDROID)).toBe('⭐');

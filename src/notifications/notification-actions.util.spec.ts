@@ -33,43 +33,34 @@ describe('notification-actions.util', () => {
     };
 
     describe('Default behavior (no user settings, no payload flags)', () => {
-      it('should add all actions by default for iOS', () => {
+      it('should not add actions by default for iOS', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(3);
-        expect(actions.find(a => a.type === NotificationActionType.DELETE)).toBeDefined();
-        expect(actions.find(a => a.type === NotificationActionType.MARK_AS_READ)).toBeDefined();
-        expect(actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION)).toBeDefined();
+        expect(actions).toHaveLength(0);
       });
 
-      it('should add all actions by default for Android', () => {
+      it('should not add actions by default for Android', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.ANDROID,
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(3);
-        expect(actions.find(a => a.type === NotificationActionType.DELETE)).toBeDefined();
-        expect(actions.find(a => a.type === NotificationActionType.MARK_AS_READ)).toBeDefined();
-        expect(actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION)).toBeDefined();
+        expect(actions).toHaveLength(0);
       });
 
-      it('should add all actions by default for Web', () => {
+      it('should not add actions by default for Web', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.WEB,
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(3);
-        expect(actions.find(a => a.type === NotificationActionType.DELETE)).toBeDefined();
-        expect(actions.find(a => a.type === NotificationActionType.MARK_AS_READ)).toBeDefined();
-        expect(actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION)).toBeDefined();
+        expect(actions).toHaveLength(0);
       });
     });
 
@@ -203,13 +194,13 @@ describe('notification-actions.util', () => {
 
     describe('Priority decision logic', () => {
       it('should follow priority: payload > user settings > default', () => {
-        // Test 1: No payload, no user settings -> default (true)
+        // Test 1: No payload, no user settings -> default (false)
         let actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
         );
-        expect(actions).toHaveLength(3);
+        expect(actions).toHaveLength(0);
 
         // Test 2: No payload, user settings false -> user settings (false)
         actions = generateAutomaticActions(
@@ -256,7 +247,7 @@ describe('notification-actions.util', () => {
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(6); // 3 automatic + 3 snoozes
+        expect(actions).toHaveLength(3); // 0 automatic + 3 snoozes (default is false)
         const snoozeActions = actions.filter(a => a.type === NotificationActionType.SNOOZE);
         expect(snoozeActions).toHaveLength(3);
         expect(snoozeActions[0].value).toBe('5');
@@ -279,7 +270,7 @@ describe('notification-actions.util', () => {
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(3); // Only automatic actions
+        expect(actions).toHaveLength(0); // No automatic actions (default is false), no snoozes
       });
     });
 
@@ -289,6 +280,7 @@ describe('notification-actions.util', () => {
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
+          { autoAddDeleteAction: true, autoAddMarkAsReadAction: true, autoAddOpenNotificationAction: true },
         );
 
         const deleteAction = actions.find(a => a.type === NotificationActionType.DELETE);
@@ -306,6 +298,7 @@ describe('notification-actions.util', () => {
           mockNotification as Notification,
           DevicePlatform.ANDROID,
           mockLocaleService,
+          { autoAddDeleteAction: true, autoAddMarkAsReadAction: true, autoAddOpenNotificationAction: true },
         );
 
         const deleteAction = actions.find(a => a.type === NotificationActionType.DELETE);
@@ -323,6 +316,7 @@ describe('notification-actions.util', () => {
           mockNotification as Notification,
           DevicePlatform.WEB,
           mockLocaleService,
+          { autoAddDeleteAction: true, autoAddMarkAsReadAction: true, autoAddOpenNotificationAction: true },
         );
 
         const deleteAction = actions.find(a => a.type === NotificationActionType.DELETE);
@@ -379,6 +373,7 @@ describe('notification-actions.util', () => {
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
+          { autoAddDeleteAction: true, autoAddMarkAsReadAction: true, autoAddOpenNotificationAction: true },
         );
 
         const deleteAction = actions.find(a => a.type === NotificationActionType.DELETE);
@@ -390,6 +385,7 @@ describe('notification-actions.util', () => {
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
+          { autoAddDeleteAction: true, autoAddMarkAsReadAction: true, autoAddOpenNotificationAction: true },
         );
 
         const markAsReadAction = actions.find(a => a.type === NotificationActionType.MARK_AS_READ);
@@ -401,6 +397,7 @@ describe('notification-actions.util', () => {
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
+          { autoAddDeleteAction: true, autoAddMarkAsReadAction: true, autoAddOpenNotificationAction: true },
         );
 
         const openAction = actions.find(a => a.type === NotificationActionType.OPEN_NOTIFICATION);

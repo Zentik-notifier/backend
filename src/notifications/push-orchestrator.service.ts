@@ -50,45 +50,45 @@ export class PushNotificationOrchestratorService {
     private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
-  /**
-   * Get user notification settings for multiple users efficiently
-   * Returns a map with key format: "userId" -> settings
-   * Makes only ONE query per user (not per device) since settings are user-level
+    /**
+   * Get device-specific settings for multiple devices in one batch
+   * Returns a map with key format: "deviceId" -> settings
+   * Makes ONE query per device since settings are now device+user level
    */
-  private async getUserSettingsForMultipleUsers(
-    userIds: string[],
+  private async getDeviceSettingsForMultipleDevices(
+    devices: Array<{ deviceId: string; userId: string }>,
   ): Promise<Map<string, AutoActionSettings>> {
     const settingsMap = new Map<string, AutoActionSettings>();
 
-    // Get all settings for all users in one query
+    // Get all settings for all devices in parallel
     const configTypes = [
       UserSettingType.AutoAddDeleteAction,
       UserSettingType.AutoAddMarkAsReadAction,
       UserSettingType.AutoAddOpenNotificationAction,
     ];
 
-    // Fetch settings once per user in parallel
-    const settingsPromises = userIds.map(async (userId) => {
+    // Fetch settings once per device in parallel
+    const settingsPromises = devices.map(async ({ deviceId, userId }) => {
       const settings = await this.usersService.getMultipleUserSettings(
         userId,
         configTypes,
-        null, // No device-specific filtering, get user-level settings
+        deviceId, // Pass deviceId for device-specific settings
       );
 
-      const userSettings: AutoActionSettings = {
-        autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
-        autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
-        autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? true,
+      const deviceSettings: AutoActionSettings = {
+        autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? false,
+        autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? false,
+        autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
       };
 
-      return { userId, userSettings };
+      return { deviceId, deviceSettings };
     });
 
     const results = await Promise.all(settingsPromises);
     
-    // Build map: userId -> settings
-    results.forEach(({ userId, userSettings }) => {
-      settingsMap.set(userId, userSettings);
+    // Build map: deviceId -> settings
+    results.forEach(({ deviceId, deviceSettings }) => {
+      settingsMap.set(deviceId, deviceSettings);
     });
 
     return settingsMap;
@@ -210,9 +210,9 @@ export class PushNotificationOrchestratorService {
       `Found ${targetDevices.length} target devices for ${authorizedUsers.length} users (platforms: ${platforms}, onlyLocal: ${localOnlyCount}, bucket: ${message.bucketId})`,
     );
 
-    const userSettingsMap = await this.getUserSettingsForMultipleUsers(
-      authorizedUsers,
-    );
+    // Get device-specific settings in batch (1 query per device)
+    const deviceInfoArray = targetDevices.map(d => ({ deviceId: d.id, userId: d.userId }));
+    const deviceSettingsMap = await this.getDeviceSettingsForMultipleDevices(deviceInfoArray);
 
     // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
     if (!skipNotificationTracking) {
@@ -318,10 +318,10 @@ export class PushNotificationOrchestratorService {
         continue;
       }
 
-      // Get user settings (shared across all devices of the same user)
-      const userSettings = userSettingsMap.get(device.userId);
+      // Get device-specific settings
+      const deviceSettings = deviceSettingsMap.get(device.id);
 
-      const result = await this.dispatchPush(notif, device, userSettings);
+      const result = await this.dispatchPush(notif, device, deviceSettings);
       try {
         if (result.success) {
           await this.notificationsRepository.update(notif.id, {
@@ -399,9 +399,9 @@ export class PushNotificationOrchestratorService {
         );
 
         settings = {
-          autoAddDeleteAction: userSettingsMap.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
-          autoAddMarkAsReadAction: userSettingsMap.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
-          autoAddOpenNotificationAction: userSettingsMap.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? true,
+          autoAddDeleteAction: userSettingsMap.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? false,
+          autoAddMarkAsReadAction: userSettingsMap.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? false,
+          autoAddOpenNotificationAction: userSettingsMap.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
         };
       }
 

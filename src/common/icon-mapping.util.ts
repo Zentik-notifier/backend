@@ -106,7 +106,7 @@ export enum ZentikIcon {
  */
 export interface IconPlatformMapping {
   ios: string; // SF Symbol name
-  web: string; // Material Design Icon name or emoji
+  web: string; // Emoji (same as Android)
   android: string; // Emoji
 }
 
@@ -118,371 +118,371 @@ export const ZENTIK_ICON_MAPPINGS: Record<ZentikIcon, IconPlatformMapping> = {
   // Communication & Alerts
   [ZentikIcon.BELL]: {
     ios: 'bell.fill',
-    web: 'notifications',
+    web: '🔔',
     android: '🔔',
   },
   [ZentikIcon.ENVELOPE]: {
     ios: 'envelope.fill',
-    web: 'mail',
+    web: '✉️',
     android: '✉️',
   },
   [ZentikIcon.MESSAGE]: {
     ios: 'message.fill',
-    web: 'message',
-    android: '�',
+    web: '💬',
+    android: '💬',
   },
   [ZentikIcon.PHONE]: {
     ios: 'phone.fill',
-    web: 'phone',
+    web: '📞',
     android: '📞',
   },
 
   // Status & Actions
   [ZentikIcon.CHECKMARK]: {
     ios: 'checkmark.circle.fill',
-    web: 'check_circle',
+    web: '✅',
     android: '✅',
   },
   [ZentikIcon.XMARK]: {
     ios: 'xmark.circle.fill',
-    web: 'cancel',
+    web: '❌',
     android: '❌',
   },
   [ZentikIcon.EXCLAMATION]: {
     ios: 'exclamationmark.triangle.fill',
-    web: 'warning',
+    web: '⚠️',
     android: '⚠️',
   },
   [ZentikIcon.INFO]: {
     ios: 'info.circle.fill',
-    web: 'info',
+    web: 'ℹ️',
     android: 'ℹ️',
   },
   [ZentikIcon.QUESTION]: {
     ios: 'questionmark.circle.fill',
-    web: 'help',
+    web: '❓',
     android: '❓',
   },
 
   // Time & Calendar
   [ZentikIcon.CLOCK]: {
     ios: 'clock.fill',
-    web: 'schedule',
+    web: '⏰',
     android: '⏰',
   },
   [ZentikIcon.CALENDAR]: {
     ios: 'calendar',
-    web: 'calendar_today',
+    web: '📅',
     android: '📅',
   },
   [ZentikIcon.TIMER]: {
     ios: 'timer',
-    web: 'timer',
+    web: '⏱️',
     android: '⏱️',
   },
   [ZentikIcon.ALARM]: {
     ios: 'alarm.fill',
-    web: 'alarm',
+    web: '⏰',
     android: '⏰',
   },
   [ZentikIcon.HOURGLASS]: {
     ios: 'hourglass',
-    web: 'hourglass_empty',
+    web: '⏳',
     android: '⏳',
   },
 
   // Navigation & Interaction
   [ZentikIcon.ARROW_RIGHT]: {
     ios: 'arrow.right',
-    web: 'arrow_forward',
+    web: '➡️',
     android: '➡️',
   },
   [ZentikIcon.ARROW_LEFT]: {
     ios: 'arrow.left',
-    web: 'arrow_back',
+    web: '⬅️',
     android: '⬅️',
   },
   [ZentikIcon.ARROW_UP]: {
     ios: 'arrow.up',
-    web: 'arrow_upward',
+    web: '⬆️',
     android: '⬆️',
   },
   [ZentikIcon.ARROW_DOWN]: {
     ios: 'arrow.down',
-    web: 'arrow_downward',
+    web: '⬇️',
     android: '⬇️',
   },
   [ZentikIcon.CHEVRON_RIGHT]: {
     ios: 'chevron.right',
-    web: 'chevron_right',
+    web: '▶️',
     android: '▶️',
   },
   [ZentikIcon.CHEVRON_LEFT]: {
     ios: 'chevron.left',
-    web: 'chevron_left',
+    web: '◀️',
     android: '◀️',
   },
   [ZentikIcon.HOME]: {
     ios: 'house.fill',
-    web: 'home',
+    web: '🏠',
     android: '🏠',
   },
   [ZentikIcon.LOCATION]: {
     ios: 'location.fill',
-    web: 'location_on',
-    android: '�',
+    web: '📍',
+    android: '📍',
   },
   [ZentikIcon.MAP]: {
     ios: 'map.fill',
-    web: 'map',
+    web: '🗺️',
     android: '🗺️',
   },
 
   // Media & Files
   [ZentikIcon.PHOTO]: {
     ios: 'photo.fill',
-    web: 'image',
+    web: '🖼️',
     android: '🖼️',
   },
   [ZentikIcon.VIDEO]: {
     ios: 'video.fill',
-    web: 'videocam',
+    web: '🎥',
     android: '🎥',
   },
   [ZentikIcon.MUSIC]: {
     ios: 'music.note',
-    web: 'music_note',
+    web: '🎵',
     android: '🎵',
   },
   [ZentikIcon.HEADPHONES]: {
     ios: 'headphones',
-    web: 'headphones',
-    android: '�',
+    web: '🎧',
+    android: '🎧',
   },
   [ZentikIcon.MIC]: {
     ios: 'mic.fill',
-    web: 'mic',
+    web: '🎤',
     android: '🎤',
   },
   [ZentikIcon.SPEAKER]: {
     ios: 'speaker.wave.2.fill',
-    web: 'volume_up',
-    android: '�',
+    web: '🔊',
+    android: '🔊',
   },
   [ZentikIcon.DOCUMENT]: {
     ios: 'doc.fill',
-    web: 'description',
-    android: '�',
+    web: '📄',
+    android: '📄',
   },
   [ZentikIcon.FOLDER]: {
     ios: 'folder.fill',
-    web: 'folder',
+    web: '📁',
     android: '📁',
   },
   [ZentikIcon.PAPERCLIP]: {
     ios: 'paperclip',
-    web: 'attach_file',
+    web: '📎',
     android: '📎',
   },
 
   // Social & People
   [ZentikIcon.PERSON]: {
     ios: 'person.fill',
-    web: 'person',
-    android: '�',
+    web: '👤',
+    android: '👤',
   },
   [ZentikIcon.PEOPLE]: {
     ios: 'person.2.fill',
-    web: 'people',
+    web: '👥',
     android: '👥',
   },
   [ZentikIcon.HEART]: {
     ios: 'heart.fill',
-    web: 'favorite',
+    web: '❤️',
     android: '❤️',
   },
   [ZentikIcon.STAR]: {
     ios: 'star.fill',
-    web: 'star',
+    web: '⭐',
     android: '⭐',
   },
   [ZentikIcon.FLAME]: {
     ios: 'flame.fill',
-    web: 'whatshot',
+    web: '🔥',
     android: '🔥',
   },
 
   // Technology & Devices
   [ZentikIcon.PHONE_MOBILE]: {
     ios: 'iphone',
-    web: 'smartphone',
+    web: '📱',
     android: '📱',
   },
   [ZentikIcon.COMPUTER]: {
     ios: 'desktopcomputer',
-    web: 'computer',
+    web: '🖥️',
     android: '🖥️',
   },
   [ZentikIcon.LAPTOP]: {
     ios: 'laptopcomputer',
-    web: 'laptop',
+    web: '💻',
     android: '💻',
   },
   [ZentikIcon.WIFI]: {
     ios: 'wifi',
-    web: 'wifi',
+    web: '📶',
     android: '📶',
   },
   [ZentikIcon.BATTERY]: {
     ios: 'battery.100',
-    web: 'battery_full',
+    web: '🔋',
     android: '🔋',
   },
   [ZentikIcon.BOLT]: {
     ios: 'bolt.fill',
-    web: 'flash_on',
+    web: '⚡',
     android: '⚡',
   },
   [ZentikIcon.GEAR]: {
     ios: 'gear',
-    web: 'settings',
+    web: '⚙️',
     android: '⚙️',
   },
 
   // Weather & Nature
   [ZentikIcon.SUN]: {
     ios: 'sun.max.fill',
-    web: 'wb_sunny',
+    web: '☀️',
     android: '☀️',
   },
   [ZentikIcon.MOON]: {
     ios: 'moon.fill',
-    web: 'nights_stay',
+    web: '🌙',
     android: '🌙',
   },
   [ZentikIcon.CLOUD]: {
     ios: 'cloud.fill',
-    web: 'cloud',
+    web: '☁️',
     android: '☁️',
   },
   [ZentikIcon.RAIN]: {
     ios: 'cloud.rain.fill',
-    web: 'water_drop',
+    web: '🌧️',
     android: '🌧️',
   },
   [ZentikIcon.SNOW]: {
     ios: 'snowflake',
-    web: 'ac_unit',
+    web: '❄️',
     android: '❄️',
   },
 
   // Business & Finance
   [ZentikIcon.DOLLAR]: {
     ios: 'dollarsign.circle.fill',
-    web: 'attach_money',
-    android: '�',
+    web: '💵',
+    android: '💵',
   },
   [ZentikIcon.CREDIT_CARD]: {
     ios: 'creditcard.fill',
-    web: 'credit_card',
-    android: '�',
+    web: '💳',
+    android: '💳',
   },
   [ZentikIcon.CART]: {
     ios: 'cart.fill',
-    web: 'shopping_cart',
-    android: '�',
+    web: '🛒',
+    android: '🛒',
   },
   [ZentikIcon.BAG]: {
     ios: 'bag.fill',
-    web: 'shopping_bag',
+    web: '🛍️',
     android: '🛍️',
   },
 
   // Health & Fitness
   [ZentikIcon.HEART_PULSE]: {
     ios: 'heart.text.square.fill',
-    web: 'favorite',
+    web: '💓',
     android: '💓',
   },
   [ZentikIcon.WALK]: {
     ios: 'figure.walk',
-    web: 'directions_walk',
+    web: '🚶',
     android: '🚶',
   },
   [ZentikIcon.BICYCLE]: {
     ios: 'bicycle',
-    web: 'directions_bike',
+    web: '🚴',
     android: '🚴',
   },
   [ZentikIcon.SPORT]: {
     ios: 'sportscourt.fill',
-    web: 'sports_soccer',
+    web: '⚽',
     android: '⚽',
   },
 
   // Transportation
   [ZentikIcon.CAR]: {
     ios: 'car.fill',
-    web: 'directions_car',
+    web: '🚗',
     android: '🚗',
   },
   [ZentikIcon.AIRPLANE]: {
     ios: 'airplane',
-    web: 'flight',
+    web: '✈️',
     android: '✈️',
   },
   [ZentikIcon.TRAIN]: {
     ios: 'train.side.front.car',
-    web: 'train',
+    web: '🚆',
     android: '🚆',
   },
   [ZentikIcon.BUS]: {
     ios: 'bus.fill',
-    web: 'directions_bus',
+    web: '🚌',
     android: '🚌',
   },
 
   // Food & Drink
   [ZentikIcon.COFFEE]: {
     ios: 'cup.and.saucer.fill',
-    web: 'local_cafe',
+    web: '☕',
     android: '☕',
   },
   [ZentikIcon.FOOD]: {
     ios: 'fork.knife',
-    web: 'restaurant',
+    web: '🍴',
     android: '🍴',
   },
 
   // Miscellaneous
   [ZentikIcon.LOCK]: {
     ios: 'lock.fill',
-    web: 'lock',
-    android: '�',
+    web: '🔒',
+    android: '🔒',
   },
   [ZentikIcon.KEY]: {
     ios: 'key.fill',
-    web: 'key',
+    web: '🔑',
     android: '🔑',
   },
   [ZentikIcon.TAG]: {
     ios: 'tag.fill',
-    web: 'label',
-    android: '�️',
+    web: '🏷️',
+    android: '🏷️',
   },
   [ZentikIcon.GIFT]: {
     ios: 'gift.fill',
-    web: 'card_giftcard',
+    web: '🎁',
     android: '🎁',
   },
   [ZentikIcon.FLAG]: {
     ios: 'flag.fill',
-    web: 'flag',
-    android: '�',
+    web: '🏁',
+    android: '🏁',
   },
   [ZentikIcon.TRASH]: {
     ios: 'trash.fill',
-    web: 'delete',
+    web: '🗑️',
     android: '🗑️',
   },
 };

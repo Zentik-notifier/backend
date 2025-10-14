@@ -52,17 +52,17 @@ export function generateAutomaticActions(
   const shouldAddDeleteAction = 
     message.addDeleteAction !== undefined 
       ? message.addDeleteAction 
-      : (userSettings?.autoAddDeleteAction ?? true);
+      : (userSettings?.autoAddDeleteAction ?? false);
   
   const shouldAddMarkAsReadAction = 
     message.addMarkAsReadAction !== undefined 
       ? message.addMarkAsReadAction 
-      : (userSettings?.autoAddMarkAsReadAction ?? true);
+      : (userSettings?.autoAddMarkAsReadAction ?? false);
   
   const shouldAddOpenNotificationAction = 
     message.addOpenNotificationAction !== undefined 
       ? message.addOpenNotificationAction 
-      : (userSettings?.autoAddOpenNotificationAction ?? true);
+      : (userSettings?.autoAddOpenNotificationAction ?? false);
 
   if (shouldAddDeleteAction) {
     actions.push({
