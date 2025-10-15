@@ -36,7 +36,9 @@ import {
 import {
   ExternalNotifyRequestDto
 } from './dto/external-notify.dto';
+import { PostponeNotificationDto, PostponeResponseDto } from './dto/postpone-notification.dto';
 import { NotificationsService } from './notifications.service';
+import { NotificationPostponeService } from './notification-postpone.service';
 
 @UseGuards(JwtOrAccessTokenGuard)
 @Controller('notifications')
@@ -47,6 +49,7 @@ export class NotificationsController {
 
   constructor(
     private readonly notificationsService: NotificationsService,
+    private readonly postponeService: NotificationPostponeService,
     private readonly subscriptionService: GraphQLSubscriptionService,
     private readonly systemAccessTokenService: SystemAccessTokenService,
     private readonly eventsTrackingService: EventTrackingService,
@@ -385,5 +388,61 @@ export class NotificationsController {
     }
 
     return result;
+  }
+
+  @Post('postpone')
+  @ApiOperation({ summary: 'Postpone a notification to be resent later' })
+  @ApiResponse({
+    status: 201,
+    description: 'Notification postponed successfully',
+    type: PostponeResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Notification not found',
+  })
+  async postponeNotification(
+    @Body() dto: PostponeNotificationDto,
+    @GetUser('id') userId: string,
+  ): Promise<PostponeResponseDto> {
+    const postpone = await this.postponeService.createPostpone(
+      dto.notificationId,
+      userId,
+      dto.minutes,
+    );
+
+    return {
+      id: postpone.id,
+      notificationId: postpone.notificationId,
+      sendAt: postpone.sendAt,
+      createdAt: postpone.createdAt,
+    };
+  }
+
+  @Get('postpones')
+  @ApiOperation({ summary: 'Get all pending postpones for the user' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of pending postpones',
+  })
+  async getPendingPostpones(@GetUser('id') userId: string) {
+    return this.postponeService.findPendingByUser(userId);
+  }
+
+  @Delete('postpones/:id')
+  @ApiOperation({ summary: 'Cancel a postponed notification' })
+  @ApiResponse({
+    status: 200,
+    description: 'Postpone cancelled successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Postpone not found',
+  })
+  async cancelPostpone(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+  ) {
+    return this.postponeService.cancelPostpone(id, userId);
   }
 }

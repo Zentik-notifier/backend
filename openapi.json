@@ -2845,6 +2845,98 @@
         ]
       }
     },
+    "/api/v1/notifications/postpone": {
+      "post": {
+        "operationId": "NotificationsController_postponeNotification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostponeNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notification postponed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostponeResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Postpone a notification to be resent later",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/postpones": {
+      "get": {
+        "operationId": "NotificationsController_getPendingPostpones",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of pending postpones"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all pending postpones for the user",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/postpones/{id}": {
+      "delete": {
+        "operationId": "NotificationsController_cancelPostpone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Postpone cancelled successfully"
+          },
+          "404": {
+            "description": "Postpone not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a postponed notification",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
     "/api/v1/users": {
       "get": {
         "operationId": "UsersController_getAllUsers",
@@ -6381,6 +6473,51 @@
         "required": [
           "notification",
           "userDevice"
+        ]
+      },
+      "PostponeNotificationDto": {
+        "type": "object",
+        "properties": {
+          "notificationId": {
+            "type": "string",
+            "description": "Notification ID to postpone",
+            "example": "abc-123-notification-uuid"
+          },
+          "minutes": {
+            "type": "number",
+            "description": "Minutes to postpone the notification",
+            "example": 30,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "notificationId",
+          "minutes"
+        ]
+      },
+      "PostponeResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notificationId": {
+            "type": "string"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "notificationId",
+          "sendAt",
+          "createdAt"
         ]
       },
       "UpdateUserRoleDto": {

@@ -2,29 +2,28 @@ import {
   BadRequestException,
   Injectable,
   Logger,
-  NotFoundException,
+  NotFoundException
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { NotificationPostponeService } from 'src/notifications/notification-postpone.service';
 import { In, Repository } from 'typeorm';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { ResourceType } from '../auth/dto/auth.dto';
 import { Bucket } from '../entities/bucket.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
-import { User } from '../entities/user.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
+import { UserSettingType } from '../entities/user-setting.entity';
+import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
-import { ServerSettingsService } from '../server-manager/server-settings.service';
 import {
   MediaType,
   NotificationActionType,
-  NotificationDeliveryType,
 } from '../notifications/notifications.types';
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
 import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { UsersService } from '../users/users.service';
-import { UserSettingType } from '../entities/user-setting.entity';
 import {
   CreateMessageDto,
   CreateMessageWithAttachmentDto,
@@ -46,11 +45,11 @@ export class MessagesService {
     private readonly usersRepository: Repository<User>,
     private readonly attachmentsService: AttachmentsService,
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
-    private readonly configService: ConfigService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly payloadMapperService: PayloadMapperService,
     private readonly usersService: UsersService,
+    private readonly postponeService: NotificationPostponeService,
   ) {}
 
   private isUuid(identifier: string): boolean {
@@ -620,9 +619,22 @@ export class MessagesService {
     }
 
     // Determine messages whose all notifications have receivedAt set, or older than maxAge, or have no notifications at all
+    // BUT exclude messages that have pending postpones
     const deletableMessageIds: string[] = [];
     const now = Date.now();
     for (const m of messages) {
+      // Check if message has pending postpones
+      const hasPendingPostpones = this.postponeService
+        ? await this.postponeService.hasPendingPostpones(m.id)
+        : false;
+      
+      if (hasPendingPostpones) {
+        this.logger.debug(
+          `Skipping message ${m.id} - has pending postpones`,
+        );
+        continue;
+      }
+
       const isExpired =
         !!maxAgeMs &&
         m.createdAt &&
@@ -658,60 +670,6 @@ export class MessagesService {
     const result = await this.messagesRepository.delete(deletableMessageIds);
     const deleted = result.affected || 0;
     this.logger.log(`Deleted ${deleted} message(s)`);
-    return { deletedMessages: deleted };
-  }
-
-  /**
-   * Delete messages only for the provided message IDs when all their notifications
-   * have been received. This limits the cleanup scan to messages that were
-   * affected by a recent operation.
-   */
-  async deleteMessagesIfAllNotificationsReceived(
-    messageIds: string[],
-  ): Promise<{ deletedMessages: number }> {
-    if (!messageIds || messageIds.length === 0) return { deletedMessages: 0 };
-
-    this.logger.log(
-      `Cleaning up messages for provided IDs (${messageIds.length})`,
-    );
-
-    // Load notifications for these messages
-    const notifications = await this.notificationsRepository.find({
-      where: { message: { id: In(messageIds) } as any },
-      relations: ['message', 'userDevice'],
-    });
-
-    const messageIdToNotifications: Record<string, Notification[]> = {};
-    for (const n of notifications) {
-      const mId = n.message?.id;
-      if (!mId) continue;
-      if (!messageIdToNotifications[mId]) messageIdToNotifications[mId] = [];
-      messageIdToNotifications[mId].push(n);
-    }
-
-    const deletableMessageIds: string[] = [];
-    for (const mId of messageIds) {
-      const list = messageIdToNotifications[mId] || [];
-      if (list.length === 0) {
-        // No notifications -> delete
-        deletableMessageIds.push(mId);
-        continue;
-      }
-      const allReceived = list.every((n) => !!n.receivedAt && !!n.userDeviceId);
-      if (allReceived) deletableMessageIds.push(mId);
-    }
-
-    if (deletableMessageIds.length === 0) {
-      this.logger.log('No fully-received messages to delete (filtered)');
-      return { deletedMessages: 0 };
-    }
-
-    await this.notificationsRepository.delete({
-      message: { id: In(deletableMessageIds) } as any,
-    });
-    const result = await this.messagesRepository.delete(deletableMessageIds);
-    const deleted = result.affected || 0;
-    this.logger.log(`Deleted ${deleted} message(s) (filtered)`);
     return { deletedMessages: deleted };
   }
 

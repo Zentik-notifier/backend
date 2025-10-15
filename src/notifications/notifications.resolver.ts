@@ -6,18 +6,21 @@ import {
   ObjectType,
   Query,
   Resolver,
-  Subscription,
+  Subscription
 } from '@nestjs/graphql';
-import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
+import { isAfter, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { EventType } from '../entities/event.entity';
+import { NotificationPostpone } from '../entities/notification-postpone.entity';
 import { Notification } from '../entities/notification.entity';
-import { NotificationServiceInfo } from './dto';
-import { NotificationsService } from './notifications.service';
 import { EventsService } from '../events/events.service';
 import { CurrentUser } from '../graphql/decorators/current-user.decorator';
 import { DeviceToken } from '../graphql/decorators/device-token.decorator';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
-import { EventType } from '../entities/event.entity';
+import { NotificationServiceInfo } from './dto';
+import { PostponeNotificationDto, PostponeResponseDto } from './dto/postpone-notification.dto';
+import { NotificationPostponeService } from './notification-postpone.service';
+import { NotificationsService } from './notifications.service';
 
 @ObjectType()
 export class MarkAllAsReadResult {
@@ -84,6 +87,7 @@ export class NotificationsResolver {
 
   constructor(
     private notificationsService: NotificationsService,
+    private postponeService: NotificationPostponeService,
     private subscriptionService: GraphQLSubscriptionService,
     private eventsService: EventsService,
   ) {}
@@ -428,5 +432,40 @@ export class NotificationsResolver {
       last30Days: last30DaysCount,
       total: totalCount,
     };
+  }
+
+  @Mutation(() => PostponeResponseDto)
+  async postponeNotification(
+    @Args('input') input: PostponeNotificationDto,
+    @CurrentUser('id') userId: string,
+  ): Promise<PostponeResponseDto> {
+    const postpone = await this.postponeService.createPostpone(
+      input.notificationId,
+      userId,
+      input.minutes,
+    );
+
+    return {
+      id: postpone.id,
+      notificationId: postpone.notificationId,
+      sendAt: postpone.sendAt,
+      createdAt: postpone.createdAt,
+    };
+  }
+
+  @Query(() => [NotificationPostpone])
+  async pendingPostpones(
+    @CurrentUser('id') userId: string,
+  ): Promise<NotificationPostpone[]> {
+    return this.postponeService.findPendingByUser(userId);
+  }
+
+  @Mutation(() => Boolean)
+  async cancelPostpone(
+    @Args('id') id: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<boolean> {
+    const result = await this.postponeService.cancelPostpone(id, userId);
+    return result.success;
   }
 }

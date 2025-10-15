@@ -10,6 +10,7 @@ export {
 export { Event, EventType } from './event.entity';
 export { Message } from './message.entity';
 export { Notification } from './notification.entity';
+export { NotificationPostpone } from './notification-postpone.entity';
 export { OAuthProvider, OAuthProviderType } from './oauth-provider.entity';
 export { PayloadMapper } from './payload-mapper.entity';
 export { UserAccessToken } from './user-access-token.entity';

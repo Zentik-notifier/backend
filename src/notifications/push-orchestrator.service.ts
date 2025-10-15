@@ -95,6 +95,184 @@ export class PushNotificationOrchestratorService {
   }
 
   /**
+   * Send push notifications to devices for given notifications
+   * Handles passthrough, snooze checks, onlyLocal devices, and error handling
+   * Reusable method for both create() and resendNotification()
+   * Completely autonomous - loads devices, settings, buckets internally
+   */
+  private async sendPushToDevices(
+    notifications: Notification[],
+    userIds: string[],
+    bucketId?: string,
+    skipNotificationTracking = false,
+  ): Promise<{
+    processedNotifications: Notification[];
+    successCount: number;
+    errorCount: number;
+    snoozedCount: number;
+    errors: string[];
+  }> {
+    // Get target devices for all users (including onlyLocal devices)
+    const targetDevices = await this.userDevicesRepository.find({
+      where: {
+        userId: In(userIds),
+      },
+      relations: ['user'],
+      order: { lastUsed: 'DESC' },
+    });
+
+    const platforms =
+      Array.from(new Set(targetDevices.map((d) => d.platform))).join(', ') ||
+      'none';
+    const localOnlyCount = targetDevices.filter((d) => d.onlyLocal).length;
+    this.logger.log(
+      `Found ${targetDevices.length} target devices for ${userIds.length} users (platforms: ${platforms}, onlyLocal: ${localOnlyCount}${bucketId ? `, bucket: ${bucketId}` : ''})`,
+    );
+
+    // Get device-specific settings in batch (1 query per device)
+    const deviceInfoArray = targetDevices.map(d => ({ deviceId: d.id, userId: d.userId }));
+    const deviceSettingsMap = await this.getDeviceSettingsForMultipleDevices(deviceInfoArray);
+
+    // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
+    if (!skipNotificationTracking) {
+      for (const device of targetDevices) {
+        await this.eventTrackingService.trackNotification(
+          device.userId,
+          device.id,
+        );
+      }
+    }
+
+    // Get user-bucket relationships for snooze checking if bucketId is provided
+    let userBucketMap: Map<string, any> | undefined;
+    if (bucketId && userIds.length > 0) {
+      const userBuckets =
+        await this.bucketsService.findUserBucketsByBucketAndUsers(
+          bucketId,
+          userIds,
+        );
+      userBucketMap = new Map(userBuckets.map((ub) => [ub.userId, ub]));
+    }
+
+    // Process notifications to add attachment URLs
+    const processedNotifications = this.urlBuilderService.processNotifications(
+      notifications,
+    );
+
+    const deviceIdToDevice: Record<string, UserDevice> = Object.fromEntries(
+      targetDevices.map((d) => [d.id, d]),
+    );
+
+    let successCount = 0;
+    let errorCount = 0;
+    let snoozedCount = 0;
+    const errors: string[] = [];
+
+    for (const notif of processedNotifications) {
+      const device = notif.userDeviceId
+        ? deviceIdToDevice[notif.userDeviceId]
+        : undefined;
+      if (!device) {
+        this.logger.warn(
+          `No device found for notification ${notif.id} (user ${notif.userId})`,
+        );
+        continue;
+      }
+
+      // If device is local-only, skip external push
+      if (device.onlyLocal) {
+        this.logger.debug(
+          `Device ${device.id} is onlyLocal - skipping external push for notification ${notif.id}`,
+        );
+        continue;
+      }
+
+      // Check if bucket is snoozed for this user before sending push
+      if (bucketId && userBucketMap) {
+        const isSnoozed = this.isBucketSnoozedForUserFromData(
+          bucketId,
+          device.userId,
+          userBucketMap.get(device.userId),
+        );
+
+        if (isSnoozed) {
+          this.logger.debug(
+            `Skipping push for notification ${notif.id} - bucket ${bucketId} is snoozed for user ${device.userId}`,
+          );
+          snoozedCount++;
+          continue;
+        }
+      }
+
+      // Get device-specific settings
+      const deviceSettings = deviceSettingsMap.get(device.id);
+
+      const result = await this.dispatchPush(notif, device, deviceSettings);
+      try {
+        if (result.success) {
+          successCount++;
+          await this.notificationsRepository.update(notif.id, {
+            sentAt: new Date(),
+          });
+        } else if (result.error) {
+          errorCount++;
+          errors.push(`Device ${device.id}: ${result.error}`);
+          await this.notificationsRepository.update(notif.id, {
+            error: result.error,
+          });
+          // Conditional retry for APNs PayloadTooLarge if user setting allows
+          if (
+            typeof result.error === 'string' &&
+            result.error.includes('PayloadTooLarge')
+          ) {
+            try {
+              const setting = await this.usersService.getUserSetting(
+                notif.userId,
+                UserSettingType.UnencryptOnBigPayload,
+                device.id,
+              );
+              const allowRetry = setting?.valueBool === true;
+              if (allowRetry) {
+                this.logger.warn(
+                  `Retrying push without encryption for notification ${notif.id} (user setting enabled)`,
+                );
+                const retry = await this.sendPushToSingleDeviceStateless(
+                  notif,
+                  { ...device, onlyLocal: device.onlyLocal } as any,
+                );
+                if (retry.success) {
+                  successCount++;
+                  errorCount--;
+                  errors.pop(); // Remove the last error
+                  await this.notificationsRepository.update(notif.id, {
+                    sentAt: new Date(),
+                    error: null as any,
+                  });
+                }
+              }
+            } catch (e) {
+              this.logger.warn('Retry check failed, skipping retry');
+            }
+          }
+        }
+      } catch (updateError) {
+        this.logger.error(
+          `Failed to update notification ${notif.id} after send attempt`,
+          updateError,
+        );
+      }
+    }
+
+    return {
+      processedNotifications,
+      successCount,
+      errorCount,
+      snoozedCount,
+      errors,
+    };
+  }
+
+  /**
    * Check if a bucket is snoozed for a specific user using pre-loaded data
    * @param bucketId - The bucket ID to check
    * @param userId - The user ID to check snooze status for
@@ -193,7 +371,7 @@ export class PushNotificationOrchestratorService {
       return [];
     }
 
-    // Get target devices for all authorized users (including onlyLocal devices)
+    // Get target devices to create notifications (sendPushToDevices will load them again internally)
     const targetDevices = await this.userDevicesRepository.find({
       where: {
         userId: In(authorizedUsers),
@@ -201,28 +379,6 @@ export class PushNotificationOrchestratorService {
       relations: ['user'],
       order: { lastUsed: 'DESC' },
     });
-
-    const platforms =
-      Array.from(new Set(targetDevices.map((d) => d.platform))).join(', ') ||
-      'none';
-    const localOnlyCount = targetDevices.filter((d) => d.onlyLocal).length;
-    this.logger.log(
-      `Found ${targetDevices.length} target devices for ${authorizedUsers.length} users (platforms: ${platforms}, onlyLocal: ${localOnlyCount}, bucket: ${message.bucketId})`,
-    );
-
-    // Get device-specific settings in batch (1 query per device)
-    const deviceInfoArray = targetDevices.map(d => ({ deviceId: d.id, userId: d.userId }));
-    const deviceSettingsMap = await this.getDeviceSettingsForMultipleDevices(deviceInfoArray);
-
-    // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
-    if (!skipNotificationTracking) {
-      for (const device of targetDevices) {
-        await this.eventTrackingService.trackNotification(
-          device.userId,
-          device.id,
-        );
-      }
-    }
 
     // Create one notification per device (user + device pair) - ALWAYS create notifications
     const notificationsPerDevice: Notification[] = [];
@@ -239,14 +395,6 @@ export class PushNotificationOrchestratorService {
         : (savedResult as Notification);
       notificationsPerDevice.push(saved);
     }
-
-    // Get all user-bucket relationships for this bucket and users to check snooze status efficiently
-    const userBuckets =
-      await this.bucketsService.findUserBucketsByBucketAndUsers(
-        message.bucketId,
-        authorizedUsers,
-      );
-    const userBucketMap = new Map(userBuckets.map((ub) => [ub.userId, ub]));
 
     // Load relations and publish GraphQL subscriptions
     const notificationsWithRelations: Notification[] = [];
@@ -272,106 +420,24 @@ export class PushNotificationOrchestratorService {
       }
     }
 
-    // Process notifications to add attachment URLs before sending push
-    const processedNotifications = this.urlBuilderService.processNotifications(
-      notificationsWithRelations,
-    );
-
-    // Send push per device so that each payload contains the specific notificationId
-    const deviceIdToDevice: Record<string, UserDevice> = Object.fromEntries(
-      targetDevices.map((d) => [d.id, d]),
-    );
-    let snoozedCount = 0;
-
-    for (const notif of processedNotifications) {
-      const device = notif.userDeviceId
-        ? deviceIdToDevice[notif.userDeviceId]
-        : undefined;
-      if (!device) {
-        this.logger.warn(
-          `No device found for notification ${notif.id} (user ${notif.userId})`,
-        );
-        continue;
-      }
-
-      // If device is local-only, we create the notification and publish subscription
-      // but do not attempt to send a push to external push services.
-      if (device.onlyLocal) {
-        this.logger.debug(
-          `Device ${device.id} is onlyLocal - skipping external push for notification ${notif.id}`,
-        );
-        continue;
-      }
-
-      // Check if bucket is snoozed for this user before sending push
-      const isSnoozed = this.isBucketSnoozedForUserFromData(
+    // Send push notifications (handles devices, settings, buckets, tracking internally)
+    const { processedNotifications, successCount, errorCount, snoozedCount, errors } =
+      await this.sendPushToDevices(
+        notificationsWithRelations,
+        authorizedUsers,
         message.bucketId,
-        device.userId,
-        userBucketMap.get(device.userId),
+        skipNotificationTracking,
       );
 
-      if (isSnoozed) {
-        this.logger.debug(
-          `Skipping push for notification ${notif.id} - bucket ${message.bucketId} is snoozed for user ${device.userId}`,
-        );
-        snoozedCount++;
-        continue;
-      }
-
-      // Get device-specific settings
-      const deviceSettings = deviceSettingsMap.get(device.id);
-
-      const result = await this.dispatchPush(notif, device, deviceSettings);
-      try {
-        if (result.success) {
-          await this.notificationsRepository.update(notif.id, {
-            sentAt: new Date(),
-          });
-        } else if (result.error) {
-          await this.notificationsRepository.update(notif.id, {
-            error: result.error,
-          });
-          // Conditional retry for APNs PayloadTooLarge if user setting allows
-          if (
-            typeof result.error === 'string' &&
-            result.error.includes('PayloadTooLarge')
-          ) {
-            try {
-              const setting = await this.usersService.getUserSetting(
-                notif.userId,
-                UserSettingType.UnencryptOnBigPayload,
-                device.id,
-              );
-              const allowRetry = setting?.valueBool === true;
-              if (allowRetry) {
-                this.logger.warn(
-                  `Retrying push without encryption for notification ${notif.id} (user setting enabled)`,
-                );
-                const retry = await this.sendPushToSingleDeviceStateless(
-                  notif,
-                  { ...device, onlyLocal: device.onlyLocal } as any,
-                );
-                if (retry.success) {
-                  await this.notificationsRepository.update(notif.id, {
-                    sentAt: new Date(),
-                    error: null as any,
-                  });
-                }
-              }
-            } catch (e) {
-              this.logger.warn('Retry check failed, skipping retry');
-            }
-          }
-        }
-      } catch {}
-    }
-
-    // Log how many push notifications were skipped due to snoozes
+    // Log summary
     if (snoozedCount > 0) {
       this.logger.log(
         `Skipped ${snoozedCount} push notifications due to bucket snoozes (notifications were still created in database)`,
       );
     }
+    this.logger.log(
+      `Push notifications sent: ${successCount} succeeded, ${errorCount} failed, ${snoozedCount} snoozed`,
+    );
 
     return processedNotifications;
   }
@@ -621,5 +687,56 @@ export class PushNotificationOrchestratorService {
         privateKey: device.privateKey,
       },
     };
+  }
+
+  /**
+   * Resend an existing notification to all user devices
+   * Used for postponed notifications
+   */
+  async resendNotification(
+    notification: Notification,
+    userId: string,
+  ): Promise<PushResult> {
+    try {
+      this.logger.log(
+        `Resending notification ${notification.id} for user ${userId}`,
+      );
+
+      const bucketId = notification.message?.bucketId;
+
+      // Send push notifications (handles devices, settings, buckets, tracking internally)
+      const { processedNotifications, successCount, errorCount, snoozedCount, errors } =
+        await this.sendPushToDevices(
+          [notification],
+          [userId],
+          bucketId,
+          false, // skipNotificationTracking = false for postponed notifications
+        );
+
+      // Log summary
+      if (snoozedCount > 0) {
+        this.logger.log(
+          `Skipped ${snoozedCount} push notifications due to bucket snoozes`,
+        );
+      }
+
+      const success = successCount > 0;
+      this.logger.log(
+        `Resend notification ${notification.id} completed: ${successCount} succeeded, ${errorCount} failed, ${snoozedCount} snoozed`,
+      );
+
+      return {
+        success,
+        successCount,
+        errorCount,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to resend notification ${notification.id}`,
+        error,
+      );
+      return { success: false, error: error.message };
+    }
   }
 }

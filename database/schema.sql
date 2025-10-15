@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS user_settings CASCADE;
 DROP TABLE IF EXISTS admin_subscriptions CASCADE;
 DROP TABLE IF EXISTS payload_mappers CASCADE;
 DROP TABLE IF EXISTS entity_executions CASCADE;
+DROP TABLE IF EXISTS notification_postpones CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS attachments CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
@@ -399,6 +400,16 @@ CREATE TABLE notifications (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create notification_postpones table for postponing notification delivery
+CREATE TABLE notification_postpones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "notificationId" UUID NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+    "messageId" UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "sendAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Create entity_permissions table (generic permissions system)
 CREATE TABLE entity_permissions (
@@ -454,6 +465,10 @@ CREATE INDEX idx_notifications_sent_at ON notifications("sentAt");
 CREATE INDEX idx_notifications_read_at ON notifications("readAt");
 CREATE INDEX idx_notifications_message_id ON notifications("messageId");
 CREATE INDEX idx_notifications_user_device_id ON notifications("userDeviceId");
+CREATE INDEX idx_notification_postpones_user_id ON notification_postpones("userId");
+CREATE INDEX idx_notification_postpones_send_at ON notification_postpones("sendAt");
+CREATE INDEX idx_notification_postpones_message_id ON notification_postpones("messageId");
+CREATE INDEX idx_notification_postpones_notification_id ON notification_postpones("notificationId");
 CREATE INDEX idx_messages_bucket_id ON messages("bucketId");
 CREATE INDEX idx_attachments_user_id ON attachments("userId");
 CREATE INDEX idx_attachments_message_id ON attachments("messageId");
@@ -509,6 +524,8 @@ CREATE TRIGGER update_user_identities_updated_at BEFORE UPDATE ON user_identitie
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_notification_postpones_updated_at BEFORE UPDATE ON notification_postpones
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

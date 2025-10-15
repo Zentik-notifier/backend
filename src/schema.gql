@@ -415,6 +415,7 @@ type Mutation {
 
   """Batch update multiple server settings"""
   batchUpdateServerSettings(settings: [BatchUpdateSettingInput!]!): [ServerSetting!]!
+  cancelPostpone(id: String!): Boolean!
   changePassword(input: ChangePasswordInput!): Boolean!
   cleanupExpiredPermissions: Float!
   confirmEmail(input: ConfirmEmailDto!): EmailConfirmationResponseDto!
@@ -452,6 +453,7 @@ type Mutation {
   massDeleteNotifications(ids: [String!]!): MassDeleteResult!
   massMarkNotificationsAsRead(ids: [String!]!): MassMarkResult!
   massMarkNotificationsAsUnread(ids: [String!]!): MassMarkResult!
+  postponeNotification(input: PostponeNotificationDto!): PostponeResponseDto!
   refreshAccessToken(refreshToken: String!): RefreshTokenResponse!
   register(input: RegisterDto!): RegisterResponse!
   registerDevice(input: RegisterDeviceDto!): UserDevice!
@@ -555,6 +557,19 @@ enum NotificationDeliveryType {
   SILENT
 }
 
+type NotificationPostpone {
+  createdAt: DateTime!
+  id: ID!
+  message: Message!
+  messageId: String!
+  notification: Notification!
+  notificationId: String!
+  sendAt: DateTime!
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
+}
+
 type NotificationServiceInfo {
   devicePlatform: DevicePlatform!
   service: NotificationServiceType!
@@ -645,6 +660,18 @@ enum Permission {
   WRITE
 }
 
+input PostponeNotificationDto {
+  minutes: Int!
+  notificationId: String!
+}
+
+type PostponeResponseDto {
+  createdAt: DateTime!
+  id: String!
+  notificationId: String!
+  sendAt: DateTime!
+}
+
 type PublicAppConfig {
   emailEnabled: Boolean!
   oauthProviders: [OAuthProviderPublicDto!]!
@@ -688,6 +715,7 @@ type Query {
   oauthProvider(id: String!): OAuthProvider!
   payloadMapper(id: String!): PayloadMapper!
   payloadMappers: [PayloadMapper!]!
+  pendingPostpones: [NotificationPostpone!]!
   publicAppConfig: PublicAppConfig!
 
   """Get a specific server setting by type"""
