@@ -17,6 +17,8 @@ import { SystemAccessTokenGuard } from '../system-access-token/system-access-tok
 import { ServerSettingsService } from './server-settings.service';
 import { LokiLoggerService } from './loki-logger.service';
 import { LogLevel } from '../entities/log.entity';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
 
 interface LokiStream {
   stream: Record<string, string>;
@@ -36,7 +38,7 @@ export class LokiController {
   ) {}
 
   @Get('logs')
-  @UseGuards(SystemAccessTokenGuard)
+  @UseGuards(JwtAuthGuard, AdminOnlyGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get logs in Loki format for Promtail (requires System Access Token)',

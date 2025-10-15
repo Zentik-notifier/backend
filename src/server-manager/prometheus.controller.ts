@@ -2,8 +2,9 @@ import { Controller, Get, Res, UnauthorizedException, UseGuards } from '@nestjs/
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PrometheusController } from '@willsoto/nestjs-prometheus';
 import { Response } from 'express';
+import { AdminOnlyGuard } from 'src/auth/guards/admin-only.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ServerSettingType } from '../entities/server-setting.entity';
-import { SystemAccessTokenGuard } from '../system-access-token/system-access-token.guard';
 import { ServerSettingsService } from './server-settings.service';
 
 @Controller('metrics')
@@ -16,9 +17,9 @@ export class CustomPrometheusController extends PrometheusController {
   }
 
   @Get()
-  @UseGuards(SystemAccessTokenGuard)
+  @UseGuards(JwtAuthGuard, AdminOnlyGuard)
   @ApiBearerAuth()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get Prometheus metrics (requires System Access Token)',
     description: 'Returns all Prometheus metrics in text format. Requires authentication with a System Access Token (Bearer sat_xxxxx).'
   })
