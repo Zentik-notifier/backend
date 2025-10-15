@@ -109,6 +109,7 @@ input CreateMessageDto {
   groupId: String
   imageUrl: String
   locale: String
+  postpones: [Float!]
   snoozes: [Float!]
   sound: String
   subtitle: String
@@ -394,6 +395,7 @@ type Message {
   groupId: String
   id: ID!
   locale: String
+  postpones: [Float!]
   snoozes: [Float!]
   sound: String
   subtitle: String
@@ -539,6 +541,7 @@ enum NotificationActionType {
   MARK_AS_READ
   NAVIGATE
   OPEN_NOTIFICATION
+  POSTPONE
   SNOOZE
   WEBHOOK
 }

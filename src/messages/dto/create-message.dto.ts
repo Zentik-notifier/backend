@@ -228,6 +228,15 @@ export class CreateMessageDto {
   @IsArray()
   snoozes?: number[];
 
+  @Field(() => [Number], { nullable: true })
+  @ApiProperty({ type: [Number], required: false })
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',').map(Number) : value,
+  )
+  @IsArray()
+  postpones?: number[];
+
   @Field({ nullable: true })
   @ApiProperty({ required: false })
   @IsOptional()

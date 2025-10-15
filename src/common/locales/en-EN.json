@@ -37,7 +37,8 @@
       "markAsRead": "Mark as Read",
       "open": "Open",
       "delete": "Delete",
-      "snooze": "Snooze {{minutes}} min"
+      "snooze": "Snooze {{minutes}} min",
+      "postpone": "Postpone {{minutes}} min"
     }
   }
 }

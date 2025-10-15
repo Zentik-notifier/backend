@@ -364,6 +364,7 @@ CREATE TABLE messages (
     "addOpenNotificationAction" BOOLEAN,
     "addDeleteAction" BOOLEAN,
     snoozes INTEGER[],
+    postpones INTEGER[],
     locale VARCHAR(10),
     "bucketId" UUID NOT NULL REFERENCES buckets(id) ON DELETE CASCADE,
     "groupId" VARCHAR(255),

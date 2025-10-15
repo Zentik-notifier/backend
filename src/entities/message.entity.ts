@@ -169,6 +169,11 @@ export class Message {
   @Column({ type: 'int', array: true, nullable: true })
   snoozes?: number[];
 
+  @Field(() => [Number], { nullable: true })
+  @ApiProperty({ type: [Number], required: false })
+  @Column({ type: 'int', array: true, nullable: true })
+  postpones?: number[];
+
   @Field({ nullable: true })
   @ApiProperty({ required: false })
   @Column({ nullable: true })

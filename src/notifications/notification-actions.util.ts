@@ -42,6 +42,7 @@ export function generateAutomaticActions(
     markAsRead: getIconForPlatform(ZentikIcon.CHECKMARK, platform),
     open: getIconForPlatform(ZentikIcon.ARROW_UP, platform),
     snooze: getIconForPlatform(ZentikIcon.CLOCK, platform),
+    postpone: getIconForPlatform(ZentikIcon.HOURGLASS, platform),
   };
 
   // Determine whether to add each action based on:
@@ -108,6 +109,24 @@ export function generateAutomaticActions(
         destructive: false,
         icon: platformIcons.snooze,
         title: snooze,
+      });
+    });
+  }
+
+  if (message.postpones && message.postpones.length > 0) {
+    message.postpones.forEach((postponeMinutes) => {
+      const postpone = localeService.getTranslatedText(
+        locale,
+        'notifications.actions.postpone',
+        { minutes: String(postponeMinutes) },
+      );
+
+      actions.push({
+        type: NotificationActionType.POSTPONE,
+        value: postponeMinutes.toString(),
+        destructive: false,
+        icon: platformIcons.postpone,
+        title: postpone,
       });
     });
   }

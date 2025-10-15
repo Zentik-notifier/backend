@@ -38,6 +38,7 @@ export interface TranslationKey {
       open: string;
       delete: string;
       snooze: string;
+      postpone: string;
     };
   };
 }

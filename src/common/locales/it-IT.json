@@ -37,7 +37,8 @@
       "markAsRead": "Segna come letto",
       "open": "Apri",
       "delete": "Elimina",
-      "snooze": "Sospendi {{minutes}} minuti"
+      "snooze": "Sospendi {{minutes}} minuti",
+      "postpone": "Posticipa {{minutes}} minuti"
     }
   }
 }
