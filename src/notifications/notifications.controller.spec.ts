@@ -11,6 +11,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { NotificationPostponeService } from './notification-postpone.service';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
@@ -63,6 +64,12 @@ describe('NotificationsController', () => {
     trackPushPassthrough: jest.fn(),
   };
 
+  const mockPostponeService = {
+    postponeNotification: jest.fn(),
+    cancelPostpone: jest.fn(),
+    getPostponedNotifications: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationsController],
@@ -106,6 +113,10 @@ describe('NotificationsController', () => {
         {
           provide: EventTrackingService,
           useValue: mockEventTrackingService,
+        },
+        {
+          provide: NotificationPostponeService,
+          useValue: mockPostponeService,
         },
       ],
     })

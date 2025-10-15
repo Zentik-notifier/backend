@@ -21,6 +21,7 @@ import { UsersService } from '../users/users.service';
 import { UserSettingType } from '../entities/user-setting.entity';
 import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesService } from './messages.service';
+import { NotificationPostponeService } from '../notifications/notification-postpone.service';
 
 describe('MessagesService', () => {
   let service: MessagesService;
@@ -210,6 +211,15 @@ describe('MessagesService', () => {
             getSettingByType: jest.fn().mockResolvedValue({
               valueText: '7d',
             }),
+          },
+        },
+        {
+          provide: NotificationPostponeService,
+          useValue: {
+            postponeNotification: jest.fn(),
+            cancelPostpone: jest.fn(),
+            getPostponedNotifications: jest.fn(),
+            hasPendingPostpones: jest.fn().mockResolvedValue(false),
           },
         },
       ],

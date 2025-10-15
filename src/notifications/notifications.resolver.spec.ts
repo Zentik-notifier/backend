@@ -4,6 +4,7 @@ import { NotificationsService } from './notifications.service';
 import { PushNotificationOrchestratorService } from './push-orchestrator.service';
 import { UsersService } from '../users/users.service';
 import { EventsService } from '../events/events.service';
+import { NotificationPostponeService } from './notification-postpone.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { NotificationsResolver } from './notifications.resolver';
 import { EventType } from '../entities/event.entity';
@@ -42,6 +43,12 @@ describe('NotificationsResolver', () => {
     findByUserId: jest.fn(),
   };
 
+  const mockPostponeService = {
+    postponeNotification: jest.fn(),
+    cancelPostpone: jest.fn(),
+    getPostponedNotifications: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -65,6 +72,10 @@ describe('NotificationsResolver', () => {
         {
           provide: EventsService,
           useValue: mockEventsService,
+        },
+        {
+          provide: NotificationPostponeService,
+          useValue: mockPostponeService,
         },
       ],
     })
