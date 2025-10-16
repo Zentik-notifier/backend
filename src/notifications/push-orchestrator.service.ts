@@ -349,6 +349,7 @@ export class PushNotificationOrchestratorService {
     requesterId: string,
     userIds?: string[],
     skipNotificationTracking = false,
+    addReminderPrefix = false,
   ): Promise<Notification[]> {
     // Get authorized users for the bucket
     let authorizedUsers =
@@ -422,10 +423,16 @@ export class PushNotificationOrchestratorService {
       }
     }
 
+    // Add reminder prefix to notifications if requested
+    let notificationsToSend = notificationsWithRelations;
+    if (addReminderPrefix) {
+      notificationsToSend = notificationsWithRelations.map(n => this.addReminderPrefix(n));
+    }
+
     // Send push notifications (handles devices, settings, buckets, tracking internally)
     const { processedNotifications, successCount, errorCount, snoozedCount, errors } =
       await this.sendPushToDevices(
-        notificationsWithRelations,
+        notificationsToSend,
         authorizedUsers,
         message.bucketId,
         skipNotificationTracking,
@@ -714,6 +721,28 @@ export class PushNotificationOrchestratorService {
   }
 
   /**
+   * Add reminder prefix to notification title based on locale
+   */
+  private addReminderPrefix(notification: Notification): Notification {
+    const locale = notification.message?.locale || 'en-EN';
+    const reminderPrefix = this.localeService.getTranslatedText(
+      locale as any,
+      'notifications.reminder' as any,
+    );
+    
+    // Deep clone notification and modify title
+    const modifiedNotification = {
+      ...notification,
+      message: notification.message ? {
+        ...notification.message,
+        title: `${reminderPrefix} ${notification.message.title}`,
+      } : notification.message,
+    } as Notification;
+    
+    return modifiedNotification;
+  }
+
+  /**
    * Resend an existing notification to all user devices
    * Used for postponed notifications
    */
@@ -761,6 +790,60 @@ export class PushNotificationOrchestratorService {
     } catch (error: any) {
       this.logger.error(
         `Failed to resend notification ${notification.id}`,
+        error,
+      );
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Resend notification as reminder
+   * Used for message reminders - similar to postponed but with [Reminder] prefix
+   */
+  async resendNotificationAsReminder(
+    notification: Notification,
+    userId: string,
+  ): Promise<PushResult> {
+    try {
+      this.logger.log(
+        `Resending reminder notification ${notification.id} for user ${userId}`,
+      );
+
+      // Add reminder prefix to title
+      const modifiedNotification = this.addReminderPrefix(notification);
+
+      const bucketId = modifiedNotification.message?.bucketId;
+
+      // Send push notifications (handles devices, settings, buckets, tracking internally)
+      const { successCount, errorCount, snoozedCount, errors } =
+        await this.sendPushToDevices(
+          [modifiedNotification],
+          [userId],
+          bucketId,
+          true, // skipNotificationTracking = true for reminders (no event tracking)
+        );
+
+      // Log summary
+      if (snoozedCount > 0) {
+        this.logger.log(
+          `Skipped ${snoozedCount} push notifications due to bucket snoozes`,
+        );
+      }
+
+      const success = successCount > 0;
+      this.logger.log(
+        `Resend reminder notification ${notification.id} completed: ${successCount} succeeded, ${errorCount} failed, ${snoozedCount} snoozed`,
+      );
+
+      return {
+        success,
+        successCount,
+        errorCount,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to resend reminder notification ${notification.id}`,
         error,
       );
       return { success: false, error: error.message };

@@ -109,7 +109,9 @@ input CreateMessageDto {
   groupId: String
   imageUrl: String
   locale: String
+  maxReminders: Float
   postpones: [Float!]
+  remindEveryMinutes: Float
   snoozes: [Float!]
   sound: String
   subtitle: String
@@ -395,7 +397,9 @@ type Message {
   groupId: String
   id: ID!
   locale: String
+  maxReminders: Float
   postpones: [Float!]
+  remindEveryMinutes: Float
   snoozes: [Float!]
   sound: String
   subtitle: String

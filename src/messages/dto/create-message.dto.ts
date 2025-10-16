@@ -331,4 +331,24 @@ export class CreateMessageDto {
   @IsOptional()
   @IsString()
   tapUrl?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description:
+      'If set, the message will be resent every N minutes until acknowledged',
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  remindEveryMinutes?: number;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Maximum number of reminders to send (default: 5)',
+    default: 5,
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value ? parseInt(value, 10) : 5))
+  maxReminders?: number;
 }

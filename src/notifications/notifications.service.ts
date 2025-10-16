@@ -25,6 +25,7 @@ import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { NotificationServiceType } from './notifications.types';
 import { WebPushService } from './web-push.service';
+import { MessageReminderService } from '../messages/message-reminder.service';
 
 @Injectable()
 export class NotificationsService implements OnModuleInit {
@@ -39,6 +40,7 @@ export class NotificationsService implements OnModuleInit {
     private readonly firebasePushService: FirebasePushService,
     private readonly webPushService: WebPushService,
     private readonly serverSettingsService: ServerSettingsService,
+    private readonly reminderService: MessageReminderService,
   ) { }
 
   async onModuleInit() {
@@ -178,6 +180,18 @@ export class NotificationsService implements OnModuleInit {
       );
     }
 
+    // Cancel ALL reminders for this message (for all users)
+    try {
+      await this.reminderService.cancelRemindersByMessage(
+        notification.message.id,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to cancel reminders for message ${notification.message.id}`,
+        error,
+      );
+    }
+
     this.logger.log(
       `Notification ${id} and related notifications marked as read for user ${userId}`,
     );
@@ -211,6 +225,13 @@ export class NotificationsService implements OnModuleInit {
   }
 
   async markAllAsRead(userId: string): Promise<{ updatedCount: number }> {
+    // Get all unread notifications for this user to extract message IDs
+    const unreadNotifications = await this.notificationsRepository.find({
+      where: { userId, readAt: IsNull() },
+      select: ['id', 'messageId'] as any,
+      relations: ['message'],
+    });
+
     const result = await this.notificationsRepository.update(
       { userId, readAt: IsNull() },
       { readAt: new Date() },
@@ -220,6 +241,30 @@ export class NotificationsService implements OnModuleInit {
     this.logger.log(
       `Marked ${updatedCount} notifications as read for user ${userId}`,
     );
+
+    // Cancel ALL reminders for all messages that were marked as read (for all users)
+    if (unreadNotifications.length > 0) {
+      try {
+        const uniqueMessageIds = [...new Set(unreadNotifications.map(n => n.message?.id).filter(Boolean))];
+        let totalCancelled = 0;
+        for (const messageId of uniqueMessageIds) {
+          const cancelledCount = await this.reminderService.cancelRemindersByMessage(messageId);
+          totalCancelled += cancelledCount;
+        }
+        if (totalCancelled > 0) {
+          this.logger.log(
+            `Cancelled ${totalCancelled} reminder(s) for ${uniqueMessageIds.length} message(s) (all users) on mark all as read`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to cancel reminders on mark all as read`,
+          error,
+        );
+      }
+    } else if (!this.reminderService) {
+      this.logger.warn('MessageReminderService not available - skipping reminder cancellation');
+    }
 
     return { updatedCount };
   }
@@ -261,7 +306,7 @@ export class NotificationsService implements OnModuleInit {
     const result = await qb.execute();
     const updatedCount = result.affected || 0;
     if (updatedCount) {
-      this.logger.debug(
+      this.logger.log(
         `Updated receivedAt for ${updatedCount} notifications on device=${deviceId} (up to ${target.id}) for user ${userId}`,
       );
     }
@@ -271,6 +316,21 @@ export class NotificationsService implements OnModuleInit {
 
   async remove(id: string, userId: string): Promise<void> {
     const notification = await this.findOne(id, userId);
+
+    // Cancel ALL reminders for this message (for all users)
+    if (this.reminderService) {
+      try {
+        await this.reminderService.cancelRemindersByMessage(
+          notification.message.id,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to cancel reminders for message ${notification.message.id} on delete`,
+          error,
+        );
+      }
+    }
+
     await this.notificationsRepository.remove(notification);
   }
 
@@ -284,13 +344,40 @@ export class NotificationsService implements OnModuleInit {
   ): Promise<{ deletedIds: string[] }> {
     if (!ids?.length) return { deletedIds: [] };
 
-    // Find only existing notifications for this user
+    // Find only existing notifications for this user with message relation
     const existing = await this.notificationsRepository.find({
       where: ids.map((id) => ({ id, userId }) as any),
-      select: { id: true } as any,
+      select: { id: true, message: { id: true } } as any,
+      relations: ['message'],
     });
     const existingIds = existing.map((n) => n.id);
     if (existingIds.length === 0) return { deletedIds: [] };
+
+    // Get unique message IDs to cancel reminders
+    const messageIds = [...new Set(existing.map((n) => n.message?.id).filter(Boolean))];
+
+    // Cancel ALL reminders for these messages (for all users)
+    if (this.reminderService && messageIds.length > 0) {
+      try {
+        let totalCancelled = 0;
+        for (const messageId of messageIds) {
+          const cancelledCount = await this.reminderService.cancelRemindersByMessage(
+            messageId,
+          );
+          totalCancelled += cancelledCount;
+        }
+        if (totalCancelled > 0) {
+          this.logger.log(
+            `Cancelled ${totalCancelled} reminder(s) for ${messageIds.length} message(s) (all users) on bulk delete`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to cancel reminders for messages on bulk delete`,
+          error,
+        );
+      }
+    }
 
     // Delete by ids using query for efficiency
     await this.notificationsRepository

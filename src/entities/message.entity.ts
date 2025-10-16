@@ -179,6 +179,24 @@ export class Message {
   @Column({ nullable: true })
   locale?: string;
 
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description:
+      'If set, the message will be resent every N minutes until acknowledged',
+  })
+  @Column({ type: 'int', nullable: true })
+  remindEveryMinutes?: number;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Maximum number of reminders to send (default: 5)',
+    default: 5,
+  })
+  @Column({ type: 'int', nullable: true, default: 5 })
+  maxReminders?: number;
+
   @Field(() => Bucket)
   @ApiProperty({ type: () => Bucket })
   @ManyToOne(() => Bucket, (bucket) => bucket.messages, { onDelete: 'CASCADE' })

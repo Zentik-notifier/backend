@@ -40,6 +40,7 @@
       "snooze": "Sospendi {{minutes}} minuti",
       "postpone": "Posticipa {{minutes}} minuti"
     },
-    "postponed": "[Rinviato]"
+    "postponed": "[Rinviato]",
+    "reminder": "[Promemoria]"
   }
 }

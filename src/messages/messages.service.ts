@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationPostponeService } from 'src/notifications/notification-postpone.service';
 import { In, Repository } from 'typeorm';
+import { MessageReminderService } from './message-reminder.service';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { ResourceType } from '../auth/dto/auth.dto';
 import { Bucket } from '../entities/bucket.entity';
@@ -50,6 +51,7 @@ export class MessagesService {
     private readonly payloadMapperService: PayloadMapperService,
     private readonly usersService: UsersService,
     private readonly postponeService: NotificationPostponeService,
+    private readonly reminderService: MessageReminderService,
   ) {}
 
   private isUuid(identifier: string): boolean {
@@ -286,6 +288,38 @@ export class MessagesService {
       this.logger.log(
         `Created ${notifications.length} notifications for message ${baseMessage.id}`,
       );
+
+      // Create reminders if remindEveryMinutes is set
+      if (createMessageDto.remindEveryMinutes) {
+        const maxReminders = createMessageDto.maxReminders || 5;
+        
+        // Get all user IDs that received notifications
+        const userIdsToRemind = processedUserIds.length > 0
+          ? processedUserIds
+          : notifications.map(n => n.userId).filter((v, i, a) => a.indexOf(v) === i);
+
+        // Create a reminder for each user
+        for (const userId of userIdsToRemind) {
+          try {
+            await this.reminderService.createReminder(
+              savedMessage.id,
+              userId,
+              createMessageDto.remindEveryMinutes,
+              maxReminders,
+            );
+          } catch (error) {
+            this.logger.error(
+              `Failed to create reminder for user ${userId} on message ${savedMessage.id}`,
+              error,
+            );
+            // Don't fail message creation if reminder creation fails
+          }
+        }
+
+        this.logger.log(
+          `Created reminders for ${userIdsToRemind.length} user(s) on message ${savedMessage.id}`,
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Failed to create notifications for message ${savedMessage.id}`,

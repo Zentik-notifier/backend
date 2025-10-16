@@ -3754,6 +3754,25 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "remindEveryMinutes",
+            "required": false,
+            "in": "query",
+            "description": "If set, the message will be resent every N minutes until acknowledged",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxReminders",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of reminders to send (default: 5)",
+            "schema": {
+              "default": 5,
+              "type": "number"
+            }
           }
         ],
         "requestBody": {
@@ -6238,6 +6257,15 @@
           "locale": {
             "type": "string"
           },
+          "remindEveryMinutes": {
+            "type": "number",
+            "description": "If set, the message will be resent every N minutes until acknowledged"
+          },
+          "maxReminders": {
+            "type": "number",
+            "description": "Maximum number of reminders to send (default: 5)",
+            "default": 5
+          },
           "bucket": {
             "$ref": "#/components/schemas/Bucket"
           },
@@ -7007,6 +7035,15 @@
           "tapUrl": {
             "type": "string",
             "description": "Optional tap URL. If provided, will automatically set the tapAction to NAVIGATE with this URL."
+          },
+          "remindEveryMinutes": {
+            "type": "number",
+            "description": "If set, the message will be resent every N minutes until acknowledged"
+          },
+          "maxReminders": {
+            "type": "number",
+            "description": "Maximum number of reminders to send (default: 5)",
+            "default": 5
           }
         },
         "required": [
@@ -7133,6 +7170,15 @@
           "tapUrl": {
             "type": "string",
             "description": "Optional tap URL. If provided, will automatically set the tapAction to NAVIGATE with this URL."
+          },
+          "remindEveryMinutes": {
+            "type": "number",
+            "description": "If set, the message will be resent every N minutes until acknowledged"
+          },
+          "maxReminders": {
+            "type": "number",
+            "description": "Maximum number of reminders to send (default: 5)",
+            "default": 5
           },
           "attachmentOptions": {
             "description": "Options for the uploaded attachment",

@@ -13,6 +13,7 @@ import { IOSPushService } from './ios-push.service';
 import { NotificationsService } from './notifications.service';
 import { WebPushService } from './web-push.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
+import { MessageReminderService } from '../messages/message-reminder.service';
 import {
   ExternalNotifyRequestDto,
   ExternalPlatform,
@@ -119,6 +120,11 @@ describe('NotificationsService', () => {
     getNumberValue: jest.fn().mockResolvedValue(1000),
   };
 
+  const mockMessageReminderService = {
+    cancelRemindersByMessage: jest.fn().mockResolvedValue(undefined),
+    createReminder: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -162,6 +168,10 @@ describe('NotificationsService', () => {
         {
           provide: ServerSettingsService,
           useValue: mockServerSettingsService,
+        },
+        {
+          provide: MessageReminderService,
+          useValue: mockMessageReminderService,
         },
       ],
     }).compile();

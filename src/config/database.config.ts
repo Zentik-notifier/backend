@@ -19,6 +19,7 @@ import {
   UserSession,
   UserWebhook,
   UserSetting,
+  MessageReminder,
 } from '../entities';
 import { ServerSetting } from '../entities/server-setting.entity';
 import { Log } from '../entities/log.entity';
@@ -68,6 +69,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     ServerSetting,
     Log,
     AdminSubscription,
+    MessageReminder,
   ],
   // migrations: [__sdirname + '/../database/migrations/*.ts'],
   synchronize: process.env.DB_SYNCHRONIZE === 'true',

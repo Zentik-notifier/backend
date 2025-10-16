@@ -64,8 +64,8 @@ export class IOSPushService {
     // Build the aps payload
     const apsPayload: Aps = {
       alert: {
-        title: message.title,
-        body: message.body,
+        title: notification.message.title, // Use notification.message.title to support modified titles (e.g., reminder prefix)
+        body: notification.message.body,
       },
       sound: message.sound || 'default',
       'mutable-content': 1,
@@ -81,8 +81,8 @@ export class IOSPushService {
     }
 
     // Add subtitle if present
-    if (message.subtitle) {
-      (apsPayload.alert as any).subtitle = message.subtitle;
+    if (notification.message.subtitle) {
+      (apsPayload.alert as any).subtitle = notification.message.subtitle;
     }
 
     let priority = 10;

@@ -9,6 +9,7 @@ import { WebPushService } from './web-push.service';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
+import { LocaleService } from '../common/services/locale.service';
 import { BucketsService } from '../buckets/buckets.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { UsersService } from '../users/users.service';
@@ -187,6 +188,12 @@ describe('PushNotificationOrchestratorService', () => {
         {
           provide: ServerSettingsService,
           useValue: mockServerSettingsService,
+        },
+        {
+          provide: LocaleService,
+          useValue: {
+            getTranslatedText: jest.fn().mockReturnValue('[Reminder]'),
+          },
         },
       ],
     }).compile();

@@ -366,6 +366,8 @@ CREATE TABLE messages (
     snoozes INTEGER[],
     postpones INTEGER[],
     locale VARCHAR(10),
+    "remindEveryMinutes" INTEGER,
+    "maxReminders" INTEGER DEFAULT 5,
     "bucketId" UUID NOT NULL REFERENCES buckets(id) ON DELETE CASCADE,
     "groupId" VARCHAR(255),
     "collapseId" VARCHAR(255),
@@ -408,6 +410,19 @@ CREATE TABLE notification_postpones (
     "messageId" UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
     "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     "sendAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create message_reminders table for tracking message reminder state
+CREATE TABLE message_reminders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "messageId" UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "remindEveryMinutes" INTEGER NOT NULL,
+    "maxReminders" INTEGER NOT NULL DEFAULT 5,
+    "remindersSent" INTEGER NOT NULL DEFAULT 0,
+    "nextReminderAt" TIMESTAMP WITH TIME ZONE NOT NULL,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -470,6 +485,10 @@ CREATE INDEX idx_notification_postpones_user_id ON notification_postpones("userI
 CREATE INDEX idx_notification_postpones_send_at ON notification_postpones("sendAt");
 CREATE INDEX idx_notification_postpones_message_id ON notification_postpones("messageId");
 CREATE INDEX idx_notification_postpones_notification_id ON notification_postpones("notificationId");
+CREATE INDEX idx_message_reminders_message_id ON message_reminders("messageId");
+CREATE INDEX idx_message_reminders_user_id ON message_reminders("userId");
+CREATE INDEX idx_message_reminders_next_reminder_at ON message_reminders("nextReminderAt");
+CREATE INDEX idx_message_reminders_message_user ON message_reminders("messageId", "userId");
 CREATE INDEX idx_messages_bucket_id ON messages("bucketId");
 CREATE INDEX idx_attachments_user_id ON attachments("userId");
 CREATE INDEX idx_attachments_message_id ON attachments("messageId");
@@ -528,6 +547,10 @@ CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_notification_postpones_updated_at BEFORE UPDATE ON notification_postpones
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_message_reminders_updated_at BEFORE UPDATE ON message_reminders
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
