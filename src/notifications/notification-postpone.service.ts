@@ -75,7 +75,7 @@ export class NotificationPostponeService {
       where: {
         sendAt: LessThanOrEqual(now),
       },
-      relations: ['notification', 'message', 'user', 'notification.userDevice'],
+      relations: ['notification', 'notification.message', 'message', 'user', 'notification.userDevice'],
     });
   }
 
