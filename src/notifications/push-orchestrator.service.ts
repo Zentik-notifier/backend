@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { BucketsService } from '../buckets/buckets.service';
+import { LocaleService } from '../common/services/locale.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
@@ -48,6 +49,7 @@ export class PushNotificationOrchestratorService {
     private readonly eventTrackingService: EventTrackingService,
     private readonly usersService: UsersService,
     private readonly serverSettingsService: ServerSettingsService,
+    private readonly localeService: LocaleService,
   ) {}
 
     /**
@@ -690,6 +692,28 @@ export class PushNotificationOrchestratorService {
   }
 
   /**
+   * Add postponed prefix to notification title based on locale
+   */
+  private addPostponedPrefix(notification: Notification): Notification {
+    const locale = notification.message?.locale || 'en-EN';
+    const postponedPrefix = this.localeService.getTranslatedText(
+      locale as any,
+      'notifications.postponed' as any,
+    );
+    
+    // Clone notification and modify title
+    const modifiedNotification = { ...notification };
+    if (modifiedNotification.message) {
+      modifiedNotification.message = {
+        ...modifiedNotification.message,
+        title: `${postponedPrefix} ${modifiedNotification.message.title}`,
+      };
+    }
+    
+    return modifiedNotification;
+  }
+
+  /**
    * Resend an existing notification to all user devices
    * Used for postponed notifications
    */
@@ -699,15 +723,18 @@ export class PushNotificationOrchestratorService {
   ): Promise<PushResult> {
     try {
       this.logger.log(
-        `Resending notification ${notification.id} for user ${userId}`,
+        `Resending postponed notification ${notification.id} for user ${userId}`,
       );
 
-      const bucketId = notification.message?.bucketId;
+      // Add postponed prefix to title
+      const modifiedNotification = this.addPostponedPrefix(notification);
+
+      const bucketId = modifiedNotification.message?.bucketId;
 
       // Send push notifications (handles devices, settings, buckets, tracking internally)
-      const { processedNotifications, successCount, errorCount, snoozedCount, errors } =
+      const { successCount, errorCount, snoozedCount, errors } =
         await this.sendPushToDevices(
-          [notification],
+          [modifiedNotification],
           [userId],
           bucketId,
           false, // skipNotificationTracking = false for postponed notifications

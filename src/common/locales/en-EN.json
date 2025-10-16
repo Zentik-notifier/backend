@@ -39,6 +39,7 @@
       "delete": "Delete",
       "snooze": "Snooze {{minutes}} min",
       "postpone": "Postpone {{minutes}} min"
-    }
+    },
+    "postponed": "[Postponed]"
   }
 }

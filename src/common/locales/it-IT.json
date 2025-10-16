@@ -39,6 +39,7 @@
       "delete": "Elimina",
       "snooze": "Sospendi {{minutes}} minuti",
       "postpone": "Posticipa {{minutes}} minuti"
-    }
+    },
+    "postponed": "[Rinviato]"
   }
 }
