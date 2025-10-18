@@ -78,8 +78,8 @@ export class PushNotificationOrchestratorService {
       );
 
       const deviceSettings: AutoActionSettings = {
-        autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? false,
-        autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? false,
+        autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
+        autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
         autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
       };
 
@@ -474,8 +474,8 @@ export class PushNotificationOrchestratorService {
         );
 
         settings = {
-          autoAddDeleteAction: userSettingsMap.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? false,
-          autoAddMarkAsReadAction: userSettingsMap.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? false,
+          autoAddDeleteAction: userSettingsMap.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
+          autoAddMarkAsReadAction: userSettingsMap.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
           autoAddOpenNotificationAction: userSettingsMap.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
         };
       }

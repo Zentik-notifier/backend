@@ -113,7 +113,7 @@ export class WebPushService {
         results.push({ endpoint, success: true });
       } catch (error: any) {
         this.logger.warn(
-          `Web push failed for endpoint ${sub.endpoint}: ${JSON.stringify(error)}`,
+          `Web push failed for endpoint ${sub.endpoint} (deviceId: ${device.id}, userId: ${device.userId}): ${JSON.stringify(error)}`,
         );
         results.push({
           endpoint,

@@ -108,6 +108,27 @@ export interface GitHubWebhookPayload {
     conclusion?: string;
     html_url: string;
   };
+  workflow_job?: {
+    id: number;
+    run_id: number;
+    workflow_name: string;
+    name: string;
+    head_branch: string;
+    status: string;
+    conclusion?: string | null;
+    html_url: string;
+    created_at: string;
+    started_at: string;
+    completed_at?: string | null;
+    steps?: Array<{
+      name: string;
+      status: string;
+      conclusion?: string | null;
+      number: number;
+      started_at: string;
+      completed_at?: string | null;
+    }>;
+  };
   // Star events
   starred_at?: string;
   // Fork events
@@ -221,6 +242,7 @@ export class GitHubParser implements IBuiltinParser {
     if (payload.pull_request) return 'pull_request';
     if (payload.issue) return 'issue';
     if (payload.release) return 'release';
+    if (payload.workflow_job) return 'workflow_job';
     if (payload.workflow_run) return 'workflow_run';
     if (payload.check_suite) return 'check_suite';
     if (payload.check_run) return 'check_run';
@@ -248,6 +270,8 @@ export class GitHubParser implements IBuiltinParser {
         return this.formatIssueEvent(payload);
       case 'release':
         return this.formatReleaseEvent(payload);
+      case 'workflow_job':
+        return this.formatWorkflowJobEvent(payload);
       case 'workflow_run':
         return this.formatWorkflowRunEvent(payload);
       case 'check_suite':
@@ -448,6 +472,50 @@ export class GitHubParser implements IBuiltinParser {
     };
   }
 
+  private formatWorkflowJobEvent(payload: GitHubWebhookPayload): {
+    title: string;
+    subtitle: string;
+    body: string;
+  } {
+    const { workflow_job, action, sender } = payload;
+    if (!workflow_job) {
+      return { title: 'Workflow Job event', subtitle: '', body: '' };
+    }
+
+    const workflowName = workflow_job.workflow_name;
+    const jobName = workflow_job.name;
+    const status = workflow_job.status;
+    const conclusion = workflow_job.conclusion;
+    const branch = workflow_job.head_branch;
+
+    let emoji = '⚙️';
+    let statusText = action || status;
+    if (conclusion === 'success') {
+      emoji = '✅';
+      statusText = 'completed successfully';
+    } else if (conclusion === 'failure') {
+      emoji = '❌';
+      statusText = 'failed';
+    } else if (conclusion === 'cancelled') {
+      emoji = '🚫';
+      statusText = 'cancelled';
+    } else if (status === 'in_progress') {
+      emoji = '⏳';
+      statusText = 'in progress';
+    } else if (status === 'queued') {
+      emoji = '🔄';
+      statusText = 'queued';
+    }
+
+    const body = `Job: ${jobName}\nWorkflow: ${workflowName}\nBranch: ${branch}\nStatus: ${statusText}${conclusion ? `\nConclusion: ${conclusion}` : ''}${sender?.login ? `\nTriggered by: ${sender.login}` : ''}`;
+
+    return {
+      title: `${emoji} ${jobName} ${statusText}`,
+      subtitle: workflowName,
+      body,
+    };
+  }
+
   private formatWorkflowRunEvent(payload: GitHubWebhookPayload): {
     title: string;
     subtitle: string;
@@ -567,6 +635,9 @@ export class GitHubParser implements IBuiltinParser {
     payload: GitHubWebhookPayload,
   ): NotificationDeliveryType {
     // Critical: workflow/check failures
+    if (eventType === 'workflow_job' && payload.workflow_job?.conclusion === 'failure') {
+      return NotificationDeliveryType.CRITICAL;
+    }
     if (eventType === 'workflow_run' && payload.workflow_run?.conclusion === 'failure') {
       return NotificationDeliveryType.CRITICAL;
     }
@@ -575,6 +646,11 @@ export class GitHubParser implements IBuiltinParser {
     }
     if (eventType === 'check_run' && payload.check_run?.conclusion === 'failure') {
       return NotificationDeliveryType.CRITICAL;
+    }
+
+    // Silent: workflow/job queued or in_progress (non-blocking notifications)
+    if (eventType === 'workflow_job' && ['queued', 'in_progress'].includes(payload.workflow_job?.status || '')) {
+      return NotificationDeliveryType.SILENT;
     }
 
     // Important: PRs, issues opened/closed, releases

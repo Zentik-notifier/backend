@@ -452,6 +452,183 @@ describe('GitHubParser', () => {
     });
   });
 
+  describe('parse - Workflow Job events', () => {
+    it('should parse workflow job queued event as SILENT', async () => {
+      const payload = {
+        action: 'queued',
+        repository: {
+          name: 'frontend',
+          full_name: 'Zentik-notifier/frontend',
+          html_url: 'https://github.com/Zentik-notifier/frontend',
+          owner: {
+            login: 'Zentik-notifier',
+          },
+        },
+        sender: {
+          login: 'apocaliss92',
+        },
+        workflow_job: {
+          id: 53079579758,
+          run_id: 18615540235,
+          workflow_name: 'TypeScript Check',
+          name: 'TypeScript Type Check',
+          head_branch: 'main',
+          status: 'queued',
+          conclusion: undefined,
+          html_url: 'https://github.com/Zentik-notifier/frontend/actions/runs/18615540235/job/53079579758',
+          created_at: '2025-10-18T12:21:31Z',
+          started_at: '2025-10-18T12:21:31Z',
+          completed_at: undefined,
+          steps: [],
+        },
+      };
+
+      const result = await parser.parse(payload, {});
+
+      expect(result.title).toContain('TypeScript Type Check');
+      expect(result.title).toContain('🔄');
+      expect(result.title).toContain('queued');
+      expect(result.subtitle).toBe('TypeScript Check');
+      expect(result.body).toContain('Job: TypeScript Type Check');
+      expect(result.body).toContain('Workflow: TypeScript Check');
+      expect(result.body).toContain('Branch: main');
+      expect(result.body).toContain('Status: queued');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.SILENT);
+    });
+
+    it('should parse workflow job in_progress event as SILENT', async () => {
+      const payload = {
+        action: 'in_progress',
+        repository: {
+          name: 'frontend',
+          full_name: 'Zentik-notifier/frontend',
+          html_url: 'https://github.com/Zentik-notifier/frontend',
+          owner: {
+            login: 'Zentik-notifier',
+          },
+        },
+        sender: {
+          login: 'apocaliss92',
+        },
+        workflow_job: {
+          id: 53079579758,
+          run_id: 18615540235,
+          workflow_name: 'TypeScript Check',
+          name: 'TypeScript Type Check',
+          head_branch: 'main',
+          status: 'in_progress',
+          conclusion: undefined,
+          html_url: 'https://github.com/Zentik-notifier/frontend/actions/runs/18615540235/job/53079579758',
+          created_at: '2025-10-18T12:21:31Z',
+          started_at: '2025-10-18T12:21:33Z',
+          completed_at: undefined,
+          steps: [],
+        },
+      };
+
+      const result = await parser.parse(payload, {});
+
+      expect(result.title).toContain('TypeScript Type Check');
+      expect(result.title).toContain('⏳');
+      expect(result.title).toContain('in progress');
+      expect(result.subtitle).toBe('TypeScript Check');
+      expect(result.body).toContain('Job: TypeScript Type Check');
+      expect(result.body).toContain('Status: in progress');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.SILENT);
+    });
+
+    it('should parse workflow job completed success event as NORMAL', async () => {
+      const payload = {
+        action: 'completed',
+        repository: {
+          name: 'frontend',
+          full_name: 'Zentik-notifier/frontend',
+          html_url: 'https://github.com/Zentik-notifier/frontend',
+          owner: {
+            login: 'Zentik-notifier',
+          },
+        },
+        sender: {
+          login: 'apocaliss92',
+        },
+        workflow_job: {
+          id: 53079579758,
+          run_id: 18615540235,
+          workflow_name: 'TypeScript Check',
+          name: 'TypeScript Type Check',
+          head_branch: 'main',
+          status: 'completed',
+          conclusion: 'success',
+          html_url: 'https://github.com/Zentik-notifier/frontend/actions/runs/18615540235/job/53079579758',
+          created_at: '2025-10-18T12:21:31Z',
+          started_at: '2025-10-18T12:21:33Z',
+          completed_at: '2025-10-18T12:22:17Z',
+          steps: [
+            {
+              name: 'Setup Node.js',
+              status: 'completed',
+              conclusion: 'success',
+              number: 3,
+              started_at: '2025-10-18T12:21:35Z',
+              completed_at: '2025-10-18T12:21:37Z',
+            },
+          ],
+        },
+      };
+
+      const result = await parser.parse(payload, {});
+
+      expect(result.title).toContain('TypeScript Type Check');
+      expect(result.title).toContain('✅');
+      expect(result.title).toContain('completed successfully');
+      expect(result.subtitle).toBe('TypeScript Check');
+      expect(result.body).toContain('Job: TypeScript Type Check');
+      expect(result.body).toContain('Workflow: TypeScript Check');
+      expect(result.body).toContain('Conclusion: success');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should parse workflow job failure event as CRITICAL', async () => {
+      const payload = {
+        action: 'completed',
+        repository: {
+          name: 'frontend',
+          full_name: 'Zentik-notifier/frontend',
+          html_url: 'https://github.com/Zentik-notifier/frontend',
+          owner: {
+            login: 'Zentik-notifier',
+          },
+        },
+        sender: {
+          login: 'apocaliss92',
+        },
+        workflow_job: {
+          id: 53079579758,
+          run_id: 18615540235,
+          workflow_name: 'TypeScript Check',
+          name: 'TypeScript Type Check',
+          head_branch: 'main',
+          status: 'completed',
+          conclusion: 'failure',
+          html_url: 'https://github.com/Zentik-notifier/frontend/actions/runs/18615540235/job/53079579758',
+          created_at: '2025-10-18T12:21:31Z',
+          started_at: '2025-10-18T12:21:33Z',
+          completed_at: '2025-10-18T12:22:17Z',
+          steps: [],
+        },
+      };
+
+      const result = await parser.parse(payload, {});
+
+      expect(result.title).toContain('TypeScript Type Check');
+      expect(result.title).toContain('❌');
+      expect(result.title).toContain('failed');
+      expect(result.subtitle).toBe('TypeScript Check');
+      expect(result.body).toContain('Conclusion: failure');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
+    });
+  });
+
   describe('parse - Star and Fork events', () => {
     it('should parse star event', async () => {
       const payload = {

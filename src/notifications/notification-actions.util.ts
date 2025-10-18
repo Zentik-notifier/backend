@@ -46,23 +46,23 @@ export function generateAutomaticActions(
   };
 
   // Determine whether to add each action based on:
-  // 1. Explicit payload flag (if defined, use it)
-  // 2. User settings (if payload flag is undefined and user setting is defined, use it)
-  // 3. Default behavior (if both undefined, add action - backward compatibility)
-  
-  const shouldAddDeleteAction = 
-    message.addDeleteAction !== undefined 
-      ? message.addDeleteAction 
-      : (userSettings?.autoAddDeleteAction ?? false);
-  
-  const shouldAddMarkAsReadAction = 
-    message.addMarkAsReadAction !== undefined 
-      ? message.addMarkAsReadAction 
-      : (userSettings?.autoAddMarkAsReadAction ?? false);
-  
-  const shouldAddOpenNotificationAction = 
-    message.addOpenNotificationAction !== undefined 
-      ? message.addOpenNotificationAction 
+  // 1. Explicit payload flag (if defined and not null, use it)
+  // 2. User settings (if payload flag is null/undefined, use user settings)
+  // 3. Default behavior (if both are null/undefined, use default)
+
+  const shouldAddDeleteAction =
+    message.addDeleteAction != null
+      ? message.addDeleteAction
+      : (userSettings?.autoAddDeleteAction ?? true);
+
+  const shouldAddMarkAsReadAction =
+    message.addMarkAsReadAction != null
+      ? message.addMarkAsReadAction
+      : (userSettings?.autoAddMarkAsReadAction ?? true);
+
+  const shouldAddOpenNotificationAction =
+    message.addOpenNotificationAction != null
+      ? message.addOpenNotificationAction
       : (userSettings?.autoAddOpenNotificationAction ?? false);
 
   if (shouldAddDeleteAction) {
