@@ -1,30 +1,25 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 import { AuthentikParser } from './authentik.parser';
+import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 
 describe('AuthentikParser', () => {
   let parser: AuthentikParser;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthentikParser],
-    }).compile();
-
-    parser = module.get<AuthentikParser>(AuthentikParser);
+  beforeEach(() => {
+    parser = new AuthentikParser();
   });
 
-  it('should be defined', () => {
+  it('should be defined', async () => {
     expect(parser).toBeDefined();
   });
 
   describe('builtInType', () => {
-    it('should return ZENTIK_AUTHENTIK', () => {
+    it('should return ZENTIK_AUTHENTIK', async () => {
       expect(parser.builtInType).toBe(PayloadMapperBuiltInType.ZENTIK_AUTHENTIK);
     });
   });
 
   describe('validate', () => {
-    it('should return true for valid payload with user_email and user_username', () => {
+    it('should return true for valid payload with user_email and user_username', async () => {
       const payload = {
         user_email: 'test@example.com',
         user_username: 'testuser',
@@ -32,10 +27,10 @@ describe('AuthentikParser', () => {
         severity: 'info',
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return true for valid payload with event_user_email and event_user_username', () => {
+    it('should return true for valid payload with event_user_email and event_user_username', async () => {
       const payload = {
         event_user_email: 'test@example.com',
         event_user_username: 'testuser',
@@ -43,10 +38,10 @@ describe('AuthentikParser', () => {
         severity: 'info',
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return true for valid payload with mixed user and event fields', () => {
+    it('should return true for valid payload with mixed user and event fields', async () => {
       const payload = {
         user_email: 'test@example.com',
         event_user_username: 'testuser',
@@ -54,33 +49,33 @@ describe('AuthentikParser', () => {
         severity: 'info',
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return false for payload without email', () => {
+    it('should return false for payload without email', async () => {
       const payload = {
         user_username: 'testuser',
         body: 'User testuser logged in',
         severity: 'info',
       };
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should return false for payload without username', () => {
+    it('should return false for payload without username', async () => {
       const payload = {
         user_email: 'test@example.com',
         body: 'User testuser logged in',
         severity: 'info',
       };
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should return false for empty payload', () => {
+    it('should return false for empty payload', async () => {
       const payload = {};
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
   });
 
@@ -92,13 +87,13 @@ describe('AuthentikParser', () => {
       severity: 'info',
     };
 
-    it('should parse loginSuccess event correctly', () => {
+    it('should parse loginSuccess event correctly', async () => {
       const payload = {
         ...mockPayload,
         body: 'User testuser logged in successfully: {"userAgent": "Mozilla/5.0...", "pathNext": "/if/admin/", "authMethod": "password", "asn": {"asn": 16509, "as_org": "AMAZON-02", "network": "3.96.0.0/11"}, "geo": {"lat": 50.1169, "city": "Frankfurt am Main", "long": 8.6837, "country": "DE", "continent": "EU"}}',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result).toEqual({
         title: 'Login: testuser',
@@ -109,13 +104,13 @@ describe('AuthentikParser', () => {
       });
     });
 
-    it('should parse loginFailed event correctly', () => {
+    it('should parse loginFailed event correctly', async () => {
       const payload = {
         ...mockPayload,
         body: 'User testuser failed to log in: {"userAgent": "Mozilla/5.0...", "pathNext": "/if/admin/", "authMethod": "password", "asn": {"asn": 16509, "as_org": "AMAZON-02", "network": "3.96.0.0/11"}, "geo": {"lat": 50.1169, "city": "Frankfurt am Main", "long": 8.6837, "country": "DE", "continent": "EU"}}',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result).toEqual({
         title: 'Login_failed: testuser',
@@ -126,13 +121,13 @@ describe('AuthentikParser', () => {
       });
     });
 
-    it('should parse logout event correctly', () => {
+    it('should parse logout event correctly', async () => {
       const payload = {
         ...mockPayload,
         body: 'User testuser logged out: {"userAgent": "Mozilla/5.0...", "pathNext": "/if/admin/", "authMethod": "password", "asn": {"asn": 16509, "as_org": "AMAZON-02", "network": "3.96.0.0/11"}, "geo": {"lat": 50.1169, "city": "Frankfurt am Main", "long": 8.6837, "country": "DE", "continent": "EU"}}',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result).toEqual({
         title: 'Logout: testuser',
@@ -143,13 +138,13 @@ describe('AuthentikParser', () => {
       });
     });
 
-    it('should handle unmapped events correctly', () => {
+    it('should handle unmapped events correctly', async () => {
       const payload = {
         ...mockPayload,
         body: 'User testuser performed some unknown action: {"some": "data"}',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result).toEqual({
         title: 'Unknown - Unmapped event',
@@ -160,31 +155,31 @@ describe('AuthentikParser', () => {
       });
     });
 
-    it('should handle Python-style JSON in body', () => {
+    it('should handle Python-style JSON in body', async () => {
       const payload = {
         ...mockPayload,
         body: "User testuser logged in successfully: {'userAgent': 'Mozilla/5.0...', 'pathNext': '/if/admin/', 'authMethod': 'password', 'asn': {'asn': 16509, 'as_org': 'AMAZON-02', 'network': '3.96.0.0/11'}, 'geo': {'lat': 50.1169, 'city': 'Frankfurt am Main', 'long': 8.6837, 'country': 'DE', 'continent': 'EU'}}",
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Login: testuser');
       expect(result.subtitle).toBe('test@example.com');
     });
 
-    it('should handle Python boolean and null values in JSON', () => {
+    it('should handle Python boolean and null values in JSON', async () => {
       const payload = {
         ...mockPayload,
         body: "User testuser logged in successfully: {'userAgent': 'Mozilla/5.0...', 'pathNext': '/if/admin/', 'authMethod': 'password', 'asn': {'asn': 16509, 'as_org': 'AMAZON-02', 'network': '3.96.0.0/11', 'isValid': True, 'isBlocked': False, 'parent': None}, 'geo': {'lat': 50.1169, 'city': 'Frankfurt am Main', 'long': 8.6837, 'country': 'DE', 'continent': 'EU'}}",
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Login: testuser');
       expect(result.subtitle).toBe('test@example.com');
     });
 
-    it('should handle payload with event_user fields', () => {
+    it('should handle payload with event_user fields', async () => {
       const payload = {
         event_user_email: 'event@example.com',
         event_user_username: 'eventuser',
@@ -192,13 +187,13 @@ describe('AuthentikParser', () => {
         severity: 'info',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Login: eventuser');
       expect(result.subtitle).toBe('event@example.com');
     });
 
-    it('should handle payload with mixed user and event fields', () => {
+    it('should handle payload with mixed user and event fields', async () => {
       const payload = {
         user_email: 'user@example.com',
         event_user_username: 'eventuser',
@@ -206,39 +201,39 @@ describe('AuthentikParser', () => {
         severity: 'info',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Login: eventuser');
       expect(result.subtitle).toBe('user@example.com');
     });
 
-    it('should handle body without JSON data', () => {
+    it('should handle body without JSON data', async () => {
       const payload = {
         ...mockPayload,
         body: 'User testuser logged in successfully',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Login: testuser');
       expect(result.subtitle).toBe('test@example.com');
       expect(result.body).toBe('testuser');
     });
 
-    it('should handle invalid JSON gracefully', () => {
+    it('should handle invalid JSON gracefully', async () => {
       const payload = {
         ...mockPayload,
         body: 'User testuser logged in successfully: {invalid json}',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Login: testuser');
       expect(result.subtitle).toBe('test@example.com');
       expect(result.body).toBe('testuser');
     });
 
-    it('should parse updateAvailable event correctly', () => {
+    it('should parse updateAvailable event correctly', async () => {
       const payload = {
         user_email: 'email-user@gmail.com',
         user_username: 'username',
@@ -246,7 +241,7 @@ describe('AuthentikParser', () => {
         severity: 'notice',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result).toEqual({
         title: 'Update Available',
@@ -259,31 +254,31 @@ describe('AuthentikParser', () => {
   });
 
   describe('extractEventTypeFromBody', () => {
-    it('should extract loginSuccess from body', () => {
+    it('should extract loginSuccess from body', async () => {
       const body = 'User testuser logged in successfully: {"data": "value"}';
       const result = parser['extractEventTypeFromBody'](body);
       expect(result).toBe('loginSuccess');
     });
 
-    it('should extract loginFailed from body', () => {
+    it('should extract loginFailed from body', async () => {
       const body = 'User testuser failed to log in: {"data": "value"}';
       const result = parser['extractEventTypeFromBody'](body);
       expect(result).toBe('loginFailed');
     });
 
-    it('should extract logout from body', () => {
+    it('should extract logout from body', async () => {
       const body = 'User testuser logged out: {"data": "value"}';
       const result = parser['extractEventTypeFromBody'](body);
       expect(result).toBe('logout');
     });
 
-    it('should return unknown for unrecognized events', () => {
+    it('should return unknown for unrecognized events', async () => {
       const body = 'User testuser performed some action: {"data": "value"}';
       const result = parser['extractEventTypeFromBody'](body);
       expect(result).toBe('unknown');
     });
 
-    it('should extract updateAvailable from body', () => {
+    it('should extract updateAvailable from body', async () => {
       const body = 'New version 2025.8.2 available!';
       const result = parser['extractEventTypeFromBody'](body);
       expect(result).toBe('updateAvailable');
@@ -291,7 +286,7 @@ describe('AuthentikParser', () => {
   });
 
   describe('extractDataFromBody', () => {
-    it('should extract JSON data from body', () => {
+    it('should extract JSON data from body', async () => {
       const body =
         'User testuser logged in: {"userAgent": "Mozilla/5.0", "pathNext": "/admin"}';
       const result = parser['extractDataFromBody'](body);
@@ -302,14 +297,14 @@ describe('AuthentikParser', () => {
       });
     });
 
-    it('should return empty object when no JSON found', () => {
+    it('should return empty object when no JSON found', async () => {
       const body = 'User testuser logged in';
       const result = parser['extractDataFromBody'](body);
 
       expect(result).toEqual({});
     });
 
-    it('should handle Python-style single quotes', () => {
+    it('should handle Python-style single quotes', async () => {
       const body =
         "User testuser logged in: {'userAgent': 'Mozilla/5.0', 'pathNext': '/admin'}";
       const result = parser['extractDataFromBody'](body);
@@ -320,7 +315,7 @@ describe('AuthentikParser', () => {
       });
     });
 
-    it('should handle Python boolean and null values', () => {
+    it('should handle Python boolean and null values', async () => {
       const body =
         "User testuser logged in: {'isValid': True, 'isBlocked': False, 'parent': None}";
       const result = parser['extractDataFromBody'](body);
@@ -338,7 +333,7 @@ describe('AuthentikParser', () => {
       });
     });
 
-    it('should handle invalid JSON gracefully', () => {
+    it('should handle invalid JSON gracefully', async () => {
       const body = 'User testuser logged in: {invalid json}';
       const result = parser['extractDataFromBody'](body);
 

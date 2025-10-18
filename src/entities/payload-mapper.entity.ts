@@ -15,6 +15,7 @@ export enum PayloadMapperBuiltInType {
   ZENTIK_SERVARR = 'ZENTIK_SERVARR',
   ZENTIK_RAILWAY = 'ZENTIK_RAILWAY',
   ZENTIK_GITHUB = 'ZENTIK_GITHUB',
+  ZENTIK_EXPO = 'ZENTIK_EXPO',
 }
 
 registerEnumType(PayloadMapperBuiltInType, {

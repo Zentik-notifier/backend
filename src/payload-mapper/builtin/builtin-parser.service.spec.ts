@@ -4,6 +4,7 @@ import { AuthentikParser } from './authentik.parser';
 import { ServarrParser } from './servarr.parser';
 import { RailwayParser } from './railway.parser';
 import { GitHubParser } from './github.parser';
+import { ExpoParser } from './expo.parser';
 import { BuiltinParserService } from './builtin-parser.service';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
@@ -11,6 +12,7 @@ describe('BuiltinParserService', () => {
   let service: BuiltinParserService;
   let authentikParser: AuthentikParser;
   let servarrParser: ServarrParser;
+  let expoParser: ExpoParser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,6 +22,7 @@ describe('BuiltinParserService', () => {
         ServarrParser,
         RailwayParser,
         GitHubParser,
+        ExpoParser,
         BuiltinParserLoggerService,
       ],
     }).compile();
@@ -27,6 +30,7 @@ describe('BuiltinParserService', () => {
     service = module.get<BuiltinParserService>(BuiltinParserService);
     authentikParser = module.get<AuthentikParser>(AuthentikParser);
     servarrParser = module.get<ServarrParser>(ServarrParser);
+    expoParser = module.get<ExpoParser>(ExpoParser);
   });
 
   it('should be defined', () => {
@@ -66,6 +70,21 @@ describe('BuiltinParserService', () => {
       expect(parser).toBe(servarrParser);
     });
 
+    it('should return expo parser by name', () => {
+      const parser = service.getParser('expo');
+      expect(parser).toBe(expoParser);
+    });
+
+    it('should return expo parser by capitalized name', () => {
+      const parser = service.getParser('Expo');
+      expect(parser).toBe(expoParser);
+    });
+
+    it('should return expo parser by enum type', () => {
+      const parser = service.getParser(PayloadMapperBuiltInType.ZENTIK_EXPO);
+      expect(parser).toBe(expoParser);
+    });
+
     it('should throw error for unknown parser', () => {
       expect(() => {
         service.getParser('unknown');
@@ -102,6 +121,20 @@ describe('BuiltinParserService', () => {
       );
     });
 
+    it('should return true for expo parser by name', () => {
+      expect(service.hasParser('expo')).toBe(true);
+    });
+
+    it('should return true for expo parser by capitalized name', () => {
+      expect(service.hasParser('Expo')).toBe(true);
+    });
+
+    it('should return true for expo parser by enum type', () => {
+      expect(service.hasParser(PayloadMapperBuiltInType.ZENTIK_EXPO)).toBe(
+        true,
+      );
+    });
+
     it('should return false for unknown parser', () => {
       expect(service.hasParser('unknown')).toBe(false);
     });
@@ -111,7 +144,7 @@ describe('BuiltinParserService', () => {
     it('should return all registered parsers', () => {
       const parsers = service.getAllParsers();
 
-      expect(parsers).toHaveLength(4);
+      expect(parsers).toHaveLength(5);
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
@@ -136,6 +169,12 @@ describe('BuiltinParserService', () => {
         description:
           'Parser for GitHub webhooks - handles push, pull requests, issues, releases, workflows, and more',
       });
+      expect(parsers).toContainEqual({
+        name: 'Expo',
+        type: PayloadMapperBuiltInType.ZENTIK_EXPO,
+        description:
+          'Parser for Expo Application Services (EAS) webhooks - handles build and submit events',
+      });
     });
   });
 
@@ -147,8 +186,8 @@ describe('BuiltinParserService', () => {
       severity: 'info',
     };
 
-    it('should transform payload using correct parser', () => {
-      const result = service.transformPayload('authentik', mockPayload);
+    it('should transform payload using correct parser', async () => {
+      const result = await service.transformPayload('authentik', mockPayload);
 
       expect(result).toEqual({
         title: 'Login: testuser',
@@ -173,13 +212,13 @@ describe('BuiltinParserService', () => {
       body: 'User testuser logged in successfully',
     };
 
-    it('should validate payload using correct parser', () => {
-      const result = service.validatePayload('authentik', validPayload);
+    it('should validate payload using correct parser', async () => {
+      const result = await service.validatePayload('authentik', validPayload);
       expect(result).toBe(false);
     });
 
-    it('should return false for unknown parser', () => {
-      const result = service.validatePayload('unknown', validPayload);
+    it('should return false for unknown parser', async () => {
+      const result = await service.validatePayload('unknown', validPayload);
       expect(result).toBe(false);
     });
   });

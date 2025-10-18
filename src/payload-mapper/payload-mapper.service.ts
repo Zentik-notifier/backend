@@ -11,6 +11,8 @@ import { EntityExecutionService } from '../entity-execution/entity-execution.ser
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { BuiltinParserService } from './builtin';
 import { CreatePayloadMapperDto, UpdatePayloadMapperDto } from './dto';
+import { UsersService } from '../users/users.service';
+import { UserSettingType } from '../entities/user-setting.entity';
 
 /**
  * Interface for parser execution results
@@ -29,6 +31,7 @@ export class PayloadMapperService {
     private readonly payloadMapperRepository: Repository<PayloadMapper>,
     private readonly builtinParserService: BuiltinParserService,
     private readonly entityExecutionService: EntityExecutionService,
+    private readonly usersService: UsersService,
   ) { }
 
   async create(
@@ -150,6 +153,7 @@ export class PayloadMapperService {
     payload: any,
     userId: string,
     bucketId: string,
+    headers?: Record<string, string>,
   ): Promise<CreateMessageDto> {
 
     let parserResult: ParserResult;
@@ -168,6 +172,8 @@ export class PayloadMapperService {
           parserName,
           payload,
           bucketId,
+          userId,
+          headers,
         );
       } else {
         // Look up user-created payload mapper by name or ID
@@ -189,6 +195,8 @@ export class PayloadMapperService {
           payloadMapper,
           payload,
           bucketId,
+          userId,
+          headers,
         );
       }
     } catch (error: any) {
@@ -263,6 +271,8 @@ export class PayloadMapperService {
     payloadMapper: PayloadMapper,
     payload: any,
     bucketId: string,
+    userId: string,
+    headers?: Record<string, string>,
   ): Promise<ParserResult> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
@@ -314,6 +324,7 @@ export class PayloadMapperService {
     };
   }
 
+
   /**
    * Transform payload using builtin parser
    */
@@ -321,6 +332,8 @@ export class PayloadMapperService {
     parserName: string,
     payload: any,
     bucketId: string,
+    userId: string,
+    headers?: Record<string, string>,
   ): Promise<ParserResult> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
@@ -329,9 +342,13 @@ export class PayloadMapperService {
 
     try {
       // Transform the payload using the builtin parser
-      const transformedPayload = this.builtinParserService.transformPayload(
+      const transformedPayload = await this.builtinParserService.transformPayload(
         parserName,
         payload,
+        {
+          userId,
+          headers,
+        }
       );
 
       // Check if result is null/undefined (SKIPPED status)

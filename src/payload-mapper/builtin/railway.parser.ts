@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
-import { IBuiltinParser } from './builtin-parser.interface';
+import { IBuiltinParser, ParserOptions } from './builtin-parser.interface';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 
@@ -47,7 +47,13 @@ export class RailwayParser implements IBuiltinParser {
     return 'Parser for Railway webhooks - handles deployment and alert events';
   }
 
-  validate(payload: any): boolean {
+  async validate(payload: any, options?: ParserOptions): Promise<boolean> {
+    return new Promise(resolve => resolve(this.syncValidate(payload, options)));
+  }
+
+  private syncValidate(payload: any, options?: ParserOptions): boolean {
+    // Headers are available if needed for future webhook signature verification
+    // For now, Railway doesn't require signature verification in this parser
     return !!(
       payload &&
       typeof payload === 'object' &&
@@ -56,7 +62,11 @@ export class RailwayParser implements IBuiltinParser {
     );
   }
 
-  parse(payload: RailwayWebhookPayload): CreateMessageDto {
+  async parse(payload: RailwayWebhookPayload, options?: ParserOptions): Promise<CreateMessageDto> {
+    return new Promise(resolve => resolve(this.syncParse(payload, options)));
+  }
+
+  private syncParse(payload: RailwayWebhookPayload, options?: ParserOptions): CreateMessageDto {
     try {
       return this.createMessage(payload);
     } catch (error) {

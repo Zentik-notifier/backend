@@ -43,7 +43,7 @@ describe('PayloadMapperService', () => {
           provide: BuiltinParserService,
           useValue: {
             hasParser: jest.fn().mockReturnValue(true),
-            transformPayload: jest.fn().mockReturnValue({
+            transformPayload: jest.fn().mockResolvedValue({
               title: 'Test Title',
               subtitle: 'Test Subtitle',
               body: 'Test Body',
@@ -73,6 +73,13 @@ describe('PayloadMapperService', () => {
           provide: EntityExecutionService,
           useValue: {
             create: jest.fn().mockResolvedValue({}),
+          },
+        },
+        {
+          provide: 'UsersService',
+          useValue: {
+            findOne: jest.fn().mockResolvedValue({}),
+            findById: jest.fn().mockResolvedValue({}),
           },
         },
         AuthentikParser,

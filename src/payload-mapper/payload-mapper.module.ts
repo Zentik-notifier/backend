@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
+import { UsersModule } from '../users/users.module';
 import { PayloadMapper } from '../entities/payload-mapper.entity';
 import { PayloadMapperController } from './payload-mapper.controller';
 import { PayloadMapperResolver } from './payload-mapper.resolver';
@@ -12,6 +13,7 @@ import {
   ServarrParser,
   RailwayParser,
   GitHubParser,
+  ExpoParser,
   BuiltinParserLoggerService,
 } from './builtin';
 
@@ -20,6 +22,7 @@ import {
     TypeOrmModule.forFeature([PayloadMapper]),
     AuthModule,
     EntityExecutionModule,
+    UsersModule,
   ],
   controllers: [PayloadMapperController],
   providers: [
@@ -30,6 +33,7 @@ import {
     ServarrParser,
     RailwayParser,
     GitHubParser,
+    ExpoParser,
     BuiltinParserLoggerService,
   ],
   exports: [PayloadMapperService],

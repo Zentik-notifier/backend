@@ -1,24 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { GitHubParser } from './github.parser';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 
 describe('GitHubParser', () => {
   let parser: GitHubParser;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [GitHubParser],
-    }).compile();
-
-    parser = module.get<GitHubParser>(GitHubParser);
+  beforeEach(() => {
+    parser = new GitHubParser();
   });
 
-  it('should be defined', () => {
+  it('should be defined', async () => {
     expect(parser).toBeDefined();
   });
 
   describe('validate', () => {
-    it('should validate a valid GitHub payload', () => {
+    it('should validate a valid GitHub payload', async () => {
       const payload = {
         repository: {
           name: 'test-repo',
@@ -33,20 +28,20 @@ describe('GitHubParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should reject payload without repository', () => {
+    it('should reject payload without repository', async () => {
       const payload = {
         sender: {
           login: 'sender',
         },
       };
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should reject payload without sender', () => {
+    it('should reject payload without sender', async () => {
       const payload = {
         repository: {
           name: 'test-repo',
@@ -58,19 +53,19 @@ describe('GitHubParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should reject invalid payload', () => {
-      expect(parser.validate(null)).toBe(false);
-      expect(parser.validate(undefined)).toBe(false);
-      expect(parser.validate('invalid')).toBe(false);
-      expect(parser.validate({})).toBe(false);
+    it('should reject invalid payload', async () => {
+      expect(await parser.validate(null, {})).toBe(false);
+      expect(await parser.validate(undefined, {})).toBe(false);
+      expect(await parser.validate('invalid' as any, {})).toBe(false);
+      expect(await parser.validate({}, {})).toBe(false);
     });
   });
 
   describe('parse - Push events', () => {
-    it('should parse push event with single commit', () => {
+    it('should parse push event with single commit', async () => {
       const payload = {
         ref: 'refs/heads/main',
         repository: {
@@ -106,7 +101,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('owner/test-repo');
       expect(result.title).toContain('1 commit pushed');
@@ -119,7 +114,7 @@ describe('GitHubParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse push event with multiple commits', () => {
+    it('should parse push event with multiple commits', async () => {
       const payload = {
         ref: 'refs/heads/develop',
         repository: {
@@ -155,7 +150,7 @@ describe('GitHubParser', () => {
         ],
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('2 commits pushed');
       expect(result.body).toContain('Commits: 2');
@@ -163,7 +158,7 @@ describe('GitHubParser', () => {
   });
 
   describe('parse - Pull Request events', () => {
-    it('should parse pull request opened event', () => {
+    it('should parse pull request opened event', async () => {
       const payload = {
         action: 'opened',
         repository: {
@@ -189,7 +184,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('owner/test-repo');
       expect(result.title).toContain('PR opened');
@@ -200,7 +195,7 @@ describe('GitHubParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
     });
 
-    it('should parse pull request merged event', () => {
+    it('should parse pull request merged event', async () => {
       const payload = {
         action: 'closed',
         repository: {
@@ -227,7 +222,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('PR merged');
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
@@ -235,7 +230,7 @@ describe('GitHubParser', () => {
   });
 
   describe('parse - Issue events', () => {
-    it('should parse issue opened event', () => {
+    it('should parse issue opened event', async () => {
       const payload = {
         action: 'opened',
         repository: {
@@ -260,7 +255,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('Issue opened');
       expect(result.subtitle).toContain('#15');
@@ -270,7 +265,7 @@ describe('GitHubParser', () => {
   });
 
   describe('parse - Release events', () => {
-    it('should parse release published event', () => {
+    it('should parse release published event', async () => {
       const payload = {
         action: 'published',
         repository: {
@@ -293,7 +288,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('Release published');
       expect(result.subtitle).toContain('v1.2.3');
@@ -303,7 +298,7 @@ describe('GitHubParser', () => {
   });
 
   describe('parse - Workflow events', () => {
-    it('should parse workflow run success', () => {
+    it('should parse workflow run success', async () => {
       const payload = {
         action: 'completed',
         repository: {
@@ -328,7 +323,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('Workflow');
       expect(result.subtitle).toContain('CI');
@@ -337,7 +332,7 @@ describe('GitHubParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse workflow run failure as CRITICAL', () => {
+    it('should parse workflow run failure as CRITICAL', async () => {
       const payload = {
         action: 'completed',
         repository: {
@@ -362,14 +357,14 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
     });
   });
 
   describe('parse - Star and Fork events', () => {
-    it('should parse star event', () => {
+    it('should parse star event', async () => {
       const payload = {
         action: 'created',
         starred_at: '2025-10-13T10:00:00Z',
@@ -386,7 +381,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('New Star');
       expect(result.subtitle).toContain('stargazer');
@@ -394,7 +389,7 @@ describe('GitHubParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse fork event', () => {
+    it('should parse fork event', async () => {
       const payload = {
         repository: {
           name: 'test-repo',
@@ -413,7 +408,7 @@ describe('GitHubParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toContain('Repository Forked');
       expect(result.subtitle).toContain('forker');
@@ -423,13 +418,13 @@ describe('GitHubParser', () => {
   });
 
   describe('getTestPayload', () => {
-    it('should return a valid test payload', () => {
+    it('should return a valid test payload', async () => {
       const testPayload = parser.getTestPayload();
 
       expect(testPayload).toBeDefined();
       expect(testPayload.repository).toBeDefined();
       expect(testPayload.sender).toBeDefined();
-      expect(parser.validate(testPayload)).toBe(true);
+      expect(await parser.validate(testPayload, {})).toBe(true);
     });
   });
 });

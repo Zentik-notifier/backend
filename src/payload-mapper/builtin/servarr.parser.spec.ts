@@ -1,36 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ServarrParser } from './servarr.parser';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 
 describe('ServarrParser', () => {
   let parser: ServarrParser;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ServarrParser],
-    }).compile();
-
-    parser = module.get<ServarrParser>(ServarrParser);
+  beforeEach(() => {
+    parser = new ServarrParser();
   });
 
-  it('should be defined', () => {
+  it('should be defined', async () => {
     expect(parser).toBeDefined();
   });
 
   describe('builtInType', () => {
-    it('should return ZENTIK_SERVARR', () => {
+    it('should return ZENTIK_SERVARR', async () => {
       expect(parser.builtInType).toBe('ZENTIK_SERVARR');
     });
   });
 
   describe('name', () => {
-    it('should return Servarr', () => {
+    it('should return Servarr', async () => {
       expect(parser.name).toBe('Servarr');
     });
   });
 
   describe('description', () => {
-    it('should return correct description', () => {
+    it('should return correct description', async () => {
       expect(parser.description).toBe(
         'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, application update events, and unknown payloads',
       );
@@ -38,7 +33,7 @@ describe('ServarrParser', () => {
   });
 
   describe('validate', () => {
-    it('should return true for valid movie payload', () => {
+    it('should return true for valid movie payload', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Radarr',
@@ -53,10 +48,10 @@ describe('ServarrParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return true for valid series payload', () => {
+    it('should return true for valid series payload', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Sonarr',
@@ -70,10 +65,10 @@ describe('ServarrParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return true for valid application update payload', () => {
+    it('should return true for valid application update payload', async () => {
       const payload = {
         eventType: 'ApplicationUpdate',
         instanceName: 'Radarr',
@@ -83,10 +78,10 @@ describe('ServarrParser', () => {
         applicationUrl: '',
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return false for payload without eventType', () => {
+    it('should return false for payload without eventType', async () => {
       const payload = {
         instanceName: 'Radarr',
         movie: {
@@ -96,10 +91,10 @@ describe('ServarrParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should return false for payload without instanceName', () => {
+    it('should return false for payload without instanceName', async () => {
       const payload = {
         eventType: 'Download',
         movie: {
@@ -109,19 +104,19 @@ describe('ServarrParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should return false for payload without movie or series', () => {
+    it('should return false for payload without movie or series', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Radarr',
       };
 
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should return true for Prowlarr indexer payload', () => {
+    it('should return true for Prowlarr indexer payload', async () => {
       const payload = {
         eventType: 'IndexerAdded',
         instanceName: 'Prowlarr',
@@ -132,10 +127,10 @@ describe('ServarrParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return true for Prowlarr indexer status payload', () => {
+    it('should return true for Prowlarr indexer status payload', async () => {
       const payload = {
         eventType: 'IndexerStatusChanged',
         instanceName: 'Prowlarr',
@@ -146,18 +141,18 @@ describe('ServarrParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return false for empty payload', () => {
-      expect(parser.validate({})).toBe(false);
+    it('should return false for empty payload', async () => {
+      expect(await parser.validate({}, {})).toBe(false);
     });
 
-    it('should return false for null payload', () => {
-      expect(parser.validate(null)).toBe(false);
+    it('should return false for null payload', async () => {
+      expect(await parser.validate(null, {})).toBe(false);
     });
 
-    it('should return true for health check payload', () => {
+    it('should return true for health check payload', async () => {
       const payload = {
         level: 'warning',
         message:
@@ -166,10 +161,10 @@ describe('ServarrParser', () => {
         eventType: 'HealthRestored',
         instanceName: 'Prowlarr',
       };
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should return false for payload with episodeFiles array', () => {
+    it('should return false for payload with episodeFiles array', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Sonarr',
@@ -192,10 +187,10 @@ describe('ServarrParser', () => {
         ],
         episodeFiles: [{ id: 1, path: '/test/path' }], // This should be rejected
       };
-      expect(parser.validate(payload)).toBe(false);
+      expect(await parser.validate(payload, {})).toBe(false);
     });
 
-    it('should return true for payload with episodeFile object', () => {
+    it('should return true for payload with episodeFile object', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Sonarr',
@@ -224,7 +219,7 @@ describe('ServarrParser', () => {
           dateAdded: '2023-01-01',
         }, // This should be accepted
       };
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
   });
 
@@ -253,8 +248,8 @@ describe('ServarrParser', () => {
       },
     };
 
-    it('should parse download event correctly', () => {
-      const result = parser.parse(mockMoviePayload);
+    it('should parse download event correctly', async () => {
+      const result = await parser.parse(mockMoviePayload, {});
 
       expect(result.title).toBe('Download: Test Movie (2023)');
       expect(result.subtitle).toBe('Movie via Radarr');
@@ -268,48 +263,48 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse imported event correctly', () => {
+    it('should parse imported event correctly', async () => {
       const payload = { ...mockMoviePayload, eventType: 'Imported' };
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Imported: Test Movie (2023)');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
       expect(result.body).toContain('Path: /movies/Test Movie');
     });
 
-    it('should parse failed event correctly', () => {
+    it('should parse failed event correctly', async () => {
       const payload = { ...mockMoviePayload, eventType: 'Failed' };
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Failed: Test Movie (2023)');
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
     });
 
-    it('should parse deleted event correctly', () => {
+    it('should parse deleted event correctly', async () => {
       const payload = { ...mockMoviePayload, eventType: 'Deleted' };
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Deleted: Test Movie (2023)');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse renamed event correctly', () => {
+    it('should parse renamed event correctly', async () => {
       const payload = { ...mockMoviePayload, eventType: 'Renamed' };
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Renamed: Test Movie (2023)');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle unknown event type', () => {
+    it('should handle unknown event type', async () => {
       const payload = { ...mockMoviePayload, eventType: 'UnknownEvent' };
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Unknownevent: Test Movie (2023)');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle payload without release info', () => {
+    it('should handle payload without release info', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Radarr',
@@ -325,13 +320,13 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Download: Test Movie (2023)');
       expect(result.body).toBe('Test Movie (2023)\nInstance: Radarr');
     });
 
-    it('should handle payload without tags', () => {
+    it('should handle payload without tags', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Radarr',
@@ -347,12 +342,12 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.body).not.toContain('Tags:');
     });
 
-    it('should format file size correctly', () => {
+    it('should format file size correctly', async () => {
       const payload = {
         ...mockMoviePayload,
         release: {
@@ -361,12 +356,12 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.body).toContain('Size: 1 GB');
     });
 
-    it('should handle series payload', () => {
+    it('should handle series payload', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Sonarr',
@@ -381,13 +376,13 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Download: Test Series (2023)');
       expect(result.subtitle).toBe('TV Show via Sonarr');
     });
 
-    it('should handle episodes-only payload', () => {
+    it('should handle episodes-only payload', async () => {
       const payload = {
         eventType: 'Test',
         instanceName: 'Sonarr',
@@ -404,7 +399,7 @@ describe('ServarrParser', () => {
         ],
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Test: Test title');
       expect(result.subtitle).toBe('TV Show via Sonarr');
@@ -414,7 +409,7 @@ describe('ServarrParser', () => {
       expect(result.body).toContain('Instance: Sonarr');
     });
 
-    it('should handle episodes payload without episode title', () => {
+    it('should handle episodes payload without episode title', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Sonarr',
@@ -431,7 +426,7 @@ describe('ServarrParser', () => {
         ],
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Download: S02E05');
       expect(result.subtitle).toBe('TV Show via Sonarr');
@@ -439,7 +434,7 @@ describe('ServarrParser', () => {
       expect(result.body).toContain('Episode: 5');
     });
 
-    it('should handle unknown event types with fallback', () => {
+    it('should handle unknown event types with fallback', async () => {
       const payload = {
         eventType: 'CustomEvent',
         instanceName: 'Radarr',
@@ -455,7 +450,7 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Customevent: Test Movie (2023)');
       expect(result.subtitle).toBe('Movie via Radarr');
@@ -466,7 +461,7 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle unknown event types for series with fallback', () => {
+    it('should handle unknown event types for series with fallback', async () => {
       const payload = {
         eventType: 'SeriesCustomEvent',
         instanceName: 'Sonarr',
@@ -481,7 +476,7 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Seriescustomevent: Test Series (2023)');
       expect(result.subtitle).toBe('TV Show via Sonarr');
@@ -492,7 +487,7 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle Prowlarr indexer events', () => {
+    it('should handle Prowlarr indexer events', async () => {
       const payload = {
         eventType: 'IndexerAdded',
         instanceName: 'Prowlarr',
@@ -512,7 +507,7 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Indexeradded: Test Indexer');
       expect(result.subtitle).toBe('Indexer via Prowlarr');
@@ -524,7 +519,7 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle Prowlarr indexer status events', () => {
+    it('should handle Prowlarr indexer status events', async () => {
       const payload = {
         eventType: 'IndexerStatusChanged',
         instanceName: 'Prowlarr',
@@ -538,7 +533,7 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Indexerstatuschanged: Test Indexer');
       expect(result.subtitle).toBe('Indexer via Prowlarr');
@@ -549,14 +544,14 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle minimal Prowlarr payload', () => {
+    it('should handle minimal Prowlarr payload', async () => {
       const payload = {
         eventType: 'Test',
         instanceName: 'Prowlarr',
         applicationUrl: '',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('❓ Unknown payload: Prowlarr');
       expect(result.subtitle).toBe('Unknown Event from Prowlarr');
@@ -568,7 +563,7 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle health check warning payload', () => {
+    it('should handle health check warning payload', async () => {
       const payload = {
         level: 'warning',
         message:
@@ -580,7 +575,7 @@ describe('ServarrParser', () => {
         instanceName: 'Prowlarr',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('🟡 Prowlarr Health Health_restored');
       expect(result.subtitle).toBe('System Health Check');
@@ -598,7 +593,7 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle health check error payload', () => {
+    it('should handle health check error payload', async () => {
       const payload = {
         level: 'error',
         message: 'All notifications are unavailable due to failures',
@@ -609,7 +604,7 @@ describe('ServarrParser', () => {
         instanceName: 'Radarr',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('🔴 Radarr Health Health_issue');
       expect(result.subtitle).toBe('System Health Check');
@@ -625,7 +620,7 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
     });
 
-    it('should handle payload with episodeFile object and upgrade info', () => {
+    it('should handle payload with episodeFile object and upgrade info', async () => {
       const payload = {
         eventType: 'Download',
         instanceName: 'Sonarr',
@@ -667,7 +662,7 @@ describe('ServarrParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Download: The O.C. S01E16 - The Links (2003)');
       expect(result.subtitle).toBe('TV Show via Sonarr');
@@ -687,7 +682,7 @@ describe('ServarrParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse application update payload correctly', () => {
+    it('should parse application update payload correctly', async () => {
       const payload = {
         eventType: 'ApplicationUpdate',
         instanceName: 'Radarr',
@@ -697,7 +692,7 @@ describe('ServarrParser', () => {
         applicationUrl: 'http://radarr.local',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('🔄 Radarr Updated');
       expect(result.subtitle).toBe('Application Update');

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
-import { IBuiltinParser } from './builtin-parser.interface';
+import { IBuiltinParser, ParserOptions } from './builtin-parser.interface';
 import {
   CreateMessageDto,
   NotificationAttachmentDto,
@@ -157,7 +157,13 @@ export class ServarrParser implements IBuiltinParser {
     return 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, application update events, and unknown payloads';
   }
 
-  validate(payload: any): boolean {
+  async validate(payload: any, options?: ParserOptions): Promise<boolean> {
+    return new Promise(resolve => resolve(this.syncValidate(payload, options)));
+  }
+
+  private syncValidate(payload: any, options?: ParserOptions): boolean {
+    // Headers are available if needed for future webhook signature verification
+    // For now, Servarr doesn't require signature verification
     if (!payload || typeof payload !== 'object') {
       return false;
     }
@@ -188,7 +194,11 @@ export class ServarrParser implements IBuiltinParser {
     return true;
   }
 
-  parse(payload: ServarrPayload): CreateMessageDto {
+  async parse(payload: ServarrPayload, options?: ParserOptions): Promise<CreateMessageDto> {
+    return new Promise(resolve => resolve(this.syncParse(payload, options)));
+  }
+
+  private syncParse(payload: ServarrPayload, options?: ParserOptions): CreateMessageDto {
     const eventType = this.extractEventType(payload);
     const mediaInfo = this.extractMediaInfo(payload);
     const releaseInfo = this.extractReleaseInfo(payload);

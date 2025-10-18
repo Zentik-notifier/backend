@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   Post,
   Query,
@@ -156,6 +157,7 @@ export class MessagesController {
     @Query('parser') parserName: string,
     @Query('bucketId') bucketId: string,
     @Body() payload: any,
+    @Headers() headers?: Record<string, string>,
   ) {
     if (!parserName) {
       throw new Error('Parameter "parser" is required');
@@ -169,6 +171,7 @@ export class MessagesController {
       payload,
       userId,
       bucketId,
+      headers,
     );
   }
 }

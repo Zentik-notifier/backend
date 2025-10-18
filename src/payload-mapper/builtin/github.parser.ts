@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
-import { IBuiltinParser } from './builtin-parser.interface';
+import { IBuiltinParser, ParserOptions } from './builtin-parser.interface';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 
@@ -130,7 +130,13 @@ export class GitHubParser implements IBuiltinParser {
     return 'Parser for GitHub webhooks - handles push, pull requests, issues, releases, workflows, and more';
   }
 
-  validate(payload: any): boolean {
+  async validate(payload: any, options?: ParserOptions): Promise<boolean> {
+    return new Promise(resolve => resolve(this.syncValidate(payload, options)));
+  }
+
+  private syncValidate(payload: any, options?: ParserOptions): boolean {
+    // Headers are available if needed for future webhook signature verification
+    // For now, GitHub doesn't require signature verification in this parser
     return !!(
       payload &&
       typeof payload === 'object' &&
@@ -139,7 +145,11 @@ export class GitHubParser implements IBuiltinParser {
     );
   }
 
-  parse(payload: GitHubWebhookPayload): CreateMessageDto {
+  async parse(payload: GitHubWebhookPayload, options?: ParserOptions): Promise<CreateMessageDto> {
+    return new Promise(resolve => resolve(this.syncParse(payload, options)));
+  }
+
+  private syncParse(payload: GitHubWebhookPayload, options?: ParserOptions): CreateMessageDto {
     try {
       return this.createMessage(payload);
     } catch (error) {

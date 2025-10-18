@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
-import { IBuiltinParser } from './builtin-parser.interface';
+import { IBuiltinParser, ParserOptions } from './builtin-parser.interface';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 
@@ -11,7 +11,11 @@ export class AuthentikParser implements IBuiltinParser {
   readonly description =
     'Parser for Authentik notifications - handles login, logout, registration, update available and other events';
 
-  parse(payload: any): CreateMessageDto {
+  async parse(payload: any, options?: ParserOptions): Promise<CreateMessageDto> {
+    return new Promise(resolve => resolve(this.syncParse(payload, options)));
+  }
+
+  private syncParse(payload: any, options?: ParserOptions): CreateMessageDto {
     const eventType = this.extractEventTypeFromBody(payload.body);
     const extractedData = this.extractDataFromBody(payload.body);
 
@@ -42,7 +46,13 @@ export class AuthentikParser implements IBuiltinParser {
     };
   }
 
-  validate(payload: any): boolean {
+  async validate(payload: any, options?: ParserOptions): Promise<boolean> {
+    return new Promise(resolve => resolve(this.syncValidate(payload, options)));
+  }
+
+  private syncValidate(payload: any, options?: ParserOptions): boolean {
+    // Headers are available if needed for future webhook signature verification
+    // For now, Authentik doesn't require signature verification in this parser
     if (!payload || typeof payload !== 'object') {
       return false;
     }

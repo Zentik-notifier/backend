@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
-import { IBuiltinParser } from './builtin-parser.interface';
+import { IBuiltinParser, ParserOptions } from './builtin-parser.interface';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { AuthentikParser } from './authentik.parser';
 import { ServarrParser } from './servarr.parser';
 import { RailwayParser } from './railway.parser';
 import { GitHubParser } from './github.parser';
+import { ExpoParser } from './expo.parser';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class BuiltinParserService {
     private readonly servarrParser: ServarrParser,
     private readonly railwayParser: RailwayParser,
     private readonly githubParser: GitHubParser,
+    private readonly expoParser: ExpoParser,
     private readonly loggerService: BuiltinParserLoggerService,
   ) {
     this.registerParsers();
@@ -43,6 +45,10 @@ export class BuiltinParserService {
       PayloadMapperBuiltInType.ZENTIK_GITHUB,
       this.githubParser,
     );
+    this.parsers.set(
+      PayloadMapperBuiltInType.ZENTIK_EXPO,
+      this.expoParser,
+    );
 
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
@@ -55,6 +61,9 @@ export class BuiltinParserService {
     this.parsersByName.set('github', this.githubParser);
     this.parsersByName.set('GitHub', this.githubParser);
     this.parsersByName.set('ZentikGitHub', this.githubParser);
+    this.parsersByName.set('expo', this.expoParser);
+    this.parsersByName.set('Expo', this.expoParser);
+    this.parsersByName.set('ZentikExpo', this.expoParser);
   }
 
   /**
@@ -100,25 +109,26 @@ export class BuiltinParserService {
   /**
    * Transforms a payload using the specified parser
    */
-  transformPayload(parserName: string, payload: any): CreateMessageDto {
+  async transformPayload(parserName: string, payload: any, options?: ParserOptions): Promise<CreateMessageDto> {
     const parser = this.getParser(parserName);
 
-    if (!parser.validate(payload)) {
+    const isValid = await parser.validate(payload, options);
+    if (!isValid) {
       throw new Error(
         `Invalid payload for parser ${parserName}: ${JSON.stringify(payload)}`,
       );
     }
 
-    return parser.parse(payload);
+    return await parser.parse(payload, options);
   }
 
   /**
    * Validates a payload for a specific parser
    */
-  validatePayload(parserName: string, payload: any): boolean {
+  async validatePayload(parserName: string, payload: any, options?: ParserOptions): Promise<boolean> {
     try {
       const parser = this.getParser(parserName);
-      return parser.validate(payload);
+      return await parser.validate(payload, options);
     } catch {
       return false;
     }

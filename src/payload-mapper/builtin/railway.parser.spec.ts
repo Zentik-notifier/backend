@@ -1,4 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { RailwayParser, RailwayWebhookPayload } from './railway.parser';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
@@ -6,19 +5,15 @@ import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 describe('RailwayParser', () => {
   let parser: RailwayParser;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RailwayParser],
-    }).compile();
-
-    parser = module.get<RailwayParser>(RailwayParser);
+  beforeEach(() => {
+    parser = new RailwayParser();
   });
 
-  it('should be defined', () => {
+  it('should be defined', async () => {
     expect(parser).toBeDefined();
   });
 
-  it('should have correct metadata', () => {
+  it('should have correct metadata', async () => {
     expect(parser.name).toBe('ZentikRailway');
     expect(parser.builtInType).toBe(PayloadMapperBuiltInType.ZENTIK_RAILWAY);
     expect(parser.description).toBe(
@@ -27,7 +22,7 @@ describe('RailwayParser', () => {
   });
 
   describe('validate', () => {
-    it('should validate correct Railway webhook payload', () => {
+    it('should validate correct Railway webhook payload', async () => {
       const payload: RailwayWebhookPayload = {
         type: 'DEPLOY',
         project: {
@@ -61,23 +56,23 @@ describe('RailwayParser', () => {
         },
       };
 
-      expect(parser.validate(payload)).toBe(true);
+      expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should reject invalid payloads', () => {
-      expect(parser.validate(null)).toBe(false);
-      expect(parser.validate(undefined)).toBe(false);
-      expect(parser.validate({})).toBe(false);
-      expect(parser.validate({ type: 'DEPLOY' })).toBe(false);
+    it('should reject invalid payloads', async () => {
+      expect(await parser.validate(null, {})).toBe(false);
+      expect(await parser.validate(undefined, {})).toBe(false);
+      expect(await parser.validate({}, {})).toBe(false);
+      expect(await parser.validate({ type: 'DEPLOY' }, {})).toBe(false);
       expect(
-        parser.validate({
+        await parser.validate({
           type: 'DEPLOY',
           status: 'BUILDING',
-        }),
+        }, {}),
       ).toBe(false);
     });
 
-    it('should validate minimal valid payload', () => {
+    it('should validate minimal valid payload', async () => {
       const minimalPayload = {
         type: 'DEPLOY',
         project: {
@@ -92,10 +87,10 @@ describe('RailwayParser', () => {
         timestamp: '2025-09-21T08:36:24.208Z',
       };
 
-      expect(parser.validate(minimalPayload)).toBe(true);
+      expect(await parser.validate(minimalPayload, {})).toBe(true);
     });
 
-    it('should validate payload without service', () => {
+    it('should validate payload without service', async () => {
       const payloadWithoutService = {
         type: 'DEPLOY',
         project: {
@@ -110,10 +105,10 @@ describe('RailwayParser', () => {
         timestamp: '2025-09-21T08:36:24.208Z',
       };
 
-      expect(parser.validate(payloadWithoutService)).toBe(true);
+      expect(await parser.validate(payloadWithoutService, {})).toBe(true);
     });
 
-    it('should validate payload without status', () => {
+    it('should validate payload without status', async () => {
       const payloadWithoutStatus = {
         type: 'DEPLOY',
         project: {
@@ -132,10 +127,10 @@ describe('RailwayParser', () => {
         timestamp: '2025-09-21T08:36:24.208Z',
       };
 
-      expect(parser.validate(payloadWithoutStatus)).toBe(true);
+      expect(await parser.validate(payloadWithoutStatus, {})).toBe(true);
     });
 
-    it('should validate real Railway payload', () => {
+    it('should validate real Railway payload', async () => {
       const realPayload = {
         type: 'DEPLOY',
         project: {
@@ -169,12 +164,12 @@ describe('RailwayParser', () => {
         },
       };
 
-      expect(parser.validate(realPayload)).toBe(true);
+      expect(await parser.validate(realPayload, {})).toBe(true);
     });
   });
 
   describe('parse', () => {
-    it('should parse DEPLOY event correctly', () => {
+    it('should parse DEPLOY event correctly', async () => {
       const payload: RailwayWebhookPayload = {
         type: 'DEPLOY',
         project: {
@@ -208,7 +203,7 @@ describe('RailwayParser', () => {
         },
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Zentik notifier - Backend');
       expect(result.subtitle).toBe('DEPLOY - SUCCESS');
@@ -222,7 +217,7 @@ describe('RailwayParser', () => {
       expect(result.bucketId).toBe('');
     });
 
-    it('should parse payload without deployment creator', () => {
+    it('should parse payload without deployment creator', async () => {
       const payload: RailwayWebhookPayload = {
         type: 'DEPLOY',
         project: {
@@ -242,7 +237,7 @@ describe('RailwayParser', () => {
         timestamp: '2025-09-21T08:36:24.208Z',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Test App - Frontend');
       expect(result.subtitle).toBe('DEPLOY - BUILDING');
@@ -254,7 +249,7 @@ describe('RailwayParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should set CRITICAL priority for failed deployments', () => {
+    it('should set CRITICAL priority for failed deployments', async () => {
       const payload: RailwayWebhookPayload = {
         type: 'DEPLOY',
         project: {
@@ -274,14 +269,14 @@ describe('RailwayParser', () => {
         timestamp: '2025-09-21T08:36:24.208Z',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Test App - Backend');
       expect(result.subtitle).toBe('DEPLOY - FAILED');
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
     });
 
-    it('should parse payload without service name', () => {
+    it('should parse payload without service name', async () => {
       const payload: RailwayWebhookPayload = {
         type: 'DEPLOY',
         project: {
@@ -297,7 +292,7 @@ describe('RailwayParser', () => {
         timestamp: '2025-09-21T08:36:24.208Z',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Test App');
       expect(result.subtitle).toBe('DEPLOY - SUCCESS');
@@ -307,7 +302,7 @@ describe('RailwayParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse payload without status', () => {
+    it('should parse payload without status', async () => {
       const payload: RailwayWebhookPayload = {
         type: 'DEPLOY',
         project: {
@@ -326,7 +321,7 @@ describe('RailwayParser', () => {
         timestamp: '2025-09-21T08:36:24.208Z',
       };
 
-      const result = parser.parse(payload);
+      const result = await parser.parse(payload, {});
 
       expect(result.title).toBe('Test App - Backend');
       expect(result.subtitle).toBe('DEPLOY');
@@ -336,7 +331,7 @@ describe('RailwayParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should parse real Railway payload', () => {
+    it('should parse real Railway payload', async () => {
       const realPayload = {
         type: 'DEPLOY',
         project: {
@@ -370,7 +365,7 @@ describe('RailwayParser', () => {
         },
       };
 
-      const result = parser.parse(realPayload as any);
+      const result = await parser.parse(realPayload as any, {});
 
       expect(result.title).toBe('Zentik notifier - Docs');
       expect(result.subtitle).toBe('DEPLOY - BUILDING');
@@ -384,10 +379,10 @@ describe('RailwayParser', () => {
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
 
-    it('should handle errors gracefully', () => {
+    it('should handle errors gracefully', async () => {
       const invalidPayload = { invalid: 'data' };
 
-      const result = parser.parse(invalidPayload as any);
+      const result = await parser.parse(invalidPayload as any, {});
 
       expect(result.title).toBe('❌ Railway webhook parsing error');
       expect(result.subtitle).toBe('Parser ZentikRailway');
@@ -400,10 +395,10 @@ describe('RailwayParser', () => {
   });
 
   describe('getTestPayload', () => {
-    it('should return a valid test payload', () => {
+    it('should return a valid test payload', async () => {
       const testPayload = parser.getTestPayload();
 
-      expect(parser.validate(testPayload)).toBe(true);
+      expect(await parser.validate(testPayload, {})).toBe(true);
       expect(testPayload.type).toBe('DEPLOY');
       expect(testPayload.project.name).toBe('Zentik notifier');
       expect(testPayload.environment.name).toBe('production');
@@ -411,9 +406,9 @@ describe('RailwayParser', () => {
       expect(testPayload.deployment?.creator?.name).toBe('Test User');
     });
 
-    it('should parse test payload successfully', () => {
+    it('should parse test payload successfully', async () => {
       const testPayload = parser.getTestPayload();
-      const result = parser.parse(testPayload);
+      const result = await parser.parse(testPayload, {});
 
       expect(result.title).toBe('Zentik notifier - Docs');
       expect(result.subtitle).toBe('DEPLOY - BUILDING');

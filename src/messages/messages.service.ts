@@ -715,6 +715,7 @@ export class MessagesService {
     payload: any,
     userId: string,
     bucketId: string,
+    headers?: Record<string, string>,
   ): Promise<Message> {
     // Delegate to PayloadMapperService for parser identification and transformation
     const transformedPayload = await this.payloadMapperService.transformPayload(
@@ -722,6 +723,7 @@ export class MessagesService {
       payload,
       userId,
       bucketId,
+      headers,
     );
 
     // Create the message using the transformed payload
