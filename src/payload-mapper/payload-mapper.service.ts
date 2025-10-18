@@ -283,8 +283,8 @@ export class PayloadMapperService {
       // Create a function from the stored JavaScript code
       const userFunction = eval(payloadMapper.jsEvalFn);
 
-      // Execute the user function with the payload
-      const transformedPayload = userFunction(payload);
+      // Execute the user function with the payload and headers
+      const transformedPayload = userFunction(payload, headers);
 
       // Check if result is null/undefined (SKIPPED status)
       if (transformedPayload === null || transformedPayload === undefined) {

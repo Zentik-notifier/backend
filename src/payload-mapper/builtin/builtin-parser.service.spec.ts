@@ -7,6 +7,7 @@ import { GitHubParser } from './github.parser';
 import { ExpoParser } from './expo.parser';
 import { BuiltinParserService } from './builtin-parser.service';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
+import { UsersService } from '../../users/users.service';
 
 describe('BuiltinParserService', () => {
   let service: BuiltinParserService;
@@ -24,6 +25,13 @@ describe('BuiltinParserService', () => {
         GitHubParser,
         ExpoParser,
         BuiltinParserLoggerService,
+        {
+          provide: UsersService,
+          useValue: {
+            findOne: jest.fn().mockResolvedValue({}),
+            findById: jest.fn().mockResolvedValue({}),
+          },
+        },
       ],
     }).compile();
 
@@ -198,10 +206,10 @@ describe('BuiltinParserService', () => {
       });
     });
 
-    it('should throw error for unknown parser', () => {
-      expect(() => {
-        service.transformPayload('unknown', mockPayload);
-      }).toThrow('Builtin parser not found: unknown');
+    it('should throw error for unknown parser', async () => {
+      await expect(
+        service.transformPayload('unknown', mockPayload)
+      ).rejects.toThrow('Builtin parser not found: unknown');
     });
   });
 

@@ -4,10 +4,15 @@ import { Repository } from 'typeorm';
 import { PayloadMapper } from '../entities/payload-mapper.entity';
 import { NotificationDeliveryType } from '../notifications/notifications.types';
 import { AuthentikParser } from './builtin/authentik.parser';
+import { ServarrParser } from './builtin/servarr.parser';
+import { RailwayParser } from './builtin/railway.parser';
+import { GitHubParser } from './builtin/github.parser';
+import { ExpoParser } from './builtin/expo.parser';
 import { BuiltinParserService } from './builtin/builtin-parser.service';
 import { PayloadMapperService } from './payload-mapper.service';
 import { EntityExecution } from '../entities';
 import { EntityExecutionService } from '../entity-execution/entity-execution.service';
+import { UsersService } from '../users/users.service';
 
 describe('PayloadMapperService', () => {
   let service: PayloadMapperService;
@@ -76,13 +81,17 @@ describe('PayloadMapperService', () => {
           },
         },
         {
-          provide: 'UsersService',
+          provide: UsersService,
           useValue: {
             findOne: jest.fn().mockResolvedValue({}),
             findById: jest.fn().mockResolvedValue({}),
           },
         },
         AuthentikParser,
+        ServarrParser,
+        RailwayParser,
+        GitHubParser,
+        ExpoParser,
       ],
     }).compile();
 
@@ -223,6 +232,10 @@ describe('PayloadMapperService', () => {
       expect(builtinParserService.transformPayload).toHaveBeenCalledWith(
         'authentik',
         mockPayload,
+        {
+          userId: 'user-1',
+          headers: undefined,
+        }
       );
 
       expect(result).toEqual({
@@ -240,7 +253,7 @@ describe('PayloadMapperService', () => {
 
       // Mock the eval function to return a mock function that returns the expected result
       const originalEval = global.eval;
-      global.eval = jest.fn().mockReturnValue((payload: any) => ({
+      global.eval = jest.fn().mockReturnValue((payload: any, headers?: any) => ({
         title: 'Test',
         deliveryType: 'NORMAL',
       }));
@@ -263,6 +276,8 @@ describe('PayloadMapperService', () => {
       expect(global.eval).toHaveBeenCalledWith(
         'function(payload) { return { title: "Test", deliveryType: "NORMAL" }; }',
       );
+
+      expect(global.eval).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         title: 'Test',
         subtitle: undefined,
@@ -281,7 +296,7 @@ describe('PayloadMapperService', () => {
 
       // Mock the eval function to return a mock function that returns the expected result
       const originalEval = global.eval;
-      global.eval = jest.fn().mockReturnValue((payload: any) => ({
+      global.eval = jest.fn().mockReturnValue((payload: any, headers?: any) => ({
         title: 'Test',
         deliveryType: 'NORMAL',
       }));
@@ -304,6 +319,8 @@ describe('PayloadMapperService', () => {
       expect(global.eval).toHaveBeenCalledWith(
         'function(payload) { return { title: "Test", deliveryType: "NORMAL" }; }',
       );
+
+      expect(global.eval).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         title: 'Test',
         subtitle: undefined,
