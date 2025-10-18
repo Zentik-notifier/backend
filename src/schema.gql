@@ -646,6 +646,7 @@ type PayloadMapper {
   id: ID!
   jsEvalFn: String!
   name: String!
+  requiredUserSettings: [UserSettingType!]
   updatedAt: DateTime!
   user: User
   userId: ID

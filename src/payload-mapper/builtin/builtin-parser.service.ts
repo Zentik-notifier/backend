@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
+import { UserSettingType } from '../../entities/user-setting.types';
 import { IBuiltinParser, ParserOptions } from './builtin-parser.interface';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { AuthentikParser } from './authentik.parser';
@@ -14,6 +15,17 @@ export class BuiltinParserService {
   private readonly parsers: Map<PayloadMapperBuiltInType, IBuiltinParser> =
     new Map();
   private readonly parsersByName: Map<string, IBuiltinParser> = new Map();
+
+  /**
+   * Mapping statico delle user settings richieste per ogni tipo di parser built-in
+   */
+  private readonly requiredUserSettingsMap: Map<PayloadMapperBuiltInType, UserSettingType[]> = new Map([
+    [PayloadMapperBuiltInType.ZENTIK_AUTHENTIK, []],
+    [PayloadMapperBuiltInType.ZENTIK_SERVARR, []],
+    [PayloadMapperBuiltInType.ZENTIK_RAILWAY, []],
+    [PayloadMapperBuiltInType.ZENTIK_GITHUB, []],
+    [PayloadMapperBuiltInType.ZENTIK_EXPO, [UserSettingType.ExpoKey]],
+  ]);
 
   constructor(
     private readonly authentikParser: AuthentikParser,
@@ -104,6 +116,13 @@ export class BuiltinParserService {
       type: parser.builtInType,
       description: parser.description,
     }));
+  }
+
+  /**
+   * Gets the required user settings for a specific built-in parser type
+   */
+  getRequiredUserSettings(builtInType: PayloadMapperBuiltInType): UserSettingType[] {
+    return this.requiredUserSettingsMap.get(builtInType) || [];
   }
 
   /**

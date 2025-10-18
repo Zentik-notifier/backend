@@ -1,4 +1,4 @@
-import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   Column,
@@ -11,21 +11,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { UserDevice } from './user-device.entity';
-
-export enum UserSettingType {
-  Timezone = 'Timezone',
-  Language = 'Language',
-  UnencryptOnBigPayload = 'UnencryptOnBigPayload',
-  ExpoKey = 'ExpoKey',
-  HomeassistantUrl = 'HomeassistantUrl',
-  HomeassistantToken = 'HomeassistantToken',
-  // Auto-add notification actions settings
-  AutoAddDeleteAction = 'AutoAddDeleteAction',
-  AutoAddMarkAsReadAction = 'AutoAddMarkAsReadAction',
-  AutoAddOpenNotificationAction = 'AutoAddOpenNotificationAction',
-}
-
-registerEnumType(UserSettingType, { name: 'UserSettingType' });
+import { UserSettingType } from './user-setting.types';
 
 @ObjectType()
 @Entity('user_settings')

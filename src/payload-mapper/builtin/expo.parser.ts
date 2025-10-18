@@ -10,7 +10,7 @@ import {
   MediaType,
 } from '../../notifications/notifications.types';
 import { createHmac } from 'crypto';
-import { UserSettingType } from '../../entities/user-setting.entity';
+import { UserSettingType } from '../../entities/user-setting.types';
 import { UsersService } from '../../users/users.service';
 
 interface ExpoWebhookPayload {

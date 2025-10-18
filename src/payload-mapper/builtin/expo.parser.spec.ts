@@ -1,6 +1,6 @@
 import { ExpoParser } from './expo.parser';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
-import { UserSettingType } from '../../entities/user-setting.entity';
+import { UserSettingType } from '../../entities/user-setting.types';
 import { UsersService } from '../../users/users.service';
 
 // Mock UsersService

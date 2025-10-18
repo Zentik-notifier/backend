@@ -18,7 +18,7 @@ import {
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
 import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
 import { UsersService } from '../users/users.service';
-import { UserSettingType } from '../entities/user-setting.entity';
+import { UserSettingType } from '../entities/user-setting.types';
 import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesService } from './messages.service';
 import { NotificationPostponeService } from '../notifications/notification-postpone.service';

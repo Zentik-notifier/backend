@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PayloadMapper } from '../entities/payload-mapper.entity';
+import { PayloadMapper, PayloadMapperBuiltInType } from '../entities/payload-mapper.entity';
 import { NotificationDeliveryType } from '../notifications/notifications.types';
 import { AuthentikParser } from './builtin/authentik.parser';
 import { ServarrParser } from './builtin/servarr.parser';
@@ -25,6 +25,7 @@ describe('PayloadMapperService', () => {
     jsEvalFn:
       'function(payload) { return { title: "Test", deliveryType: "NORMAL" }; }',
     userId: 'user-1',
+    builtInName: PayloadMapperBuiltInType.ZENTIK_EXPO,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -57,11 +58,12 @@ describe('PayloadMapperService', () => {
             }),
             getAllParsers: jest.fn().mockReturnValue([
               {
-                name: 'authentik',
-                type: 'ZENTIK_AUTHENTIK',
-                description: 'Authentik authentication events parser',
+                name: 'Expo',
+                type: 'ZENTIK_EXPO',
+                description: 'Parser for Expo Application Services',
               },
             ]),
+            getRequiredUserSettings: jest.fn().mockReturnValue(['ExpoKey']),
           },
         },
         {
@@ -118,16 +120,19 @@ describe('PayloadMapperService', () => {
       });
 
       expect(builtinParserService.getAllParsers).toHaveBeenCalled();
+      expect(builtinParserService.getRequiredUserSettings).toHaveBeenCalledWith(PayloadMapperBuiltInType.ZENTIK_EXPO);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(mockPayloadMapper);
       expect(result[1]).toEqual({
-        id: 'builtin-zentik_authentik',
-        builtInName: 'ZENTIK_AUTHENTIK',
-        name: 'authentik',
+        id: 'builtin-zentik_expo',
+        builtInName: 'ZENTIK_EXPO',
+        name: 'Expo',
         jsEvalFn: '',
+        requiredUserSettings: ['ExpoKey'],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
+        userId: undefined,
       });
     });
   });

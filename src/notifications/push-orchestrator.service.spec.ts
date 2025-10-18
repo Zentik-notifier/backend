@@ -13,7 +13,7 @@ import { LocaleService } from '../common/services/locale.service';
 import { BucketsService } from '../buckets/buckets.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { UsersService } from '../users/users.service';
-import { UserSettingType } from '../entities/user-setting.entity';
+import { UserSettingType } from '../entities/user-setting.types';
 import { Notification } from '../entities/notification.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { Message } from '../entities/message.entity';

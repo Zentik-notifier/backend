@@ -7,7 +7,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { UserSettingType } from '../../entities/user-setting.entity';
+import { UserSettingType } from '../../entities/user-setting.types';
 
 @InputType()
 export class UpsertUserSettingInput {

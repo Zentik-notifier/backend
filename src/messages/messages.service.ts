@@ -14,7 +14,7 @@ import { Bucket } from '../entities/bucket.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
-import { UserSettingType } from '../entities/user-setting.entity';
+import { UserSettingType } from '../entities/user-setting.types';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import {

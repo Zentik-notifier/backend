@@ -8,7 +8,7 @@ import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
 import { UserDevice } from '../entities/user-device.entity';
-import { UserSettingType } from '../entities/user-setting.entity';
+import { UserSettingType } from '../entities/user-setting.types';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';

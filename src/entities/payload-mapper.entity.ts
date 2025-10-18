@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { UserSettingType } from './user-setting.types';
 
 export enum PayloadMapperBuiltInType {
   ZENTIK_AUTHENTIK = 'ZENTIK_AUTHENTIK',
@@ -49,6 +50,21 @@ export class PayloadMapper {
     nullable: true,
   })
   builtInName?: PayloadMapperBuiltInType;
+
+  @Field(() => [UserSettingType], { nullable: true })
+  @ApiProperty({
+    type: [Object],
+    required: false,
+    description: 'Array of required user setting types for this payload mapper',
+  })
+  @Column({
+    type: 'enum',
+    enum: UserSettingType,
+    enumName: 'UserSettingType',
+    array: true,
+    nullable: true,
+  })
+  requiredUserSettings?: UserSettingType[];
 
   @Field()
   @ApiProperty({

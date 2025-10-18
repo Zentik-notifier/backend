@@ -14,7 +14,8 @@ import { UserDevice } from '../entities/user-device.entity';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
-import { UserSetting, UserSettingType } from '../entities/user-setting.entity';
+import { UserSetting } from '../entities/user-setting.entity';
+import { UserSettingType } from '../entities/user-setting.types';
 import { AdminSubscription } from '../entities/admin-subscription.entity';
 import { EventType } from '../entities/event.entity';
 import {

@@ -11,8 +11,6 @@ import { EntityExecutionService } from '../entity-execution/entity-execution.ser
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { BuiltinParserService } from './builtin';
 import { CreatePayloadMapperDto, UpdatePayloadMapperDto } from './dto';
-import { UsersService } from '../users/users.service';
-import { UserSettingType } from '../entities/user-setting.entity';
 
 /**
  * Interface for parser execution results
@@ -31,7 +29,6 @@ export class PayloadMapperService {
     private readonly payloadMapperRepository: Repository<PayloadMapper>,
     private readonly builtinParserService: BuiltinParserService,
     private readonly entityExecutionService: EntityExecutionService,
-    private readonly usersService: UsersService,
   ) { }
 
   async create(
@@ -57,15 +54,17 @@ export class PayloadMapperService {
     });
 
     const result: PayloadMapper[] = [...userPayloadMappers];
-
     const allBuiltinParsers = this.builtinParserService.getAllParsers();
     allBuiltinParsers.forEach((parser) => {
+      const requiredUserSettings = this.builtinParserService.getRequiredUserSettings(parser.type);
+
       // Create a virtual entry for the builtin parser
       const virtualBuiltin: PayloadMapper = {
         id: `builtin-${parser.type.toLowerCase()}`,
         builtInName: parser.type,
         name: parser.name,
         jsEvalFn: '', // Empty for builtin parsers
+        requiredUserSettings: requiredUserSettings.length > 0 ? requiredUserSettings : undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: undefined, // Built-in parsers don't have a user
@@ -86,11 +85,15 @@ export class PayloadMapperService {
       );
 
       if (parser) {
+        // Get required user settings for this parser type
+        const requiredUserSettings = this.builtinParserService.getRequiredUserSettings(parser.type);
+
         return {
           id,
           builtInName: parser.type,
           name: parser.name,
           jsEvalFn: '', // Empty for builtin parsers
+          requiredUserSettings: requiredUserSettings.length > 0 ? requiredUserSettings : undefined,
           createdAt: new Date(),
           updatedAt: new Date(),
           userId: undefined, // Built-in parsers don't have a user
