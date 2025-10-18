@@ -144,6 +144,7 @@ input CreateOAuthProviderDto {
 input CreatePayloadMapperDto {
   jsEvalFn: String!
   name: String!
+  requiredUserSettings: [UserSettingType!]
   userId: String
 }
 
@@ -1018,6 +1019,7 @@ input UpdateOAuthProviderDto {
 input UpdatePayloadMapperDto {
   jsEvalFn: String
   name: String
+  requiredUserSettings: [UserSettingType!]
 }
 
 input UpdateProfileInput {

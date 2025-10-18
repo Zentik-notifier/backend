@@ -7408,6 +7408,24 @@
           "jsEvalFn": {
             "type": "string",
             "description": "JavaScript function as stringified code for payload mapping"
+          },
+          "requiredUserSettings": {
+            "type": "array",
+            "description": "Array of required user setting types for this payload mapper",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Timezone",
+                "Language",
+                "UnencryptOnBigPayload",
+                "ExpoKey",
+                "HomeassistantUrl",
+                "HomeassistantToken",
+                "AutoAddDeleteAction",
+                "AutoAddMarkAsReadAction",
+                "AutoAddOpenNotificationAction"
+              ]
+            }
           }
         },
         "required": [
@@ -7424,6 +7442,24 @@
           "jsEvalFn": {
             "type": "string",
             "description": "JavaScript function as stringified code for payload mapping"
+          },
+          "requiredUserSettings": {
+            "type": "array",
+            "description": "Array of required user setting types for this payload mapper",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Timezone",
+                "Language",
+                "UnencryptOnBigPayload",
+                "ExpoKey",
+                "HomeassistantUrl",
+                "HomeassistantToken",
+                "AutoAddDeleteAction",
+                "AutoAddMarkAsReadAction",
+                "AutoAddOpenNotificationAction"
+              ]
+            }
           }
         }
       },
