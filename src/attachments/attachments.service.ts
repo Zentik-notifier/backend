@@ -527,4 +527,325 @@ export class AttachmentsService {
       relations: ['user'],
     });
   }
+
+  /**
+   * Generate and save bucket icon as attachment
+   * Returns the attachment with public URL
+   */
+  async generateAndSaveBucketIcon(
+    userId: string,
+    bucketId: string,
+    bucketName: string,
+    bucketColor: string = '#007AFF',
+    iconUrl?: string,
+    generateWithInitials: boolean = true,
+  ): Promise<Attachment> {
+    const sharp = require('sharp');
+    const https = require('https');
+    const http = require('http');
+    const size = 200;
+
+    this.logger.log(
+      `Generating bucket icon: "${bucketName}" | color: ${bucketColor} | ` +
+      `url: ${iconUrl ? 'yes' : 'no'} | initials: ${generateWithInitials}`
+    );
+
+    try {
+      let finalBuffer: Buffer;
+      let iconType: 'svg' | 'image' | 'generated';
+      let iconBuffer: Buffer | null = null;
+
+      if (iconUrl) {
+        // Try to download and process the icon URL (could be SVG or image)
+        try {
+          iconBuffer = await this.downloadImageFromUrl(iconUrl);
+        } catch (downloadError) {
+          this.logger.warn(`Failed to download icon from ${iconUrl}`, {
+            error: downloadError.message,
+            bucketName,
+            fallback: 'Generating icon with initials instead'
+          });
+          // Continue without iconUrl - will generate with initials
+          iconBuffer = null;
+        }
+      }
+
+      if (iconBuffer) {
+        const metadata = await sharp(iconBuffer).metadata();
+
+        if (metadata.format === 'svg') {
+          iconType = 'svg';
+          
+          // Parse color
+          const colorMatch = bucketColor.match(/#([0-9A-Fa-f]{6})/);
+          if (!colorMatch) {
+            throw new Error(`Invalid color format: ${bucketColor}`);
+          }
+          const r = parseInt(colorMatch[1].substring(0, 2), 16);
+          const g = parseInt(colorMatch[1].substring(2, 4), 16);
+          const b = parseInt(colorMatch[1].substring(4, 6), 16);
+          
+          // Step 1: Create colored circular background directly with sharp
+          const circleBackground = await sharp({
+            create: {
+              width: size,
+              height: size,
+              channels: 4,
+              background: { r, g, b, alpha: 1 }
+            }
+          })
+          .png()
+          .toBuffer();
+          
+          // Apply circular mask
+          const circleMask = Buffer.from(
+            `<svg width="${size}" height="${size}">
+              <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="white"/>
+            </svg>`
+          );
+          
+          const maskedBackground = await sharp(circleBackground)
+            .composite([{
+              input: circleMask,
+              blend: 'dest-in'
+            }])
+            .png()
+            .toBuffer();
+          
+          // Step 2: Render SVG to PNG (transparent, full size)
+          const svgPng = await sharp(iconBuffer)
+            .resize(size, size, { fit: 'inside', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toBuffer();
+          
+          // Step 3: Composite SVG icon on top of colored circle
+          finalBuffer = await sharp(maskedBackground)
+            .composite([
+              {
+                input: svgPng,
+                gravity: 'center',
+              }
+            ])
+            .png()
+            .toBuffer();
+        } else {
+          iconType = 'image';
+          
+          // Parse color
+          const colorMatch = bucketColor.match(/#([0-9A-Fa-f]{6})/);
+          if (!colorMatch) {
+            throw new Error(`Invalid color format: ${bucketColor}`);
+          }
+          const r = parseInt(colorMatch[1].substring(0, 2), 16);
+          const g = parseInt(colorMatch[1].substring(2, 4), 16);
+          const b = parseInt(colorMatch[1].substring(4, 6), 16);
+          
+          // Create colored circular background directly with sharp
+          const circleBackground = await sharp({
+            create: {
+              width: size,
+              height: size,
+              channels: 4,
+              background: { r, g, b, alpha: 1 }
+            }
+          })
+          .png()
+          .toBuffer();
+          
+          // Apply circular mask
+          const circleMask = Buffer.from(
+            `<svg width="${size}" height="${size}">
+              <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="white"/>
+            </svg>`
+          );
+          
+          const maskedBackground = await sharp(circleBackground)
+            .composite([{
+              input: circleMask,
+              blend: 'dest-in'
+            }])
+            .png()
+            .toBuffer();
+
+          // Resize icon to full size (background visible only for transparent areas)
+          const resizedIcon = await sharp(iconBuffer)
+            .resize(size, size, { fit: 'inside', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toBuffer();
+
+          // Composite icon on colored background
+          finalBuffer = await sharp(maskedBackground)
+            .composite([
+              {
+                input: resizedIcon,
+                gravity: 'center',
+              }
+            ])
+            .png()
+            .toBuffer();
+        }
+      } else {
+        iconType = 'generated';
+        // No URL: Generate with background color (and initials if enabled)
+        finalBuffer = await this.generateBucketIcon(bucketName, bucketColor, generateWithInitials);
+      }
+
+      // Save as attachment
+      const filename = `bucket-icon-${bucketId}.png`;
+      const mediaType = MediaType.ICON;
+
+      // Create attachment record first to get the ID
+      const attachment = this.attachmentsRepository.create({
+        userId,
+        filename,
+        filepath: 'temp', // Temporary, will be updated
+        size: finalBuffer.length,
+        mediaType,
+      });
+
+      const saved = await this.attachmentsRepository.save(attachment);
+
+      // Now create the actual file path using the generated attachment ID
+      const attachmentPath = await this.getUserMediaTypePath(userId, mediaType, saved.id);
+      const filepath = join(attachmentPath, filename);
+
+      await writeFile(filepath, finalBuffer);
+
+      // Update with correct filepath
+      saved.filepath = filepath;
+      await this.attachmentsRepository.save(saved);
+
+      this.logger.log(
+        `Bucket icon generated: "${bucketName}" [${iconType}] - ` +
+        `${Math.round(finalBuffer.length / 1024)}KB | color: ${bucketColor} | ` +
+        `initials: ${generateWithInitials} | attachment: ${saved.id}`
+      );
+
+      return saved;
+    } catch (error) {
+      this.logger.error(`Failed to generate/save bucket icon for ${bucketName}`, error.stack);
+      throw new BadRequestException('Failed to generate bucket icon');
+    }
+  }
+
+  /**
+   * Download image from URL with proper headers
+   */
+  private async downloadImageFromUrl(url: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const protocol = url.startsWith('https') ? https : http;
+      const urlObj = new URL(url);
+      
+      const options = {
+        hostname: urlObj.hostname,
+        port: urlObj.port,
+        path: urlObj.pathname + urlObj.search,
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': `${urlObj.protocol}//${urlObj.hostname}/`,
+        }
+      };
+      
+      protocol.get(options, (response) => {
+        // Follow redirects
+        if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307 || response.statusCode === 308) {
+          const redirectUrl = response.headers.location;
+          if (redirectUrl) {
+            this.downloadImageFromUrl(redirectUrl).then(resolve).catch(reject);
+            return;
+          }
+        }
+
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download image from ${urlObj.hostname}: HTTP ${response.statusCode}`));
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => resolve(Buffer.concat(chunks)));
+        response.on('error', reject);
+      }).on('error', (error) => {
+        reject(new Error(`Network error downloading from ${urlObj.hostname}: ${error.message}`));
+      });
+    });
+  }
+
+  /**
+   * Generate bucket icon as PNG
+   * Returns Buffer with PNG data
+   */
+  async generateBucketIcon(
+    bucketName: string,
+    bucketColor: string = '#007AFF',
+    includeInitials: boolean = true,
+  ): Promise<Buffer> {
+    const sharp = require('sharp');
+    const size = 200;
+    
+    // Generate initials from bucket name (same logic as Swift/React)
+    const generateInitials = (name: string): string => {
+      const words = name.split(' ').filter(w => w.length > 0);
+      
+      if (words.length >= 2) {
+        return words[0][0] + words[1][0];
+      } else if (words.length === 1 && words[0].length >= 2) {
+        return words[0].substring(0, 2);
+      } else if (words.length === 1) {
+        return words[0][0];
+      }
+      
+      return '?';
+    };
+
+    let svg: string;
+    
+    if (includeInitials) {
+      const initials = generateInitials(bucketName).toUpperCase();
+      svg = `
+        <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${bucketColor}"/>
+          <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${bucketColor}"/>
+          <text 
+            x="50%" 
+            y="50%" 
+            font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" 
+            font-size="${size * 0.4}" 
+            font-weight="500" 
+            fill="white" 
+            text-anchor="middle" 
+            dominant-baseline="central"
+          >${initials}</text>
+        </svg>
+      `;
+    } else {
+      // Only bucket color, no initials
+      svg = `
+        <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${bucketColor}"/>
+          <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${bucketColor}"/>
+        </svg>
+      `;
+    }
+
+    // Convert SVG to PNG using sharp
+    try {
+      const pngBuffer = await sharp(Buffer.from(svg))
+        .resize(size, size)
+        .png({ 
+          compressionLevel: 9,
+          adaptiveFiltering: true,
+        })
+        .toBuffer();
+
+      return pngBuffer;
+    } catch (error) {
+      this.logger.error(`Failed to generate bucket icon for ${bucketName}`, error.stack);
+      throw new BadRequestException('Failed to generate bucket icon');
+    }
+  }
 }

@@ -58,5 +58,14 @@ export class UpdateBucketDto {
   @IsOptional()
   isPublic?: boolean;
 
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Whether to generate bucket icon with initials',
+    default: true,
+  })
+  @IsOptional()
+  generateIconWithInitials?: boolean;
+
   // deviceIds removed
 }

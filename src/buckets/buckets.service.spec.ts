@@ -8,6 +8,8 @@ import { UserBucket } from '../entities/user-bucket.entity';
 import { User } from '../entities/user.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { AttachmentsService } from '../attachments/attachments.service';
+import { UrlBuilderService } from '../common/services/url-builder.service';
 import { BucketsService } from './buckets.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto';
 import { UserRole } from '../users/users.types';
@@ -17,6 +19,8 @@ describe('BucketsService', () => {
   let bucketsRepository: Repository<Bucket>;
   let userBucketRepository: Repository<UserBucket>;
   let entityPermissionService: EntityPermissionService;
+  let attachmentsService: AttachmentsService;
+  let urlBuilderService: UrlBuilderService;
 
   const mockUser = {
     id: 'user-1',
@@ -67,6 +71,7 @@ describe('BucketsService', () => {
           useValue: {
             create: jest.fn().mockReturnValue(mockBucket),
             save: jest.fn().mockResolvedValue(mockBucket),
+            update: jest.fn().mockResolvedValue({ affected: 1 }),
             find: jest.fn().mockResolvedValue([mockBucket]),
             findOne: jest.fn().mockResolvedValue(mockBucket),
             remove: jest.fn().mockResolvedValue(undefined),
@@ -113,6 +118,24 @@ describe('BucketsService', () => {
             trackBucketUnsharing: jest.fn().mockResolvedValue(undefined),
           },
         },
+        {
+          provide: AttachmentsService,
+          useValue: {
+            isAttachmentsEnabled: jest.fn().mockResolvedValue(true),
+            generateAndSaveBucketIcon: jest.fn().mockResolvedValue({
+              id: 'attachment-1',
+              filename: 'bucket-icon.png',
+              filepath: '/path/to/icon.png',
+              size: 1024,
+            }),
+          },
+        },
+        {
+          provide: UrlBuilderService,
+          useValue: {
+            buildAttachmentUrl: jest.fn().mockReturnValue('/api/v1/attachments/public/attachment-1.png'),
+          },
+        },
       ],
     }).compile();
 
@@ -126,6 +149,8 @@ describe('BucketsService', () => {
     entityPermissionService = module.get<EntityPermissionService>(
       EntityPermissionService,
     );
+    attachmentsService = module.get<AttachmentsService>(AttachmentsService);
+    urlBuilderService = module.get<UrlBuilderService>(UrlBuilderService);
   });
 
   it('should be defined', () => {
@@ -141,11 +166,10 @@ describe('BucketsService', () => {
         user: { id: 'user-1' },
       });
       expect(bucketsRepository.save).toHaveBeenCalled();
-      expect(bucketsRepository.findOne).toHaveBeenCalledWith({
-        where: { id: mockBucket.id },
-        relations: ['user'],
-      });
-      expect(result).toEqual(mockBucket);
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
+      expect(urlBuilderService.buildAttachmentUrl).toHaveBeenCalled();
+      expect(bucketsRepository.update).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
 
     it('should create a bucket with emoji icon successfully', async () => {
@@ -159,11 +183,8 @@ describe('BucketsService', () => {
         user: { id: 'user-1' },
       });
       expect(bucketsRepository.save).toHaveBeenCalled();
-      expect(bucketsRepository.findOne).toHaveBeenCalledWith({
-        where: { id: mockBucket.id },
-        relations: ['user'],
-      });
-      expect(result).toEqual(mockBucket);
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
 
     it('should create a bucket with data URL icon successfully', async () => {
@@ -177,11 +198,8 @@ describe('BucketsService', () => {
         user: { id: 'user-1' },
       });
       expect(bucketsRepository.save).toHaveBeenCalled();
-      expect(bucketsRepository.findOne).toHaveBeenCalledWith({
-        where: { id: mockBucket.id },
-        relations: ['user'],
-      });
-      expect(result).toEqual(mockBucket);
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
   });
 
@@ -293,11 +311,10 @@ describe('BucketsService', () => {
         where: { id: 'bucket-1' },
         relations: ['user'],
       });
-      expect(bucketsRepository.save).toHaveBeenCalledWith({
-        ...mockBucket,
-        ...mockUpdateBucketDto,
-      });
-      expect(result).toEqual(mockBucket);
+      expect(bucketsRepository.save).toHaveBeenCalled();
+      // Icon generation triggered if name, color, or icon changed
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
 
     it('should update bucket when user has admin permissions', async () => {

@@ -89,6 +89,7 @@ input CreateAccessTokenDto {
 input CreateBucketDto {
   color: String
   description: String
+  generateIconWithInitials: Boolean
   icon: String
   isProtected: Boolean
   isPublic: Boolean
@@ -986,6 +987,7 @@ enum SystemAccessTokenRequestStatus {
 input UpdateBucketDto {
   color: String
   description: String
+  generateIconWithInitials: Boolean
   icon: String
   isProtected: Boolean
   isPublic: Boolean

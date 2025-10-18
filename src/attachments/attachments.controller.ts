@@ -26,7 +26,7 @@ import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard'
 import { Attachment } from '../entities/attachment.entity';
 import { AttachmentsDisabledGuard } from './attachments-disabled.guard';
 import { AttachmentsService } from './attachments.service';
-import { DownloadFromUrlDto, UploadAttachmentDto } from './dto';
+import { DownloadFromUrlDto, GenerateBucketIconDto, UploadAttachmentDto } from './dto';
 
 @ApiTags('Attachments')
 @Controller('attachments')
@@ -199,7 +199,7 @@ export class AttachmentsController {
   @ApiResponse({ status: 404, description: 'Attachment not found' })
   async downloadFilePublic(@Param('id') id: string, @Res() res: Response) {
     try {
-      this.logger.log(`Public download requested for attachment: ${id}`);
+      // this.logger.log(`Public download requested for attachment: ${id}`);
       const attachment = await this.attachmentsService.findOnePublic(id);
 
       res.setHeader('Content-Type', this.getMimeType(attachment.filename));
@@ -219,9 +219,9 @@ export class AttachmentsController {
       }
 
       const stats = fs.statSync(absolutePath);
-      this.logger.log(
-        `Sending file ${attachment.filename} (${stats.size} bytes)`,
-      );
+      // this.logger.log(
+      //   `Sending file ${attachment.filename} (${stats.size} bytes)`,
+      // );
 
       res.sendFile(absolutePath);
     } catch (error) {
@@ -296,5 +296,60 @@ export class AttachmentsController {
   @ApiResponse({ status: 404, description: 'Attachment not found' })
   remove(@Param('id') id: string, @GetUser('id') userId: string) {
     return this.attachmentsService.remove(id, userId);
+  }
+
+  @Post('generate-bucket-icon')
+  @UseGuards(JwtOrAccessTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Generate bucket icon as PNG',
+    description: 'Generates a PNG icon for a bucket with optional initials and custom color'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Icon generated successfully (returns PNG binary data)',
+    content: {
+      'image/png': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async generateBucketIcon(
+    @Body() generateDto: GenerateBucketIconDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const { bucketName, bucketColor, includeInitials } = generateDto;
+      
+      const pngBuffer = await this.attachmentsService.generateBucketIcon(
+        bucketName,
+        bucketColor || '#007AFF',
+        includeInitials ?? true,
+      );
+
+      this.logger.log(`Generated bucket icon: ${bucketName}`, { 
+        color: bucketColor, 
+        initials: includeInitials,
+        size: pngBuffer.length 
+      });
+
+      // Set response headers
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Length', pngBuffer.length);
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      
+      // Send PNG data
+      return res.send(pngBuffer);
+    } catch (error) {
+      this.logger.error(`Failed to generate bucket icon`, error.stack);
+      return res.status(500).json({
+        error: 'Failed to generate bucket icon',
+        message: error.message,
+      });
+    }
   }
 }

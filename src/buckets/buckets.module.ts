@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AttachmentsModule } from '../attachments/attachments.module';
 import { AuthModule } from '../auth/auth.module';
+import { CommonModule } from '../common/common.module';
 import { Bucket } from '../entities/bucket.entity';
 import { User } from '../entities/user.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
@@ -18,6 +19,7 @@ import { UserBucketResolver } from './user-bucket.resolver';
     EntityPermissionModule,
     EventsModule,
     AttachmentsModule,
+    CommonModule,
   ],
   controllers: [BucketsController],
   providers: [BucketsService, UserBucketResolver],
