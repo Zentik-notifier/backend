@@ -32,7 +32,7 @@ describe('ServarrParser', () => {
   describe('description', () => {
     it('should return correct description', () => {
       expect(parser.description).toBe(
-        'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads',
+        'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, application update events, and unknown payloads',
       );
     });
   });
@@ -68,6 +68,19 @@ describe('ServarrParser', () => {
           tvdbId: 12345,
           tags: ['drama', 'comedy'],
         },
+      };
+
+      expect(parser.validate(payload)).toBe(true);
+    });
+
+    it('should return true for valid application update payload', () => {
+      const payload = {
+        eventType: 'ApplicationUpdate',
+        instanceName: 'Radarr',
+        message: 'Radarr updated from 5.27.5.10198 to 5.28.0.10274',
+        previousVersion: '5.27.5.10198',
+        newVersion: '5.28.0.10274',
+        applicationUrl: '',
       };
 
       expect(parser.validate(payload)).toBe(true);
@@ -671,6 +684,26 @@ describe('ServarrParser', () => {
       expect(result.body).toContain('Custom Format Score: 0');
       expect(result.body).toContain('Genres: Drama, Romance');
       expect(result.body).toContain('Instance: Sonarr');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should parse application update payload correctly', () => {
+      const payload = {
+        eventType: 'ApplicationUpdate',
+        instanceName: 'Radarr',
+        message: 'Radarr updated from 5.27.5.10198 to 5.28.0.10274',
+        previousVersion: '5.27.5.10198',
+        newVersion: '5.28.0.10274',
+        applicationUrl: 'http://radarr.local',
+      };
+
+      const result = parser.parse(payload);
+
+      expect(result.title).toBe('🔄 Radarr Updated');
+      expect(result.subtitle).toBe('Application Update');
+      expect(result.body).toContain('Radarr has been updated from 5.27.5.10198 to 5.28.0.10274');
+      expect(result.body).toContain('Radarr updated from 5.27.5.10198 to 5.28.0.10274');
+      expect(result.body).toContain('Application URL: http://radarr.local');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
   });

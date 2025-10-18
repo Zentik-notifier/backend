@@ -132,6 +132,9 @@ interface ServarrPayload {
   message?: string;
   type?: string;
   wikiUrl?: string;
+  // Application update fields
+  previousVersion?: string;
+  newVersion?: string;
   // Additional fields from second payload type
   isUpgrade?: boolean;
   customFormatInfo?: {
@@ -151,7 +154,7 @@ export class ServarrParser implements IBuiltinParser {
   }
 
   get description(): string {
-    return 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, and unknown payloads';
+    return 'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, application update events, and unknown payloads';
   }
 
   validate(payload: any): boolean {
@@ -164,14 +167,15 @@ export class ServarrParser implements IBuiltinParser {
       return false;
     }
 
-    // Check if it's a movie, TV show event, Prowlarr event, or health check event
+    // Check if it's a movie, TV show event, Prowlarr event, health check event, or application update event
     if (
       !payload.movie &&
       !payload.series &&
       !payload.episodes &&
       !payload.indexer &&
       !payload.indexerStatus &&
-      !payload.message
+      !payload.message &&
+      !payload.previousVersion // Application update events have previousVersion
     ) {
       return false;
     }
@@ -236,6 +240,8 @@ export class ServarrParser implements IBuiltinParser {
         return 'health_issue';
       case 'healthrestored':
         return 'health_restored';
+      case 'applicationupdate':
+        return 'application_update';
       default:
         return eventType;
     }
@@ -317,6 +323,17 @@ export class ServarrParser implements IBuiltinParser {
         message: payload.message,
         wikiUrl: payload.wikiUrl,
         checkType: payload.type,
+      };
+    }
+
+    // Handle application update events
+    if (payload.previousVersion && payload.newVersion) {
+      return {
+        type: 'application_update',
+        previousVersion: payload.previousVersion,
+        newVersion: payload.newVersion,
+        applicationName: payload.instanceName,
+        applicationUrl: payload.applicationUrl,
       };
     }
 
@@ -405,6 +422,11 @@ export class ServarrParser implements IBuiltinParser {
       return `${levelIcon} ${instanceName} Health ${eventName}`;
     }
 
+    // Handle application update events
+    if (mediaInfo.type === 'application_update') {
+      return `🔄 ${instanceName} Updated`;
+    }
+
     let mediaTitle = mediaInfo.title || 'Unknown';
 
     // For series with episodes, create a more comprehensive title
@@ -457,6 +479,8 @@ export class ServarrParser implements IBuiltinParser {
       return `Indexer via Prowlarr`;
     } else if (mediaInfo.type === 'health') {
       return `System Health Check`;
+    } else if (mediaInfo.type === 'application_update') {
+      return `Application Update`;
     }
     return 'Servarr';
   }
@@ -487,6 +511,21 @@ export class ServarrParser implements IBuiltinParser {
 
       if (payload.instanceName) {
         message += `\nInstance: ${payload.instanceName}`;
+      }
+
+      return message;
+    }
+
+    // Handle application update events
+    if (mediaInfo.type === 'application_update') {
+      message += `${mediaInfo.applicationName} has been updated from ${mediaInfo.previousVersion} to ${mediaInfo.newVersion}`;
+
+      if (payload.message) {
+        message += `\n\n${payload.message}`;
+      }
+
+      if (mediaInfo.applicationUrl) {
+        message += `\n\nApplication URL: ${mediaInfo.applicationUrl}`;
       }
 
       return message;
@@ -646,6 +685,8 @@ export class ServarrParser implements IBuiltinParser {
         return NotificationDeliveryType.CRITICAL;
       case 'health_restored':
         return NotificationDeliveryType.NORMAL;
+      case 'application_update':
+        return NotificationDeliveryType.NORMAL;
       case 'imported':
       case 'import':
         return NotificationDeliveryType.NORMAL;
@@ -743,6 +784,7 @@ export class ServarrParser implements IBuiltinParser {
       'health_restored',
       'healthissue',
       'healthrestored',
+      'application_update',
     ];
     return !knownEvents.includes(eventType.toLowerCase());
   }
