@@ -287,7 +287,7 @@ describe('PushNotificationOrchestratorService', () => {
       );
     });
 
-    it('should default to false when user settings are not found', async () => {
+    it('should default to true for DELETE and MARK_AS_READ, false for OPEN when user settings are not found', async () => {
       const mockUsersService = {
         getMultipleUserSettings: jest.fn().mockResolvedValue(
           new Map([
@@ -312,8 +312,8 @@ describe('PushNotificationOrchestratorService', () => {
         mockNotification,
         [mockUserDevice],
         {
-          autoAddDeleteAction: false,
-          autoAddMarkAsReadAction: false,
+          autoAddDeleteAction: true,
+          autoAddMarkAsReadAction: true,
           autoAddOpenNotificationAction: false,
         },
       );

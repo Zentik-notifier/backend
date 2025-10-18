@@ -33,34 +33,43 @@ describe('notification-actions.util', () => {
     };
 
     describe('Default behavior (no user settings, no payload flags)', () => {
-      it('should not add actions by default for iOS', () => {
+      it('should add DELETE and MARK_AS_READ actions by default for iOS', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(0);
+        expect(actions).toHaveLength(2); // DELETE and MARK_AS_READ default to true
+        expect(actions.find(a => a.type === NotificationActionType.DELETE)).toBeDefined();
+        expect(actions.find(a => a.type === NotificationActionType.MARK_AS_READ)).toBeDefined();
+        expect(actions.find(a => a.type === NotificationActionType.NAVIGATE)).toBeUndefined(); // OPEN defaults to false
       });
 
-      it('should not add actions by default for Android', () => {
+      it('should add DELETE and MARK_AS_READ actions by default for Android', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.ANDROID,
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(0);
+        expect(actions).toHaveLength(2); // DELETE and MARK_AS_READ default to true
+        expect(actions.find(a => a.type === NotificationActionType.DELETE)).toBeDefined();
+        expect(actions.find(a => a.type === NotificationActionType.MARK_AS_READ)).toBeDefined();
+        expect(actions.find(a => a.type === NotificationActionType.NAVIGATE)).toBeUndefined(); // OPEN defaults to false
       });
 
-      it('should not add actions by default for Web', () => {
+      it('should add DELETE and MARK_AS_READ actions by default for Web', () => {
         const actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.WEB,
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(0);
+        expect(actions).toHaveLength(2); // DELETE and MARK_AS_READ default to true
+        expect(actions.find(a => a.type === NotificationActionType.DELETE)).toBeDefined();
+        expect(actions.find(a => a.type === NotificationActionType.MARK_AS_READ)).toBeDefined();
+        expect(actions.find(a => a.type === NotificationActionType.NAVIGATE)).toBeUndefined(); // OPEN defaults to false
       });
     });
 
@@ -194,13 +203,15 @@ describe('notification-actions.util', () => {
 
     describe('Priority decision logic', () => {
       it('should follow priority: payload > user settings > default', () => {
-        // Test 1: No payload, no user settings -> default (false)
+        // Test 1: No payload, no user settings -> default (true for DELETE and MARK_AS_READ, false for OPEN)
         let actions = generateAutomaticActions(
           mockNotification as Notification,
           DevicePlatform.IOS,
           mockLocaleService,
         );
-        expect(actions).toHaveLength(0);
+        expect(actions).toHaveLength(2); // DELETE and MARK_AS_READ default to true
+        expect(actions.find(a => a.type === NotificationActionType.DELETE)).toBeDefined();
+        expect(actions.find(a => a.type === NotificationActionType.MARK_AS_READ)).toBeDefined();
 
         // Test 2: No payload, user settings false -> user settings (false)
         actions = generateAutomaticActions(
@@ -247,7 +258,7 @@ describe('notification-actions.util', () => {
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(3); // 0 automatic + 3 snoozes (default is false)
+        expect(actions).toHaveLength(5); // 2 automatic (DELETE, MARK_AS_READ) + 3 snoozes
         const snoozeActions = actions.filter(a => a.type === NotificationActionType.SNOOZE);
         expect(snoozeActions).toHaveLength(3);
         expect(snoozeActions[0].value).toBe('5');
@@ -270,7 +281,7 @@ describe('notification-actions.util', () => {
           mockLocaleService,
         );
 
-        expect(actions).toHaveLength(0); // No automatic actions (default is false), no snoozes
+        expect(actions).toHaveLength(2); // 2 automatic actions (DELETE, MARK_AS_READ default to true), no snoozes
       });
     });
 
