@@ -22,7 +22,7 @@ export class SessionService {
   constructor(
     @InjectRepository(UserSession)
     private readonly sessionRepository: Repository<UserSession>,
-  ) {}
+  ) { }
 
   async createSession(
     userId: string,
@@ -177,10 +177,6 @@ export class SessionService {
   }
 
   async validateRefreshToken(tokenId: string): Promise<UserSession | null> {
-    this.logger.debug(
-      `Validating refresh by tokenId: ${tokenId.substring(0, 8)}...`,
-    );
-
     const session = await this.sessionRepository.findOne({
       where: {
         tokenId,
@@ -188,14 +184,6 @@ export class SessionService {
         expiresAt: MoreThan(new Date()),
       },
     });
-
-    if (session) {
-      this.logger.debug(
-        `Valid session found for tokenId: ${tokenId.substring(0, 8)}...`,
-      );
-    } else {
-      this.logger.warn(`Invalid or expired session for tokenId`);
-    }
 
     return session;
   }

@@ -134,7 +134,7 @@ export class BuiltinParserService {
     const isValid = await parser.validate(payload, options);
     if (!isValid) {
       throw new Error(
-        `Invalid payload for parser ${parserName}: ${JSON.stringify(payload)}`,
+        `Invalid payload for parser ${parserName}`,
       );
     }
 

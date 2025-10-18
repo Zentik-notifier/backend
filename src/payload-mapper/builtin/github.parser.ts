@@ -8,7 +8,29 @@ export interface GitHubWebhookPayload {
   action?: string;
   ref?: string;
   ref_type?: string;
-  repository: {
+  // Ping event
+  zen?: string;
+  hook_id?: number;
+  hook?: {
+    type: string;
+    id: number;
+    name: string;
+    active: boolean;
+    events: string[];
+    config: {
+      content_type?: string;
+      insecure_ssl?: string;
+      url?: string;
+    };
+  };
+  organization?: {
+    login: string;
+    id: number;
+    url: string;
+    avatar_url?: string;
+    description?: string;
+  };
+  repository?: {
     name: string;
     full_name: string;
     html_url: string;
@@ -127,7 +149,7 @@ export class GitHubParser implements IBuiltinParser {
   }
 
   get description(): string {
-    return 'Parser for GitHub webhooks - handles push, pull requests, issues, releases, workflows, and more';
+    return 'Parser for GitHub webhooks - handles ping, push, pull requests, issues, releases, workflows, and more';
   }
 
   async validate(payload: any, options?: ParserOptions): Promise<boolean> {
@@ -137,6 +159,13 @@ export class GitHubParser implements IBuiltinParser {
   private syncValidate(payload: any, options?: ParserOptions): boolean {
     // Headers are available if needed for future webhook signature verification
     // For now, GitHub doesn't require signature verification in this parser
+    
+    // Validate ping event (webhook setup/test)
+    if (payload?.hook && payload?.sender?.login) {
+      return true;
+    }
+    
+    // Validate regular GitHub events
     return !!(
       payload &&
       typeof payload === 'object' &&
@@ -159,16 +188,26 @@ export class GitHubParser implements IBuiltinParser {
   }
 
   private createMessage(payload: GitHubWebhookPayload): CreateMessageDto {
-    const { repository, sender, action } = payload;
-    const repoName = repository.full_name || repository.name;
-
+    const { repository, sender, action, organization } = payload;
+    
     // Determine event type from payload structure
     const eventType = this.detectEventType(payload);
     const { title, subtitle, body } = this.formatMessage(eventType, payload);
     const deliveryType = this.getDeliveryType(eventType, payload);
 
+    // For ping events, use organization or hook context instead of repository
+    let prefix = '';
+    if (repository) {
+      const repoName = repository.full_name || repository.name;
+      prefix = `${repoName}: `;
+    } else if (organization) {
+      prefix = `${organization.login}: `;
+    } else if (payload.hook) {
+      prefix = 'GitHub: ';
+    }
+
     return {
-      title: `${repoName}: ${title}`,
+      title: `${prefix}${title}`,
       subtitle,
       body,
       deliveryType,
@@ -177,6 +216,7 @@ export class GitHubParser implements IBuiltinParser {
   }
 
   private detectEventType(payload: GitHubWebhookPayload): string {
+    if (payload.zen && payload.hook) return 'ping';
     if (payload.commits || payload.head_commit) return 'push';
     if (payload.pull_request) return 'pull_request';
     if (payload.issue) return 'issue';
@@ -198,6 +238,8 @@ export class GitHubParser implements IBuiltinParser {
     const { sender, action } = payload;
 
     switch (eventType) {
+      case 'ping':
+        return this.formatPingEvent(payload);
       case 'push':
         return this.formatPushEvent(payload);
       case 'pull_request':
@@ -240,6 +282,38 @@ export class GitHubParser implements IBuiltinParser {
           body: `Event triggered by ${sender.login}`,
         };
     }
+  }
+
+  private formatPingEvent(payload: GitHubWebhookPayload): {
+    title: string;
+    subtitle: string;
+    body: string;
+  } {
+    const { sender, hook, organization, zen } = payload;
+    const hookType = hook?.type || 'Unknown';
+    const events = hook?.events || [];
+    const context = organization ? organization.login : 'webhook';
+    
+    let body = `🎉 Webhook configured successfully!\n\n`;
+    body += `Type: ${hookType}\n`;
+    body += `Configured by: ${sender.login}\n`;
+    
+    if (events.length > 0) {
+      body += `Monitoring events:\n`;
+      events.forEach(event => {
+        body += `• ${event}\n`;
+      });
+    }
+    
+    if (zen) {
+      body += `\n💭 "${zen}"`;
+    }
+
+    return {
+      title: '🔔 Webhook Active',
+      subtitle: `${context} webhook ready`,
+      body,
+    };
   }
 
   private formatPushEvent(payload: GitHubWebhookPayload): {

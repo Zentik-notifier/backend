@@ -58,7 +58,7 @@ export class AuthService {
     private emailService: EmailService,
     private eventTrackingService: EventTrackingService,
     private serverSettingsService: ServerSettingsService,
-  ) {}
+  ) { }
 
   async register(
     registerDto: RegisterDto,
@@ -77,8 +77,9 @@ export class AuthService {
     });
 
     if (existingUser) {
+      const conflict = existingUser.email === email ? 'email' : 'username';
       this.logger.warn(
-        `Registration failed - user already exists: ${existingUser.email === email ? 'email' : 'username'}`,
+        `Registration failed - ${conflict} already exists: userId=${existingUser.id}`,
       );
       if (existingUser.email === email) {
         throw new ConflictException('Email already registered');
@@ -106,7 +107,7 @@ export class AuthService {
 
     const savedUser = await this.usersRepository.save(user);
     this.logger.log(
-      `User registered successfully: ${savedUser.id} (${savedUser.email})`,
+      `User registered successfully: userId=${savedUser.id}, email=${savedUser.email}, username=${savedUser.username}`,
     );
 
     // Track registration event
@@ -118,19 +119,19 @@ export class AuthService {
         const emailResult = await this.requestEmailConfirmation(
           email,
           (localeInput as unknown as Locale) ||
-            (context?.locale as Locale) ||
-            'en-EN',
+          (context?.locale as Locale) ||
+          'en-EN',
         );
         if (emailResult.sent) {
-          this.logger.debug(`Email confirmation sent to ${email}`);
+          this.logger.debug(`Email confirmation sent: userId=${savedUser.id}, email=${email}`);
         } else {
           this.logger.debug(
-            `Email confirmation not sent to ${email}: ${emailResult.reason}`,
+            `Email confirmation not sent: userId=${savedUser.id}, email=${email}, reason=${emailResult.reason}`,
           );
         }
       } catch (error) {
         this.logger.warn(
-          `Failed to send email confirmation to ${email}: ${error.message}`,
+          `Failed to send email confirmation: userId=${savedUser.id}, email=${email}, error=${error.message}`,
         );
         // Don't fail registration if email fails
       }
@@ -194,7 +195,7 @@ export class AuthService {
     const user = await this.validateUser(identifier, password);
     if (!user) {
       this.logger.warn(
-        `Login failed for identifier: ${identifier} - invalid credentials`,
+        `Login failed - invalid credentials: identifier=${identifier}`,
       );
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -202,14 +203,14 @@ export class AuthService {
     // Check if email is confirmed
     if (!user.emailConfirmed) {
       this.logger.warn(
-        `Login failed for user ${user.id} - email not confirmed`,
+        `Login failed - email not confirmed: userId=${user.id}`,
       );
       throw new UnauthorizedException(
         'Please confirm your email before logging in. Check your inbox for a confirmation email.',
       );
     }
 
-    this.logger.log(`User login successful: ${user.id} (${user.email})`);
+    this.logger.log(`User login successful: userId=${user.id}, email=${user.email}`);
 
     // Track login event
     await this.eventTrackingService.trackLogin(user.id);
@@ -221,7 +222,7 @@ export class AuthService {
     const expiresAt = await this.calculateRefreshTokenExpiration();
 
     // Create session with device info from client
-    await this.sessionService.createSession(user.id, tokenId, expiresAt, {
+    const session = await this.sessionService.createSession(user.id, tokenId, expiresAt, {
       ipAddress: context?.ipAddress,
       userAgent: context?.userAgent,
       loginProvider: 'local',
@@ -234,7 +235,7 @@ export class AuthService {
     });
 
     this.logger.debug(
-      `Session created for user: ${user.id} with token: ${tokenId.substring(0, 8)}... and deviceInfo ${JSON.stringify(deviceInfo)}`,
+      `Session created: userId=${user.id}, deviceId=${session.id}, tokenId=${tokenId.substring(0, 8)}..., deviceInfo=${JSON.stringify(deviceInfo)}`,
     );
 
     const { password: _, ...userWithoutPassword } = user;
@@ -268,7 +269,7 @@ export class AuthService {
     // Controlla se l'utente ha una password
     if (!user.hasPassword || !user.password) {
       this.logger.warn(
-        `Login failed for user ${user.id} - user has no password set`,
+        `Login failed - user has no password set: userId=${user.id}`,
       );
       return null;
     }
@@ -285,16 +286,17 @@ export class AuthService {
     refreshToken: string,
     context?: LoginContext,
   ): Promise<RefreshTokenResponse> {
-    this.logger.debug('Token refresh attempt');
+    // this.logger.debug('Token refresh attempt');
+    let payload: any | null = null;
 
     try {
       // Get JWT refresh secret from ServerSettings
-      const jwtRefreshSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshSecret))?.valueText 
-        || process.env.JWT_REFRESH_SECRET 
+      const jwtRefreshSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshSecret))?.valueText
+        || process.env.JWT_REFRESH_SECRET
         || 'fallback-refresh-secret';
-      
+
       // First verify JWT signature and decode payload to extract tokenId (jti)
-      const payload = this.jwtService.verify(refreshToken, {
+      payload = this.jwtService.verify(refreshToken, {
         secret: jwtRefreshSecret,
       });
 
@@ -304,14 +306,14 @@ export class AuthService {
       );
       if (!existingSession) {
         this.logger.warn(
-          'Token refresh failed - session not found or expired for tokenId',
+          `Token refresh failed - session not found or expired: tokenId=${payload.jti.substring(0, 8)}...`,
         );
         throw new UnauthorizedException('Invalid refresh token');
       }
       // Extra safety: ensure the session belongs to the same user in the token
       if (payload.sub !== existingSession.userId) {
         this.logger.warn(
-          'Token refresh failed - token user does not match session user',
+          `Token refresh failed - token user mismatch: tokenUserId=${payload.sub}, sessionUserId=${existingSession.userId}`,
         );
         await this.sessionService.revokeSession(
           existingSession.userId,
@@ -320,7 +322,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      this.logger.debug(`Token refresh for user: ${payload.sub}`);
+      this.logger.debug(`Token refresh: userId=${payload.sub}, deviceId=${existingSession.id}`);
 
       const user = await this.usersRepository.findOne({
         where: { id: payload.sub },
@@ -328,7 +330,7 @@ export class AuthService {
 
       if (!user) {
         this.logger.warn(
-          `Token refresh failed - user not found: ${payload.sub}`,
+          `Token refresh failed - user not found: userId=${payload.sub}, deviceId=${existingSession.id}`,
         );
         throw new UnauthorizedException('User not found');
       }
@@ -351,10 +353,10 @@ export class AuthService {
       );
 
       this.logger.log(
-        `Token refreshed successfully for user: ${user.id} (${user.email})`,
+        `Token refreshed successfully: userId=${user.id}, email=${user.email}, deviceId=${existingSession.id}`,
       );
       this.logger.debug(
-        `Session updated with new token: ${tokens.tokenId.substring(0, 8)}...`,
+        `Session updated with new token: userId=${user.id}, deviceId=${existingSession.id}, tokenId=${tokens.tokenId.substring(0, 8)}...`,
       );
 
       return {
@@ -363,7 +365,7 @@ export class AuthService {
         message: 'Token refreshed successfully',
       };
     } catch (error) {
-      this.logger.warn(`Token refresh failed: ${error.message}`);
+      this.logger.warn(`Token refresh failed: userId=${payload?.sub || 'unknown'}, error=${error.message}`);
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -381,13 +383,13 @@ export class AuthService {
     if (!user.emailConfirmed) {
       try {
         this.logger.warn(
-          `OAuth login for user ${user.id} - email not confirmed, auto-confirming`,
+          `OAuth login - email not confirmed, auto-confirming: userId=${user.id}`,
         );
         user.emailConfirmed = true;
         await this.usersRepository.save(user);
       } catch (err) {
         this.logger.warn(
-          `Failed to auto-confirm email for OAuth user ${user.id}: ${err?.message}`,
+          `Failed to auto-confirm email for OAuth user: userId=${user.id}, error=${err?.message}`,
         );
       }
     }
@@ -404,7 +406,7 @@ export class AuthService {
     //   `🔍 Extracted device info: ${JSON.stringify(deviceInfo)}`,
     // );
 
-    await this.sessionService.createSession(user.id, tokenId, expiresAt, {
+    const session = await this.sessionService.createSession(user.id, tokenId, expiresAt, {
       ipAddress: context?.ipAddress,
       userAgent: context?.userAgent,
       loginProvider: provider || 'oauth',
@@ -414,7 +416,7 @@ export class AuthService {
     });
 
     this.logger.debug(
-      `OAuth session created for user: ${user.id} with token: ${tokenId.substring(0, 8)}...`,
+      `OAuth session created: userId=${user.id}, deviceId=${session.id}, provider=${provider || 'oauth'}, tokenId=${tokenId.substring(0, 8)}...`,
     );
 
     // Track OAuth login event
@@ -435,14 +437,14 @@ export class AuthService {
   ): Promise<void> {
     const { currentPassword, newPassword } = changePasswordDto;
 
-    this.logger.debug(`Password change attempt for user: ${userId}`);
+    this.logger.debug(`Password change attempt: userId=${userId}`);
 
     const user = await this.usersRepository.findOne({
       where: { id: userId },
     });
 
     if (!user) {
-      this.logger.warn(`Password change failed - user not found: ${userId}`);
+      this.logger.warn(`Password change failed - user not found: userId=${userId}`);
       throw new UnauthorizedException('User not found');
     }
 
@@ -452,7 +454,7 @@ export class AuthService {
     );
     if (!isCurrentPasswordValid) {
       this.logger.warn(
-        `Password change failed - incorrect current password for user: ${userId}`,
+        `Password change failed - incorrect current password: userId=${userId}`,
       );
       throw new UnauthorizedException('Current password is incorrect');
     }
@@ -464,7 +466,7 @@ export class AuthService {
       hasPassword: true, // Ora l'utente ha una password
     });
 
-    this.logger.log(`Password changed successfully for user: ${userId}`);
+    this.logger.log(`Password changed successfully: userId=${userId}`);
   }
 
   async setPassword(
@@ -473,20 +475,20 @@ export class AuthService {
   ): Promise<void> {
     const { newPassword } = setPasswordDto;
 
-    this.logger.debug(`Password set attempt for OAuth user: ${userId}`);
+    this.logger.debug(`Password set attempt for OAuth user: userId=${userId}`);
 
     const user = await this.usersRepository.findOne({
       where: { id: userId },
     });
 
     if (!user) {
-      this.logger.warn(`Password set failed - user not found: ${userId}`);
+      this.logger.warn(`Password set failed - user not found: userId=${userId}`);
       throw new UnauthorizedException('User not found');
     }
 
     if (user.hasPassword) {
       this.logger.warn(
-        `Password set failed - user already has password: ${userId}`,
+        `Password set failed - user already has password: userId=${userId}`,
       );
       throw new BadRequestException(
         'User already has a password. Use change-password instead.',
@@ -500,11 +502,11 @@ export class AuthService {
       hasPassword: true, // Ora l'utente ha una password
     });
 
-    this.logger.log(`Password set successfully for OAuth user: ${userId}`);
+    this.logger.log(`Password set successfully for OAuth user: userId=${userId}`);
   }
 
   async getUserIdentities(userId: string): Promise<UserIdentity[]> {
-    this.logger.debug(`Getting OAuth identities for user: ${userId}`);
+    this.logger.debug(`Getting OAuth identities: userId=${userId}`);
 
     const identities = await this.identitiesRepository.find({
       where: { userId },
@@ -512,7 +514,7 @@ export class AuthService {
     });
 
     this.logger.log(
-      `Found ${identities.length} OAuth identities for user: ${userId}`,
+      `Found ${identities.length} OAuth identities: userId=${userId}`,
     );
     return identities;
   }
@@ -561,13 +563,13 @@ export class AuthService {
 
     const accessTokenExpiration = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtAccessTokenExpiration))?.valueText || '15m';
     const refreshTokenExpiration = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshTokenExpiration))?.valueText || '7d';
-    
+
     // Get JWT secrets from ServerSettings
-    const jwtSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtSecret))?.valueText 
-      || process.env.JWT_SECRET 
+    const jwtSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtSecret))?.valueText
+      || process.env.JWT_SECRET
       || 'fallback-secret';
-    const jwtRefreshSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshSecret))?.valueText 
-      || process.env.JWT_REFRESH_SECRET 
+    const jwtRefreshSecret = (await this.serverSettingsService.getSettingByType(ServerSettingType.JwtRefreshSecret))?.valueText
+      || process.env.JWT_REFRESH_SECRET
       || 'fallback-refresh-secret';
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -723,15 +725,15 @@ export class AuthService {
     // 2) If we have a current user ID, use that user
     let user: User | null = null;
     if (currentUserId) {
-      this.logger.log(`👤 Using current authenticated user: ${currentUserId}`);
+      this.logger.log(`👤 Using current authenticated user: userId=${currentUserId}`);
       user = await this.usersRepository.findOne({
         where: { id: currentUserId },
       });
       if (!user) {
-        this.logger.error(`❌ Current user not found: ${currentUserId}`);
+        this.logger.error(`❌ Current user not found: userId=${currentUserId}`);
         throw new BadRequestException('Current user not found');
       }
-      this.logger.log(`✅ Found current user: ${user.id} (${user.email})`);
+      this.logger.log(`✅ Found current user: userId=${user.id}, email=${user.email}`);
     } else {
       // 3) Fallback by email (with better error handling) - only if no current user
       if (email) {
@@ -740,14 +742,14 @@ export class AuthService {
           user = await this.usersRepository.findOne({ where: { email } });
           if (user) {
             this.logger.log(
-              `🧑‍💼 Found existing user by email: ${user.id} (${user.username})`,
+              `🧑‍💼 Found existing user by email: userId=${user.id}, username=${user.username}`,
             );
           } else {
             // this.logger.log(`📧 No user found with email: ${email}`);
           }
         } catch (error) {
           this.logger.error(
-            `❌ Error looking up user by email: ${error.message}`,
+            `❌ Error looking up user by email: error=${error.message}`,
           );
         }
       }
@@ -759,14 +761,14 @@ export class AuthService {
           user = await this.usersRepository.findOne({ where: { username } });
           if (user) {
             this.logger.log(
-              `🧑‍💼 Found existing user by username: ${user.id} (${user.email})`,
+              `🧑‍💼 Found existing user by username: userId=${user.id}, email=${user.email}`,
             );
           } else {
             // this.logger.log(`👤 No user found with username: ${username}`);
           }
         } catch (error) {
           this.logger.error(
-            `❌ Error looking up user by username: ${error.message}`,
+            `❌ Error looking up user by username: error=${error.message}`,
           );
         }
       }
@@ -793,7 +795,7 @@ export class AuthService {
           emailConfirmed: true, // OAuth users have verified emails
         });
         user = await this.usersRepository.save(user);
-        this.logger.log(`✅ User created: ${user.id}`);
+        this.logger.log(`✅ User created: userId=${user.id}, provider=${provider}`);
         // Send welcome email for newly created OAuth users
         try {
           const inferredLocale: Locale =
@@ -804,7 +806,7 @@ export class AuthService {
             user.username ?? user.email.split('@')[0],
             inferredLocale,
           );
-        } catch (welcomeErr) {}
+        } catch (welcomeErr) { }
       } catch (error) {
         this.logger.error(`❌ Failed to create user: ${error.message}`);
         if (error.code === '23505') {
@@ -821,7 +823,7 @@ export class AuthService {
           }
           if (user) {
             this.logger.log(
-              `🔄 Found existing user after duplicate error: ${user.id}`,
+              `🔄 Found existing user after duplicate error: userId=${user.id}`,
             );
           } else {
             throw error; // Re-throw if we still can't find the user
@@ -974,7 +976,7 @@ export class AuthService {
             (minInterval - timeSinceLastRequest) / 1000,
           );
           this.logger.warn(
-            `Password reset rate limit exceeded for user ${user.id}: ${remainingTime}s remaining`,
+            `Password reset rate limit exceeded: userId=${user.id}, remainingTime=${remainingTime}s`,
           );
           throw new BadRequestException(
             `Please wait ${remainingTime} seconds before requesting another password reset`,
@@ -998,12 +1000,12 @@ export class AuthService {
           (locale as Locale) || 'en-EN',
         );
         this.logger.log(
-          `Password reset email with 6-character code sent to user ${user.id}`,
+          `Password reset email sent: userId=${user.id}`,
         );
         return true;
       } catch (emailError) {
         this.logger.error(
-          `Failed to send password reset email with 6-character code to user ${user.id}: ${emailError.message}`,
+          `Failed to send password reset email: userId=${user.id}, error=${emailError.message}`,
         );
 
         // On email failure, clear the token but NEVER reset the request date
@@ -1074,7 +1076,7 @@ export class AuthService {
       await this.usersRepository.save(user);
 
       this.logger.log(
-        `Password reset successful for user ${user.id} using validated token: ${resetToken}`,
+        `Password reset successful: userId=${user.id}, resetToken=${resetToken}`,
       );
       return true;
     } catch (error) {
@@ -1124,7 +1126,7 @@ export class AuthService {
 
       if (!user.resetTokenRequestedAt) {
         this.logger.warn(
-          `Reset token validation failed: no request time for user ${user.id} - ${resetToken}`,
+          `Reset token validation failed - no request time: userId=${user.id}, resetToken=${resetToken}`,
         );
         return false;
       }
@@ -1135,13 +1137,13 @@ export class AuthService {
 
       if (tokenAge > maxTokenAge) {
         this.logger.warn(
-          `Reset token validation failed: token expired for user ${user.id} - ${resetToken} (age: ${Math.round(tokenAge / 1000 / 60)} minutes)`,
+          `Reset token validation failed - token expired: userId=${user.id}, resetToken=${resetToken}, ageMinutes=${Math.round(tokenAge / 1000 / 60)}`,
         );
         return false;
       }
 
       this.logger.log(
-        `Reset token validation successful for user ${user.id} - ${resetToken} (age: ${Math.round(tokenAge / 1000 / 60)} minutes)`,
+        `Reset token validation successful: userId=${user.id}, resetToken=${resetToken}, ageMinutes=${Math.round(tokenAge / 1000 / 60)}`,
       );
       return true;
     } catch (error) {
@@ -1399,12 +1401,12 @@ export class AuthService {
       emailConfirmationTokenRequestedAt: null,
     });
 
-    this.logger.log(`Email confirmed for user: ${user.id} (${user.email})`);
+    this.logger.log(`Email confirmed: userId=${user.id}, email=${user.email}`);
     // Send welcome email after successful confirmation (best UX timing)
     try {
       const inferredLocale: Locale = (locale as Locale) || 'en-EN';
       this.logger.debug(
-        `📧 confirmEmail: sending welcome with locale='${inferredLocale}' for user=${user.id}`,
+        `📧 Sending welcome email: userId=${user.id}, locale=${inferredLocale}`,
       );
       await this.emailService.sendWelcomeEmail(
         user.email,

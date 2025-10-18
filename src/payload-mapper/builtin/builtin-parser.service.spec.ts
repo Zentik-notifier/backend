@@ -175,7 +175,7 @@ describe('BuiltinParserService', () => {
         name: 'ZentikGitHub',
         type: PayloadMapperBuiltInType.ZENTIK_GITHUB,
         description:
-          'Parser for GitHub webhooks - handles push, pull requests, issues, releases, workflows, and more',
+          'Parser for GitHub webhooks - handles ping, push, pull requests, issues, releases, workflows, and more',
       });
       expect(parsers).toContainEqual({
         name: 'Expo',

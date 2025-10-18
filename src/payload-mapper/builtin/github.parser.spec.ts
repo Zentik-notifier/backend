@@ -31,7 +31,25 @@ describe('GitHubParser', () => {
       expect(await parser.validate(payload, {})).toBe(true);
     });
 
-    it('should reject payload without repository', async () => {
+    it('should validate ping event without repository', async () => {
+      const payload = {
+        hook: {
+          type: 'Organization',
+          id: 123,
+          name: 'web',
+          active: true,
+          events: ['push'],
+          config: {},
+        },
+        sender: {
+          login: 'sender',
+        },
+      };
+
+      expect(await parser.validate(payload, {})).toBe(true);
+    });
+
+    it('should reject payload without repository and without hook', async () => {
       const payload = {
         sender: {
           login: 'sender',
@@ -294,6 +312,77 @@ describe('GitHubParser', () => {
       expect(result.subtitle).toContain('v1.2.3');
       expect(result.body).toContain('Release 1.2.3');
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
+    });
+  });
+
+  describe('parse - Ping events', () => {
+    it('should parse ping event for organization webhook', async () => {
+      const payload = {
+        zen: 'Mind your words, they are important.',
+        hook_id: 575967546,
+        hook: {
+          type: 'Organization',
+          id: 575967546,
+          name: 'web',
+          active: true,
+          events: ['issues', 'registry_package', 'release', 'star', 'watch', 'workflow_job'],
+          config: {
+            content_type: 'json',
+            insecure_ssl: '0',
+            url: 'https://notifier-api.zentik.app/api/v1/messages/transform',
+          },
+        },
+        organization: {
+          login: 'Zentik-notifier',
+          id: 225738097,
+          url: 'https://api.github.com/orgs/Zentik-notifier',
+          avatar_url: 'https://avatars.githubusercontent.com/u/225738097?v=4',
+          description: '',
+        },
+        sender: {
+          login: 'apocaliss92',
+          avatar_url: 'https://avatars.githubusercontent.com/u/23080650?v=4',
+        },
+      };
+
+      const result = await parser.parse(payload, {});
+
+      expect(result.title).toContain('Zentik-notifier');
+      expect(result.title).toContain('Webhook Active');
+      expect(result.subtitle).toContain('Zentik-notifier webhook ready');
+      expect(result.body).toContain('Webhook configured successfully');
+      expect(result.body).toContain('Type: Organization');
+      expect(result.body).toContain('Configured by: apocaliss92');
+      expect(result.body).toContain('issues');
+      expect(result.body).toContain('release');
+      expect(result.body).toContain('Mind your words, they are important');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should parse ping event without organization', async () => {
+      const payload = {
+        zen: 'Design for failure.',
+        hook: {
+          type: 'Repository',
+          id: 123456,
+          name: 'web',
+          active: true,
+          events: ['push', 'pull_request'],
+          config: {},
+        },
+        sender: {
+          login: 'developer',
+        },
+      };
+
+      const result = await parser.parse(payload, {});
+
+      expect(result.title).toContain('Webhook Active');
+      expect(result.subtitle).toContain('webhook ready');
+      expect(result.body).toContain('Webhook configured successfully');
+      expect(result.body).toContain('Type: Repository');
+      expect(result.body).toContain('push');
+      expect(result.body).toContain('Design for failure');
     });
   });
 
