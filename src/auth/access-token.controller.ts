@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ import {
   AccessTokenListDto,
   AccessTokenResponseDto,
   CreateAccessTokenDto,
+  UpdateAccessTokenDto,
 } from './dto/auth.dto';
 import { JwtOrAccessTokenGuard } from './guards/jwt-or-access-token.guard';
 
@@ -54,6 +56,64 @@ export class AccessTokenController {
     @GetUser('id') userId: string,
   ): Promise<AccessTokenListDto[]> {
     return this.accessTokenService.getUserAccessTokens(userId);
+  }
+
+  @Get(':tokenId')
+  @ApiOperation({ summary: 'Get a specific access token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Access token retrieved successfully',
+    type: AccessTokenListDto,
+  })
+  async getAccessToken(
+    @GetUser('id') userId: string,
+    @Param('tokenId') tokenId: string,
+  ): Promise<AccessTokenListDto> {
+    return this.accessTokenService.getAccessToken(userId, tokenId);
+  }
+
+  @Get('bucket/:bucketId')
+  @ApiOperation({ summary: 'Get access tokens that have access to a specific bucket' })
+  @ApiResponse({
+    status: 200,
+    description: 'Access tokens for bucket retrieved successfully',
+    type: [AccessTokenListDto],
+  })
+  async getAccessTokensForBucket(
+    @GetUser('id') userId: string,
+    @Param('bucketId') bucketId: string,
+  ): Promise<AccessTokenListDto[]> {
+    return this.accessTokenService.getAccessTokensForBucket(userId, bucketId);
+  }
+
+  @Post('bucket/:bucketId')
+  @ApiOperation({ summary: 'Create an access token for a specific bucket' })
+  @ApiResponse({
+    status: 201,
+    description: 'Access token for bucket created successfully',
+    type: AccessTokenResponseDto,
+  })
+  async createAccessTokenForBucket(
+    @GetUser('id') userId: string,
+    @Param('bucketId') bucketId: string,
+    @Body('name') name: string,
+  ): Promise<AccessTokenResponseDto> {
+    return this.accessTokenService.createAccessTokenForBucket(userId, bucketId, name);
+  }
+
+  @Patch(':tokenId')
+  @ApiOperation({ summary: 'Update an access token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Access token updated successfully',
+    type: AccessTokenListDto,
+  })
+  async updateAccessToken(
+    @GetUser('id') userId: string,
+    @Param('tokenId') tokenId: string,
+    @Body() updateDto: UpdateAccessTokenDto,
+  ): Promise<AccessTokenListDto> {
+    return this.accessTokenService.updateAccessToken(userId, tokenId, updateDto);
   }
 
   @Delete(':tokenId')

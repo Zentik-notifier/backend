@@ -9,6 +9,7 @@ type AccessTokenListDto {
   isExpired: Boolean!
   lastUsed: DateTime
   name: String!
+  scopes: [String!]
   token: String
 }
 
@@ -432,6 +433,7 @@ type Mutation {
   cleanupExpiredPermissions: Float!
   confirmEmail(input: ConfirmEmailDto!): EmailConfirmationResponseDto!
   createAccessToken(input: CreateAccessTokenDto!): AccessTokenResponseDto!
+  createAccessTokenForBucket(bucketId: String!, name: String!): AccessTokenResponseDto!
   createBucket(input: CreateBucketDto!): Bucket!
 
   """
@@ -495,6 +497,7 @@ type Mutation {
   """Manually trigger log cleanup based on retention policy"""
   triggerLogCleanup: Boolean!
   unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
+  updateAccessToken(input: UpdateAccessTokenDto!, tokenId: String!): AccessTokenListDto!
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
   updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
@@ -703,6 +706,8 @@ type Query {
   enabledOAuthProviders: [OAuthProviderPublicDto!]!
   entityExecution(id: String!): EntityExecution
   events(query: EventsQueryDto!): EventsResponseDto!
+  getAccessToken(tokenId: String!): AccessTokenListDto!
+  getAccessTokensForBucket(bucketId: String!): [AccessTokenListDto!]!
   getBackendVersion: String!
 
   """Get the download URL for a specific backup file"""
@@ -986,6 +991,10 @@ enum SystemAccessTokenRequestStatus {
   APPROVED
   DECLINED
   PENDING
+}
+
+input UpdateAccessTokenDto {
+  name: String!
 }
 
 input UpdateBucketDto {

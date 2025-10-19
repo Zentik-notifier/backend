@@ -10,6 +10,7 @@ import {
   AccessTokenListDto,
   AccessTokenResponseDto,
   CreateAccessTokenDto,
+  UpdateAccessTokenDto,
 } from './dto/auth.dto';
 
 export interface AccessTokenValidationResult {
@@ -107,7 +108,108 @@ export class AccessTokenService {
       lastUsed: token.lastUsed,
       isExpired: token.isExpired,
       token: token.token,
+      scopes: token.scopes,
     }));
+  }
+
+  async getAccessToken(userId: string, tokenId: string): Promise<AccessTokenListDto> {
+    const token = await this.accessTokenRepository.findOne({
+      where: { id: tokenId, userId },
+    });
+
+    if (!token) {
+      throw new NotFoundException(
+        'Access token not found or does not belong to you',
+      );
+    }
+
+    return {
+      id: token.id,
+      name: token.name,
+      expiresAt: token.expiresAt,
+      createdAt: token.createdAt,
+      lastUsed: token.lastUsed,
+      isExpired: token.isExpired,
+      token: token.token,
+      scopes: token.scopes,
+    };
+  }
+
+  async getAccessTokensForBucket(
+    userId: string,
+    bucketId: string,
+  ): Promise<AccessTokenListDto[]> {
+    const tokens = await this.accessTokenRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+
+    // Filter tokens that have access to this bucket
+    const filteredTokens = tokens.filter((token) => {
+      // Empty scopes = admin (can access any bucket)
+      if (!token.scopes || token.scopes.length === 0) {
+        return true;
+      }
+
+      // Check if token has scope for this specific bucket
+      const bucketScope = `message-bucket-creation:${bucketId}`;
+      return token.scopes.includes(bucketScope);
+    });
+
+    return filteredTokens.map((token) => ({
+      id: token.id,
+      name: token.name,
+      expiresAt: token.expiresAt,
+      createdAt: token.createdAt,
+      lastUsed: token.lastUsed,
+      isExpired: token.isExpired,
+      token: token.token,
+      scopes: token.scopes,
+    }));
+  }
+
+  async createAccessTokenForBucket(
+    userId: string,
+    bucketId: string,
+    name: string,
+  ): Promise<AccessTokenResponseDto> {
+    const bucketScope = `message-bucket-creation:${bucketId}`;
+    
+    return this.createAccessToken(userId, {
+      name,
+      scopes: [bucketScope],
+      storeToken: true,
+    });
+  }
+
+  async updateAccessToken(
+    userId: string,
+    tokenId: string,
+    updateDto: UpdateAccessTokenDto,
+  ): Promise<AccessTokenListDto> {
+    const token = await this.accessTokenRepository.findOne({
+      where: { id: tokenId, userId },
+    });
+
+    if (!token) {
+      throw new NotFoundException(
+        'Access token not found or does not belong to you',
+      );
+    }
+
+    token.name = updateDto.name;
+    await this.accessTokenRepository.save(token);
+
+    return {
+      id: token.id,
+      name: token.name,
+      expiresAt: token.expiresAt,
+      createdAt: token.createdAt,
+      lastUsed: token.lastUsed,
+      isExpired: token.expiresAt ? new Date(token.expiresAt) < new Date() : false,
+      scopes: token.scopes,
+      token: token.token,
+    };
   }
 
   async revokeAccessToken(userId: string, tokenId: string): Promise<boolean> {

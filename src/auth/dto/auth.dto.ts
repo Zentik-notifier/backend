@@ -428,6 +428,15 @@ export class CreateAccessTokenDto {
   storeToken?: boolean;
 }
 
+@InputType()
+export class UpdateAccessTokenDto {
+  @ApiProperty({ description: 'New name/description for the access token' })
+  @IsString()
+  @IsNotEmpty()
+  @Field()
+  name: string;
+}
+
 @ObjectType()
 export class AccessTokenResponseDto {
   @ApiProperty({ description: 'The generated access token (only shown once)' })
@@ -519,6 +528,10 @@ export class AccessTokenListDto {
   @ApiProperty({ description: 'The stored token if available', required: false })
   @Field({ nullable: true })
   token?: string;
+
+  @ApiProperty({ description: 'Token scopes', required: false, type: [String] })
+  @Field(() => [String], { nullable: true })
+  scopes?: string[];
 }
 
 @InputType()

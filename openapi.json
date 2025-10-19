@@ -739,6 +739,84 @@
       }
     },
     "/api/v1/access-tokens/{tokenId}": {
+      "get": {
+        "operationId": "AccessTokenController_getAccessToken",
+        "parameters": [
+          {
+            "name": "tokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access token retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenListDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a specific access token",
+        "tags": [
+          "Access Tokens"
+        ]
+      },
+      "patch": {
+        "operationId": "AccessTokenController_updateAccessToken",
+        "parameters": [
+          {
+            "name": "tokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccessTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access token updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenListDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an access token",
+        "tags": [
+          "Access Tokens"
+        ]
+      },
       "delete": {
         "operationId": "AccessTokenController_revokeAccessToken",
         "parameters": [
@@ -762,6 +840,79 @@
           }
         ],
         "summary": "Revoke a specific access token",
+        "tags": [
+          "Access Tokens"
+        ]
+      }
+    },
+    "/api/v1/access-tokens/bucket/{bucketId}": {
+      "get": {
+        "operationId": "AccessTokenController_getAccessTokensForBucket",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access tokens for bucket retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessTokenListDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get access tokens that have access to a specific bucket",
+        "tags": [
+          "Access Tokens"
+        ]
+      },
+      "post": {
+        "operationId": "AccessTokenController_createAccessTokenForBucket",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Access token for bucket created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an access token for a specific bucket",
         "tags": [
           "Access Tokens"
         ]
@@ -5408,6 +5559,13 @@
           "token": {
             "type": "string",
             "description": "The stored token if available"
+          },
+          "scopes": {
+            "description": "Token scopes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -5415,6 +5573,18 @@
           "name",
           "createdAt",
           "isExpired"
+        ]
+      },
+      "UpdateAccessTokenDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New name/description for the access token"
+          }
+        },
+        "required": [
+          "name"
         ]
       },
       "SessionInfoDto": {
