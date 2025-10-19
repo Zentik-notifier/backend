@@ -5581,6 +5581,18 @@
           "name": {
             "type": "string",
             "description": "New name/description for the access token"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Updated expiration date for the token"
+          },
+          "scopes": {
+            "description": "Updated scopes/permissions for the token",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [

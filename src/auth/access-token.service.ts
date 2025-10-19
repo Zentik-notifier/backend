@@ -198,6 +198,17 @@ export class AccessTokenService {
     }
 
     token.name = updateDto.name;
+    
+    // Update expiration if provided
+    if (updateDto.expiresAt !== undefined) {
+      token.expiresAt = updateDto.expiresAt;
+    }
+    
+    // Update scopes if provided
+    if (updateDto.scopes !== undefined) {
+      token.scopes = updateDto.scopes;
+    }
+    
     await this.accessTokenRepository.save(token);
 
     return {

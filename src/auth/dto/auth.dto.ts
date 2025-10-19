@@ -435,6 +435,24 @@ export class UpdateAccessTokenDto {
   @IsNotEmpty()
   @Field()
   name: string;
+
+  @ApiProperty({
+    description: 'Updated expiration date for the token',
+    required: false,
+  })
+  @IsOptional()
+  @Field(() => Date, { nullable: true })
+  expiresAt?: Date;
+
+  @ApiProperty({
+    description: 'Updated scopes/permissions for the token',
+    required: false,
+    type: [String],
+  })
+  @IsString({ each: true })
+  @IsOptional()
+  @Field(() => [String], { nullable: true })
+  scopes?: string[];
 }
 
 @ObjectType()

@@ -994,7 +994,9 @@ enum SystemAccessTokenRequestStatus {
 }
 
 input UpdateAccessTokenDto {
+  expiresAt: DateTime
   name: String!
+  scopes: [String!]
 }
 
 input UpdateBucketDto {
