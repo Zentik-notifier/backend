@@ -35,6 +35,11 @@ export class Bucket {
   @Field({ nullable: true })
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  iconAttachmentUuid: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  @Column({ nullable: true })
   description: string;
 
   @Field({ nullable: true })

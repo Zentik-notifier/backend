@@ -193,6 +193,7 @@ CREATE TABLE buckets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     icon VARCHAR(255),
+    "iconAttachmentUuid" VARCHAR(255),
     description TEXT,
     color VARCHAR(7), -- Hex color code (e.g., #FF5733)
     "isProtected" BOOLEAN DEFAULT FALSE NOT NULL,

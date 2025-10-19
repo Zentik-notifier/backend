@@ -167,8 +167,10 @@ describe('BucketsService', () => {
       });
       expect(bucketsRepository.save).toHaveBeenCalled();
       expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
-      expect(urlBuilderService.buildAttachmentUrl).toHaveBeenCalled();
-      expect(bucketsRepository.update).toHaveBeenCalled();
+      expect(bucketsRepository.update).toHaveBeenCalledWith(
+        expect.any(String),
+        { iconAttachmentUuid: 'attachment-1' }
+      );
       expect(result).toBeDefined();
     });
 

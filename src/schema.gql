@@ -59,6 +59,7 @@ type Bucket {
   createdAt: DateTime!
   description: String
   icon: String
+  iconAttachmentUuid: String
   id: ID!
   isAdmin: Boolean
   isProtected: Boolean

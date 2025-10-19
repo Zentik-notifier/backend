@@ -6186,6 +6186,9 @@
           "icon": {
             "type": "string"
           },
+          "iconAttachmentUuid": {
+            "type": "string"
+          },
           "description": {
             "type": "string"
           },

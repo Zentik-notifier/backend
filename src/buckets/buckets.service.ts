@@ -62,10 +62,11 @@ export class BucketsService {
           createBucketDto.generateIconWithInitials ?? true,
         );
         
-        // Update bucket with generated icon URL
-        const iconUrl = this.urlBuilderService.buildAttachmentUrl(attachment.id);
-        await this.bucketsRepository.update(saved.id, { icon: iconUrl });
-        saved.icon = iconUrl;
+        // Update bucket with icon attachment UUID and preserve original icon URL
+        await this.bucketsRepository.update(saved.id, { 
+          iconAttachmentUuid: attachment.id 
+        });
+        saved.iconAttachmentUuid = attachment.id;
       } catch (error) {
         this.logger.error(`Failed to generate icon for bucket ${saved.name}`, error.stack);
         // Don't fail bucket creation if icon generation fails
@@ -266,10 +267,10 @@ export class BucketsService {
     }
 
     // Check if properties that affect icon generation have changed
-    const needsIconRegeneration = 
-      updateBucketDto.name !== undefined && updateBucketDto.name !== bucket.name ||
-      updateBucketDto.color !== undefined && updateBucketDto.color !== bucket.color ||
-      updateBucketDto.icon !== undefined && updateBucketDto.icon !== bucket.icon;
+    const nameChanged = updateBucketDto.name !== undefined && updateBucketDto.name !== bucket.name;
+    const colorChanged = updateBucketDto.color !== undefined && updateBucketDto.color !== bucket.color;
+    const iconChanged = updateBucketDto.icon !== undefined && updateBucketDto.icon !== bucket.icon;
+    const needsIconRegeneration = nameChanged || colorChanged || iconChanged;
 
     // Update basic bucket properties
     Object.assign(bucket, updateBucketDto);
@@ -290,10 +291,11 @@ export class BucketsService {
           updateBucketDto.generateIconWithInitials ?? true,
         );
         
-        // Update bucket with new icon URL
-        const iconUrl = this.urlBuilderService.buildAttachmentUrl(attachment.id);
-        await this.bucketsRepository.update(saved.id, { icon: iconUrl });
-        saved.icon = iconUrl;
+        // Update bucket with icon attachment UUID (don't overwrite icon field)
+        await this.bucketsRepository.update(saved.id, { 
+          iconAttachmentUuid: attachment.id 
+        });
+        saved.iconAttachmentUuid = attachment.id;
       } catch (error) {
         this.logger.error(`Failed to regenerate icon for bucket ${saved.name}`, error.stack);
         // Don't fail bucket update if icon generation fails
