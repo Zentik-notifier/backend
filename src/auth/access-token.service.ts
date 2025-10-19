@@ -12,6 +12,11 @@ import {
   CreateAccessTokenDto,
 } from './dto/auth.dto';
 
+export interface AccessTokenValidationResult {
+  user: User;
+  scopes: string[];
+}
+
 @Injectable()
 export class AccessTokenService {
   constructor(
@@ -26,6 +31,7 @@ export class AccessTokenService {
   ): Promise<AccessTokenResponseDto> {
     // Generate a random token
     const token = crypto.randomBytes(32).toString('hex');
+    const fullToken = `zat_${token}`;
 
     // Hash the token for storage
     const tokenHash = await bcrypt.hash(token, 10);
@@ -36,21 +42,25 @@ export class AccessTokenService {
       tokenHash,
       expiresAt: createDto.expiresAt,
       scopes: createDto.scopes,
+      token: createDto.storeToken ? fullToken : undefined,
       userId,
     });
 
     const savedToken = await this.accessTokenRepository.save(accessToken);
 
     return {
-      token: `zat_${token}`, // Prefix for identification
+      token: fullToken,
       id: savedToken.id,
       name: savedToken.name,
       expiresAt: savedToken.expiresAt,
       createdAt: savedToken.createdAt,
+      tokenStored: !!createDto.storeToken,
     };
   }
 
-  async validateAccessToken(token: string): Promise<User | null> {
+  async validateAccessToken(
+    token: string,
+  ): Promise<AccessTokenValidationResult | null> {
     // Remove prefix if present
     const cleanToken = token.startsWith('zat_') ? token.substring(4) : token;
 
@@ -73,7 +83,10 @@ export class AccessTokenService {
           lastUsed: new Date(),
         });
 
-        return accessToken.user;
+        return {
+          user: accessToken.user,
+          scopes: accessToken.scopes || [],
+        };
       }
     }
 
@@ -93,6 +106,7 @@ export class AccessTokenService {
       createdAt: token.createdAt,
       lastUsed: token.lastUsed,
       isExpired: token.isExpired,
+      token: token.token,
     }));
   }
 

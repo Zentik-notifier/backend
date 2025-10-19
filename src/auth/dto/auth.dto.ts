@@ -36,6 +36,70 @@ export enum ResourceType {
   USER_WEBHOOK = 'user_webhook',
 }
 
+/**
+ * Available scopes for access tokens
+ * 
+ * If scopes array is empty or null, the token has full access (admin)
+ * If scopes array contains specific scopes, the token is limited to those scopes
+ * 
+ * Scope format:
+ * - MESSAGE_BUCKET_CREATION: "message-bucket-creation:bucket-123" - create messages in bucket-123
+ */
+export enum AccessTokenScope {
+  // Create messages in a specific bucket
+  MESSAGE_BUCKET_CREATION = 'message-bucket-creation',
+}
+
+/**
+ * Helper to get all available base scopes (without resource IDs)
+ */
+export function getAllScopes(): string[] {
+  return Object.values(AccessTokenScope);
+}
+
+/**
+ * Helper to check if a scope is valid
+ */
+export function isValidScope(scope: string): boolean {
+  // Check if it's MESSAGE_BUCKET_CREATION with bucket ID
+  const parts = scope.split(':');
+  if (parts.length === 2 && parts[0] === AccessTokenScope.MESSAGE_BUCKET_CREATION) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Create a scoped token for message bucket creation
+ * @param bucketId - ID of the specific bucket
+ * @returns Scoped string (e.g., "message-bucket-creation:bucket-123")
+ */
+export function createMessageBucketScope(bucketId: string): string {
+  return `${AccessTokenScope.MESSAGE_BUCKET_CREATION}:${bucketId}`;
+}
+
+/**
+ * Check if a token has permission to create messages in a specific bucket
+ * 
+ * @param tokenScopes - Scopes assigned to the token (empty array = full access)
+ * @param bucketId - Bucket ID to check permission for
+ * @returns true if the token can create messages in the specified bucket
+ */
+export function canCreateMessageInBucket(
+  tokenScopes: string[],
+  bucketId: string,
+): boolean {
+  // Empty scopes array means full access (admin)
+  if (!tokenScopes || tokenScopes.length === 0) {
+    return true;
+  }
+
+  // Check if token has specific bucket scope
+  const requiredScope = createMessageBucketScope(bucketId);
+  return tokenScopes.includes(requiredScope);
+}
+
 // GraphQL registrations
 registerEnumType(Permission, {
   name: 'Permission',
@@ -45,6 +109,11 @@ registerEnumType(Permission, {
 registerEnumType(ResourceType, {
   name: 'ResourceType',
   description: 'Type of resource for permissions',
+});
+
+registerEnumType(AccessTokenScope, {
+  name: 'AccessTokenScope',
+  description: 'Available scopes for access tokens',
 });
 
 @ObjectType()
@@ -348,6 +417,15 @@ export class CreateAccessTokenDto {
   @IsOptional()
   @Field(() => [String], { nullable: true })
   scopes?: string[];
+
+  @ApiProperty({
+    description: 'Whether to store the token in plain text',
+    required: false,
+    default: false,
+  })
+  @IsOptional()
+  @Field({ nullable: true })
+  storeToken?: boolean;
 }
 
 @ObjectType()
@@ -371,6 +449,10 @@ export class AccessTokenResponseDto {
   @ApiProperty({ description: 'Token creation date' })
   @Field()
   createdAt: Date;
+
+  @ApiProperty({ description: 'Whether the token was stored in plain text' })
+  @Field()
+  tokenStored: boolean;
 }
 
 @ObjectType()
@@ -433,6 +515,10 @@ export class AccessTokenListDto {
   @ApiProperty({ description: 'Whether the token is expired' })
   @Field()
   isExpired: boolean;
+
+  @ApiProperty({ description: 'The stored token if available', required: false })
+  @Field({ nullable: true })
+  token?: string;
 }
 
 @InputType()

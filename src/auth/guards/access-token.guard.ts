@@ -36,13 +36,14 @@ export class AccessTokenGuard implements CanActivate {
     }
 
     try {
-      const user = await this.accessTokenService.validateAccessToken(token);
+      const result = await this.accessTokenService.validateAccessToken(token);
 
-      if (!user) {
+      if (!result) {
         throw new UnauthorizedException('Invalid access token');
       }
 
-      request.user = user;
+      request.user = result.user;
+      request.accessTokenScopes = result.scopes;
       return true;
     } catch (error) {
       throw new UnauthorizedException('Invalid access token');

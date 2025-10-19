@@ -59,13 +59,14 @@ export class JwtOrAccessTokenGuard implements CanActivate {
     request: any,
   ): Promise<boolean> {
     try {
-      const user = await this.accessTokenService.validateAccessToken(token);
+      const result = await this.accessTokenService.validateAccessToken(token);
 
-      if (!user) {
+      if (!result) {
         throw new UnauthorizedException('Invalid access token');
       }
 
-      request.user = user;
+      request.user = result.user;
+      request.accessTokenScopes = result.scopes;
       return true;
     } catch (error) {
       console.error(

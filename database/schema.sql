@@ -220,6 +220,7 @@ CREATE TABLE user_access_tokens (
     "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     "tokenHash" VARCHAR(255) NOT NULL UNIQUE,
+    token TEXT,
     "expiresAt" TIMESTAMP WITH TIME ZONE,
     scopes TEXT,
     "lastUsed" TIMESTAMP WITH TIME ZONE,

@@ -9,6 +9,7 @@ type AccessTokenListDto {
   isExpired: Boolean!
   lastUsed: DateTime
   name: String!
+  token: String
 }
 
 type AccessTokenResponseDto {
@@ -17,6 +18,7 @@ type AccessTokenResponseDto {
   id: String!
   name: String!
   token: String!
+  tokenStored: Boolean!
 }
 
 input ApproveSystemAccessTokenRequestDto {
@@ -84,6 +86,7 @@ input CreateAccessTokenDto {
   expiresAt: DateTime
   name: String!
   scopes: [String!]
+  storeToken: Boolean
 }
 
 input CreateBucketDto {
@@ -1103,6 +1106,7 @@ type UserAccessToken {
   lastUsed: DateTime
   name: String!
   scopes: [String!]
+  token: String
   updatedAt: DateTime!
   user: User!
   userId: String!

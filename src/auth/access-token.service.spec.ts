@@ -148,7 +148,10 @@ describe('AccessTokenService', () => {
 
       const result = await service.validateAccessToken('zat_valid-token');
 
-      expect(result).toEqual(mockUser);
+      expect(result).toEqual({
+        user: mockUser,
+        scopes: ['read', 'write'],
+      });
       expect(compare).toHaveBeenCalledWith('valid-token', 'hashed-token');
       expect(accessTokenRepository.update).toHaveBeenCalledWith('token-1', {
         lastUsed: expect.any(Date),
@@ -169,7 +172,10 @@ describe('AccessTokenService', () => {
 
       const result = await service.validateAccessToken('valid-token');
 
-      expect(result).toEqual(mockUser);
+      expect(result).toEqual({
+        user: mockUser,
+        scopes: ['read', 'write'],
+      });
       expect(compare).toHaveBeenCalledWith('valid-token', 'hashed-token');
     });
 

@@ -27,6 +27,11 @@ export class UserAccessToken {
   @ApiProperty()
   tokenHash: string; // Store hashed version of the token
 
+  @Column({ nullable: true, type: 'text' })
+  @ApiProperty({ required: false })
+  @Field({ nullable: true })
+  token?: string;
+
   @Column({ nullable: true })
   @ApiProperty({ required: false })
   @Field(() => Date, { nullable: true })

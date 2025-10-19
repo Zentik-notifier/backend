@@ -21,8 +21,10 @@ import {
 } from '@nestjs/swagger';
 import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
+import { RequireMessageBucketCreation } from '../auth/decorators/require-scopes.decorator';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { ScopesGuard } from '../auth/guards/scopes.guard';
 import { Message } from '../entities';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
@@ -38,6 +40,8 @@ export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
   @Post()
+  @UseGuards(ScopesGuard)
+  @RequireMessageBucketCreation('bucketId')
   @ApiOperation({
     summary: 'Create a message and send notifications',
     description:
@@ -62,6 +66,10 @@ export class MessagesController {
     status: 400,
     description: 'Invalid data or missing required fields',
   })
+  @ApiResponse({
+    status: 403,
+    description: 'Access token does not have permission to create messages in this bucket',
+  })
   async create(
     @GetUser('id') userId: string,
     @CombineMessageSources() input: CreateMessageDto,
@@ -71,7 +79,8 @@ export class MessagesController {
   }
 
   @Post('with-attachment')
-  @UseGuards(JwtOrAccessTokenGuard, AttachmentsDisabledGuard)
+  @UseGuards(AttachmentsDisabledGuard, ScopesGuard)
+  @RequireMessageBucketCreation('bucketId')
   @ApiOperation({
     summary:
       'Create a message with an uploaded attachment and send notifications',
@@ -87,7 +96,7 @@ export class MessagesController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Attachments are currently disabled',
+    description: 'Attachments are currently disabled or access token does not have permission',
   })
   async createWithAttachment(
     @GetUser('id') userId: string,
@@ -103,7 +112,8 @@ export class MessagesController {
   }
 
   @Get()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, ScopesGuard)
+  @RequireMessageBucketCreation('bucketId')
   @ApiOperation({
     summary: 'Send a message via GET request',
     description:
@@ -122,6 +132,10 @@ export class MessagesController {
     status: 401,
     description: 'Invalid or missing access token',
   })
+  @ApiResponse({
+    status: 403,
+    description: 'Access token does not have permission to create messages in this bucket',
+  })
   @ApiBody({ type: CreateMessageDto })
   async sendMessage(
     @GetUser('id') userId: string,
@@ -132,6 +146,8 @@ export class MessagesController {
   }
 
   @Post('transform')
+  @UseGuards(ScopesGuard)
+  @RequireMessageBucketCreation('bucketId')
   @ApiOperation({
     summary: 'Transform payload using builtin parser and create message',
     description:
@@ -151,6 +167,10 @@ export class MessagesController {
     status: 400,
     description:
       'Invalid payload, missing required parameters (parser, bucketId), or parser not found',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access token does not have permission to create messages in this bucket',
   })
   @ApiResponse({
     status: 404,
