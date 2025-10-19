@@ -157,7 +157,7 @@ export class PayloadMapperService {
     userId: string,
     bucketId: string,
     headers?: Record<string, string>,
-  ): Promise<CreateMessageDto> {
+  ): Promise<CreateMessageDto | undefined> {
 
     let parserResult: ParserResult;
     let parserInfo: { entityName: string; entityId?: string; parserType: 'builtin' | 'user' };
@@ -232,7 +232,7 @@ export class PayloadMapperService {
 
     // Handle different execution statuses
     if (parserResult.status === ExecutionStatus.SKIPPED) {
-      throw new Error(`Parser '${parserName}' was skipped - returned null/undefined`);
+      return undefined;
     }
 
     if (parserResult.status === ExecutionStatus.ERROR) {

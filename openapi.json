@@ -3887,6 +3887,9 @@
               }
             }
           },
+          "204": {
+            "description": "Parser was skipped - no content produced"
+          },
           "400": {
             "description": "Invalid payload, missing required parameters (parser, bucketId), or parser not found"
           },

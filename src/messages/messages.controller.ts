@@ -144,6 +144,10 @@ export class MessagesController {
     type: Message,
   })
   @ApiResponse({
+    status: 204,
+    description: 'Parser was skipped - no content produced',
+  })
+  @ApiResponse({
     status: 400,
     description:
       'Invalid payload, missing required parameters (parser, bucketId), or parser not found',
@@ -166,12 +170,15 @@ export class MessagesController {
       throw new Error('Parameter "bucketId" is required');
     }
 
-    return this.messagesService.transformAndCreate(
+    const result = await this.messagesService.transformAndCreate(
       parserName,
       payload,
       userId,
       bucketId,
       headers,
     );
+
+    // If parser was skipped, return undefined (will result in 204 No Content)
+    return result;
   }
 }
