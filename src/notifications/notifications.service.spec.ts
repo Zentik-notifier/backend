@@ -14,6 +14,8 @@ import { NotificationsService } from './notifications.service';
 import { WebPushService } from './web-push.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { MessageReminderService } from '../messages/message-reminder.service';
+import { EventTrackingService } from '../events/event-tracking.service';
+import { EventsService } from '../events/events.service';
 import {
   ExternalNotifyRequestDto,
   ExternalPlatform,
@@ -125,6 +127,14 @@ describe('NotificationsService', () => {
     createReminder: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockEventTrackingService = {
+    trackNotificationAck: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockEventsService = {
+    findAllPaginated: jest.fn().mockResolvedValue({ events: [], total: 0 }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -172,6 +182,14 @@ describe('NotificationsService', () => {
         {
           provide: MessageReminderService,
           useValue: mockMessageReminderService,
+        },
+        {
+          provide: EventTrackingService,
+          useValue: mockEventTrackingService,
+        },
+        {
+          provide: EventsService,
+          useValue: mockEventsService,
         },
       ],
     }).compile();
