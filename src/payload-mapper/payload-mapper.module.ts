@@ -15,6 +15,7 @@ import {
   GitHubParser,
   ExpoParser,
   StatusIoParser,
+  InstatusParser,
   BuiltinParserLoggerService,
 } from './builtin';
 
@@ -36,6 +37,7 @@ import {
     GitHubParser,
     ExpoParser,
     StatusIoParser,
+    InstatusParser,
     BuiltinParserLoggerService,
   ],
   exports: [PayloadMapperService],

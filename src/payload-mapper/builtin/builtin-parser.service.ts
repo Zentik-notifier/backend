@@ -9,6 +9,7 @@ import { RailwayParser } from './railway.parser';
 import { GitHubParser } from './github.parser';
 import { ExpoParser } from './expo.parser';
 import { StatusIoParser } from './status-io.parser';
+import { InstatusParser } from './instatus.parser';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
 @Injectable()
@@ -27,6 +28,7 @@ export class BuiltinParserService {
     [PayloadMapperBuiltInType.ZENTIK_GITHUB, [UserSettingType.GithubEventsFilter]],
     [PayloadMapperBuiltInType.ZENTIK_EXPO, [UserSettingType.ExpoKey]],
     [PayloadMapperBuiltInType.ZENTIK_STATUS_IO, []],
+    [PayloadMapperBuiltInType.ZENTIK_INSTATUS, []],
   ]);
 
   constructor(
@@ -36,6 +38,7 @@ export class BuiltinParserService {
     private readonly githubParser: GitHubParser,
     private readonly expoParser: ExpoParser,
     private readonly statusIoParser: StatusIoParser,
+    private readonly instatusParser: InstatusParser,
     private readonly loggerService: BuiltinParserLoggerService,
   ) {
     this.registerParsers();
@@ -68,6 +71,10 @@ export class BuiltinParserService {
       PayloadMapperBuiltInType.ZENTIK_STATUS_IO,
       this.statusIoParser,
     );
+    this.parsers.set(
+      PayloadMapperBuiltInType.ZENTIK_INSTATUS,
+      this.instatusParser,
+    );
 
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
@@ -88,6 +95,9 @@ export class BuiltinParserService {
     this.parsersByName.set('StatusIo', this.statusIoParser);
     this.parsersByName.set('Status.io', this.statusIoParser);
     this.parsersByName.set('ZentikStatusIo', this.statusIoParser);
+    this.parsersByName.set('instatus', this.instatusParser);
+    this.parsersByName.set('Instatus', this.instatusParser);
+    this.parsersByName.set('ZentikInstatus', this.instatusParser);
   }
 
   /**
