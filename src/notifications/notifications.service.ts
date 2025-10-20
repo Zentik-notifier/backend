@@ -13,6 +13,9 @@ import { ServerSettingType } from '../entities/server-setting.entity';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
+import { EventTrackingService } from '../events/event-tracking.service';
+import { EventsService } from '../events/events.service';
+import { EventType } from '../entities/event.entity';
 import { NotificationServiceInfo } from './dto';
 import {
   ExternalDeviceDataFcmDto,
@@ -41,11 +44,24 @@ export class NotificationsService implements OnModuleInit {
     private readonly webPushService: WebPushService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly reminderService: MessageReminderService,
+    private readonly eventTrackingService: EventTrackingService,
+    private readonly eventsService: EventsService,
   ) { }
 
   async onModuleInit() {
     this.logger.log('Initializing push notification services...');
     await this.initializePushServices();
+  }
+
+  private async hasNotificationAckEvent(notificationId: string, deviceId: string): Promise<boolean> {
+    const existingEvent = await this.eventsService.findAllPaginated({
+      type: EventType.NOTIFICATION_ACK,
+      objectId: notificationId,
+      targetId: deviceId,
+      page: 1,
+      limit: 1,
+    });
+    return existingEvent.total > 0;
   }
 
   /**
@@ -159,6 +175,18 @@ export class NotificationsService implements OnModuleInit {
     // Mark the specific notification as read
     notification.readAt = readAt;
     await this.notificationsRepository.save(notification);
+
+    // Track NOTIFICATION_ACK event if it doesn't exist for this device/notification
+    if (notification.userDeviceId) {
+      const hasAckEvent = await this.hasNotificationAckEvent(notification.id, notification.userDeviceId);
+      if (!hasAckEvent) {
+        await this.eventTrackingService.trackNotificationAck(
+          userId,
+          notification.userDeviceId,
+          notification.id,
+        );
+      }
+    }
 
     // Find and mark all other notifications from the same message as read
     const relatedNotifications = await this.notificationsRepository.find({
@@ -311,11 +339,33 @@ export class NotificationsService implements OnModuleInit {
       );
     }
 
+    // Track NOTIFICATION_ACK event for the target notification if it doesn't exist
+    const hasAckEvent = await this.hasNotificationAckEvent(target.id, deviceId);
+    if (!hasAckEvent) {
+      await this.eventTrackingService.trackNotificationAck(
+        userId,
+        deviceId,
+        target.id,
+      );
+    }
+
     return { updatedCount };
   }
 
   async remove(id: string, userId: string): Promise<void> {
     const notification = await this.findOne(id, userId);
+
+    // Track NOTIFICATION_ACK event if it doesn't exist for this device/notification
+    if (notification.userDeviceId) {
+      const hasAckEvent = await this.hasNotificationAckEvent(notification.id, notification.userDeviceId);
+      if (!hasAckEvent) {
+        await this.eventTrackingService.trackNotificationAck(
+          userId,
+          notification.userDeviceId,
+          notification.id,
+        );
+      }
+    }
 
     // Cancel ALL reminders for this message (for all users)
     if (this.reminderService) {

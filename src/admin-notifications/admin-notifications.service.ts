@@ -165,7 +165,8 @@ export class AdminNotificationsService implements OnModuleInit {
       event.targetId &&
       (event.type === EventType.DEVICE_REGISTER ||
         event.type === EventType.DEVICE_UNREGISTER ||
-        event.type === EventType.NOTIFICATION)
+        event.type === EventType.NOTIFICATION ||
+        event.type === EventType.NOTIFICATION_ACK)
     ) {
       const device = await this.userDeviceRepository.findOne({
         where: { id: event.targetId },
@@ -189,6 +190,7 @@ export class AdminNotificationsService implements OnModuleInit {
       [EventType.PUSH_PASSTHROUGH]: '📤 Push Passthrough',
       [EventType.MESSAGE]: '💬 New Message',
       [EventType.NOTIFICATION]: '🔔 Notification Sent',
+      [EventType.NOTIFICATION_ACK]: '✅ Notification Acknowledged',
       [EventType.BUCKET_SHARING]: '🔗 Bucket Shared',
       [EventType.BUCKET_UNSHARING]: '🔓 Bucket Unshared',
       [EventType.DEVICE_REGISTER]: '📱 Device Registered',

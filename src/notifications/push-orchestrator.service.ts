@@ -161,15 +161,7 @@ export class PushNotificationOrchestratorService {
     const deviceInfoArray = targetDevices.map(d => ({ deviceId: d.id, userId: d.userId }));
     const deviceSettingsMap = await this.getDeviceSettingsForMultipleDevices(deviceInfoArray);
 
-    // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
-    if (!skipNotificationTracking) {
-      for (const device of targetDevices) {
-        await this.eventTrackingService.trackNotification(
-          device.userId,
-          device.id,
-        );
-      }
-    }
+    // Tracking moved after processedNotifications is defined
 
     // Get user-bucket relationships for snooze checking if bucketId is provided
     let userBucketMap: Map<string, any> | undefined;
@@ -190,6 +182,18 @@ export class PushNotificationOrchestratorService {
     const deviceIdToDevice: Record<string, UserDevice> = Object.fromEntries(
       targetDevices.map((d) => [d.id, d]),
     );
+
+    // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
+    if (!skipNotificationTracking) {
+      for (const device of targetDevices) {
+        const deviceNotification = processedNotifications.find((n) => n.userDeviceId === device.id);
+        await this.eventTrackingService.trackNotification(
+          device.userId,
+          device.id,
+          deviceNotification?.id,
+        );
+      }
+    }
 
     let successCount = 0;
     let errorCount = 0;
