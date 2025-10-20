@@ -110,7 +110,18 @@ export class RailwayParser implements IBuiltinParser {
     }
 
     if (timestamp) {
-      body += `Timestamp: ${new Date(timestamp).toLocaleString('it-IT')}`;
+      body += `Timestamp: ${new Date(timestamp).toLocaleString('it-IT')}\n`;
+    }
+
+    // Add links
+    if (project.id) {
+      const projectUrl = `https://railway.app/project/${project.id}`;
+      body += `\n[View Project](${projectUrl})`;
+      
+      if (service?.id) {
+        const serviceUrl = `https://railway.app/project/${project.id}/service/${service.id}`;
+        body += ` • [View Service](${serviceUrl})`;
+      }
     }
 
     const deliveryType = this.getDeliveryType(type, status || '');

@@ -456,7 +456,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { sender, commits, head_commit, ref } = payload;
+    const { sender, commits, head_commit, ref, repository } = payload;
     const branch = ref?.replace('refs/heads/', '') || 'unknown';
     const commitCount = commits?.length || 0;
     const commitWord = commitCount === 1 ? 'commit' : 'commits';
@@ -478,6 +478,12 @@ export class GitHubParser implements IBuiltinParser {
       });
     }
 
+    // Add links
+    if (repository?.html_url) {
+      const compareUrl = `${repository.html_url}/compare/${branch}`;
+      body += `\n\n[View Commits](${compareUrl}) • [View Repository](${repository.html_url})`;
+    }
+
     return {
       title: `📝 ${commitCount} ${commitWord} pushed`,
       subtitle: `to ${branch} by ${sender.login}`,
@@ -490,7 +496,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { pull_request, action, sender } = payload;
+    const { pull_request, action, sender, repository } = payload;
     if (!pull_request) {
       return { title: 'PR event', subtitle: '', body: '' };
     }
@@ -516,7 +522,15 @@ export class GitHubParser implements IBuiltinParser {
       actionText = 'ready for review';
     }
 
-    const body = `PR #${prNumber}: ${prTitle}\nAuthor: ${pull_request.user.login}\nState: ${prState}${isDraft ? ' (draft)' : ''}\nAction by: ${sender.login}`;
+    let body = `PR #${prNumber}: ${prTitle}\nAuthor: ${pull_request.user.login}\nState: ${prState}${isDraft ? ' (draft)' : ''}\nAction by: ${sender.login}`;
+
+    // Add links
+    if (pull_request.html_url) {
+      body += `\n\n[View Pull Request](${pull_request.html_url})`;
+    }
+    if (repository?.html_url) {
+      body += ` • [View Repository](${repository.html_url})`;
+    }
 
     return {
       title: `${emoji} PR ${actionText}`,
@@ -530,7 +544,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { issue, action, sender } = payload;
+    const { issue, action, sender, repository } = payload;
     if (!issue) {
       return { title: 'Issue event', subtitle: '', body: '' };
     }
@@ -546,7 +560,15 @@ export class GitHubParser implements IBuiltinParser {
     else if (action === 'closed') emoji = '✅';
     else if (action === 'reopened') emoji = '🔄';
 
-    const body = `Issue #${issueNumber}: ${issueTitle}\nAuthor: ${issue.user.login}\nState: ${issueState}\nAction by: ${sender.login}`;
+    let body = `Issue #${issueNumber}: ${issueTitle}\nAuthor: ${issue.user.login}\nState: ${issueState}\nAction by: ${sender.login}`;
+
+    // Add links
+    if (issue.html_url) {
+      body += `\n\n[View Issue](${issue.html_url})`;
+    }
+    if (repository?.html_url) {
+      body += ` • [View Repository](${repository.html_url})`;
+    }
 
     return {
       title: `${emoji} Issue ${actionText}`,
@@ -560,7 +582,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { release, action, sender } = payload;
+    const { release, action, sender, repository } = payload;
     if (!release) {
       return { title: 'Release event', subtitle: '', body: '' };
     }
@@ -574,7 +596,15 @@ export class GitHubParser implements IBuiltinParser {
     if (isPrerelease) emoji = '🧪';
     if (isDraft) emoji = '📝';
 
-    const body = `Release: ${name}\nTag: ${tag}\n${isPrerelease ? 'Pre-release\n' : ''}${isDraft ? 'Draft\n' : ''}Published by: ${sender.login}`;
+    let body = `Release: ${name}\nTag: ${tag}\n${isPrerelease ? 'Pre-release\n' : ''}${isDraft ? 'Draft\n' : ''}Published by: ${sender.login}`;
+
+    // Add links
+    if (release.html_url) {
+      body += `\n\n[View Release](${release.html_url})`;
+    }
+    if (repository?.html_url) {
+      body += ` • [View Repository](${repository.html_url})`;
+    }
 
     return {
       title: `${emoji} Release ${action}`,
@@ -588,7 +618,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { workflow_job, action, sender } = payload;
+    const { workflow_job, action, sender, repository } = payload;
     if (!workflow_job) {
       return { title: 'Workflow Job event', subtitle: '', body: '' };
     }
@@ -618,7 +648,15 @@ export class GitHubParser implements IBuiltinParser {
       statusText = 'queued';
     }
 
-    const body = `Job: ${jobName}\nWorkflow: ${workflowName}\nBranch: ${branch}\nStatus: ${statusText}${conclusion ? `\nConclusion: ${conclusion}` : ''}${sender?.login ? `\nTriggered by: ${sender.login}` : ''}`;
+    let body = `Job: ${jobName}\nWorkflow: ${workflowName}\nBranch: ${branch}\nStatus: ${statusText}${conclusion ? `\nConclusion: ${conclusion}` : ''}${sender?.login ? `\nTriggered by: ${sender.login}` : ''}`;
+
+    // Add links
+    if (workflow_job.html_url) {
+      body += `\n\n[View Job](${workflow_job.html_url})`;
+    }
+    if (repository?.html_url) {
+      body += ` • [View Repository](${repository.html_url})`;
+    }
 
     return {
       title: `${emoji} ${jobName} ${statusText}`,
@@ -632,7 +670,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { workflow_run, action, sender } = payload;
+    const { workflow_run, action, sender, repository } = payload;
     if (!workflow_run) {
       return { title: 'Workflow event', subtitle: '', body: '' };
     }
@@ -648,7 +686,15 @@ export class GitHubParser implements IBuiltinParser {
     else if (conclusion === 'cancelled') emoji = '🚫';
     else if (status === 'in_progress') emoji = '⏳';
 
-    const body = `Workflow: ${workflowName}\nBranch: ${branch}\nStatus: ${status}\n${conclusion ? `Conclusion: ${conclusion}\n` : ''}Triggered by: ${sender.login}`;
+    let body = `Workflow: ${workflowName}\nBranch: ${branch}\nStatus: ${status}\n${conclusion ? `Conclusion: ${conclusion}\n` : ''}Triggered by: ${sender.login}`;
+
+    // Add links
+    if (workflow_run.html_url) {
+      body += `\n\n[View Workflow Run](${workflow_run.html_url})`;
+    }
+    if (repository?.html_url) {
+      body += ` • [View Repository](${repository.html_url})`;
+    }
 
     return {
       title: `${emoji} Workflow ${action || status}`,
@@ -662,7 +708,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { check_suite, action, sender } = payload;
+    const { check_suite, action, sender, repository } = payload;
     if (!check_suite) {
       return { title: 'Check suite event', subtitle: '', body: '' };
     }
@@ -676,7 +722,15 @@ export class GitHubParser implements IBuiltinParser {
     else if (conclusion === 'failure') emoji = '❌';
     else if (status === 'in_progress') emoji = '⏳';
 
-    const body = `Branch: ${branch}\nStatus: ${status}\n${conclusion ? `Conclusion: ${conclusion}\n` : ''}Triggered by: ${sender.login}`;
+    let body = `Branch: ${branch}\nStatus: ${status}\n${conclusion ? `Conclusion: ${conclusion}\n` : ''}Triggered by: ${sender.login}`;
+
+    // Add links
+    if (check_suite.html_url) {
+      body += `\n\n[View Check Suite](${check_suite.html_url})`;
+    }
+    if (repository?.html_url) {
+      body += ` • [View Repository](${repository.html_url})`;
+    }
 
     return {
       title: `${emoji} Check suite ${action || status}`,
@@ -690,7 +744,7 @@ export class GitHubParser implements IBuiltinParser {
     subtitle: string;
     body: string;
   } {
-    const { check_run, action, sender } = payload;
+    const { check_run, action, sender, repository } = payload;
     if (!check_run) {
       return { title: 'Check run event', subtitle: '', body: '' };
     }
@@ -704,7 +758,15 @@ export class GitHubParser implements IBuiltinParser {
     else if (conclusion === 'failure') emoji = '❌';
     else if (status === 'in_progress') emoji = '⏳';
 
-    const body = `Check: ${name}\nStatus: ${status}\n${conclusion ? `Conclusion: ${conclusion}\n` : ''}Triggered by: ${sender.login}`;
+    let body = `Check: ${name}\nStatus: ${status}\n${conclusion ? `Conclusion: ${conclusion}\n` : ''}Triggered by: ${sender.login}`;
+
+    // Add links
+    if (check_run.html_url) {
+      body += `\n\n[View Check Run](${check_run.html_url})`;
+    }
+    if (repository?.html_url) {
+      body += ` • [View Repository](${repository.html_url})`;
+    }
 
     return {
       title: `${emoji} Check ${action || status}`,
