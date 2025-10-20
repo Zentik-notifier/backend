@@ -14,6 +14,7 @@ import {
   RailwayParser,
   GitHubParser,
   ExpoParser,
+  StatusIoParser,
   BuiltinParserLoggerService,
 } from './builtin';
 
@@ -34,6 +35,7 @@ import {
     RailwayParser,
     GitHubParser,
     ExpoParser,
+    StatusIoParser,
     BuiltinParserLoggerService,
   ],
   exports: [PayloadMapperService],

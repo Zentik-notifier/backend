@@ -5,6 +5,7 @@ import { ServarrParser } from './servarr.parser';
 import { RailwayParser } from './railway.parser';
 import { GitHubParser } from './github.parser';
 import { ExpoParser } from './expo.parser';
+import { StatusIoParser } from './status-io.parser';
 import { BuiltinParserService } from './builtin-parser.service';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 import { UsersService } from '../../users/users.service';
@@ -24,6 +25,7 @@ describe('BuiltinParserService', () => {
         RailwayParser,
         GitHubParser,
         ExpoParser,
+        StatusIoParser,
         BuiltinParserLoggerService,
         {
           provide: UsersService,
@@ -152,7 +154,7 @@ describe('BuiltinParserService', () => {
     it('should return all registered parsers', () => {
       const parsers = service.getAllParsers();
 
-      expect(parsers).toHaveLength(5);
+      expect(parsers).toHaveLength(6);
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
@@ -182,6 +184,12 @@ describe('BuiltinParserService', () => {
         type: PayloadMapperBuiltInType.ZENTIK_EXPO,
         description:
           'Parser for Expo Application Services (EAS) webhooks - handles build and submit events',
+      });
+      expect(parsers).toContainEqual({
+        name: 'Status.io',
+        type: PayloadMapperBuiltInType.ZENTIK_STATUS_IO,
+        description:
+          'Parser for Status.io webhooks - handles incidents and scheduled maintenance events',
       });
     });
   });

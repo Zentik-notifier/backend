@@ -6,3 +6,4 @@ export * from './servarr.parser';
 export * from './railway.parser';
 export * from './github.parser';
 export * from './expo.parser';
+export * from './status-io.parser';
