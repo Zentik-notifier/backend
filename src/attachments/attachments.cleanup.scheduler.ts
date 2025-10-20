@@ -13,7 +13,7 @@ export class AttachmentsCleanupScheduler implements OnModuleInit {
     private readonly attachmentsService: AttachmentsService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly schedulerRegistry: SchedulerRegistry,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     const cleanupJobsEnabled =
@@ -24,9 +24,7 @@ export class AttachmentsCleanupScheduler implements OnModuleInit {
       return;
     }
 
-    const cronExpr =
-      (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsDeleteCronJob))?.valueText ||
-      '0 0 * * * *';
+    const cronExpr = '0 0 * * * *';
     const job = new CronJob(cronExpr, () => this.handleCleanup());
     this.schedulerRegistry.addCronJob('attachmentsCleanup', job);
     job.start();

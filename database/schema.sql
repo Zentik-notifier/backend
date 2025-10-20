@@ -64,9 +64,9 @@ CREATE TYPE server_setting_type_enum AS ENUM (
   'WebPush', 'VapidSubject',
   'PushNotificationsPassthroughServer', 'PushPassthroughToken',
   'AttachmentsEnabled', 'AttachmentsStoragePath', 'AttachmentsMaxFileSize', 'AttachmentsAllowedMimeTypes',
-  'AttachmentsDeleteJobEnabled', 'AttachmentsDeleteCronJob', 'AttachmentsMaxAge',
+  'AttachmentsDeleteJobEnabled', 'AttachmentsMaxAge',
   'BackupEnabled', 'BackupExecuteOnStart', 'BackupStoragePath', 'BackupMaxToKeep', 'BackupCronJob',
-  'MessagesMaxAge', 'MessagesDeleteJobEnabled', 'MessagesDeleteCronJob',
+  'MessagesMaxAge', 'MessagesDeleteJobEnabled',
   'EmailEnabled', 'EmailType', 'EmailHost', 'EmailPort', 'EmailSecure', 'EmailUser', 'EmailPass',
   'EmailFrom', 'EmailFromName', 'ResendApiKey',
   'RateLimitTrustProxyEnabled', 'RateLimitForwardHeader', 'RateLimitTtlMs', 'RateLimitLimit',
@@ -74,7 +74,7 @@ CREATE TYPE server_setting_type_enum AS ENUM (
   'JwtSecret', 'JwtRefreshSecret',
   'CorsOrigin', 'CorsCredentials',
   'LogLevel', 'LogStorageEnabled', 'LogRetentionDays',
-  'LokiEnabled', 'PrometheusEnabled'
+  'PrometheusEnabled'
 );
 
 -- Create users table

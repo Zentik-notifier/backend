@@ -151,7 +151,6 @@ export class ServerSettingsService {
         { configType: ServerSettingType.AttachmentsMaxFileSize, envKey: 'ATTACHMENTS_MAX_FILE_SIZE', type: 'number', defaultValue: 10485760 },
         { configType: ServerSettingType.AttachmentsAllowedMimeTypes, envKey: 'ATTACHMENTS_ALLOWED_MIME_TYPES', type: 'string' },
         { configType: ServerSettingType.AttachmentsDeleteJobEnabled, envKey: 'ATTACHMENTS_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },
-        { configType: ServerSettingType.AttachmentsDeleteCronJob, envKey: 'ATTACHMENTS_DELETE_CRON_JOB', type: 'string', defaultValue: '0 0 * * * *' },
         { configType: ServerSettingType.AttachmentsMaxAge, envKey: 'ATTACHMENTS_MAX_AGE', type: 'string', defaultValue: '7d' },
 
         // Backup
@@ -164,7 +163,6 @@ export class ServerSettingsService {
         // Messages
         { configType: ServerSettingType.MessagesMaxAge, envKey: 'MESSAGES_MAX_AGE', type: 'string', defaultValue: '7d' },
         { configType: ServerSettingType.MessagesDeleteJobEnabled, envKey: 'MESSAGES_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },
-        { configType: ServerSettingType.MessagesDeleteCronJob, envKey: 'MESSAGES_DELETE_CRON_JOB', type: 'string', defaultValue: '0 * * * *' },
 
         // Email
         { configType: ServerSettingType.EmailEnabled, envKey: 'EMAIL_ENABLED', type: 'boolean', defaultValue: false },
@@ -199,9 +197,6 @@ export class ServerSettingsService {
         { configType: ServerSettingType.LogLevel, envKey: 'LOG_LEVEL', type: 'string', defaultValue: 'info', possibleValues: ['error', 'warn', 'info', 'debug', 'verbose'] },
         { configType: ServerSettingType.LogStorageEnabled, envKey: 'LOG_STORAGE_ENABLED', type: 'boolean', defaultValue: true },
         { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
-
-        // Loki Remote Logging
-        { configType: ServerSettingType.LokiEnabled, envKey: 'LOKI_ENABLED', type: 'boolean', defaultValue: false },
 
         // Prometheus
         { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },

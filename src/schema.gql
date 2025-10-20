@@ -849,7 +849,6 @@ enum ServerSettingType {
   ApnPush
   ApnTeamId
   AttachmentsAllowedMimeTypes
-  AttachmentsDeleteCronJob
   AttachmentsDeleteJobEnabled
   AttachmentsEnabled
   AttachmentsMaxAge
@@ -882,8 +881,6 @@ enum ServerSettingType {
   LogLevel
   LogRetentionDays
   LogStorageEnabled
-  LokiEnabled
-  MessagesDeleteCronJob
   MessagesDeleteJobEnabled
   MessagesMaxAge
   PrometheusEnabled

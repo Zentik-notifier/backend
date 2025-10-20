@@ -12,7 +12,6 @@ beforeAll(() => {
   process.env.DB_TYPE = 'sqlite';
   process.env.DB_DATABASE = ':memory:';
   process.env.DB_SYNCHRONIZE = 'true';
-  process.env.DB_LOGGING = 'false';
 
   // Push notification test configuration
   process.env.PUSH_NOTIFICATIONS_PASSTHROUGH_ENABLED = 'false';

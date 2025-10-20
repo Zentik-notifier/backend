@@ -73,7 +73,6 @@ JWT_EXPIRATION=1d
 
 # Attachments
 ATTACHMENTS_MAX_AGE=30d
-ATTACHMENTS_DELETE_CRON_JOB=0 0 * * * *
 
 # Push Notifications
 PUSH_NOTIFICATIONS_PASSTHROUGH_ENABLED=false
@@ -153,11 +152,6 @@ Attachments can be configured to be automatically deleted after a certain period
 # Supported formats: number (seconds), Xs (seconds), Xm (minutes), Xh (hours), Xd (days)
 ATTACHMENTS_MAX_AGE=30d
 
-# Cleanup job schedule (cron format)
-# Default: every hour
-ATTACHMENTS_DELETE_CRON_JOB=0 0 * * * *
-```
-
 The `AttachmentsCleanupScheduler` service manages automatic attachment cleanup based on the configuration:
 
 ### Push Notifications
@@ -225,11 +219,6 @@ The messages and notifications system is the heart of Zentik. Messages are conte
 #### Message Lifecycle
 
 Messages have a configurable lifecycle and can be automatically deleted when they are no longer needed:
-
-```env
-# Message cleanup job schedule (cron format)
-MESSAGES_DELETE_CRON_JOB=0 0 * * * *
-```
 
 The `MessagesCleanupScheduler` service manages automatic cleanup of messages that have been completely read by all recipients:
 

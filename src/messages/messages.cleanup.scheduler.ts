@@ -13,7 +13,7 @@ export class MessagesCleanupScheduler implements OnModuleInit {
     private readonly messagesService: MessagesService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly schedulerRegistry: SchedulerRegistry,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     const cleanupJobsEnabled =
@@ -24,10 +24,7 @@ export class MessagesCleanupScheduler implements OnModuleInit {
       return;
     }
 
-    const cronExpr =
-      (await this.serverSettingsService.getSettingByType(ServerSettingType.MessagesDeleteCronJob))?.valueText ||
-      '0 0 * * * *';
-    // const cronExpr = '* * * * *';
+    const cronExpr = '0 0 * * * *';
     const job = new CronJob(cronExpr, () => this.handleCleanup());
     this.schedulerRegistry.addCronJob('messagesCleanup', job);
     job.start();

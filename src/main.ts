@@ -50,7 +50,6 @@ async function bootstrap() {
   logger.log(`🔌 Database host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}`);
   logger.log(`📦 Database name: ${process.env.DB_NAME || 'zentik'}`);
   logger.log(`🔧 Synchronize: ${process.env.DB_SYNCHRONIZE === 'true' ? 'enabled' : 'disabled'}`);
-  logger.log(`🔊 Logging: ${process.env.DB_LOGGING === 'true' || process.env.LOG_LEVEL === 'debug' ? 'enabled' : 'disabled'}`);
   logger.log('⏳ Creating NestJS application...');
 
   const app = await NestFactory.create(AppModule, {

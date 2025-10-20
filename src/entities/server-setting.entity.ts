@@ -41,7 +41,6 @@ export enum ServerSettingType {
   AttachmentsMaxFileSize = 'AttachmentsMaxFileSize',
   AttachmentsAllowedMimeTypes = 'AttachmentsAllowedMimeTypes',
   AttachmentsDeleteJobEnabled = 'AttachmentsDeleteJobEnabled',
-  AttachmentsDeleteCronJob = 'AttachmentsDeleteCronJob',
   AttachmentsMaxAge = 'AttachmentsMaxAge',
   
   // Backup
@@ -54,7 +53,6 @@ export enum ServerSettingType {
   // Messages
   MessagesMaxAge = 'MessagesMaxAge',
   MessagesDeleteJobEnabled = 'MessagesDeleteJobEnabled',
-  MessagesDeleteCronJob = 'MessagesDeleteCronJob',
   
   // Email
   EmailEnabled = 'EmailEnabled',
@@ -89,9 +87,6 @@ export enum ServerSettingType {
   LogLevel = 'LogLevel',
   LogStorageEnabled = 'LogStorageEnabled',
   LogRetentionDays = 'LogRetentionDays',
-  
-  // Loki Remote Logging
-  LokiEnabled = 'LokiEnabled',
   
   // Prometheus Metrics
   PrometheusEnabled = 'PrometheusEnabled',

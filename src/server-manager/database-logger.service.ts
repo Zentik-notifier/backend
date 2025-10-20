@@ -4,11 +4,6 @@ import { LogLevel } from '../entities/log.entity';
 import { ServerSettingsService } from './server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
-/**
- * Custom logger that saves logs to database and sends to Loki when enabled
- * This logger wraps the default NestJS console logger and adds persistence
- * It respects the LogLevel setting from ServerSettings
- */
 @Injectable({ scope: Scope.TRANSIENT })
 export class DatabaseLoggerService implements LoggerService {
   private context?: string;
@@ -107,9 +102,6 @@ export class DatabaseLoggerService implements LoggerService {
     this.saveToDatabase(LogLevel.VERBOSE, message, logContext);
   }
 
-  /**
-   * Save log to database and send to Loki asynchronously (fire and forget)
-   */
   private saveToDatabase(
     level: LogLevel,
     message: any,
