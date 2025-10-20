@@ -205,11 +205,25 @@ export class GitHubParser implements IBuiltinParser {
             .filter(Boolean);
 
           // Handle special filters if present in the list
-          if (allowed.includes('all_success')) {
-            return this.isSuccessEvent(payload);
-          }
-          if (allowed.includes('all_failure')) {
-            return this.isFailureEvent(payload);
+          const hasAllSuccess = allowed.includes('all_success');
+          const hasAllFailure = allowed.includes('all_failure');
+          
+          if (hasAllSuccess || hasAllFailure) {
+            const isSuccess = this.isSuccessEvent(payload);
+            const isFailure = this.isFailureEvent(payload);
+            
+            // Se uno dei filtri speciali matcha, accetta l'evento
+            if ((hasAllSuccess && isSuccess) || (hasAllFailure && isFailure)) {
+              return true;
+            }
+            
+            // Se ci sono solo filtri speciali e nessuno matcha, rifiuta
+            const hasOtherFilters = allowed.some(f => f !== 'all_success' && f !== 'all_failure');
+            if (!hasOtherFilters) {
+              return false;
+            }
+            
+            // Altrimenti continua con la logica normale per altri filtri
           }
           
           // Se la lista non include l'evento corrente, invalida il payload (verrà ignorato a monte)
