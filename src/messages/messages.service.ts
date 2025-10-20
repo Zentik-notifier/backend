@@ -621,8 +621,10 @@ export class MessagesService {
     this.logger.log(
       `Scanning messages for cleanup (all notifications received${maxAgeMs ? ` or older than ${maxAgeMs}ms` : ''})`,
     );
-    // Load all messages with their linked notification IDs to minimize queries
-    const messages = await this.messagesRepository.find();
+    // Load all messages with their buckets to check protection status
+    const messages = await this.messagesRepository.find({
+      relations: ['bucket'],
+    });
 
     if (messages.length === 0) return { deletedMessages: 0 };
 
@@ -642,10 +644,15 @@ export class MessagesService {
     }
 
     // Determine messages whose all notifications have receivedAt set, or older than maxAge, or have no notifications at all
-    // BUT exclude messages that have pending postpones
+    // BUT exclude messages that have pending postpones OR belong to protected buckets
     const deletableMessageIds: string[] = [];
     const now = Date.now();
     for (const m of messages) {
+      // Skip messages from protected buckets
+      if (m.bucket?.isProtected) {
+        continue;
+      }
+
       // Check if message has pending postpones
       const hasPendingPostpones = this.postponeService
         ? await this.postponeService.hasPendingPostpones(m.id)
