@@ -227,6 +227,16 @@ async function bootstrap() {
     logger.error('❌ Error during admin bucket initialization:', err);
   }
 
+  // Initialize public bucket at startup (after admin bucket)
+  try {
+    const dataSource = app.get(DataSource);
+    const { ensurePublicBucket } = await import('./seeds/public-bucket.seed');
+    await ensurePublicBucket(dataSource);
+    logger.log('✅ Public bucket initialization completed.');
+  } catch (err) {
+    logger.error('❌ Error during public bucket initialization:', err);
+  }
+
   // Set up custom database logger to intercept all logs
   try {
     const databaseLogger = await app.resolve(DatabaseLoggerService);
