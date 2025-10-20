@@ -1218,7 +1218,10 @@ enum UserSettingType {
   AutoAddDeleteAction
   AutoAddMarkAsReadAction
   AutoAddOpenNotificationAction
+  DefaultPostpones
+  DefaultSnoozes
   ExpoKey
+  GithubEventsFilter
   HomeassistantToken
   HomeassistantUrl
   Language

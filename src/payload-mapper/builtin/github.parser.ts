@@ -3,6 +3,8 @@ import { PayloadMapperBuiltInType } from '../../entities/payload-mapper.entity';
 import { IBuiltinParser, ParserOptions } from './builtin-parser.interface';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
+import { UsersService } from '../../users/users.service';
+import { UserSettingType } from '../../entities/user-setting.types';
 
 export interface GitHubWebhookPayload {
   action?: string;
@@ -161,20 +163,67 @@ export interface GitHubWebhookPayload {
 
 @Injectable()
 export class GitHubParser implements IBuiltinParser {
+  constructor(private readonly usersService: UsersService) {}
   get builtInType(): PayloadMapperBuiltInType {
     return PayloadMapperBuiltInType.ZENTIK_GITHUB;
   }
 
   get name(): string {
-    return 'ZentikGitHub';
+    return 'GitHub';
   }
 
   get description(): string {
-    return 'Parser for GitHub webhooks - handles ping, push, pull requests, issues, releases, workflows, and more';
+    return 'Parser for GitHub webhooks - handles ping, push, pull requests, issues, releases, workflows, and more. Special filters: ALL_SUCCESS (only success events), ALL_FAILURE (only failure events)';
   }
 
   async validate(payload: any, options?: ParserOptions): Promise<boolean> {
-    return new Promise(resolve => resolve(this.syncValidate(payload, options)));
+    // Prima convalida il payload base
+    const baseValid = this.syncValidate(payload, options);
+    if (!baseValid) return false;
+
+    if (options?.userId) {
+      try {
+        const filterSetting = await this.usersService.getUserSetting(
+          options.userId,
+          UserSettingType.GithubEventsFilter,
+        );
+        const filterText = filterSetting?.valueText?.trim();
+        if (filterText) {
+          const eventType = this.detectEventType(payload);
+          
+          // Handle special filters
+          if (filterText.toLowerCase() === 'all_success') {
+            return this.isSuccessEvent(payload);
+          }
+          if (filterText.toLowerCase() === 'all_failure') {
+            return this.isFailureEvent(payload);
+          }
+          
+          // Il filtro può essere una lista separata da virgole o JSON array
+          const allowed: string[] = (() => {
+            try {
+              return filterText.startsWith('[')
+                ? (JSON.parse(filterText) as string[])
+                : filterText.split(',');
+            } catch {
+              return filterText.split(',');
+            }
+          })()
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean);
+
+          // Se la lista non include l'evento corrente, invalida il payload (verrà ignorato a monte)
+          if (allowed.length > 0 && !allowed.includes(eventType.toLowerCase())) {
+            return false;
+          }
+        }
+      } catch {
+        // In caso di errore, non bloccare il webhook: fallback a valido
+        return true;
+      }
+    }
+
+    return true;
   }
 
   private syncValidate(payload: any, options?: ParserOptions): boolean {
@@ -251,6 +300,54 @@ export class GitHubParser implements IBuiltinParser {
     if (payload.discussion) return 'discussion';
     if (payload.ref_type) return payload.ref_type; // branch/tag creation
     return 'unknown';
+  }
+
+  private isSuccessEvent(payload: GitHubWebhookPayload): boolean {
+    const eventType = this.detectEventType(payload);
+    
+    // Workflow/Check events - check conclusion
+    if (eventType === 'workflow_job' && payload.workflow_job?.conclusion === 'success') return true;
+    if (eventType === 'workflow_run' && payload.workflow_run?.conclusion === 'success') return true;
+    if (eventType === 'check_suite' && payload.check_suite?.conclusion === 'success') return true;
+    if (eventType === 'check_run' && payload.check_run?.conclusion === 'success') return true;
+    
+    // Pull Request events - merged or opened
+    if (eventType === 'pull_request') {
+      const action = payload.action;
+      if (action === 'opened' || (action === 'closed' && payload.pull_request?.merged)) return true;
+    }
+    
+    // Issue events - opened
+    if (eventType === 'issue' && payload.action === 'opened') return true;
+    
+    // Release events - published
+    if (eventType === 'release' && payload.action === 'published') return true;
+    
+    // Push events - always considered success (code was successfully pushed)
+    if (eventType === 'push') return true;
+    
+    // Star/Fork events - always considered success (positive actions)
+    if (eventType === 'star' || eventType === 'fork') return true;
+    
+    return false;
+  }
+
+  private isFailureEvent(payload: GitHubWebhookPayload): boolean {
+    const eventType = this.detectEventType(payload);
+    
+    // Workflow/Check events - check conclusion
+    if (eventType === 'workflow_job' && payload.workflow_job?.conclusion === 'failure') return true;
+    if (eventType === 'workflow_run' && payload.workflow_run?.conclusion === 'failure') return true;
+    if (eventType === 'check_suite' && payload.check_suite?.conclusion === 'failure') return true;
+    if (eventType === 'check_run' && payload.check_run?.conclusion === 'failure') return true;
+    
+    // Pull Request events - closed without merge
+    if (eventType === 'pull_request' && payload.action === 'closed' && !payload.pull_request?.merged) return true;
+    
+    // Issue events - closed
+    if (eventType === 'issue' && payload.action === 'closed') return true;
+    
+    return false;
   }
 
   private formatMessage(

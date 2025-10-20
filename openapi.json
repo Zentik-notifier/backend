@@ -6869,7 +6869,10 @@
               "HomeassistantToken",
               "AutoAddDeleteAction",
               "AutoAddMarkAsReadAction",
-              "AutoAddOpenNotificationAction"
+              "AutoAddOpenNotificationAction",
+              "DefaultPostpones",
+              "DefaultSnoozes",
+              "GithubEventsFilter"
             ]
           },
           "valueText": {
@@ -6909,7 +6912,10 @@
               "HomeassistantToken",
               "AutoAddDeleteAction",
               "AutoAddMarkAsReadAction",
-              "AutoAddOpenNotificationAction"
+              "AutoAddOpenNotificationAction",
+              "DefaultPostpones",
+              "DefaultSnoozes",
+              "GithubEventsFilter"
             ]
           },
           "valueText": {
@@ -7604,7 +7610,10 @@
                 "HomeassistantToken",
                 "AutoAddDeleteAction",
                 "AutoAddMarkAsReadAction",
-                "AutoAddOpenNotificationAction"
+                "AutoAddOpenNotificationAction",
+                "DefaultPostpones",
+                "DefaultSnoozes",
+                "GithubEventsFilter"
               ]
             }
           }
@@ -7638,7 +7647,10 @@
                 "HomeassistantToken",
                 "AutoAddDeleteAction",
                 "AutoAddMarkAsReadAction",
-                "AutoAddOpenNotificationAction"
+                "AutoAddOpenNotificationAction",
+                "DefaultPostpones",
+                "DefaultSnoozes",
+                "GithubEventsFilter"
               ]
             }
           }

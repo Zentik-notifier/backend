@@ -10,6 +10,8 @@ export interface AutoActionSettings {
   autoAddDeleteAction?: boolean;
   autoAddMarkAsReadAction?: boolean;
   autoAddOpenNotificationAction?: boolean;
+  defaultSnoozes?: number[];
+  defaultPostpones?: number[];
 }
 
 export function generateAutomaticActions(
@@ -95,8 +97,12 @@ export function generateAutomaticActions(
     });
   }
 
-  if (message.snoozes && message.snoozes.length > 0) {
-    message.snoozes.forEach((snoozeMinutes) => {
+  const effectiveSnoozes = (message.snoozes && message.snoozes.length > 0)
+    ? message.snoozes
+    : (userSettings?.defaultSnoozes || []);
+
+  if (effectiveSnoozes && effectiveSnoozes.length > 0) {
+    effectiveSnoozes.forEach((snoozeMinutes) => {
       const snooze = localeService.getTranslatedText(
         locale,
         'notifications.actions.snooze',
@@ -113,8 +119,12 @@ export function generateAutomaticActions(
     });
   }
 
-  if (message.postpones && message.postpones.length > 0) {
-    message.postpones.forEach((postponeMinutes) => {
+  const effectivePostpones = (message.postpones && message.postpones.length > 0)
+    ? message.postpones
+    : (userSettings?.defaultPostpones || []);
+
+  if (effectivePostpones && effectivePostpones.length > 0) {
+    effectivePostpones.forEach((postponeMinutes) => {
       const postpone = localeService.getTranslatedText(
         locale,
         'notifications.actions.postpone',

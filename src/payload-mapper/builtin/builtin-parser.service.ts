@@ -23,7 +23,7 @@ export class BuiltinParserService {
     [PayloadMapperBuiltInType.ZENTIK_AUTHENTIK, []],
     [PayloadMapperBuiltInType.ZENTIK_SERVARR, []],
     [PayloadMapperBuiltInType.ZENTIK_RAILWAY, []],
-    [PayloadMapperBuiltInType.ZENTIK_GITHUB, []],
+    [PayloadMapperBuiltInType.ZENTIK_GITHUB, [UserSettingType.GithubEventsFilter]],
     [PayloadMapperBuiltInType.ZENTIK_EXPO, [UserSettingType.ExpoKey]],
   ]);
 

@@ -1,11 +1,17 @@
 import { GitHubParser } from './github.parser';
 import { NotificationDeliveryType } from '../../notifications/notifications.types';
+import { UsersService } from '../../users/users.service';
 
 describe('GitHubParser', () => {
   let parser: GitHubParser;
+  let mockUsersService: jest.Mocked<UsersService>;
 
   beforeEach(() => {
-    parser = new GitHubParser();
+    mockUsersService = {
+      getUserSetting: jest.fn(),
+      getMultipleUserSettings: jest.fn(),
+    } as any;
+    parser = new GitHubParser(mockUsersService);
   });
 
   it('should be defined', async () => {
@@ -680,6 +686,67 @@ describe('GitHubParser', () => {
       expect(result.subtitle).toContain('forker');
       expect(result.body).toContain('forked to forker/test-repo');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+  });
+
+  describe('Special Filters - ALL_SUCCESS and ALL_FAILURE', () => {
+    it('should filter only success events with ALL_SUCCESS', async () => {
+      // Mock usersService to return ALL_SUCCESS filter
+      mockUsersService.getUserSetting.mockResolvedValue({ valueText: 'ALL_SUCCESS' } as any);
+
+      // Success event - workflow job success
+      const successPayload = {
+        repository: { name: 'test-repo', full_name: 'owner/test-repo', html_url: 'https://github.com/owner/test-repo', owner: { login: 'owner' } },
+        sender: { login: 'sender' },
+        workflow_job: { conclusion: 'success', name: 'test-job', workflow_name: 'test-workflow', head_branch: 'main', status: 'completed' }
+      };
+
+      // Failure event - workflow job failure
+      const failurePayload = {
+        repository: { name: 'test-repo', full_name: 'owner/test-repo', html_url: 'https://github.com/owner/test-repo', owner: { login: 'owner' } },
+        sender: { login: 'sender' },
+        workflow_job: { conclusion: 'failure', name: 'test-job', workflow_name: 'test-workflow', head_branch: 'main', status: 'completed' }
+      };
+
+      expect(await parser.validate(successPayload, { userId: 'test-user' })).toBe(true);
+      expect(await parser.validate(failurePayload, { userId: 'test-user' })).toBe(false);
+    });
+
+    it('should filter only failure events with ALL_FAILURE', async () => {
+      // Mock usersService to return ALL_FAILURE filter
+      mockUsersService.getUserSetting.mockResolvedValue({ valueText: 'ALL_FAILURE' } as any);
+
+      // Success event - workflow job success
+      const successPayload = {
+        repository: { name: 'test-repo', full_name: 'owner/test-repo', html_url: 'https://github.com/owner/test-repo', owner: { login: 'owner' } },
+        sender: { login: 'sender' },
+        workflow_job: { conclusion: 'success', name: 'test-job', workflow_name: 'test-workflow', head_branch: 'main', status: 'completed' }
+      };
+
+      // Failure event - workflow job failure
+      const failurePayload = {
+        repository: { name: 'test-repo', full_name: 'owner/test-repo', html_url: 'https://github.com/owner/test-repo', owner: { login: 'owner' } },
+        sender: { login: 'sender' },
+        workflow_job: { conclusion: 'failure', name: 'test-job', workflow_name: 'test-workflow', head_branch: 'main', status: 'completed' }
+      };
+
+      expect(await parser.validate(successPayload, { userId: 'test-user' })).toBe(false);
+      expect(await parser.validate(failurePayload, { userId: 'test-user' })).toBe(true);
+    });
+
+    it('should handle case-insensitive special filters', async () => {
+      // Mock usersService to return all_success (lowercase)
+      mockUsersService.getUserSetting.mockResolvedValue({ valueText: 'all_success' } as any);
+
+      // Success event - PR merged
+      const successPayload = {
+        repository: { name: 'test-repo', full_name: 'owner/test-repo', html_url: 'https://github.com/owner/test-repo', owner: { login: 'owner' } },
+        sender: { login: 'sender' },
+        action: 'closed',
+        pull_request: { number: 1, title: 'Test PR', state: 'closed', html_url: 'https://github.com/owner/test-repo/pull/1', user: { login: 'author' }, merged: true }
+      };
+
+      expect(await parser.validate(successPayload, { userId: 'test-user' })).toBe(true);
     });
   });
 

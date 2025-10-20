@@ -166,16 +166,16 @@ describe('BuiltinParserService', () => {
           'Parser for Servarr applications (Radarr, Sonarr, Prowlarr, etc.) - handles movie/TV show download and import events, indexer events, health check notifications, application update events, and unknown payloads',
       });
       expect(parsers).toContainEqual({
-        name: 'ZentikRailway',
+        name: 'Railway',
         type: PayloadMapperBuiltInType.ZENTIK_RAILWAY,
         description:
           'Parser for Railway webhooks - handles deployment and alert events',
       });
       expect(parsers).toContainEqual({
-        name: 'ZentikGitHub',
+        name: 'GitHub',
         type: PayloadMapperBuiltInType.ZENTIK_GITHUB,
         description:
-          'Parser for GitHub webhooks - handles ping, push, pull requests, issues, releases, workflows, and more',
+          'Parser for GitHub webhooks - handles ping, push, pull requests, issues, releases, workflows, and more. Special filters: ALL_SUCCESS (only success events), ALL_FAILURE (only failure events)',
       });
       expect(parsers).toContainEqual({
         name: 'Expo',

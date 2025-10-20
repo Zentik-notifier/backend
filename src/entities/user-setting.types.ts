@@ -11,6 +11,10 @@ export enum UserSettingType {
   AutoAddDeleteAction = 'AutoAddDeleteAction',
   AutoAddMarkAsReadAction = 'AutoAddMarkAsReadAction',
   AutoAddOpenNotificationAction = 'AutoAddOpenNotificationAction',
+  DefaultPostpones = 'DefaultPostpones',
+  DefaultSnoozes = 'DefaultSnoozes',
+  // GitHub property mapper settings
+  GithubEventsFilter = 'GithubEventsFilter',
 }
 
 registerEnumType(UserSettingType, { name: 'UserSettingType' });

@@ -40,7 +40,7 @@ export class RailwayParser implements IBuiltinParser {
   }
 
   get name(): string {
-    return 'ZentikRailway';
+    return 'Railway';
   }
 
   get description(): string {

@@ -250,6 +250,8 @@ describe('PushNotificationOrchestratorService', () => {
           UserSettingType.AutoAddDeleteAction,
           UserSettingType.AutoAddMarkAsReadAction,
           UserSettingType.AutoAddOpenNotificationAction,
+          UserSettingType.DefaultSnoozes,
+          UserSettingType.DefaultPostpones,
         ],
         'device-1',
       );
@@ -260,6 +262,8 @@ describe('PushNotificationOrchestratorService', () => {
           autoAddDeleteAction: false,
           autoAddMarkAsReadAction: true,
           autoAddOpenNotificationAction: false,
+          defaultSnoozes: undefined,
+          defaultPostpones: undefined,
         },
       );
     });

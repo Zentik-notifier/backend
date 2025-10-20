@@ -57,6 +57,27 @@ export class PushNotificationOrchestratorService {
    * Returns a map with key format: "deviceId" -> settings
    * Makes ONE query per device since settings are now device+user level
    */
+  private parseListSetting(raw?: string | null): number[] | undefined {
+    if (!raw) return undefined;
+    try {
+      // Accept comma-separated or JSON array
+      const arr = raw.trim().startsWith('[') ? JSON.parse(raw) : raw.split(',');
+      return (arr as any[]).map((v) => Number(v)).filter((n) => !isNaN(n));
+    } catch {
+      return undefined;
+    }
+  }
+
+  private buildAutoActionSettings(settings: Map<UserSettingType, any>): AutoActionSettings {
+    return {
+      autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
+      autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
+      autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
+      defaultSnoozes: this.parseListSetting(settings.get(UserSettingType.DefaultSnoozes)?.valueText),
+      defaultPostpones: this.parseListSetting(settings.get(UserSettingType.DefaultPostpones)?.valueText),
+    };
+  }
+
   private async getDeviceSettingsForMultipleDevices(
     devices: Array<{ deviceId: string; userId: string }>,
   ): Promise<Map<string, AutoActionSettings>> {
@@ -67,6 +88,8 @@ export class PushNotificationOrchestratorService {
       UserSettingType.AutoAddDeleteAction,
       UserSettingType.AutoAddMarkAsReadAction,
       UserSettingType.AutoAddOpenNotificationAction,
+      UserSettingType.DefaultSnoozes,
+      UserSettingType.DefaultPostpones,
     ];
 
     // Fetch settings once per device in parallel
@@ -77,11 +100,7 @@ export class PushNotificationOrchestratorService {
         deviceId, // Pass deviceId for device-specific settings
       );
 
-      const deviceSettings: AutoActionSettings = {
-        autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
-        autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
-        autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
-      };
+      const deviceSettings: AutoActionSettings = this.buildAutoActionSettings(settings);
 
       return { deviceId, deviceSettings };
     });
@@ -469,15 +488,13 @@ export class PushNotificationOrchestratorService {
             UserSettingType.AutoAddDeleteAction,
             UserSettingType.AutoAddMarkAsReadAction,
             UserSettingType.AutoAddOpenNotificationAction,
+            UserSettingType.DefaultSnoozes,
+            UserSettingType.DefaultPostpones,
           ],
           userDevice.id,
         );
 
-        settings = {
-          autoAddDeleteAction: userSettingsMap.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
-          autoAddMarkAsReadAction: userSettingsMap.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
-          autoAddOpenNotificationAction: userSettingsMap.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
-        };
+        settings = this.buildAutoActionSettings(userSettingsMap);
       }
 
       if (userDevice.platform === DevicePlatform.IOS) {
