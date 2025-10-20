@@ -191,15 +191,7 @@ export class GitHubParser implements IBuiltinParser {
         if (filterText) {
           const eventType = this.detectEventType(payload);
           
-          // Handle special filters
-          if (filterText.toLowerCase() === 'all_success') {
-            return this.isSuccessEvent(payload);
-          }
-          if (filterText.toLowerCase() === 'all_failure') {
-            return this.isFailureEvent(payload);
-          }
-          
-          // Il filtro può essere una lista separata da virgole o JSON array
+          // Parse filter list (can be comma-separated or JSON array)
           const allowed: string[] = (() => {
             try {
               return filterText.startsWith('[')
@@ -212,6 +204,14 @@ export class GitHubParser implements IBuiltinParser {
             .map((s) => s.trim().toLowerCase())
             .filter(Boolean);
 
+          // Handle special filters if present in the list
+          if (allowed.includes('all_success')) {
+            return this.isSuccessEvent(payload);
+          }
+          if (allowed.includes('all_failure')) {
+            return this.isFailureEvent(payload);
+          }
+          
           // Se la lista non include l'evento corrente, invalida il payload (verrà ignorato a monte)
           if (allowed.length > 0 && !allowed.includes(eventType.toLowerCase())) {
             return false;
