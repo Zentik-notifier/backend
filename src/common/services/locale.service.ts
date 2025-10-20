@@ -22,6 +22,8 @@ export class LocaleService {
         path.join(__dirname, '..', 'locales'),
         // Alternative production path
         path.join(__dirname, '..', '..', 'locales'),
+        // Production path from dist/src/common/services to dist/common/locales
+        path.join(__dirname, '..', '..', '..', 'common', 'locales'),
         // Root project path (fallback)
         path.join(process.cwd(), 'src', 'common', 'locales'),
       ];

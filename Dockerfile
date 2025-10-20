@@ -22,6 +22,8 @@ COPY package*.json ./
 RUN npm ci --omit=dev || npm install --omit=dev
 # Copy built dist
 COPY --from=builder /app/dist ./dist
+# Copy public directory (needed by ServeStaticModule)
+COPY --from=builder /app/public ./public
 # Ensure backup directory exists (adjust if using a bind mount)
 RUN mkdir -p /data/storage/backups
 EXPOSE 3000
