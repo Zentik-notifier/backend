@@ -26,6 +26,7 @@ import { ServerSetting } from './src/entities/server-setting.entity';
 import { Log } from './src/entities/log.entity';
 import { SystemAccessToken } from './src/system-access-token/system-access-token.entity';
 import { AdminSubscription } from './src/entities/admin-subscription.entity';
+import { UpdateEnumsToUppercaseAndAddInviteCodes1729458000000 } from './database/migrations/1729458000000-UpdateEnumsToUppercaseAndAddInviteCodes';
 
 config({ path: '.env' });
 
@@ -72,7 +73,9 @@ const dataSource = new DataSource({
     AdminSubscription,
     MessageReminder,
   ],
-  migrations: ['database/migrations/*.ts'],
+  migrations: [
+    UpdateEnumsToUppercaseAndAddInviteCodes1729458000000,
+  ],
   migrationsTableName: 'migrations',
 });
 
