@@ -13,6 +13,7 @@ import { createAdminUsers } from './seeds/admin-users.seed';
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { DatabaseLoggerService } from './server-manager/database-logger.service';
 import { ServerSettingType } from './entities/server-setting.entity';
+import dataSource from '../ormconfig';
 
 // Global reference to the application instance
 let appInstance: INestApplication | null = null;
@@ -40,6 +41,38 @@ async function generateTypes(app: INestApplication) {
   await app.close();
 }
 
+async function runMigrations() {
+  const logger = new Logger('Migrations');
+  
+  if (process.env.DB_SYNCHRONIZE === 'true') {
+    logger.log('⚠️  DB_SYNCHRONIZE is enabled, skipping migrations');
+    return;
+  }
+
+  try {
+    logger.log('🔄 Initializing database connection for migrations...');
+    await dataSource.initialize();
+    
+    logger.log('🔄 Running pending migrations...');
+    const migrations = await dataSource.runMigrations();
+    
+    if (migrations.length > 0) {
+      logger.log(`✅ Executed ${migrations.length} migration(s):`);
+      migrations.forEach((migration) => {
+        logger.log(`  - ${migration.name}`);
+      });
+    } else {
+      logger.log('✅ Database is up to date, no migrations to run');
+    }
+    
+    await dataSource.destroy();
+    logger.log('✅ Migration process completed\n');
+  } catch (error) {
+    logger.error('❌ Migration failed:', error);
+    throw error;
+  }
+}
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
@@ -50,6 +83,10 @@ async function bootstrap() {
   logger.log(`🔌 Database host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}`);
   logger.log(`📦 Database name: ${process.env.DB_NAME || 'zentik'}`);
   logger.log(`🔧 Synchronize: ${process.env.DB_SYNCHRONIZE === 'true' ? 'enabled' : 'disabled'}`);
+  
+  // Run migrations before creating the app
+  await runMigrations();
+  
   logger.log('⏳ Creating NestJS application...');
 
   const app = await NestFactory.create(AppModule, {

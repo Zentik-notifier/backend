@@ -3,6 +3,7 @@
 -- Generated based on TypeORM entities
 
 -- Drop tables if they exist (in correct order due to foreign keys)
+DROP TABLE IF EXISTS invite_codes CASCADE;
 DROP TABLE IF EXISTS entity_permissions CASCADE;
 DROP TABLE IF EXISTS user_settings CASCADE;
 DROP TABLE IF EXISTS admin_subscriptions CASCADE;
@@ -46,8 +47,8 @@ CREATE TYPE device_platform_enum AS ENUM ('IOS', 'ANDROID', 'WEB');
 CREATE TYPE notification_delivery_type_enum AS ENUM ('SILENT', 'NORMAL', 'CRITICAL');
 CREATE TYPE http_method_enum AS ENUM ('GET', 'POST', 'PUT', 'PATCH', 'DELETE');
 CREATE TYPE user_role_enum AS ENUM ('user', 'admin');
-CREATE TYPE permission_enum AS ENUM ('read', 'write', 'delete', 'admin');
-CREATE TYPE resource_type_enum AS ENUM ('bucket', 'notification', 'user_webhook', 'user_access_token');
+CREATE TYPE permission_enum AS ENUM ('READ', 'WRITE', 'DELETE', 'ADMIN');
+CREATE TYPE resource_type_enum AS ENUM ('BUCKET', 'USER_WEBHOOK');
 CREATE TYPE event_type_enum AS ENUM ('LOGIN', 'LOGIN_OAUTH', 'LOGOUT', 'REGISTER', 'PUSH_PASSTHROUGH', 'MESSAGE', 'NOTIFICATION', 'BUCKET_SHARING', 'BUCKET_UNSHARING', 'DEVICE_REGISTER', 'DEVICE_UNREGISTER', 'ACCOUNT_DELETE');
 -- NOTE: ACCOUNT_DELETE added in code; ensure DB enum updated in migrations when applying
 CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOnBigPayload');
@@ -438,10 +439,31 @@ CREATE TABLE entity_permissions (
     "grantedById" UUID REFERENCES users(id) ON DELETE SET NULL,
     permissions text NOT NULL,
     "expiresAt" TIMESTAMP WITH TIME ZONE,
+    "inviteCodeId" UUID,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE("resourceType", "resourceId", "userId")
 );
+
+-- Create invite_codes table for shareable access codes
+CREATE TABLE invite_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(255) UNIQUE NOT NULL,
+    "resourceType" VARCHAR(50) NOT NULL,
+    "resourceId" UUID NOT NULL,
+    "createdBy" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    permissions text NOT NULL,
+    "expiresAt" TIMESTAMP WITH TIME ZONE,
+    "usageCount" INTEGER DEFAULT 0 NOT NULL,
+    "maxUses" INTEGER,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add foreign key constraint to entity_permissions for invite codes
+ALTER TABLE entity_permissions
+    ADD CONSTRAINT fk_entity_permissions_invite_code
+    FOREIGN KEY ("inviteCodeId") REFERENCES invite_codes(id) ON DELETE SET NULL;
 
 -- Add constraints for oauth_providers table
 -- Ensure custom providers have required URLs
@@ -501,6 +523,12 @@ CREATE INDEX idx_entity_permissions_user_id ON entity_permissions("userId");
 CREATE INDEX idx_entity_permissions_granted_by_id ON entity_permissions("grantedById");
 CREATE INDEX idx_entity_permissions_expires_at ON entity_permissions("expiresAt");
 CREATE INDEX idx_entity_permissions_resource_type_id ON entity_permissions("resourceType", "resourceId");
+CREATE INDEX idx_entity_permissions_invite_code_id ON entity_permissions("inviteCodeId");
+CREATE INDEX idx_invite_codes_code ON invite_codes(code);
+CREATE INDEX idx_invite_codes_resource_type ON invite_codes("resourceType");
+CREATE INDEX idx_invite_codes_resource_id ON invite_codes("resourceId");
+CREATE INDEX idx_invite_codes_created_by ON invite_codes("createdBy");
+CREATE INDEX idx_invite_codes_resource_type_id ON invite_codes("resourceType", "resourceId");
 CREATE INDEX idx_system_access_token_requests_user_id ON system_access_token_requests("userId");
 CREATE INDEX idx_system_access_token_requests_token_id ON system_access_token_requests("systemAccessTokenId");
 CREATE INDEX idx_system_access_token_requests_status ON system_access_token_requests(status);
@@ -560,6 +588,9 @@ CREATE TRIGGER update_attachments_updated_at BEFORE UPDATE ON attachments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
  
 CREATE TRIGGER update_entity_permissions_updated_at BEFORE UPDATE ON entity_permissions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_invite_codes_updated_at BEFORE UPDATE ON invite_codes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_oauth_providers_updated_at BEFORE UPDATE ON oauth_providers

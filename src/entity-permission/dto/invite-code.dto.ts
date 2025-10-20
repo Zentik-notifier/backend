@@ -36,6 +36,34 @@ export class CreateInviteCodeInput {
 }
 
 @InputType()
+export class UpdateInviteCodeInput {
+  @Field(() => String, { description: 'Invite code ID' })
+  @ApiProperty()
+  @IsString()
+  id: string;
+
+  @Field(() => [String], { nullable: true, description: 'Permissions to grant' })
+  @ApiProperty({ enum: Permission, isArray: true, required: false })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Permission, { each: true })
+  permissions?: Permission[];
+
+  @Field(() => String, { nullable: true, description: 'Expiration date (ISO string)' })
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  expiresAt?: string;
+
+  @Field(() => Int, { nullable: true, description: 'Maximum number of uses' })
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maxUses?: number;
+}
+
+@InputType()
 export class RedeemInviteCodeInput {
   @Field(() => String, { description: 'Invite code to redeem' })
   @ApiProperty()

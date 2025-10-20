@@ -6,6 +6,7 @@ import {
   EntityExecution,
   EntityPermission,
   Event,
+  InviteCode,
   Message,
   Notification,
   NotificationPostpone,
@@ -52,6 +53,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     Attachment,
     EntityExecution,
     Event,
+    InviteCode,
     Message,
     User,
     UserBucket,
@@ -71,7 +73,9 @@ export const databaseConfig: TypeOrmModuleOptions = {
     AdminSubscription,
     MessageReminder,
   ],
-  // migrations: [__sdirname + '/../database/migrations/*.ts'],
+  // NOTE: Migrations are run automatically during app bootstrap (see main.ts)
+  // For manual migration management, use: npm run migration:run/revert/show
+  // synchronize should be FALSE in production - use migrations instead
   synchronize: process.env.DB_SYNCHRONIZE === 'true',
   dropSchema: process.env.DB_DROP_SCHEMA === 'true',
   logging:

@@ -602,6 +602,9 @@ type Mutation {
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
   updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
+
+  """Update an invite code"""
+  updateInviteCode(input: UpdateInviteCodeInput!): InviteCode!
   updateOAuthProvider(id: String!, input: UpdateOAuthProviderDto!): OAuthProvider!
   updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
   updateProfile(input: UpdateProfileInput!): User!
@@ -1123,6 +1126,20 @@ input UpdateBucketDto {
 input UpdateDeviceTokenDto {
   newDeviceToken: String!
   oldDeviceToken: String!
+}
+
+input UpdateInviteCodeInput {
+  """Expiration date (ISO string)"""
+  expiresAt: String
+
+  """Invite code ID"""
+  id: String!
+
+  """Maximum number of uses"""
+  maxUses: Int
+
+  """Permissions to grant"""
+  permissions: [String!]
 }
 
 input UpdateOAuthProviderDto {

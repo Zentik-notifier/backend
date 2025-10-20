@@ -25,7 +25,7 @@ export class InviteCode {
   code: string;
 
   @Field(() => String, { description: 'Resource type (BUCKET, etc.)' })
-  @Column({ type: 'enum', enum: ResourceType })
+  @Column()
   @Index()
   resourceType: ResourceType;
 
@@ -52,11 +52,11 @@ export class InviteCode {
   expiresAt: Date | null;
 
   @Field(() => Number, { description: 'Number of times this code has been used' })
-  @Column({ default: 0 })
+  @Column({ type: 'int', default: 0 })
   usageCount: number;
 
   @Field(() => Number, { nullable: true, description: 'Maximum number of uses (null = unlimited)' })
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
   maxUses: number | null;
 
   @Field()

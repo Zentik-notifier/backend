@@ -8,6 +8,7 @@ export {
   ExecutionStatus,
 } from './entity-execution.entity';
 export { Event, EventType } from './event.entity';
+export { InviteCode } from './invite-code.entity';
 export { Message } from './message.entity';
 export { MessageReminder } from './message-reminder.entity';
 export { Notification } from './notification.entity';

@@ -6345,10 +6345,10 @@
             "items": {
               "type": "string",
               "enum": [
-                "read",
-                "write",
-                "delete",
-                "admin"
+                "READ",
+                "WRITE",
+                "DELETE",
+                "ADMIN"
               ]
             }
           },
@@ -7070,8 +7070,8 @@
           "resourceType": {
             "type": "string",
             "enum": [
-              "bucket",
-              "user_webhook"
+              "BUCKET",
+              "USER_WEBHOOK"
             ]
           },
           "resourceId": {
@@ -7094,10 +7094,10 @@
             "items": {
               "type": "string",
               "enum": [
-                "read",
-                "write",
-                "delete",
-                "admin"
+                "READ",
+                "WRITE",
+                "DELETE",
+                "ADMIN"
               ]
             }
           },
@@ -7117,8 +7117,8 @@
           "resourceType": {
             "type": "string",
             "enum": [
-              "bucket",
-              "user_webhook"
+              "BUCKET",
+              "USER_WEBHOOK"
             ]
           },
           "resourceId": {
@@ -7148,8 +7148,8 @@
           "resourceType": {
             "type": "string",
             "enum": [
-              "bucket",
-              "user_webhook"
+              "BUCKET",
+              "USER_WEBHOOK"
             ]
           },
           "resourceId": {
@@ -7160,10 +7160,10 @@
             "items": {
               "type": "string",
               "enum": [
-                "read",
-                "write",
-                "delete",
-                "admin"
+                "READ",
+                "WRITE",
+                "DELETE",
+                "ADMIN"
               ]
             }
           },

@@ -25,15 +25,15 @@ import { DevicePlatform } from '../../users/dto';
 
 // Enums
 export enum Permission {
-  READ = 'read',
-  WRITE = 'write',
-  DELETE = 'delete',
-  ADMIN = 'admin',
+  READ = 'READ',
+  WRITE = 'WRITE',
+  DELETE = 'DELETE',
+  ADMIN = 'ADMIN',
 }
 
 export enum ResourceType {
-  BUCKET = 'bucket',
-  USER_WEBHOOK = 'user_webhook',
+  BUCKET = 'BUCKET',
+  USER_WEBHOOK = 'USER_WEBHOOK',
 }
 
 /**

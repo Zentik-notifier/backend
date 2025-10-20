@@ -15,6 +15,7 @@ import { CommonModule } from './common/common.module';
 import { databaseConfig } from './config/database.config';
 import { ThrottlerUserOrIpGuard } from './common/guards/throttler-user-or-ip.guard';
 import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
+import { EntityPermissionModule } from './entity-permission/entity-permission.module';
 import { EventsModule } from './events/events.module';
 import { GraphqlModule } from './graphql/graphql.module';
 import { MessagesModule } from './messages/messages.module';
@@ -72,6 +73,7 @@ import { ServerSettingType } from './entities/server-setting.entity';
     SystemAccessTokenModule,
     UsersModule,
     BucketsModule,
+    EntityPermissionModule,
     NotificationsModule,
     MessagesModule,
     WebhooksModule,

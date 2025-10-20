@@ -6,6 +6,7 @@ import { InviteCode } from '../entities/invite-code.entity';
 import { InviteCodeService } from './invite-code.service';
 import {
   CreateInviteCodeInput,
+  UpdateInviteCodeInput,
   RedeemInviteCodeInput,
   InviteCodeRedemptionResult,
 } from './dto/invite-code.dto';
@@ -52,6 +53,14 @@ export class InviteCodeResolver {
     @CurrentUser('id') userId: string,
   ): Promise<InviteCodeRedemptionResult> {
     return this.inviteCodeService.redeemInviteCode(input.code, userId);
+  }
+
+  @Mutation(() => InviteCode, { description: 'Update an invite code' })
+  async updateInviteCode(
+    @Args('input') input: UpdateInviteCodeInput,
+    @CurrentUser('id') userId: string,
+  ): Promise<InviteCode> {
+    return this.inviteCodeService.updateInviteCode(input.id, input, userId);
   }
 
   @Mutation(() => Boolean, { description: 'Delete an invite code' })

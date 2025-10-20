@@ -32,10 +32,10 @@ export class InviteCodeService {
   ) {}
 
   /**
-   * Generate a secure random invite code
+   * Generate a secure random invite code (12 characters)
    */
   private generateCode(): string {
-    const randomBytes = crypto.randomBytes(16);
+    const randomBytes = crypto.randomBytes(6);
     return randomBytes.toString('hex').toUpperCase();
   }
 
@@ -102,7 +102,13 @@ export class InviteCodeService {
       `Created invite code ${code} for ${input.resourceType}:${input.resourceId}`,
     );
 
-    return saved;
+    // Reload with relations to include creator
+    const inviteCodeWithRelations = await this.inviteCodeRepository.findOne({
+      where: { id: saved.id },
+      relations: ['creator'],
+    });
+
+    return inviteCodeWithRelations!;
   }
 
   /**
@@ -232,6 +238,66 @@ export class InviteCodeService {
         error: 'Failed to grant permissions',
       };
     }
+  }
+
+  /**
+   * Update an invite code
+   */
+  async updateInviteCode(
+    codeId: string,
+    input: Partial<CreateInviteCodeInput>,
+    userId: string,
+  ): Promise<InviteCode> {
+    const inviteCode = await this.inviteCodeRepository.findOne({
+      where: { id: codeId },
+      relations: ['creator'],
+    });
+
+    if (!inviteCode) {
+      throw new NotFoundException('Invite code not found');
+    }
+
+    // Verify user has ADMIN permission
+    const hasAdminPermission = await this.entityPermissionService.hasPermissions(
+      userId,
+      inviteCode.resourceType,
+      inviteCode.resourceId,
+      [Permission.ADMIN],
+    );
+
+    if (!hasAdminPermission) {
+      throw new BadRequestException(
+        'You must have ADMIN permission to update invite codes',
+      );
+    }
+
+    // Update permissions if provided
+    if (input.permissions) {
+      inviteCode.permissions = input.permissions;
+    }
+
+    // Update expiresAt if provided
+    if (input.expiresAt !== undefined) {
+      if (input.expiresAt) {
+        const expiresAt = new Date(input.expiresAt);
+        if (expiresAt <= new Date()) {
+          throw new BadRequestException('Expiration date must be in the future');
+        }
+        inviteCode.expiresAt = expiresAt;
+      } else {
+        inviteCode.expiresAt = null;
+      }
+    }
+
+    // Update maxUses if provided
+    if (input.maxUses !== undefined) {
+      inviteCode.maxUses = input.maxUses || null;
+    }
+
+    const saved = await this.inviteCodeRepository.save(inviteCode);
+    this.logger.log(`Updated invite code ${inviteCode.code}`);
+
+    return saved;
   }
 
   /**
