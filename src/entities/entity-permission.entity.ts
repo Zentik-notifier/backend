@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
-import { Permission } from '../auth/dto/auth.dto';
+import { Permission, ResourceType } from '../auth/dto/auth.dto';
 import {
   Column,
   CreateDateColumn,
@@ -29,7 +29,7 @@ export class EntityPermission {
       'Type of the resource (e.g., bucket, notification, user_webhook)',
   })
   @Column()
-  resourceType: string;
+  resourceType: ResourceType;
 
   @Field()
   @ApiProperty({ description: 'ID of the resource' })
@@ -62,6 +62,11 @@ export class EntityPermission {
   })
   @Column({ nullable: true })
   expiresAt: Date;
+
+  @Field(() => String, { nullable: true, description: 'Invite code ID used to create this permission' })
+  @ApiProperty({ required: false, description: 'Invite code ID used to create this permission' })
+  @Column({ type: 'uuid', nullable: true })
+  inviteCodeId: string | null;
 
   @Field()
   @ApiProperty()

@@ -528,4 +528,28 @@ export class EntityPermissionService {
 
     return Array.from(userIds);
   }
+
+  /**
+   * Find a specific permission record
+   */
+  async findPermission(
+    userId: string,
+    resourceType: ResourceType,
+    resourceId: string,
+  ): Promise<EntityPermission | null> {
+    return this.entityPermissionRepository.findOne({
+      where: {
+        user: { id: userId },
+        resourceType,
+        resourceId,
+      },
+    });
+  }
+
+  /**
+   * Save a permission record
+   */
+  async savePermission(permission: EntityPermission): Promise<EntityPermission> {
+    return this.entityPermissionRepository.save(permission);
+  }
 }

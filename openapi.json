@@ -3542,6 +3542,132 @@
         ]
       }
     },
+    "/api/v1/api/v1/invite-codes": {
+      "post": {
+        "operationId": "InviteCodeController_createInviteCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInviteCodeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new invite code",
+        "tags": [
+          "invite-codes"
+        ]
+      },
+      "get": {
+        "operationId": "InviteCodeController_getInviteCodesForResource",
+        "parameters": [
+          {
+            "name": "resourceType",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get invite codes for a resource",
+        "tags": [
+          "invite-codes"
+        ]
+      }
+    },
+    "/api/v1/api/v1/invite-codes/{id}": {
+      "get": {
+        "operationId": "InviteCodeController_getInviteCodeById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get invite code by ID",
+        "tags": [
+          "invite-codes"
+        ]
+      },
+      "delete": {
+        "operationId": "InviteCodeController_deleteInviteCode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete an invite code",
+        "tags": [
+          "invite-codes"
+        ]
+      }
+    },
+    "/api/v1/api/v1/invite-codes/redeem": {
+      "post": {
+        "operationId": "InviteCodeController_redeemInviteCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemInviteCodeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Redeem an invite code",
+        "tags": [
+          "invite-codes"
+        ]
+      }
+    },
     "/api/v1/messages": {
       "post": {
         "description": "Supports multiple content types and data sources. Data can be combined from body, query parameters, path parameters, and headers (x-message-*). Headers take highest precedence, followed by path params, query params, and body.",
@@ -6231,6 +6357,10 @@
             "type": "string",
             "description": "Optional expiration date for the permissions"
           },
+          "inviteCodeId": {
+            "type": "object",
+            "description": "Invite code ID used to create this permission"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -7010,6 +7140,55 @@
         "required": [
           "resourceType",
           "resourceId"
+        ]
+      },
+      "CreateInviteCodeInput": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "enum": [
+              "bucket",
+              "user_webhook"
+            ]
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "delete",
+                "admin"
+              ]
+            }
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "maxUses": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "resourceType",
+          "resourceId",
+          "permissions"
+        ]
+      },
+      "RedeemInviteCodeInput": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
         ]
       },
       "MediaType": {
