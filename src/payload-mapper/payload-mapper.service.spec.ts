@@ -143,7 +143,6 @@ describe('PayloadMapperService', () => {
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
         where: [
-          { id: 'mapper-1', userId: 'user-1' },
           { name: 'mapper-1', userId: 'user-1' },
         ],
         relations: ['user'],
@@ -186,7 +185,6 @@ describe('PayloadMapperService', () => {
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
         where: [
-          { id: 'mapper-1', userId: 'user-1' },
           { name: 'mapper-1', userId: 'user-1' },
         ],
         relations: ['user'],
@@ -206,7 +204,6 @@ describe('PayloadMapperService', () => {
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
         where: [
-          { id: 'mapper-1', userId: 'user-1' },
           { name: 'mapper-1', userId: 'user-1' },
         ],
         relations: ['user'],
@@ -272,7 +269,6 @@ describe('PayloadMapperService', () => {
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
         where: [
-          { id: 'mapper-1', userId: 'user-1' },
           { name: 'mapper-1', userId: 'user-1' },
         ],
         relations: ['user'],
@@ -315,7 +311,6 @@ describe('PayloadMapperService', () => {
 
       expect(payloadMapperRepository.findOne).toHaveBeenCalledWith({
         where: [
-          { id: 'Test Mapper', userId: 'user-1' },
           { name: 'Test Mapper', userId: 'user-1' },
         ],
         relations: ['user'],

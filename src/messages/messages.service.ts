@@ -25,6 +25,7 @@ import { PushNotificationOrchestratorService } from '../notifications/push-orche
 import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { UsersService } from '../users/users.service';
+import { isUuid } from '../common/utils/validation.utils';
 import {
   CreateMessageDto,
   CreateMessageWithAttachmentDto,
@@ -54,22 +55,17 @@ export class MessagesService {
     private readonly reminderService: MessageReminderService,
   ) {}
 
-  private isUuid(identifier: string): boolean {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(identifier);
-  }
 
   private async findBucketByIdOrName(
     bucketIdOrName: string,
     userId: string,
   ): Promise<Bucket> {
     // First try to find by ID (if it's a valid UUID format)
-    const isUuid = this.isUuid(bucketIdOrName);
+    const isValidUuid = isUuid(bucketIdOrName);
 
     let bucket: Bucket | null = null;
 
-    if (isUuid) {
+    if (isValidUuid) {
       // Try to find by ID first
       bucket = await this.bucketsRepository
         .createQueryBuilder('bucket')
@@ -124,8 +120,8 @@ export class MessagesService {
     }
 
     // Separate UUIDs from usernames
-    const userIds = userIdsOrUsernames.filter((id) => this.isUuid(id));
-    const usernames = userIdsOrUsernames.filter((id) => !this.isUuid(id));
+    const userIds = userIdsOrUsernames.filter((id) => isUuid(id));
+    const usernames = userIdsOrUsernames.filter((id) => !isUuid(id));
 
     let users: User[] = [];
 

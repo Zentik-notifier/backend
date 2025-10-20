@@ -11,6 +11,7 @@ import { EntityExecutionService } from '../entity-execution/entity-execution.ser
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { BuiltinParserService } from './builtin';
 import { CreatePayloadMapperDto, UpdatePayloadMapperDto } from './dto';
+import { isUuid } from '../common/utils/validation.utils';
 
 /**
  * Interface for parser execution results
@@ -102,10 +103,14 @@ export class PayloadMapperService {
     }
 
     const payloadMapper = await this.payloadMapperRepository.findOne({
-      where: [
-        { id, userId },
-        { name: id, userId },
-      ],
+      where: isUuid(id) 
+        ? [
+            { id, userId },
+            { name: id, userId },
+          ]
+        : [
+            { name: id, userId },
+          ],
       relations: ['user'],
     });
 
