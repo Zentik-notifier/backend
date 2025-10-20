@@ -72,6 +72,30 @@ type Bucket {
   user: User!
   userBucket: UserBucket
   userBuckets: [UserBucket!]
+  userPermissions: BucketPermissionsDto!
+}
+
+type BucketPermissionsDto {
+  """User can administer this bucket"""
+  canAdmin: Boolean!
+
+  """User can delete this bucket"""
+  canDelete: Boolean!
+
+  """User can read from this bucket"""
+  canRead: Boolean!
+
+  """User can write to this bucket"""
+  canWrite: Boolean!
+
+  """User is the owner of this bucket"""
+  isOwner: Boolean!
+
+  """Bucket is shared with this user"""
+  isSharedWithMe: Boolean!
+
+  """Number of users this bucket is shared with"""
+  sharedCount: Int!
 }
 
 input ChangePasswordInput {

@@ -18,6 +18,7 @@ describe('BucketsService', () => {
   let service: BucketsService;
   let bucketsRepository: Repository<Bucket>;
   let userBucketRepository: Repository<UserBucket>;
+  let userRepository: Repository<User>;
   let entityPermissionService: EntityPermissionService;
   let attachmentsService: AttachmentsService;
   let urlBuilderService: UrlBuilderService;
@@ -109,6 +110,7 @@ describe('BucketsService', () => {
           useValue: {
             hasPermissions: jest.fn().mockResolvedValue(true),
             checkPermission: jest.fn().mockResolvedValue(true),
+            getResourcePermissions: jest.fn().mockResolvedValue([]),
           },
         },
         {
@@ -145,6 +147,9 @@ describe('BucketsService', () => {
     );
     userBucketRepository = module.get<Repository<UserBucket>>(
       getRepositoryToken(UserBucket),
+    );
+    userRepository = module.get<Repository<User>>(
+      getRepositoryToken(User),
     );
     entityPermissionService = module.get<EntityPermissionService>(
       EntityPermissionService,
@@ -538,6 +543,196 @@ describe('BucketsService', () => {
         mockUserBucket.snoozeUntil.getTime() - expectedTime.getTime(),
       );
       expect(timeDiff).toBeLessThan(5000); // Within 5 seconds tolerance
+    });
+  });
+
+  describe('calculateBucketPermissions', () => {
+    const mockOwner = {
+      id: 'owner-id',
+      email: 'owner@test.com',
+      role: UserRole.USER,
+    };
+
+    const mockAdmin = {
+      id: 'admin-id',
+      email: 'admin@test.com',
+      role: UserRole.ADMIN,
+    };
+
+    const mockRegularUser = {
+      id: 'user-id',
+      email: 'user@test.com',
+      role: UserRole.USER,
+    };
+
+    const mockBucketForPermissions: Partial<Bucket> = {
+      id: 'bucket-1',
+      name: 'Test Bucket',
+      user: mockOwner as any,
+      isAdmin: false,
+      isPublic: false,
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should grant all permissions to bucket owner', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockOwner as any);
+      jest.spyOn(entityPermissionService, 'getResourcePermissions').mockResolvedValue([]);
+
+      const permissions = await service.calculateBucketPermissions(
+        mockBucketForPermissions as Bucket,
+        'owner-id'
+      );
+
+      expect(permissions).toEqual({
+        canWrite: true,
+        canDelete: true,
+        canAdmin: true,
+        canRead: true,
+        isOwner: true,
+        isSharedWithMe: false,
+        sharedCount: 0,
+      });
+    });
+
+    it('should grant all permissions to admin for admin bucket', async () => {
+      const adminBucket = {
+        ...mockBucketForPermissions,
+        isAdmin: true,
+      };
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockAdmin as any);
+      jest.spyOn(entityPermissionService, 'getResourcePermissions').mockResolvedValue([]);
+
+      const permissions = await service.calculateBucketPermissions(
+        adminBucket as Bucket,
+        'admin-id'
+      );
+
+      expect(permissions).toEqual({
+        canWrite: true,
+        canDelete: false,
+        canAdmin: false,
+        canRead: true,
+        isOwner: false,
+        isSharedWithMe: false,
+        sharedCount: 0,
+      });
+    });
+
+    it('should grant read permission for public bucket', async () => {
+      const publicBucket = {
+        ...mockBucketForPermissions,
+        isPublic: true,
+      };
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockRegularUser as any);
+      jest.spyOn(entityPermissionService, 'getResourcePermissions').mockResolvedValue([]);
+
+      const permissions = await service.calculateBucketPermissions(
+        publicBucket as Bucket,
+        'user-id'
+      );
+
+      expect(permissions).toEqual({
+        canWrite: false,
+        canDelete: false,
+        canAdmin: false,
+        canRead: true,
+        isOwner: false,
+        isSharedWithMe: false,
+        sharedCount: 0,
+      });
+    });
+
+    it('should grant permissions based on explicit entity permissions', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockRegularUser as any);
+      jest.spyOn(entityPermissionService, 'getResourcePermissions').mockResolvedValue([
+        {
+          id: 'perm-1',
+          permissions: [Permission.WRITE, Permission.READ],
+          user: mockRegularUser as any,
+        } as any,
+      ]);
+
+      const permissions = await service.calculateBucketPermissions(
+        mockBucketForPermissions as Bucket,
+        'user-id'
+      );
+
+      expect(permissions).toEqual({
+        canWrite: true,
+        canDelete: false,
+        canAdmin: false,
+        canRead: true,
+        isOwner: false,
+        isSharedWithMe: true,
+        sharedCount: 1,
+      });
+    });
+
+    it('should grant all permissions with ADMIN permission', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockRegularUser as any);
+      jest.spyOn(entityPermissionService, 'getResourcePermissions').mockResolvedValue([
+        {
+          id: 'perm-1',
+          permissions: [Permission.ADMIN],
+          user: mockRegularUser as any,
+        } as any,
+      ]);
+
+      const permissions = await service.calculateBucketPermissions(
+        mockBucketForPermissions as Bucket,
+        'user-id'
+      );
+
+      expect(permissions).toEqual({
+        canWrite: true,
+        canDelete: true,
+        canAdmin: true,
+        canRead: true,
+        isOwner: false,
+        isSharedWithMe: true,
+        sharedCount: 1,
+      });
+    });
+
+    it('should deny all permissions for user without access', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockRegularUser as any);
+      jest.spyOn(entityPermissionService, 'getResourcePermissions').mockResolvedValue([]);
+
+      const permissions = await service.calculateBucketPermissions(
+        mockBucketForPermissions as Bucket,
+        'user-id'
+      );
+
+      expect(permissions).toEqual({
+        canWrite: false,
+        canDelete: false,
+        canAdmin: false,
+        canRead: false,
+        isOwner: false,
+        isSharedWithMe: false,
+        sharedCount: 0,
+      });
+    });
+
+    it('should calculate sharedCount correctly', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockOwner as any);
+      jest.spyOn(entityPermissionService, 'getResourcePermissions').mockResolvedValue([
+        { id: 'perm-1', permissions: [Permission.READ] } as any,
+        { id: 'perm-2', permissions: [Permission.WRITE] } as any,
+        { id: 'perm-3', permissions: [Permission.ADMIN] } as any,
+      ]);
+
+      const permissions = await service.calculateBucketPermissions(
+        mockBucketForPermissions as Bucket,
+        'owner-id'
+      );
+
+      expect(permissions.sharedCount).toBe(3);
     });
   });
 });

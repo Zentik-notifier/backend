@@ -17,7 +17,7 @@ import { EventTrackingService } from '../events/event-tracking.service';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { UserRole } from '../users/users.types';
-import { CreateBucketDto, UpdateBucketDto } from './dto/index';
+import { CreateBucketDto, UpdateBucketDto, BucketPermissionsDto } from './dto/index';
 
 @Injectable()
 export class BucketsService {
@@ -34,7 +34,7 @@ export class BucketsService {
     private readonly eventTrackingService: EventTrackingService,
     private readonly attachmentsService: AttachmentsService,
     private readonly urlBuilderService: UrlBuilderService,
-  ) {}
+  ) { }
 
   async create(
     userId: string,
@@ -48,7 +48,7 @@ export class BucketsService {
     // Save then reload with relations to ensure User fields (e.g. email)
     // are populated before returning to the GraphQL layer.
     const saved = await this.bucketsRepository.save(bucket);
-    
+
     // Generate bucket icon automatically (only if attachments are enabled)
     const attachmentsEnabled = await this.attachmentsService.isAttachmentsEnabled();
     if (attachmentsEnabled) {
@@ -61,10 +61,10 @@ export class BucketsService {
           saved.icon,
           createBucketDto.generateIconWithInitials ?? true,
         );
-        
+
         // Update bucket with icon attachment UUID and preserve original icon URL
-        await this.bucketsRepository.update(saved.id, { 
-          iconAttachmentUuid: attachment.id 
+        await this.bucketsRepository.update(saved.id, {
+          iconAttachmentUuid: attachment.id
         });
         saved.iconAttachmentUuid = attachment.id;
       } catch (error) {
@@ -81,7 +81,7 @@ export class BucketsService {
     // Create UserBucket relationship immediately to optimize future snooze operations
     try {
       await this.createUserBucket(userId, { bucketId: saved.id });
-    } catch (error) {}
+    } catch (error) { }
 
     return reloaded ?? saved;
   }
@@ -177,12 +177,12 @@ export class BucketsService {
 
     // Check if user owns the bucket or has read permissions
     const isOwner = baseBucket.user.id === userId;
-    
+
     // Check if it's an admin bucket and user is admin
     const user = await this.userRepository.findOne({
       where: { id: userId },
     });
-    const isAdminAccessingAdminBucket = 
+    const isAdminAccessingAdminBucket =
       baseBucket.isAdmin && user && user.role === UserRole.ADMIN;
 
     if (!isOwner && !isAdminAccessingAdminBucket) {
@@ -223,7 +223,7 @@ export class BucketsService {
           (baseBucket as any).userBucket = userBucket || undefined;
         }
       }
-    } catch {}
+    } catch { }
 
     return baseBucket;
   }
@@ -290,10 +290,10 @@ export class BucketsService {
           saved.icon,
           updateBucketDto.generateIconWithInitials ?? true,
         );
-        
+
         // Update bucket with icon attachment UUID (don't overwrite icon field)
-        await this.bucketsRepository.update(saved.id, { 
-          iconAttachmentUuid: attachment.id 
+        await this.bucketsRepository.update(saved.id, {
+          iconAttachmentUuid: attachment.id
         });
         saved.iconAttachmentUuid = attachment.id;
       } catch (error) {
@@ -536,5 +536,77 @@ export class BucketsService {
 
       await this.userBucketRepository.remove(userBucket);
     }
+  }
+
+  async calculateBucketPermissions(
+    bucket: Bucket,
+    userId: string,
+  ): Promise<BucketPermissionsDto> {
+    const isOwner = bucket.user?.id === userId;
+
+    // Get user to check if admin
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    const isAdmin = user && user.role === UserRole.ADMIN;
+    const isModerator = isAdmin || (user && user.role === UserRole.MODERATOR);
+
+    // Get all permissions for this bucket and user
+    const allPermissions = await this.entityPermissionService.getResourcePermissions(
+      ResourceType.BUCKET,
+      bucket.id,
+      userId,
+    );
+
+    const permissions = allPermissions.flatMap((p) => p.permissions);
+
+    // Check if user has read permission
+    const canRead =
+      isOwner ||
+      (bucket.isAdmin && (isModerator)) ||
+      bucket.isPublic ||
+      permissions.includes(Permission.READ) ||
+      permissions.includes(Permission.WRITE) ||
+      permissions.includes(Permission.ADMIN);
+
+    // Check if user has write permission
+    const canWrite =
+      isOwner ||
+      (bucket.isAdmin && isAdmin) ||
+      (bucket.isPublic && isModerator) ||
+      permissions.includes(Permission.WRITE) ||
+      permissions.includes(Permission.ADMIN);
+
+    // Check if user can delete
+    const canDelete =
+      isOwner ||
+      (bucket.isProtected && isAdmin) ||
+      permissions.includes(Permission.DELETE) ||
+      permissions.includes(Permission.ADMIN);
+
+    // Check if user can admin
+    const canAdmin =
+      isOwner || permissions.includes(Permission.ADMIN);
+
+    // Check if bucket is shared with this user
+    const isSharedWithMe = !isOwner && permissions.length > 0;
+
+    // Count shared users by counting permissions for this resource
+    const sharedPermissions = await this.entityPermissionService.getResourcePermissions(
+      ResourceType.BUCKET,
+      bucket.id,
+      userId,
+    );
+    const sharedCount = sharedPermissions.length;
+
+    return {
+      canWrite,
+      canDelete,
+      canAdmin,
+      canRead,
+      isOwner,
+      isSharedWithMe,
+      sharedCount,
+    };
   }
 }

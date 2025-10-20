@@ -69,6 +69,8 @@ describe('BucketsResolver', () => {
     isBucketSnoozed: jest.fn(),
     setBucketSnooze: jest.fn(),
     updateBucketSnoozes: jest.fn(),
+    calculateBucketPermissions: jest.fn(),
+    findUserBucketByBucketAndUser: jest.fn(),
   };
 
   const mockSubscriptionService = {
@@ -388,5 +390,61 @@ describe('BucketsResolver', () => {
     });
 
     // getSnoozeStatus query removed from schema; test not applicable anymore
+  });
+
+  describe('userPermissionsField', () => {
+    const mockBucketPermissions = {
+      canWrite: true,
+      canDelete: true,
+      canAdmin: true,
+      canRead: true,
+      isOwner: true,
+      isSharedWithMe: false,
+      sharedCount: 2,
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return bucket permissions for the current user', async () => {
+      mockBucketsService.calculateBucketPermissions.mockResolvedValue(
+        mockBucketPermissions,
+      );
+
+      const result = await resolver.userPermissionsField(
+        mockBucket as Bucket,
+        'user-1',
+      );
+
+      expect(result).toEqual(mockBucketPermissions);
+      expect(mockBucketsService.calculateBucketPermissions).toHaveBeenCalledWith(
+        mockBucket,
+        'user-1',
+      );
+    });
+
+    it('should call calculateBucketPermissions with correct parameters', async () => {
+      const differentBucket = { ...mockBucket, id: 'bucket-2' };
+      mockBucketsService.calculateBucketPermissions.mockResolvedValue({
+        canWrite: false,
+        canDelete: false,
+        canAdmin: false,
+        canRead: true,
+        isOwner: false,
+        isSharedWithMe: true,
+        sharedCount: 0,
+      });
+
+      await resolver.userPermissionsField(
+        differentBucket as Bucket,
+        'user-2',
+      );
+
+      expect(mockBucketsService.calculateBucketPermissions).toHaveBeenCalledWith(
+        differentBucket,
+        'user-2',
+      );
+    });
   });
 });
