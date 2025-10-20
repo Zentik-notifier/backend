@@ -748,6 +748,97 @@ describe('GitHubParser', () => {
 
       expect(await parser.validate(successPayload, { userId: 'test-user' })).toBe(true);
     });
+
+    it('should reject in_progress workflow_run with ALL_SUCCESS,ALL_FAILURE filter', async () => {
+      // Mock usersService to return ALL_SUCCESS,ALL_FAILURE filter (comma-separated)
+      mockUsersService.getUserSetting.mockResolvedValue({ valueText: 'ALL_SUCCESS,ALL_FAILURE' } as any);
+
+      // In-progress workflow run - conclusion is null, not success or failure
+      const inProgressPayload = {
+        action: 'in_progress',
+        workflow_run: {
+          id: 18661501364,
+          name: 'Build and Push Fullstack to GHCR',
+          head_branch: 'main',
+          head_sha: '57bcf586e0ed953029c1b3d1fc0dd83463db6556',
+          status: 'in_progress',
+          conclusion: null,
+          html_url: 'https://github.com/Zentik-notifier/zentik-notifier/actions/runs/18661501364',
+        },
+        workflow: {
+          id: 197338816,
+          name: 'Build and Push Fullstack to GHCR',
+          path: '.github/workflows/build-full-ghcr.yaml',
+        },
+        repository: {
+          id: 1051726550,
+          name: 'zentik-notifier',
+          full_name: 'Zentik-notifier/zentik-notifier',
+          html_url: 'https://github.com/Zentik-notifier/zentik-notifier',
+          owner: { login: 'Zentik-notifier' }
+        },
+        sender: { login: 'apocaliss92' }
+      };
+
+      // Should reject because it's neither success nor failure
+      expect(await parser.validate(inProgressPayload, { userId: 'test-user' })).toBe(false);
+    });
+
+    it('should accept completed workflow_run with success when using ALL_SUCCESS,ALL_FAILURE filter', async () => {
+      // Mock usersService to return ALL_SUCCESS,ALL_FAILURE filter
+      mockUsersService.getUserSetting.mockResolvedValue({ valueText: 'ALL_SUCCESS,ALL_FAILURE' } as any);
+
+      // Completed workflow run with success
+      const successPayload = {
+        action: 'completed',
+        workflow_run: {
+          id: 18656036342,
+          name: 'CI Tests',
+          head_branch: 'main',
+          status: 'completed',
+          conclusion: 'success',
+          html_url: 'https://github.com/Zentik-notifier/backend/actions/runs/18656036342',
+        },
+        repository: {
+          name: 'backend',
+          full_name: 'Zentik-notifier/backend',
+          html_url: 'https://github.com/Zentik-notifier/backend',
+          owner: { login: 'Zentik-notifier' }
+        },
+        sender: { login: 'apocaliss92' }
+      };
+
+      // Should accept because it's a success
+      expect(await parser.validate(successPayload, { userId: 'test-user' })).toBe(true);
+    });
+
+    it('should accept completed workflow_run with failure when using ALL_SUCCESS,ALL_FAILURE filter', async () => {
+      // Mock usersService to return ALL_SUCCESS,ALL_FAILURE filter
+      mockUsersService.getUserSetting.mockResolvedValue({ valueText: 'ALL_SUCCESS,ALL_FAILURE' } as any);
+
+      // Completed workflow run with failure
+      const failurePayload = {
+        action: 'completed',
+        workflow_run: {
+          id: 18656036343,
+          name: 'CI Tests',
+          head_branch: 'main',
+          status: 'completed',
+          conclusion: 'failure',
+          html_url: 'https://github.com/Zentik-notifier/backend/actions/runs/18656036343',
+        },
+        repository: {
+          name: 'backend',
+          full_name: 'Zentik-notifier/backend',
+          html_url: 'https://github.com/Zentik-notifier/backend',
+          owner: { login: 'Zentik-notifier' }
+        },
+        sender: { login: 'apocaliss92' }
+      };
+
+      // Should accept because it's a failure
+      expect(await parser.validate(failurePayload, { userId: 'test-user' })).toBe(true);
+    });
   });
 
   describe('getTestPayload', () => {

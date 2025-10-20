@@ -150,14 +150,13 @@ export class BuiltinParserService {
   /**
    * Transforms a payload using the specified parser
    */
-  async transformPayload(parserName: string, payload: any, options?: ParserOptions): Promise<CreateMessageDto> {
+  async transformPayload(parserName: string, payload: any, options?: ParserOptions): Promise<CreateMessageDto | null> {
     const parser = this.getParser(parserName);
 
     const isValid = await parser.validate(payload, options);
     if (!isValid) {
-      throw new Error(
-        `Invalid payload for parser ${parserName}`,
-      );
+      // Return null to indicate SKIPPED (e.g., filtered by user settings)
+      return null;
     }
 
     return await parser.parse(payload, options);
