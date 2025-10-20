@@ -24,6 +24,5 @@ RUN npm ci --omit=dev || npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 # Ensure backup directory exists (adjust if using a bind mount)
 RUN mkdir -p /data/storage/backups
-# Copy any runtime files (e.g., swagger ui assets if needed)
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
