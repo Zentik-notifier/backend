@@ -171,9 +171,6 @@ export class MessagesService {
     requesterId: string,
     skipEventTracking = false,
   ): Promise<Message> {
-    this.logger.log(
-      `Creating message for bucketId=${createMessageDto.bucketId} by user=${requesterId}`,
-    );
     const bucket = await this.findBucketByIdOrName(
       createMessageDto.bucketId,
       requesterId,
@@ -258,7 +255,6 @@ export class MessagesService {
     const savedMessage: Message = await this.messagesRepository.save(
       message as any,
     );
-    this.logger.log(`Message created with ID: ${savedMessage.id}`);
 
     // Track message event (skip for admin notifications to prevent infinite loops)
     if (!skipEventTracking) {
@@ -284,9 +280,6 @@ export class MessagesService {
         requesterId,
         processedUserIds,
         skipEventTracking, // Also skip notification tracking to prevent infinite loop
-      );
-      this.logger.log(
-        `Created ${notifications.length} notifications for message ${baseMessage.id}`,
       );
 
       // Create reminders if remindEveryMinutes is set

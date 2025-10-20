@@ -20,6 +20,8 @@ export function generateAutomaticActions(
   localeService: LocaleService,
   userSettings?: AutoActionSettings,
 ): NotificationAction[] {
+  
+  
   const message = notification.message;
   const actions: NotificationAction[] = [];
   const locale = (message.locale || 'en-EN') as Locale;
@@ -101,6 +103,8 @@ export function generateAutomaticActions(
     ? message.snoozes
     : (userSettings?.defaultSnoozes || []);
 
+  
+
   if (effectiveSnoozes && effectiveSnoozes.length > 0) {
     effectiveSnoozes.forEach((snoozeMinutes) => {
       const snooze = localeService.getTranslatedText(
@@ -122,6 +126,8 @@ export function generateAutomaticActions(
   const effectivePostpones = (message.postpones && message.postpones.length > 0)
     ? message.postpones
     : (userSettings?.defaultPostpones || []);
+
+  
 
   if (effectivePostpones && effectivePostpones.length > 0) {
     effectivePostpones.forEach((postponeMinutes) => {

@@ -322,7 +322,7 @@ export class IOSPushService {
       throw new Error('No valid device tokens found for notification');
     }
 
-    this.logger.log(
+    this.logger.debug(
       `Sending notification "${notification.id}" to ${deviceTokens.length} device(s)`,
     );
 
@@ -455,9 +455,9 @@ export class IOSPushService {
               }
             });
           } else {
-            this.logger.log(
-              `✅ Successfully sent notification to ${token.substring(0, 8)}...`,
-            );
+            // this.logger.log(
+            //   `✅ Successfully sent notification to ${token.substring(0, 8)}...`,
+            // );
           }
         } catch (error: any) {
           this.logger.error(`Error sending notification to ${token}:`, error);

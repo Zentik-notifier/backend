@@ -132,7 +132,7 @@ export class FirebasePushService {
         tokens,
         userSettings,
       );
-      this.logger.log(
+      this.logger.debug(
         `Sending notification "${notification.id}" to ${devices.length} device(s)`,
       );
 

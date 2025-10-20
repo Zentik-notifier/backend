@@ -50,13 +50,13 @@ export class PushNotificationOrchestratorService {
     private readonly usersService: UsersService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly localeService: LocaleService,
-  ) {}
+  ) { }
 
-    /**
-   * Get device-specific settings for multiple devices in one batch
-   * Returns a map with key format: "deviceId" -> settings
-   * Makes ONE query per device since settings are now device+user level
-   */
+  /**
+ * Get device-specific settings for multiple devices in one batch
+ * Returns a map with key format: "deviceId" -> settings
+ * Makes ONE query per device since settings are now device+user level
+ */
   private parseListSetting(raw?: string | null): number[] | undefined {
     if (!raw) return undefined;
     try {
@@ -69,18 +69,27 @@ export class PushNotificationOrchestratorService {
   }
 
   private buildAutoActionSettings(settings: Map<UserSettingType, any>): AutoActionSettings {
+    const defaultSnoozesRaw = settings.get(UserSettingType.DefaultSnoozes)?.valueText;
+    const defaultPostponesRaw = settings.get(UserSettingType.DefaultPostpones)?.valueText;
+
+    const defaultSnoozes = this.parseListSetting(defaultSnoozesRaw);
+    const defaultPostpones = this.parseListSetting(defaultPostponesRaw);
+
+
+
     return {
       autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
       autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
       autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
-      defaultSnoozes: this.parseListSetting(settings.get(UserSettingType.DefaultSnoozes)?.valueText),
-      defaultPostpones: this.parseListSetting(settings.get(UserSettingType.DefaultPostpones)?.valueText),
+      defaultSnoozes,
+      defaultPostpones,
     };
   }
 
   private async getDeviceSettingsForMultipleDevices(
     devices: Array<{ deviceId: string; userId: string }>,
   ): Promise<Map<string, AutoActionSettings>> {
+
     const settingsMap = new Map<string, AutoActionSettings>();
 
     // Get all settings for all devices in parallel
@@ -106,7 +115,7 @@ export class PushNotificationOrchestratorService {
     });
 
     const results = await Promise.all(settingsPromises);
-    
+
     // Build map: deviceId -> settings
     results.forEach(({ deviceId, deviceSettings }) => {
       settingsMap.set(deviceId, deviceSettings);
@@ -132,7 +141,12 @@ export class PushNotificationOrchestratorService {
     errorCount: number;
     snoozedCount: number;
     errors: string[];
+    iosSent: number;
+    androidSent: number;
+    webSent: number;
   }> {
+
+
     // Get target devices for all users (including onlyLocal devices)
     const targetDevices = await this.userDevicesRepository.find({
       where: {
@@ -142,13 +156,6 @@ export class PushNotificationOrchestratorService {
       order: { lastUsed: 'DESC' },
     });
 
-    const platforms =
-      Array.from(new Set(targetDevices.map((d) => d.platform))).join(', ') ||
-      'none';
-    const localOnlyCount = targetDevices.filter((d) => d.onlyLocal).length;
-    this.logger.log(
-      `Found ${targetDevices.length} target devices for ${userIds.length} users (platforms: ${platforms}, onlyLocal: ${localOnlyCount}${bucketId ? `, bucket: ${bucketId}` : ''})`,
-    );
 
     // Get device-specific settings in batch (1 query per device)
     const deviceInfoArray = targetDevices.map(d => ({ deviceId: d.id, userId: d.userId }));
@@ -188,6 +195,9 @@ export class PushNotificationOrchestratorService {
     let errorCount = 0;
     let snoozedCount = 0;
     const errors: string[] = [];
+    let iosSent = 0;
+    let androidSent = 0;
+    let webSent = 0;
 
     for (const notif of processedNotifications) {
       const device = notif.userDeviceId
@@ -202,9 +212,6 @@ export class PushNotificationOrchestratorService {
 
       // If device is local-only, skip external push
       if (device.onlyLocal) {
-        this.logger.debug(
-          `Device ${device.id} is onlyLocal - skipping external push for notification ${notif.id}`,
-        );
         continue;
       }
 
@@ -217,9 +224,6 @@ export class PushNotificationOrchestratorService {
         );
 
         if (isSnoozed) {
-          this.logger.debug(
-            `Skipping push for notification ${notif.id} - bucket ${bucketId} is snoozed for user ${device.userId}`,
-          );
           snoozedCount++;
           continue;
         }
@@ -228,10 +232,14 @@ export class PushNotificationOrchestratorService {
       // Get device-specific settings
       const deviceSettings = deviceSettingsMap.get(device.id);
 
+
       const result = await this.dispatchPush(notif, device, deviceSettings);
       try {
         if (result.success) {
           successCount++;
+          if (device.platform === DevicePlatform.IOS) iosSent++;
+          else if (device.platform === DevicePlatform.ANDROID) androidSent++;
+          else if (device.platform === DevicePlatform.WEB) webSent++;
           await this.notificationsRepository.update(notif.id, {
             sentAt: new Date(),
           });
@@ -290,6 +298,9 @@ export class PushNotificationOrchestratorService {
       errorCount,
       snoozedCount,
       errors,
+      androidSent,
+      iosSent,
+      webSent
     };
   }
 
@@ -381,9 +392,6 @@ export class PushNotificationOrchestratorService {
       authorizedUsers = authorizedUsers.filter((userId) =>
         userIds.includes(userId),
       );
-      this.logger.log(
-        `Filtered to ${authorizedUsers.length} users from provided userIds: ${userIds.join(', ')}`,
-      );
     }
 
     if (authorizedUsers.length === 0) {
@@ -449,7 +457,7 @@ export class PushNotificationOrchestratorService {
     }
 
     // Send push notifications (handles devices, settings, buckets, tracking internally)
-    const { processedNotifications, successCount, errorCount, snoozedCount, errors } =
+    const { processedNotifications, successCount, errorCount, snoozedCount, errors, iosSent, androidSent, webSent } =
       await this.sendPushToDevices(
         notificationsToSend,
         authorizedUsers,
@@ -458,13 +466,8 @@ export class PushNotificationOrchestratorService {
       );
 
     // Log summary
-    if (snoozedCount > 0) {
-      this.logger.log(
-        `Skipped ${snoozedCount} push notifications due to bucket snoozes (notifications were still created in database)`,
-      );
-    }
     this.logger.log(
-      `Push notifications sent: ${successCount} succeeded, ${errorCount} failed, ${snoozedCount} snoozed`,
+      `Message ${message.id} → Users [${authorizedUsers.join(',')}] → ${successCount} sent, ${errorCount} failed, ${snoozedCount} snoozed | iOS ${iosSent}, Android ${androidSent}, Web ${webSent}`,
     );
 
     return processedNotifications;
@@ -557,12 +560,12 @@ export class PushNotificationOrchestratorService {
       settingType,
       'Off',
     );
-    
+
     // Validate the mode value
     if (mode === 'Off' || mode === 'Local' || mode === 'Onboard' || mode === 'Passthrough') {
       return mode;
     }
-    
+
     this.logger.warn(
       `Invalid push mode '${mode}' for ${platform}, defaulting to 'Off'`,
     );
@@ -577,30 +580,23 @@ export class PushNotificationOrchestratorService {
     userDevice: UserDevice,
     userSettings?: AutoActionSettings,
   ): Promise<{ success: boolean; error?: string }> {
+
+
     // Get the push mode for this platform
     const mode = await this.getPushMode(userDevice.platform);
 
     // Off - don't send anything (no push, no local)
     if (mode === 'Off') {
-      this.logger.debug(
-        `Push dispatch: ${userDevice.platform} is set to 'Off', skipping all notifications`,
-      );
       return { success: false, error: 'Notifications completely disabled for this platform' };
     }
 
     // Local - device-only notifications (no server push)
     if (mode === 'Local') {
-      this.logger.debug(
-        `Push dispatch: ${userDevice.platform} is set to 'Local', using device-only notifications`,
-      );
       return { success: false, error: 'Local mode: notifications handled by device only' };
     }
 
     // Onboard - use local onboard push services (APN, Firebase, WebPush)
     if (mode === 'Onboard') {
-      this.logger.log(
-        `Push dispatch: using ONBOARD push services for ${userDevice.platform}`,
-      );
       return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings);
     }
 
@@ -619,9 +615,6 @@ export class PushNotificationOrchestratorService {
         return { success: false, error };
       }
 
-      this.logger.log(
-        `Push dispatch: using PASSTHROUGH server ${server} for ${userDevice.platform}`,
-      );
       return this.sendViaPassthrough(server, token, notification, userDevice);
     }
 
@@ -724,7 +717,7 @@ export class PushNotificationOrchestratorService {
       locale as any,
       'notifications.postponed' as any,
     );
-    
+
     // Clone notification and modify title
     const modifiedNotification = { ...notification };
     if (modifiedNotification.message) {
@@ -733,7 +726,7 @@ export class PushNotificationOrchestratorService {
         title: `${postponedPrefix} ${modifiedNotification.message.title}`,
       };
     }
-    
+
     return modifiedNotification;
   }
 
@@ -746,7 +739,7 @@ export class PushNotificationOrchestratorService {
       locale as any,
       'notifications.reminder' as any,
     );
-    
+
     // Deep clone notification and modify title
     const modifiedNotification = {
       ...notification,
@@ -755,7 +748,7 @@ export class PushNotificationOrchestratorService {
         title: `${reminderPrefix} ${notification.message.title}`,
       } : notification.message,
     } as Notification;
-    
+
     return modifiedNotification;
   }
 
@@ -768,9 +761,6 @@ export class PushNotificationOrchestratorService {
     userId: string,
   ): Promise<PushResult> {
     try {
-      this.logger.log(
-        `Resending postponed notification ${notification.id} for user ${userId}`,
-      );
 
       // Add postponed prefix to title
       const modifiedNotification = this.addPostponedPrefix(notification);
@@ -787,15 +777,9 @@ export class PushNotificationOrchestratorService {
         );
 
       // Log summary
-      if (snoozedCount > 0) {
-        this.logger.log(
-          `Skipped ${snoozedCount} push notifications due to bucket snoozes`,
-        );
-      }
-
       const success = successCount > 0;
       this.logger.log(
-        `Resend notification ${notification.id} completed: ${successCount} succeeded, ${errorCount} failed, ${snoozedCount} snoozed`,
+        `Resend ${notification.id} → ${successCount} sent, ${errorCount} failed, ${snoozedCount} snoozed`,
       );
 
       return {
@@ -822,9 +806,6 @@ export class PushNotificationOrchestratorService {
     userId: string,
   ): Promise<PushResult> {
     try {
-      this.logger.log(
-        `Resending reminder notification ${notification.id} for user ${userId}`,
-      );
 
       // Add reminder prefix to title
       const modifiedNotification = this.addReminderPrefix(notification);
@@ -841,15 +822,9 @@ export class PushNotificationOrchestratorService {
         );
 
       // Log summary
-      if (snoozedCount > 0) {
-        this.logger.log(
-          `Skipped ${snoozedCount} push notifications due to bucket snoozes`,
-        );
-      }
-
       const success = successCount > 0;
       this.logger.log(
-        `Resend reminder notification ${notification.id} completed: ${successCount} succeeded, ${errorCount} failed, ${snoozedCount} snoozed`,
+        `Reminder ${notification.id} → ${successCount} sent, ${errorCount} failed, ${snoozedCount} snoozed`,
       );
 
       return {
