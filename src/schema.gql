@@ -284,6 +284,7 @@ type Event {
 """Tracked event type"""
 enum EventType {
   ACCOUNT_DELETE
+  BUCKET_CREATION
   BUCKET_SHARING
   BUCKET_UNSHARING
   DEVICE_REGISTER

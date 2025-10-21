@@ -118,6 +118,7 @@ describe('BucketsService', () => {
           useValue: {
             trackBucketSharing: jest.fn().mockResolvedValue(undefined),
             trackBucketUnsharing: jest.fn().mockResolvedValue(undefined),
+            trackBucketCreation: jest.fn().mockResolvedValue(undefined),
           },
         },
         {

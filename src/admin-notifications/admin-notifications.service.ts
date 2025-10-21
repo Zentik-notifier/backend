@@ -191,6 +191,7 @@ export class AdminNotificationsService implements OnModuleInit {
       [EventType.MESSAGE]: '💬 New Message',
       [EventType.NOTIFICATION]: '🔔 Notification Sent',
       [EventType.NOTIFICATION_ACK]: '✅ Notification Acknowledged',
+      [EventType.BUCKET_CREATION]: '🪣 Bucket Created',
       [EventType.BUCKET_SHARING]: '🔗 Bucket Shared',
       [EventType.BUCKET_UNSHARING]: '🔓 Bucket Unshared',
       [EventType.DEVICE_REGISTER]: '📱 Device Registered',

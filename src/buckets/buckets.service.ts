@@ -49,6 +49,10 @@ export class BucketsService {
     // are populated before returning to the GraphQL layer.
     const saved = await this.bucketsRepository.save(bucket);
 
+    // Track bucket creation event
+    this.logger.log(`Bucket created: ${saved.id} by user ${userId}`);
+    await this.eventTrackingService.trackBucketCreation(userId, saved.id);
+
     // Generate bucket icon automatically (only if attachments are enabled)
     const attachmentsEnabled = await this.attachmentsService.isAttachmentsEnabled();
     if (attachmentsEnabled) {

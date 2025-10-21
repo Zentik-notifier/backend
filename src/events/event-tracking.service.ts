@@ -66,6 +66,14 @@ export class EventTrackingService {
     });
   }
 
+  async trackBucketCreation(userId: string, bucketId: string): Promise<void> {
+    await this.eventsService.createEvent({
+      type: EventType.BUCKET_CREATION,
+      userId,
+      objectId: bucketId,
+    });
+  }
+
   async trackBucketSharing(
     ownerUserId: string,
     bucketId: string,
