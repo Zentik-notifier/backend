@@ -481,7 +481,7 @@ export class GitHubParser implements IBuiltinParser {
     // Add links
     if (repository?.html_url) {
       const compareUrl = `${repository.html_url}/compare/${branch}`;
-      body += `\n\n[View Commits](${compareUrl}) • [View Repository](${repository.html_url})`;
+      body += `\n\n<a href="${compareUrl}">View Commits</a> • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {
@@ -526,10 +526,10 @@ export class GitHubParser implements IBuiltinParser {
 
     // Add links
     if (pull_request.html_url) {
-      body += `\n\n[View Pull Request](${pull_request.html_url})`;
+      body += `\n\n<a href="${pull_request.html_url}">View Pull Request</a>`;
     }
     if (repository?.html_url) {
-      body += ` • [View Repository](${repository.html_url})`;
+      body += ` • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {
@@ -564,10 +564,10 @@ export class GitHubParser implements IBuiltinParser {
 
     // Add links
     if (issue.html_url) {
-      body += `\n\n[View Issue](${issue.html_url})`;
+      body += `\n\n<a href="${issue.html_url}">View Issue</a>`;
     }
     if (repository?.html_url) {
-      body += ` • [View Repository](${repository.html_url})`;
+      body += ` • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {
@@ -600,10 +600,10 @@ export class GitHubParser implements IBuiltinParser {
 
     // Add links
     if (release.html_url) {
-      body += `\n\n[View Release](${release.html_url})`;
+      body += `\n\n<a href="${release.html_url}">View Release</a>`;
     }
     if (repository?.html_url) {
-      body += ` • [View Repository](${repository.html_url})`;
+      body += ` • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {
@@ -652,10 +652,10 @@ export class GitHubParser implements IBuiltinParser {
 
     // Add links
     if (workflow_job.html_url) {
-      body += `\n\n[View Job](${workflow_job.html_url})`;
+      body += `\n\n<a href="${workflow_job.html_url}">View Job</a>`;
     }
     if (repository?.html_url) {
-      body += ` • [View Repository](${repository.html_url})`;
+      body += ` • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {
@@ -690,10 +690,10 @@ export class GitHubParser implements IBuiltinParser {
 
     // Add links
     if (workflow_run.html_url) {
-      body += `\n\n[View Workflow Run](${workflow_run.html_url})`;
+      body += `\n\n<a href="${workflow_run.html_url}">View Workflow Run</a>`;
     }
     if (repository?.html_url) {
-      body += ` • [View Repository](${repository.html_url})`;
+      body += ` • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {
@@ -726,10 +726,10 @@ export class GitHubParser implements IBuiltinParser {
 
     // Add links
     if (check_suite.html_url) {
-      body += `\n\n[View Check Suite](${check_suite.html_url})`;
+      body += `\n\n<a href="${check_suite.html_url}">View Check Suite</a>`;
     }
     if (repository?.html_url) {
-      body += ` • [View Repository](${repository.html_url})`;
+      body += ` • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {
@@ -762,10 +762,10 @@ export class GitHubParser implements IBuiltinParser {
 
     // Add links
     if (check_run.html_url) {
-      body += `\n\n[View Check Run](${check_run.html_url})`;
+      body += `\n\n<a href="${check_run.html_url}">View Check Run</a>`;
     }
     if (repository?.html_url) {
-      body += ` • [View Repository](${repository.html_url})`;
+      body += ` • <a href="${repository.html_url}">View Repository</a>`;
     }
 
     return {

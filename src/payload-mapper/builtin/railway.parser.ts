@@ -116,11 +116,11 @@ export class RailwayParser implements IBuiltinParser {
     // Add links
     if (project.id) {
       const projectUrl = `https://railway.app/project/${project.id}`;
-      body += `\n[View Project](${projectUrl})`;
+      body += `\n<a href="${projectUrl}">View Project</a>`;
       
       if (service?.id) {
         const serviceUrl = `https://railway.app/project/${project.id}/service/${service.id}`;
-        body += ` • [View Service](${serviceUrl})`;
+        body += ` • <a href="${serviceUrl}">View Service</a>`;
       }
     }
 
