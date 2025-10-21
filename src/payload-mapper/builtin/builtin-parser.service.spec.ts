@@ -7,6 +7,7 @@ import { GitHubParser } from './github.parser';
 import { ExpoParser } from './expo.parser';
 import { StatusIoParser } from './status-io.parser';
 import { InstatusParser } from './instatus.parser';
+import { AtlasStatuspageParser } from './atlas-statuspage.parser';
 import { BuiltinParserService } from './builtin-parser.service';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 import { UsersService } from '../../users/users.service';
@@ -28,6 +29,7 @@ describe('BuiltinParserService', () => {
         ExpoParser,
         StatusIoParser,
         InstatusParser,
+        AtlasStatuspageParser,
         BuiltinParserLoggerService,
         {
           provide: UsersService,
@@ -156,7 +158,7 @@ describe('BuiltinParserService', () => {
     it('should return all registered parsers', () => {
       const parsers = service.getAllParsers();
 
-      expect(parsers).toHaveLength(7);
+      expect(parsers).toHaveLength(8);
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
@@ -198,6 +200,12 @@ describe('BuiltinParserService', () => {
         type: PayloadMapperBuiltInType.ZENTIK_INSTATUS,
         description:
           'Parser for Instatus webhooks - handles incidents, maintenance events, and component updates',
+      });
+      expect(parsers).toContainEqual({
+        name: 'Atlassian Statuspage',
+        type: PayloadMapperBuiltInType.ZENTIK_ATLAS_STATUSPAGE,
+        description:
+          'Parser for Atlassian Statuspage webhooks - handles incidents and component updates',
       });
     });
   });

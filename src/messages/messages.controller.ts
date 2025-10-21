@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -182,6 +183,7 @@ export class MessagesController {
     @Query('bucketId') bucketId: string,
     @Body() payload: any,
     @Headers() headers?: Record<string, string>,
+    @Req() request?: any,
   ) {
     if (!parserName) {
       throw new Error('Parameter "parser" is required');
@@ -190,6 +192,11 @@ export class MessagesController {
       throw new Error('Parameter "bucketId" is required');
     }
 
+    const isAccessToken = !!request?.accessTokenScopes;
+    const authType = isAccessToken ? 'AccessToken' : 'JWT';
+    
+    console.log(`[PayloadMapper Transform] ${authType} | Parser: ${parserName} | BucketId: ${bucketId} | UserId: ${userId}`);
+
     const result = await this.messagesService.transformAndCreate(
       parserName,
       payload,
@@ -197,6 +204,12 @@ export class MessagesController {
       bucketId,
       headers,
     );
+
+    if (result) {
+      console.log(`[PayloadMapper Transform] ✅ Message created | MessageId: ${result.id} | Parser: ${parserName}`);
+    } else {
+      console.log(`[PayloadMapper Transform] ⏭️ Parser skipped (no content) | Parser: ${parserName}`);
+    }
 
     // If parser was skipped, return undefined (will result in 204 No Content)
     return result;

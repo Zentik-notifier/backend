@@ -16,6 +16,7 @@ import {
   ExpoParser,
   StatusIoParser,
   InstatusParser,
+  AtlasStatuspageParser,
   BuiltinParserLoggerService,
 } from './builtin';
 
@@ -38,6 +39,7 @@ import {
     ExpoParser,
     StatusIoParser,
     InstatusParser,
+    AtlasStatuspageParser,
     BuiltinParserLoggerService,
   ],
   exports: [PayloadMapperService],

@@ -10,6 +10,7 @@ import { GitHubParser } from './github.parser';
 import { ExpoParser } from './expo.parser';
 import { StatusIoParser } from './status-io.parser';
 import { InstatusParser } from './instatus.parser';
+import { AtlasStatuspageParser } from './atlas-statuspage.parser';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
 @Injectable()
@@ -29,6 +30,7 @@ export class BuiltinParserService {
     [PayloadMapperBuiltInType.ZENTIK_EXPO, [UserSettingType.ExpoKey]],
     [PayloadMapperBuiltInType.ZENTIK_STATUS_IO, []],
     [PayloadMapperBuiltInType.ZENTIK_INSTATUS, []],
+    [PayloadMapperBuiltInType.ZENTIK_ATLAS_STATUSPAGE, []],
   ]);
 
   constructor(
@@ -39,6 +41,7 @@ export class BuiltinParserService {
     private readonly expoParser: ExpoParser,
     private readonly statusIoParser: StatusIoParser,
     private readonly instatusParser: InstatusParser,
+    private readonly atlasStatuspageParser: AtlasStatuspageParser,
     private readonly loggerService: BuiltinParserLoggerService,
   ) {
     this.registerParsers();
@@ -75,6 +78,10 @@ export class BuiltinParserService {
       PayloadMapperBuiltInType.ZENTIK_INSTATUS,
       this.instatusParser,
     );
+    this.parsers.set(
+      PayloadMapperBuiltInType.ZENTIK_ATLAS_STATUSPAGE,
+      this.atlasStatuspageParser,
+    );
 
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
@@ -98,6 +105,12 @@ export class BuiltinParserService {
     this.parsersByName.set('instatus', this.instatusParser);
     this.parsersByName.set('Instatus', this.instatusParser);
     this.parsersByName.set('ZentikInstatus', this.instatusParser);
+    this.parsersByName.set('atlasstatuspage', this.atlasStatuspageParser);
+    this.parsersByName.set('atlas-statuspage', this.atlasStatuspageParser);
+    this.parsersByName.set('AtlasStatuspage', this.atlasStatuspageParser);
+    this.parsersByName.set('Statuspage', this.atlasStatuspageParser);
+    this.parsersByName.set('statuspage', this.atlasStatuspageParser);
+    this.parsersByName.set('ZentikAtlasStatuspage', this.atlasStatuspageParser);
   }
 
   /**

@@ -767,6 +767,7 @@ type PayloadMapper {
 
 """Built-in payload mapper types"""
 enum PayloadMapperBuiltInType {
+  ZENTIK_ATLAS_STATUSPAGE
   ZENTIK_AUTHENTIK
   ZENTIK_EXPO
   ZENTIK_GITHUB
