@@ -63,7 +63,7 @@ export class AuthController {
     private sessionService: SessionService,
     private oauthProvidersService: OAuthProvidersService,
     private eventTrackingService: EventTrackingService,
-  ) {}
+  ) { }
 
   @Post('register')
   @ApiOperation({ summary: 'User registration' })
@@ -374,7 +374,7 @@ export class AuthController {
         if (
           redirectUri &&
           typeof redirectUri === 'string' &&
-          redirectUri.startsWith(mobileScheme + '://')
+          redirectUri.startsWith(mobileScheme)
         ) {
           // this.logger.log(`📱 Mobile redirect detected: ${redirectUri}`);
 
@@ -393,6 +393,7 @@ export class AuthController {
             // );
           }
 
+          this.logger.log(`📱 Redirect URI: ${redirectUri}${fragment}`);
           const location = `${redirectUri}${fragment}`;
           return res.redirect(302, location);
         } else {

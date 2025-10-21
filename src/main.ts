@@ -14,6 +14,8 @@ import { ServerSettingsService } from './server-manager/server-settings.service'
 import { DatabaseLoggerService } from './server-manager/database-logger.service';
 import { ServerSettingType } from './entities/server-setting.entity';
 import dataSource from '../ormconfig';
+import { ensureAdminBucket } from './seeds/admin-bucket.seed';
+import { ensurePublicBucket } from './seeds/public-bucket.seed';
 
 // Global reference to the application instance
 let appInstance: INestApplication | null = null;
@@ -257,7 +259,6 @@ async function bootstrap() {
   // Initialize admin bucket at startup (after admin users)
   try {
     const dataSource = app.get(DataSource);
-    const { ensureAdminBucket } = await import('./seeds/admin-bucket.seed');
     await ensureAdminBucket(dataSource);
     logger.log('✅ Admin bucket initialization completed.');
   } catch (err) {
@@ -267,7 +268,6 @@ async function bootstrap() {
   // Initialize public bucket at startup (after admin bucket)
   try {
     const dataSource = app.get(DataSource);
-    const { ensurePublicBucket } = await import('./seeds/public-bucket.seed');
     await ensurePublicBucket(dataSource);
     logger.log('✅ Public bucket initialization completed.');
   } catch (err) {

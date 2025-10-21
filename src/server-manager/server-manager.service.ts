@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ServerSettingsService } from './server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
+import { restartApplication } from 'src/main';
 
 const execAsync = promisify(exec);
 
@@ -408,9 +409,6 @@ export class ServerManagerService implements OnModuleInit {
     this.logger.warn('Server restart requested');
     
     try {
-      // Import the restart function dynamically to avoid circular dependencies
-      const { restartApplication } = await import('../main');
-      
       // Schedule the restart after a short delay to allow the response to be sent
       setTimeout(async () => {
         this.logger.warn('Restarting server now...');
