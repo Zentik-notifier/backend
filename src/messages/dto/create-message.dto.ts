@@ -358,4 +358,13 @@ export class CreateMessageDto {
   @IsOptional()
   @Transform(({ value }) => (value ? parseInt(value, 10) : 5))
   maxReminders?: number;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'ID of the entity execution that generated this message',
+  })
+  @IsOptional()
+  @IsString()
+  executionId?: string;
 }

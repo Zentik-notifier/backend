@@ -162,7 +162,7 @@ export class PayloadMapperService {
     userId: string,
     bucketId: string,
     headers?: Record<string, string>,
-  ): Promise<CreateMessageDto | undefined> {
+  ): Promise<{ messageDto: CreateMessageDto | undefined; executionId?: string }> {
 
     let parserResult: ParserResult;
     let parserInfo: { entityName: string; entityId?: string; parserType: 'builtin' | 'user' };
@@ -213,8 +213,9 @@ export class PayloadMapperService {
     }
 
     // Track the execution immediately after getting the result
+    let executionId: string | undefined;
     try {
-      await this.entityExecutionService.create({
+      const execution = await this.entityExecutionService.create({
         type: ExecutionType.PAYLOAD_MAPPER,
         status: parserResult.status,
         entityName: parserInfo.entityName,
@@ -230,6 +231,7 @@ export class PayloadMapperService {
         errors: parserResult.errors,
         durationMs: parserResult.executionTimeMs,
       });
+      executionId = execution.id;
     } catch (trackingError) {
       // Log but don't throw - tracking shouldn't break the main flow
       console.error('[PayloadMapper] ❌ Failed to track payload mapper execution:', trackingError);
@@ -237,7 +239,7 @@ export class PayloadMapperService {
 
     // Handle different execution statuses
     if (parserResult.status === ExecutionStatus.SKIPPED) {
-      return undefined;
+      return { messageDto: undefined, executionId };
     }
 
     if (parserResult.status === ExecutionStatus.ERROR) {
@@ -248,7 +250,7 @@ export class PayloadMapperService {
       throw new Error(`Parser '${parserName}' returned no result`);
     }
 
-    return parserResult.result;
+    return { messageDto: parserResult.result, executionId };
   }
 
   /**

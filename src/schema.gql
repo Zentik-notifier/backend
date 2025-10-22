@@ -153,6 +153,7 @@ input CreateMessageDto {
   bucketId: String!
   collapseId: String
   deliveryType: NotificationDeliveryType!
+  executionId: String
   gifUrl: String
   groupId: String
   imageUrl: String
@@ -494,6 +495,7 @@ type Message {
   collapseId: String
   createdAt: DateTime!
   deliveryType: NotificationDeliveryType!
+  executionId: String
   fileAttachments: [Attachment!]
   groupId: String
   id: ID!

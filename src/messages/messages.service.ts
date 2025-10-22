@@ -168,6 +168,7 @@ export class MessagesService {
     createMessageDto: CreateMessageDto,
     requesterId: string,
     skipEventTracking = false,
+    executionId?: string,
   ): Promise<Message> {
     const bucket = await this.findBucketByIdOrName(
       createMessageDto.bucketId,
@@ -257,6 +258,7 @@ export class MessagesService {
       attachments: processedAttachments,
       attachmentUuids,
       tapAction,
+      executionId: executionId || createMessageDto.executionId,
     });
 
     const savedMessage: Message = await this.messagesRepository.save(
@@ -764,7 +766,7 @@ export class MessagesService {
     headers?: Record<string, string>,
   ): Promise<Message | undefined> {
     // Delegate to PayloadMapperService for parser identification and transformation
-    const transformedPayload = await this.payloadMapperService.transformPayload(
+    const { messageDto, executionId } = await this.payloadMapperService.transformPayload(
       parserName,
       payload,
       userId,
@@ -773,11 +775,11 @@ export class MessagesService {
     );
 
     // If parser was skipped, return undefined
-    if (!transformedPayload) {
+    if (!messageDto) {
       return undefined;
     }
 
-    // Create the message using the transformed payload
-    return this.create(transformedPayload, userId);
+    // Create the message using the transformed payload and execution ID
+    return this.create(messageDto, userId, false, executionId);
   }
 }

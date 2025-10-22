@@ -226,6 +226,14 @@ export class Message {
   @Column({ nullable: true })
   collapseId?: string;
 
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'ID of the entity execution that generated this message',
+  })
+  @Column({ nullable: true })
+  executionId?: string;
+
   @Field()
   @ApiProperty()
   @CreateDateColumn()
