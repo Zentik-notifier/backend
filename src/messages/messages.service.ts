@@ -26,6 +26,7 @@ import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { UsersService } from '../users/users.service';
 import { isUuid } from '../common/utils/validation.utils';
+import { UrlBuilderService } from '../common/services/url-builder.service';
 import {
   CreateMessageDto,
   CreateMessageWithAttachmentDto,
@@ -53,6 +54,7 @@ export class MessagesService {
     private readonly usersService: UsersService,
     private readonly postponeService: NotificationPostponeService,
     private readonly reminderService: MessageReminderService,
+    private readonly urlBuilderService: UrlBuilderService,
   ) {}
 
 
@@ -234,6 +236,15 @@ export class MessagesService {
       processedAttachments.push(...existingAttachments);
     }
 
+    // Process attachmentUuids if provided
+    if (createMessageDto.attachmentUuids && createMessageDto.attachmentUuids.length > 0) {
+      const resolvedAttachments = await this.resolveAttachmentUuids(
+        createMessageDto.attachmentUuids,
+        requesterId,
+      );
+      processedAttachments.push(...resolvedAttachments);
+    }
+
     // Extract attachment UUIDs for the message
     attachmentUuids = processedAttachments
       .filter((att) => att.attachmentUuid)
@@ -368,13 +379,52 @@ export class MessagesService {
           }
         }
       } else if (attachment.attachmentUuid) {
-        // Attachment already exists, no need to build localUrl
+        // Attachment already exists, add public URL for direct access
+        processedAttachment.url = this.urlBuilderService.buildAttachmentUrl(attachment.attachmentUuid);
       }
 
       processedAttachments.push(processedAttachment);
     }
 
     return processedAttachments;
+  }
+
+  /**
+   * Resolve attachment UUIDs to NotificationAttachmentDto objects
+   */
+  private async resolveAttachmentUuids(
+    attachmentUuids: string[],
+    userId: string,
+  ): Promise<NotificationAttachmentDto[]> {
+    const resolvedAttachments: NotificationAttachmentDto[] = [];
+
+    for (const uuid of attachmentUuids) {
+      try {
+        // Validate UUID format
+        if (!isUuid(uuid)) {
+          this.logger.warn(`Invalid attachment UUID format: ${uuid}`);
+          continue;
+        }
+
+        // Get attachment from database (includes user access validation)
+        const attachment = await this.attachmentsService.findOne(uuid, userId);
+
+        // Create NotificationAttachmentDto with resolved data
+        const resolvedAttachment: NotificationAttachmentDto = {
+          attachmentUuid: uuid,
+          mediaType: attachment.mediaType || MediaType.ICON, // Fallback to ICON if undefined
+          name: attachment.filename,
+          url: this.urlBuilderService.buildAttachmentUrl(uuid),
+        };
+
+        resolvedAttachments.push(resolvedAttachment);
+      } catch (error) {
+        this.logger.error(`Failed to resolve attachment UUID ${uuid}:`, error);
+        // Continue processing other UUIDs even if one fails
+      }
+    }
+
+    return resolvedAttachments;
   }
 
   /**

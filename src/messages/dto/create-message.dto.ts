@@ -138,6 +138,13 @@ export class CreateMessageDto {
   @ValidateNested({ each: true })
   attachments?: NotificationAttachmentDto[];
 
+  @Field(() => [String], { nullable: true })
+  @ApiProperty({ type: [String], required: false })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  attachmentUuids?: string[];
+
   @Field(() => [NotificationActionDto], { nullable: true })
   @ApiProperty({ type: [NotificationActionDto], required: false })
   @IsOptional()

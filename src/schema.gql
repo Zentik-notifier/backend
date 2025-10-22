@@ -147,6 +147,7 @@ input CreateMessageDto {
   addDeleteAction: Boolean = true
   addMarkAsReadAction: Boolean = true
   addOpenNotificationAction: Boolean
+  attachmentUuids: [String!]
   attachments: [NotificationAttachmentDto!]
   body: String
   bucketId: String!

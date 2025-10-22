@@ -23,6 +23,7 @@ import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesService } from './messages.service';
 import { NotificationPostponeService } from '../notifications/notification-postpone.service';
 import { MessageReminderService } from './message-reminder.service';
+import { UrlBuilderService } from '../common/services/url-builder.service';
 
 describe('MessagesService', () => {
   let service: MessagesService;
@@ -228,6 +229,15 @@ describe('MessagesService', () => {
           useValue: {
             createReminder: jest.fn().mockResolvedValue(undefined),
             cancelRemindersByMessage: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: UrlBuilderService,
+          useValue: {
+            buildAttachmentUrl: jest.fn().mockImplementation((id: string) => `/api/v1/attachments/${id}/download/public`),
+            buildThumbnailUrl: jest.fn().mockImplementation((id: string) => `/api/v1/attachments/${id}/thumbnail?size=medium`),
+            processNotifications: jest.fn().mockImplementation((x: any) => x),
+            buildUrl: jest.fn().mockImplementation((p: string) => `/api/v1${p.startsWith('/')?p:`/${p}`}`),
           },
         },
       ],
