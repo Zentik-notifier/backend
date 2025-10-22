@@ -241,12 +241,15 @@ describe('PayloadMapperService', () => {
       );
 
       expect(result).toEqual({
-        title: 'Test Title',
-        subtitle: 'Test Subtitle',
-        body: 'Test Body',
-        sound: undefined,
-        deliveryType: NotificationDeliveryType.NORMAL,
-        bucketId: 'bucket-1',
+        messageDto: {
+          title: 'Test Title',
+          subtitle: 'Test Subtitle',
+          body: 'Test Body',
+          sound: undefined,
+          deliveryType: NotificationDeliveryType.NORMAL,
+          bucketId: 'bucket-1',
+        },
+        executionId: undefined,
       });
     });
 
@@ -280,12 +283,15 @@ describe('PayloadMapperService', () => {
 
       expect(global.eval).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
-        title: 'Test',
-        subtitle: undefined,
-        body: undefined,
-        sound: undefined,
-        deliveryType: 'NORMAL',
-        bucketId: 'bucket-1',
+        messageDto: {
+          title: 'Test',
+          subtitle: undefined,
+          body: undefined,
+          sound: undefined,
+          deliveryType: 'NORMAL',
+          bucketId: 'bucket-1',
+        },
+        executionId: undefined,
       });
 
       // Restore original eval
@@ -322,12 +328,15 @@ describe('PayloadMapperService', () => {
 
       expect(global.eval).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
-        title: 'Test',
-        subtitle: undefined,
-        body: undefined,
-        sound: undefined,
-        deliveryType: 'NORMAL',
-        bucketId: 'bucket-1',
+        messageDto: {
+          title: 'Test',
+          subtitle: undefined,
+          body: undefined,
+          sound: undefined,
+          deliveryType: 'NORMAL',
+          bucketId: 'bucket-1',
+        },
+        executionId: undefined,
       });
 
       // Restore original eval
