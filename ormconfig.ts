@@ -28,6 +28,7 @@ import { SystemAccessToken } from './src/system-access-token/system-access-token
 import { AdminSubscription } from './src/entities/admin-subscription.entity';
 import { UpdateEnumsToUppercaseAndAddInviteCodes1729458000000 } from './database/migrations/1729458000000-UpdateEnumsToUppercaseAndAddInviteCodes';
 import { AddBucketCreationEvent1729520000000 } from './database/migrations/1729520000000-AddBucketCreationEvent';
+import { IncreaseLogMessageLength1729522000000 } from 'database/migrations/1729522000000-IncreaseLogMessageLength';
 
 config({ path: '.env' });
 
@@ -77,6 +78,7 @@ const dataSource = new DataSource({
   migrations: [
     UpdateEnumsToUppercaseAndAddInviteCodes1729458000000,
     AddBucketCreationEvent1729520000000,
+    IncreaseLogMessageLength1729522000000,
   ],
   migrationsTableName: 'migrations',
 });

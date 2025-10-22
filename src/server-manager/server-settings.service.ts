@@ -121,7 +121,7 @@ export class ServerSettingsService {
     }> = [
         // JWT
         { configType: ServerSettingType.JwtAccessTokenExpiration, envKey: 'JWT_ACCESS_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
-        { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
+        { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: 4320 }, // 3 days
 
         // APN Push
         { configType: ServerSettingType.ApnPush, envKey: 'APN_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },

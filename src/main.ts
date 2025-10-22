@@ -12,13 +12,89 @@ import { AppModule } from './app.module';
 import { createAdminUsers } from './seeds/admin-users.seed';
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { DatabaseLoggerService } from './server-manager/database-logger.service';
-import { ServerSettingType } from './entities/server-setting.entity';
+import { ServerSettingType, ServerSetting } from './entities/server-setting.entity';
 import dataSource from '../ormconfig';
 import { ensureAdminBucket } from './seeds/admin-bucket.seed';
 import { ensurePublicBucket } from './seeds/public-bucket.seed';
 
 // Global reference to the application instance
 let appInstance: INestApplication | null = null;
+
+/**
+ * Mask sensitive server settings for logging
+ */
+function maskSensitiveValue(key: string, value: string): string {
+  const sensitiveConfigTypes = [
+    'ApnKeyId',
+    'ApnTeamId',
+    'ApnPrivateKeyPath',
+    'FirebasePrivateKey',
+    'FirebaseClientEmail',
+    'PushPassthroughToken',
+    'EmailPass',
+    'ResendApiKey',
+    'VapidSubject',
+  ];
+
+  const isSensitive = sensitiveConfigTypes.includes(key);
+
+  if (isSensitive) {
+    return '*'.repeat(10);
+  }
+
+  return value;
+}
+
+/**
+ * Log server settings from ServerSettingsService with sensitive data masked
+ */
+async function logServerSettings(serverSettingsService: ServerSettingsService) {
+  const logger = new Logger('ServerSettings');
+
+  try {
+    logger.log('🔧 Server Settings:');
+
+    const settings = await serverSettingsService.getAllSettings();
+
+    if (settings.length === 0) {
+      logger.log('  No server settings found');
+      return;
+    }
+
+    // Group settings by type for better readability
+    const settingsByType = settings.reduce((acc, setting) => {
+      if (!acc[setting.configType]) {
+        acc[setting.configType] = [];
+      }
+      acc[setting.configType].push(setting);
+      return acc;
+    }, {} as Record<string, ServerSetting[]>);
+
+    // Log settings grouped by type
+    Object.entries(settingsByType).forEach(([type, typeSettings]) => {
+      logger.log(`  📋 ${type}:`);
+      typeSettings.forEach(setting => {
+        // Get the actual value based on the setting type
+        let value = '';
+        if (setting.valueText !== null && setting.valueText !== undefined) {
+          value = setting.valueText;
+        } else if (setting.valueBool !== null && setting.valueBool !== undefined) {
+          value = setting.valueBool.toString();
+        } else if (setting.valueNumber !== null && setting.valueNumber !== undefined) {
+          value = setting.valueNumber.toString();
+        } else {
+          value = 'null';
+        }
+
+        const maskedValue = maskSensitiveValue(setting.configType, value);
+        logger.log(`    ${setting.configType}=${maskedValue}`);
+      });
+    });
+
+  } catch (error) {
+    logger.error('❌ Failed to load server settings:', error);
+  }
+}
 
 async function generateTypes(app: INestApplication) {
   const logger = new Logger('TypesGenerator');
@@ -45,7 +121,7 @@ async function generateTypes(app: INestApplication) {
 
 async function runMigrations() {
   const logger = new Logger('Migrations');
-  
+
   if (process.env.DB_SYNCHRONIZE === 'true') {
     logger.log('⚠️  DB_SYNCHRONIZE is enabled, skipping migrations');
     return;
@@ -54,10 +130,10 @@ async function runMigrations() {
   try {
     logger.log('🔄 Initializing database connection for migrations...');
     await dataSource.initialize();
-    
+
     logger.log('🔄 Running pending migrations...');
     const migrations = await dataSource.runMigrations();
-    
+
     if (migrations.length > 0) {
       logger.log(`✅ Executed ${migrations.length} migration(s):`);
       migrations.forEach((migration) => {
@@ -66,7 +142,7 @@ async function runMigrations() {
     } else {
       logger.log('✅ Database is up to date, no migrations to run');
     }
-    
+
     await dataSource.destroy();
     logger.log('✅ Migration process completed\n');
   } catch (error) {
@@ -80,15 +156,16 @@ async function bootstrap() {
 
   // Log very first step before any initialization
   logger.log('🏁 Zentik Backend initialization started');
+
   logger.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.log(`🗄️  Database type: ${process.env.DB_TYPE || 'postgres'}`);
   logger.log(`🔌 Database host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}`);
   logger.log(`📦 Database name: ${process.env.DB_NAME || 'zentik'}`);
   logger.log(`🔧 Synchronize: ${process.env.DB_SYNCHRONIZE === 'true' ? 'enabled' : 'disabled'}`);
-  
+
   // Run migrations before creating the app
   await runMigrations();
-  
+
   logger.log('⏳ Creating NestJS application...');
 
   const app = await NestFactory.create(AppModule, {
@@ -287,6 +364,10 @@ async function bootstrap() {
   try {
     const serverSettingsService = app.get(ServerSettingsService);
     await serverSettingsService.initializeFromEnv();
+
+    // Log server settings after initialization
+    await logServerSettings(serverSettingsService);
+
     logger.log('✅ Server settings initialization completed.');
   } catch (err) {
     logger.error('❌ Error during server settings initialization:', err);

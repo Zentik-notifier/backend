@@ -17,7 +17,7 @@ export class BuiltinParserLoggerService {
     );
 
     parsers.forEach((parser, type) => {
-      this.logger.log(`  ✅ ${parser.name} (${type}) - ${parser.description}`);
+      this.logger.log(`  ✅ ${parser.name} (${type})`);
     });
 
     this.logger.log('🎯 Builtin parsers initialization completed');
