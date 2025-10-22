@@ -60,6 +60,8 @@ describe('AtlasStatuspageParser', () => {
           postmortem_notified_twitter: false,
           postmortem_published_at: null,
           incident_updates: [],
+          components: [],
+          started_at: '2013-05-29T15:08:51-06:00',
         },
       };
 
@@ -90,6 +92,13 @@ describe('AtlasStatuspageParser', () => {
           id: 'rb5wq1dczvbm',
           name: 'Some Component',
           status: 'operational',
+          updated_at: '2013-05-29T21:32:28Z',
+          position: 1,
+          description: 'Component description',
+          showcase: true,
+          start_date: '2013-05-29T21:32:28Z',
+          page_id: 'j2mfxwj97wnj',
+          group_id: 'group1',
         },
       };
 
@@ -176,8 +185,11 @@ describe('AtlasStatuspageParser', () => {
               display_at: '2013-05-29T16:07:53-06:00',
               wants_twitter_update: false,
               twitter_updated_at: null,
+              affected_components: null,
             },
           ],
+          components: [],
+          started_at: '2013-05-29T15:08:51-06:00',
         },
       };
 
@@ -231,6 +243,8 @@ describe('AtlasStatuspageParser', () => {
           postmortem_notified_twitter: false,
           postmortem_published_at: null,
           incident_updates: [],
+          components: [],
+          started_at: '2013-05-29T15:08:51-06:00',
         },
       };
 
@@ -279,6 +293,8 @@ describe('AtlasStatuspageParser', () => {
           postmortem_notified_twitter: false,
           postmortem_published_at: null,
           incident_updates: [],
+          components: [],
+          started_at: '2013-05-29T15:08:51-06:00',
         },
       };
 
@@ -326,6 +342,8 @@ describe('AtlasStatuspageParser', () => {
           postmortem_notified_twitter: false,
           postmortem_published_at: null,
           incident_updates: [],
+          components: [],
+          started_at: '2013-05-29T15:08:51-06:00',
         },
       };
 
@@ -361,6 +379,13 @@ describe('AtlasStatuspageParser', () => {
           id: 'rb5wq1dczvbm',
           name: 'API Server',
           status: 'operational',
+          updated_at: '2013-05-29T21:32:28Z',
+          position: 1,
+          description: 'Component description',
+          showcase: true,
+          start_date: '2013-05-29T21:32:28Z',
+          page_id: 'j2mfxwj97wnj',
+          group_id: 'group1',
         },
       };
 
@@ -399,6 +424,13 @@ describe('AtlasStatuspageParser', () => {
           id: 'rb5wq1dczvbm',
           name: 'Database',
           status: 'major_outage',
+          updated_at: '2013-05-29T21:32:28Z',
+          position: 1,
+          description: 'Database component',
+          showcase: true,
+          start_date: '2013-05-29T21:32:28Z',
+          page_id: 'j2mfxwj97wnj',
+          group_id: 'group1',
         },
       };
 
@@ -434,6 +466,13 @@ describe('AtlasStatuspageParser', () => {
           id: 'rb5wq1dczvbm',
           name: 'CDN',
           status: 'partial_outage',
+          updated_at: '2013-05-29T21:32:28Z',
+          position: 1,
+          description: 'CDN component',
+          showcase: true,
+          start_date: '2013-05-29T21:32:28Z',
+          page_id: 'j2mfxwj97wnj',
+          group_id: 'group1',
         },
       };
 
@@ -470,6 +509,13 @@ describe('AtlasStatuspageParser', () => {
           id: 'rb5wq1dczvbm',
           name: 'Web Server',
           status: 'degraded_performance',
+          updated_at: '2013-05-29T21:32:28Z',
+          position: 1,
+          description: 'Web Server component',
+          showcase: true,
+          start_date: '2013-05-29T21:32:28Z',
+          page_id: 'j2mfxwj97wnj',
+          group_id: 'group1',
         },
       };
 
@@ -504,6 +550,13 @@ describe('AtlasStatuspageParser', () => {
           id: 'rb5wq1dczvbm',
           name: 'Backup System',
           status: 'under_maintenance',
+          updated_at: '2013-05-29T21:32:28Z',
+          position: 1,
+          description: 'Backup System component',
+          showcase: true,
+          start_date: '2013-05-29T21:32:28Z',
+          page_id: 'j2mfxwj97wnj',
+          group_id: 'group1',
         },
       };
 
@@ -553,6 +606,8 @@ describe('AtlasStatuspageParser', () => {
           postmortem_notified_twitter: false,
           postmortem_published_at: null,
           incident_updates: [],
+          components: [],
+          started_at: '2013-05-29T15:08:51-06:00',
         },
       };
 
@@ -600,6 +655,8 @@ describe('AtlasStatuspageParser', () => {
           postmortem_notified_twitter: false,
           postmortem_published_at: null,
           incident_updates: [],
+          components: [],
+          started_at: '2023-10-20T10:00:00Z',
         },
       };
 
@@ -607,7 +664,7 @@ describe('AtlasStatuspageParser', () => {
 
       expect(result.title).toContain('Incident');
       expect(result.body).not.toContain('View Incident');
-      expect(result.body).toContain('Status Page');
+      expect(result.body).not.toContain('Status Page');
     });
   });
 });

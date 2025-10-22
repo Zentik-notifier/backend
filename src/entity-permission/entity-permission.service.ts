@@ -34,6 +34,7 @@ export class EntityPermissionService {
 
   /**
    * Check if user has required permissions for a resource
+   * Note: Admin users automatically have all permissions
    */
   async hasPermissions(
     userId: string,
@@ -47,9 +48,61 @@ export class EntityPermissionService {
       return false;
     }
 
-    // Admin users have all permissions
+    // Check if user owns the resource first
+    const isOwner = await this.isResourceOwner(
+      userId,
+      resourceType,
+      resourceId,
+    );
+    if (isOwner) {
+      return true;
+    }
+
+    // Admin users have all permissions (but only if they're not the owner)
+    // This allows admin users to use invite codes for resources they don't own
     if (user.role === UserRole.ADMIN) {
       return true;
+    }
+
+    // Check explicit permissions
+    const permission = await this.entityPermissionRepository.findOne({
+      where: {
+        user: { id: userId },
+        resourceType,
+        resourceId,
+      },
+    });
+
+    if (!permission) {
+      return false;
+    }
+
+    // Check if permissions are expired
+    if (permission.expiresAt && permission.expiresAt < new Date()) {
+      await this.entityPermissionRepository.remove(permission);
+      return false;
+    }
+
+    return requiredPermissions.every((reqPerm) =>
+      permission.permissions.includes(reqPerm),
+    );
+  }
+
+  /**
+   * Check if user has required permissions for a resource (for invite code validation)
+   * Note: This method does NOT automatically grant permissions to admin users
+   * Admin users must have explicit permissions or be the resource owner
+   */
+  async hasPermissionsForInviteCode(
+    userId: string,
+    resourceType: ResourceType,
+    resourceId: string,
+    requiredPermissions: Permission[],
+  ): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      return false;
     }
 
     // Check if user owns the resource
@@ -62,7 +115,7 @@ export class EntityPermissionService {
       return true;
     }
 
-    // Check explicit permissions
+    // Check explicit permissions (admin users are NOT automatically granted permissions)
     const permission = await this.entityPermissionRepository.findOne({
       where: {
         user: { id: userId },

@@ -179,18 +179,18 @@ export class InviteCodeService {
       };
     }
 
-    // Check if user already has permissions for this resource
-    const existingPermissions = await this.entityPermissionService.hasPermissions(
+    // Check if user already has ALL the permissions that this invite code would grant
+    const existingPermissions = await this.entityPermissionService.hasPermissionsForInviteCode(
       userId,
       inviteCode.resourceType,
       inviteCode.resourceId,
-      [Permission.READ], // Check for any permission
+      inviteCode.permissions, // Check for ALL permissions that the invite code grants
     );
 
     if (existingPermissions) {
       return {
         success: false,
-        error: 'You already have access to this resource',
+        error: 'You already have all the permissions this invite code would grant',
       };
     }
 

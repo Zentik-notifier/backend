@@ -59,6 +59,7 @@ describe('InviteCodeService', () => {
           provide: EntityPermissionService,
           useValue: {
             hasPermissions: jest.fn().mockResolvedValue(true),
+            hasPermissionsForInviteCode: jest.fn().mockResolvedValue(false),
             grantPermissions: jest.fn().mockResolvedValue({} as EntityPermission),
             findPermission: jest.fn().mockResolvedValue({
               id: 'perm-1',
@@ -201,13 +202,13 @@ describe('InviteCodeService', () => {
 
     it('should return error when user already has access', async () => {
       jest
-        .spyOn(entityPermissionService, 'hasPermissions')
+        .spyOn(entityPermissionService, 'hasPermissionsForInviteCode')
         .mockResolvedValue(true);
 
       const result = await service.redeemInviteCode('ABC123DEF456', 'user-2');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('You already have access to this resource');
+      expect(result.error).toBe('You already have all the permissions this invite code would grant');
     });
   });
 
