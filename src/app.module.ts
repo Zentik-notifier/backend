@@ -41,7 +41,7 @@ import { ServerSettingType } from './entities/server-setting.entity';
     ScheduleModule.forRoot(),
     // Serve static frontend files
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+      rootPath: join(__dirname, '../..', 'public'),
       exclude: ['/api', '/graphql'],
     }),
     GraphqlModule,
