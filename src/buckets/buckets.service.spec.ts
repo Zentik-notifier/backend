@@ -83,6 +83,7 @@ describe('BucketsService', () => {
               orderBy: jest.fn().mockReturnThis(),
               getMany: jest.fn().mockResolvedValue([]),
               getCount: jest.fn().mockResolvedValue(0),
+              getOne: jest.fn().mockResolvedValue(null),
             })),
           },
         },
@@ -217,7 +218,7 @@ describe('BucketsService', () => {
 
       expect(bucketsRepository.find).toHaveBeenCalledWith({
         where: { user: { id: 'user-1' } },
-        relations: ['messages', 'messages.bucket', 'user', 'userBuckets'],
+        relations: ['user', 'userBuckets'],
         order: { createdAt: 'DESC' },
       });
       expect(result).toBeTruthy();

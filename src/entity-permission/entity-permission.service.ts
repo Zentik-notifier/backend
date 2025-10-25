@@ -30,7 +30,7 @@ export class EntityPermissionService {
     private userRepository: Repository<User>,
     private usersService: UsersService,
     private eventTrackingService: EventTrackingService,
-  ) {}
+  ) { }
 
   /**
    * Check if user has required permissions for a resource
@@ -432,6 +432,36 @@ export class EntityPermissionService {
     });
     if (hasGrantedPermission) {
       return true;
+    }
+
+    if (resourceType === ResourceType.BUCKET) {
+      // Check if user has any access to the bucket (READ, WRITE, etc.)
+      const hasAnyAccess = await this.hasPermissions(
+        userId,
+        resourceType,
+        resourceId,
+        [Permission.READ, Permission.WRITE, Permission.DELETE, Permission.ADMIN],
+      );
+
+      if (hasAnyAccess) {
+        return true;
+      }
+
+      // Check if it's a public bucket
+      const bucketRepo = this.entityPermissionRepository.manager.getRepository('Bucket');
+      const bucket = await bucketRepo.findOne({
+        where: { id: resourceId },
+        select: ['isPublic', 'isAdmin'],
+      });
+
+      if (bucket?.isPublic) {
+        return true;
+      }
+
+      // Check if it's an admin bucket and user is moderator
+      if (bucket?.isAdmin && user.role === UserRole.MODERATOR) {
+        return true;
+      }
     }
 
     return false;

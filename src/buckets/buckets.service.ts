@@ -94,15 +94,13 @@ export class BucketsService {
     // Get owned buckets with userBucket relation
     const ownedBuckets = await this.bucketsRepository.find({
       where: { user: { id: userId } },
-      relations: ['messages', 'messages.bucket', 'user', 'userBuckets'],
+      relations: ['user', 'userBuckets'],
       order: { createdAt: 'DESC' },
     });
 
     // Get shared buckets through entity permissions
     const sharedBuckets = await this.bucketsRepository
       .createQueryBuilder('bucket')
-      .leftJoinAndSelect('bucket.messages', 'messages')
-      .leftJoinAndSelect('messages.bucket', 'messageBucket')
       .leftJoinAndSelect('bucket.user', 'user')
       .leftJoinAndSelect(
         'bucket.userBuckets',
@@ -123,7 +121,7 @@ export class BucketsService {
     // Get public buckets
     const publicBuckets = await this.bucketsRepository.find({
       where: { isPublic: true },
-      relations: ['messages', 'messages.bucket', 'user', 'userBuckets'],
+      relations: ['user', 'userBuckets'],
       order: { createdAt: 'DESC' },
     });
 
@@ -135,7 +133,7 @@ export class BucketsService {
     if (user && user.role === UserRole.ADMIN) {
       adminBuckets = await this.bucketsRepository.find({
         where: { isAdmin: true },
-        relations: ['messages', 'messages.bucket', 'user', 'userBuckets'],
+        relations: ['user', 'userBuckets'],
         order: { createdAt: 'DESC' },
       });
     }
