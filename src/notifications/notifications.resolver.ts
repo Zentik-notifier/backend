@@ -64,19 +64,37 @@ export class UserNotificationStats {
   today: number;
 
   @Field()
+  todayAcked: number;
+
+  @Field()
   thisWeek: number;
+
+  @Field()
+  thisWeekAcked: number;
 
   @Field()
   last7Days: number;
 
   @Field()
+  last7DaysAcked: number;
+
+  @Field()
   thisMonth: number;
+
+  @Field()
+  thisMonthAcked: number;
 
   @Field()
   last30Days: number;
 
   @Field()
+  last30DaysAcked: number;
+
+  @Field()
   total: number;
+
+  @Field()
+  totalAcked: number;
 }
 
 @Resolver(() => Notification)
@@ -420,17 +438,69 @@ export class NotificationsResolver {
 
     const totalCount = notificationEvents.length;
 
-    this.logger.debug(
-      `User ${targetUserId} stats: today=${todayCount}, week=${weekCount}, last7Days=${last7DaysCount}, month=${monthCount}, last30Days=${last30DaysCount}, total=${totalCount} (total events: ${notificationEvents.length})`,
+    const ackedEvents = events.filter(
+      (e) => e.type === EventType.NOTIFICATION_ACK,
     );
+
+    // Count acked events by period using date-fns
+    const todayAcked = ackedEvents.filter((e) => {
+      const eventDate = new Date(e.createdAt);
+      return (
+        isAfter(eventDate, today) || eventDate.getTime() === today.getTime()
+      );
+    }).length;
+
+    const thisWeekAcked = ackedEvents.filter((e) => {
+      const eventDate = new Date(e.createdAt);
+      return (
+        isAfter(eventDate, thisWeek) ||
+        eventDate.getTime() === thisWeek.getTime()
+      );
+    }).length;
+
+    const last7DaysAcked = ackedEvents.filter((e) => {
+      const eventDate = new Date(e.createdAt);
+      return (
+        isAfter(eventDate, last7Days) ||
+        eventDate.getTime() === last7Days.getTime()
+      );
+    }).length;
+
+    const thisMonthAcked = ackedEvents.filter((e) => {
+      const eventDate = new Date(e.createdAt);
+      return (
+        isAfter(eventDate, thisMonth) ||
+        eventDate.getTime() === thisMonth.getTime()
+      );
+    }).length;
+
+    const last30DaysAcked = ackedEvents.filter((e) => {
+      const eventDate = new Date(e.createdAt);
+      return (
+        isAfter(eventDate, last30Days) ||
+        eventDate.getTime() === last30Days.getTime()
+      );
+    }).length;
+
+    const totalAcked = ackedEvents.length;
+
+    // this.logger.debug(
+    //   `User ${targetUserId} stats: today=${todayCount}, week=${weekCount}, last7Days=${last7DaysCount}, month=${monthCount}, last30Days=${last30DaysCount}, total=${totalCount} (total events: ${notificationEvents.length})`,
+    // );
 
     return {
       today: todayCount,
+      todayAcked,
       thisWeek: weekCount,
+      thisWeekAcked,
       last7Days: last7DaysCount,
+      last7DaysAcked,
       thisMonth: monthCount,
+      thisMonthAcked,
       last30Days: last30DaysCount,
+      last30DaysAcked,
       total: totalCount,
+      totalAcked,
     };
   }
 

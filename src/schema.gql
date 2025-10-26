@@ -1301,11 +1301,17 @@ type UserIdentity {
 
 type UserNotificationStats {
   last7Days: Float!
+  last7DaysAcked: Float!
   last30Days: Float!
+  last30DaysAcked: Float!
   thisMonth: Float!
+  thisMonthAcked: Float!
   thisWeek: Float!
+  thisWeekAcked: Float!
   today: Float!
+  todayAcked: Float!
   total: Float!
+  totalAcked: Float!
 }
 
 """User role enum"""

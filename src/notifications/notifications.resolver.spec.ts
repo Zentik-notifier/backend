@@ -150,11 +150,17 @@ describe('NotificationsResolver', () => {
 
       // Verify that the method returns the expected structure
       expect(result).toHaveProperty('today');
+      expect(result).toHaveProperty('todayAcked');
       expect(result).toHaveProperty('thisWeek');
+      expect(result).toHaveProperty('thisWeekAcked');
       expect(result).toHaveProperty('last7Days');
+      expect(result).toHaveProperty('last7DaysAcked');
       expect(result).toHaveProperty('thisMonth');
+      expect(result).toHaveProperty('thisMonthAcked');
       expect(result).toHaveProperty('last30Days');
+      expect(result).toHaveProperty('last30DaysAcked');
       expect(result).toHaveProperty('total');
+      expect(result).toHaveProperty('totalAcked');
 
       // Verify that only NOTIFICATION type events are counted in total
       expect(result.total).toBe(2);
@@ -172,11 +178,17 @@ describe('NotificationsResolver', () => {
 
       expect(result).toEqual({
         today: 0,
+        todayAcked: 0,
         thisWeek: 0,
+        thisWeekAcked: 0,
         last7Days: 0,
+        last7DaysAcked: 0,
         thisMonth: 0,
+        thisMonthAcked: 0,
         last30Days: 0,
+        last30DaysAcked: 0,
         total: 0,
+        totalAcked: 0,
       });
       expect(mockEventsService.findByUserId).toHaveBeenCalledWith(userId);
     });
@@ -190,11 +202,17 @@ describe('NotificationsResolver', () => {
 
       expect(result).toEqual({
         today: 0,
+        todayAcked: 0,
         thisWeek: 0,
+        thisWeekAcked: 0,
         last7Days: 0,
+        last7DaysAcked: 0,
         thisMonth: 0,
+        thisMonthAcked: 0,
         last30Days: 0,
+        last30DaysAcked: 0,
         total: 0,
+        totalAcked: 0,
       });
       expect(mockEventsService.findByUserId).toHaveBeenCalledWith(
         currentUserId,
