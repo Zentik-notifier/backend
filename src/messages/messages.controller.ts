@@ -3,13 +3,13 @@ import {
   Controller,
   Get,
   Headers,
-  Param,
+  Logger,
   Post,
   Query,
   Req,
   UploadedFile,
   UseGuards,
-  UseInterceptors,
+  UseInterceptors
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -38,6 +38,8 @@ import { MessagesService } from './messages.service';
 @ApiTags('Messages')
 @ApiBearerAuth()
 export class MessagesController {
+  private readonly logger = new Logger(MessagesController.name);
+
   constructor(private readonly messagesService: MessagesService) {}
 
   @Post()
@@ -200,8 +202,6 @@ export class MessagesController {
     const url = request.url || 'UNKNOWN';
     const ip = request.ip || request.headers?.['x-forwarded-for'] || 'UNKNOWN';
     
-    console.log(`[PayloadMapper Transform] ${authType} | Parser: ${parserName} | BucketId: ${bucketId} | UserId: ${userId}`);
-
     try {
       const result = await this.messagesService.transformAndCreate(
         parserName,
@@ -212,9 +212,13 @@ export class MessagesController {
       );
 
       if (result) {
-        console.log(`[PayloadMapper Transform] ✅ Message created | MessageId: ${result.id} | Parser: ${parserName}`);
+        this.logger.log(
+          `Message created successfully | MessageId: ${result.id} | Parser: ${parserName}`,
+        );
       } else {
-        console.log(`[PayloadMapper Transform] ⏭️ Parser skipped (no content) | Parser: ${parserName}`);
+        this.logger.log(
+          `Parser skipped (no content) | Parser: ${parserName}`,
+        );
       }
 
       // If parser was skipped, return undefined (will result in 204 No Content)
@@ -225,13 +229,13 @@ export class MessagesController {
       
       // Log error with details
       const payloadPreview = JSON.stringify(payload).substring(0, 200);
-      console.error(
-        `[PayloadMapper Transform] ❌ Error ${statusCode} | Parser: ${parserName} | BucketId: ${bucketId} | UserId: ${userId} | IP: ${ip} | Method: ${method} | URL: ${url} | Error: ${error.message} | Payload: ${payloadPreview}`,
+      this.logger.error(
+        `Error ${statusCode} | Parser: ${parserName} | BucketId: ${bucketId} | UserId: ${userId} | IP: ${ip} | Method: ${method} | URL: ${url} | Error: ${error.message} | Payload: ${payloadPreview}`,
       );
       
       // Log stack trace for 500 errors
       if (statusCode === 500) {
-        console.error(`[PayloadMapper Transform] ❌ Stack trace:`, error.stack);
+        this.logger.error(`Stack trace: ${error.stack}`);
       }
       
       // Re-throw to maintain existing behavior
