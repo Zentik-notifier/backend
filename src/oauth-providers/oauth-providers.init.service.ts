@@ -1,8 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { UrlBuilderService } from '../common/services/url-builder.service';
-import { OAuthProviderType } from '../entities';
 import { OAuthProvidersService } from './oauth-providers.service';
 
 @Injectable()
@@ -11,9 +8,7 @@ export class OAuthProvidersInitService implements OnApplicationBootstrap {
 
   constructor(
     private readonly oauthProvidersService: OAuthProvidersService,
-    private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
-    private readonly urlBuilderService: UrlBuilderService,
   ) { }
 
   async onApplicationBootstrap() {

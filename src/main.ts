@@ -16,6 +16,7 @@ import { ServerSettingType, ServerSetting } from './entities/server-setting.enti
 import dataSource from '../ormconfig';
 import { ensureAdminBucket } from './seeds/admin-bucket.seed';
 import { ensurePublicBucket } from './seeds/public-bucket.seed';
+import { ensureOAuthProviders } from './seeds/oauth-providers.seed';
 
 // Global reference to the application instance
 let appInstance: INestApplication | null = null;
@@ -349,6 +350,15 @@ async function bootstrap() {
     logger.log('✅ Public bucket initialization completed.');
   } catch (err) {
     logger.error('❌ Error during public bucket initialization:', err);
+  }
+
+  // Initialize OAuth providers at startup
+  try {
+    const dataSource = app.get(DataSource);
+    await ensureOAuthProviders(dataSource);
+    logger.log('✅ OAuth providers initialization completed.');
+  } catch (err) {
+    logger.error('❌ Error during OAuth providers initialization:', err);
   }
 
   // Set up custom database logger to intercept all logs
