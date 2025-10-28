@@ -15,6 +15,8 @@ export enum UserSettingType {
   DefaultSnoozes = 'DefaultSnoozes',
   // GitHub property mapper settings
   GithubEventsFilter = 'GithubEventsFilter',
+  // Self-hosted stable server identifier
+  ServerStableIdentifier = 'ServerStableIdentifier',
 }
 
 registerEnumType(UserSettingType, { name: 'UserSettingType' });

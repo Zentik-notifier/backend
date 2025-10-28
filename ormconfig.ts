@@ -31,6 +31,8 @@ import { AddBucketCreationEvent1729520000000 } from './database/migrations/17295
 import { IncreaseLogMessageLength1729522000000 } from 'database/migrations/1729522000000-IncreaseLogMessageLength';
 import { AddExecutionIdToMessages1737561600000 } from 'database/migrations/1737561600000-AddExecutionIdToMessages';
 import { CreateSystemAccessTokenRequests1738100000000 } from './database/migrations/1738100000000-CreateSystemAccessTokenRequests';
+import { AddScopesToSystemAccessTokens1738101000000 } from './database/migrations/1738101000000-AddScopesToSystemAccessTokens';
+import { AddServerStableIdentifierToServerSettingsEnum1738104000000 } from './database/migrations/1738104000000-AddServerStableIdentifierToServerSettingsEnum';
 
 config({ path: '.env' });
 
@@ -83,6 +85,8 @@ const dataSource = new DataSource({
     IncreaseLogMessageLength1729522000000,
     AddExecutionIdToMessages1737561600000,
     CreateSystemAccessTokenRequests1738100000000,
+    AddScopesToSystemAccessTokens1738101000000,
+    AddServerStableIdentifierToServerSettingsEnum1738104000000,
   ],
   migrationsTableName: 'migrations',
 });

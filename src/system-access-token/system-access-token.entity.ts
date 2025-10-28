@@ -63,4 +63,14 @@ export class SystemAccessToken {
   @ApiProperty()
   @Field()
   updatedAt: Date;
+
+  @Column({ type: 'text', array: true, default: '{}' })
+  @ApiProperty({ type: [String], required: false })
+  @Field(() => [String], { nullable: true })
+  scopes?: string[];
+
+  @Column({ type: 'text', nullable: true })
+  @ApiProperty({ required: false, description: 'Stable identifier of the requesting server (IP, hostname or fingerprint)'} )
+  @Field({ nullable: true })
+  requesterIdentifier?: string;
 }

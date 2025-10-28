@@ -90,6 +90,9 @@ export enum ServerSettingType {
   
   // Prometheus Metrics
   PrometheusEnabled = 'PrometheusEnabled',
+  
+  // Stable server identifier (UUID generated at bootstrap)
+  ServerStableIdentifier = 'ServerStableIdentifier',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

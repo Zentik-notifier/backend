@@ -1016,6 +1016,7 @@ enum ServerSettingType {
   RateLimitTrustProxyEnabled
   RateLimitTtlMs
   ResendApiKey
+  ServerStableIdentifier
   VapidSubject
   WebPush
 }
@@ -1075,6 +1076,8 @@ type SystemAccessToken {
   maxCalls: Float!
   requester: User
   requesterId: String
+  requesterIdentifier: String
+  scopes: [String!]
   tokenHash: String!
   updatedAt: DateTime!
 }
@@ -1367,6 +1370,7 @@ enum UserSettingType {
   HomeassistantToken
   HomeassistantUrl
   Language
+  ServerStableIdentifier
   Timezone
   UnencryptOnBigPayload
 }

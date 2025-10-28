@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
 import { CreateServerSettingDto, UpdateServerSettingDto } from './dto/server-setting.dto';
+import { v4 } from 'uuid';
 
 @Injectable()
 export class ServerSettingsService {
@@ -250,6 +251,23 @@ export class ServerSettingsService {
           this.logger.log(`Updated possibleValues for ${mapping.configType}`);
         }
       }
+    }
+
+    // Ensure a stable server identifier exists
+    try {
+      const stableId = await this.getStringValue(ServerSettingType.ServerStableIdentifier);
+      if (!stableId) {
+        const id = v4();
+        await this.upsertSetting({
+          configType: ServerSettingType.ServerStableIdentifier,
+          valueText: id,
+        });
+        this.logger.log(`Generated ServerStableIdentifier: ${id}`);
+      } else {
+        this.logger.log('ServerStableIdentifier already present');
+      }
+    } catch (e) {
+      this.logger.error('Failed to ensure ServerStableIdentifier', e as any);
     }
 
     this.logger.log('Server settings initialization completed');
