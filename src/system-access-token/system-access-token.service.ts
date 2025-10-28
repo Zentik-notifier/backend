@@ -44,6 +44,7 @@ export class SystemAccessTokenService {
       expiresAt,
       requesterId,
       description,
+      token: `sat_${raw}`,
       scopes,
     });
     const saved = await this.systemTokenRepository.save(rec);

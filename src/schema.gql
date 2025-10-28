@@ -1078,6 +1078,7 @@ type SystemAccessToken {
   requesterId: String
   requesterIdentifier: String
   scopes: [String!]
+  token: String
   tokenHash: String!
   updatedAt: DateTime!
 }
@@ -1092,6 +1093,7 @@ type SystemAccessTokenDto {
   rawToken: String
   requester: User
   scopes: [String!]
+  token: String
   updatedAt: DateTime!
 }
 

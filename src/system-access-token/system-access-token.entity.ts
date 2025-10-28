@@ -34,6 +34,11 @@ export class SystemAccessToken {
   @Field()
   calls: number;
 
+  @Column({ type: 'text', nullable: true })
+  @ApiProperty({ required: false, description: 'Plain text token (sat_...) saved for display/ops' })
+  @Field({ nullable: true })
+  token?: string;
+
   @Column({ nullable: true })
   @ApiProperty({ required: false })
   @Field(() => Date, { nullable: true })

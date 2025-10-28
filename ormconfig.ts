@@ -33,6 +33,7 @@ import { AddExecutionIdToMessages1737561600000 } from 'database/migrations/17375
 import { CreateSystemAccessTokenRequests1738100000000 } from './database/migrations/1738100000000-CreateSystemAccessTokenRequests';
 import { AddScopesToSystemAccessTokens1738101000000 } from './database/migrations/1738101000000-AddScopesToSystemAccessTokens';
 import { AddServerStableIdentifierToServerSettingsEnum1738104000000 } from './database/migrations/1738104000000-AddServerStableIdentifierToServerSettingsEnum';
+import { AddPlainTextTokenToSystemAccessTokens1738200000000 } from './database/migrations/1738200000000-AddPlainTextTokenToSystemAccessTokens';
 
 config({ path: '.env' });
 
@@ -87,6 +88,7 @@ const dataSource = new DataSource({
     CreateSystemAccessTokenRequests1738100000000,
     AddScopesToSystemAccessTokens1738101000000,
     AddServerStableIdentifierToServerSettingsEnum1738104000000,
+    AddPlainTextTokenToSystemAccessTokens1738200000000,
   ],
   migrationsTableName: 'migrations',
 });
