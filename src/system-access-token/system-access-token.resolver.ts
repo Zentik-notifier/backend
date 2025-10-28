@@ -17,12 +17,14 @@ export class SystemAccessTokenResolver {
     @Args('expiresAt', { nullable: true }) expiresAt?: string,
     @Args('requesterId', { nullable: true }) requesterId?: string,
     @Args('description', { nullable: true }) description?: string,
+    @Args('scopes', { nullable: true, type: () => [String] }) scopes?: string[],
   ) {
     return await this.service.createToken(
       maxCalls,
       expiresAt ? new Date(expiresAt) : undefined,
       requesterId,
       description,
+      scopes,
     );
   }
 
@@ -43,6 +45,7 @@ export class SystemAccessTokenResolver {
     @Args('expiresAt', { nullable: true }) expiresAt?: string,
     @Args('requesterId', { nullable: true }) requesterId?: string,
     @Args('description', { nullable: true }) description?: string,
+    @Args('scopes', { nullable: true, type: () => [String] }) scopes?: string[],
   ) {
     return await this.service.updateToken(
       id,
@@ -50,6 +53,7 @@ export class SystemAccessTokenResolver {
       expiresAt ? new Date(expiresAt) : undefined,
       requesterId,
       description,
+      scopes,
     );
   }
 

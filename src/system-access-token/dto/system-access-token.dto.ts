@@ -21,6 +21,9 @@ export class SystemAccessTokenDto {
   @Field({ nullable: true })
   description?: string;
 
+  @Field(() => [String], { nullable: true })
+  scopes?: string[];
+
   @Field()
   createdAt: Date;
 

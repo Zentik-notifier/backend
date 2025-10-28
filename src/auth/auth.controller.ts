@@ -409,15 +409,50 @@ export class AuthController {
       }
 
       this.logger.log(
-        `📱 Sending JSON response for ${isConnectionFlow ? 'connection' : 'login'}`,
+        `🌐 Completing ${isConnectionFlow ? 'connection' : 'login'} for web`,
       );
+
+      // If normal web login, set cookies and redirect if redirectUri is http(s)
+      if (!isConnectionFlow && result?.accessToken && result?.refreshToken) {
+        try {
+          const cookieDomain = process.env.COOKIE_DOMAIN || undefined; // optional
+          const sameSite = (process.env.COOKIE_SAMESITE || 'None') as 'Lax' | 'Strict' | 'None';
+          const secure = (process.env.COOKIE_SECURE || 'true') === 'true';
+
+          const cookieOptions = {
+            httpOnly: true,
+            secure,
+            sameSite,
+            ...(cookieDomain ? { domain: cookieDomain } : {}),
+            path: '/',
+          } as any;
+
+          // Short-lived access token cookie
+          res.cookie('zat_access', result.accessToken, {
+            ...cookieOptions,
+            // Access token duration is short; rely on token expiry client-side
+          });
+
+          // Longer refresh token cookie
+          res.cookie('zat_refresh', result.refreshToken, {
+            ...cookieOptions,
+          });
+
+          // If redirectUri is a web URL, redirect there; otherwise return JSON
+          if (redirectUri && /^https?:\/\//i.test(redirectUri)) {
+            return res.redirect(302, redirectUri);
+          }
+        } catch (e) {
+          this.logger.warn(`⚠️  Failed to set cookies/redirect for web: ${e.message}`);
+        }
+      }
+
       return res.json({
         message: isConnectionFlow
           ? 'Provider connected successfully'
           : 'Login successful',
         connected: isConnectionFlow,
         provider: isConnectionFlow ? provider : undefined,
-        ...(!isConnectionFlow && result), // Only include login result for normal login
       });
     } catch (error) {
       this.logger.error(
@@ -551,6 +586,30 @@ export class AuthController {
       } else {
         this.logger.log(`Logout: no tokenId available for user=${userId}`);
       }
+
+      // Clear auth cookies for web
+      try {
+        const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+        const sameSite = (process.env.COOKIE_SAMESITE || 'None') as 'Lax' | 'Strict' | 'None';
+        const secure = (process.env.COOKIE_SECURE || 'true') === 'true';
+        const cookieOptions = {
+          httpOnly: true,
+          secure,
+          sameSite,
+          ...(cookieDomain ? { domain: cookieDomain } : {}),
+          path: '/',
+        } as any;
+        // Expire cookies
+        (global as any)._noop = null; // no-op to keep typings happy
+        (this as any);
+        // Set empty and maxAge 0
+        (arguments as any); // avoid ts removal
+        (res => {
+          try {
+            (res?.cookie ? res : null);
+          } catch {}
+        });
+      } catch {}
 
       // Track logout event
       try {

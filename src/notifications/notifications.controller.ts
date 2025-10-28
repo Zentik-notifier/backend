@@ -24,6 +24,8 @@ import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard'
 import { Notification } from '../entities/notification.entity';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { GetSystemAccessToken } from '../system-access-token/decorators/get-system-access-token.decorator';
+import { RequireSystemScopes } from '../system-access-token/decorators/require-system-scopes.decorator';
+import { SystemAccessScopesGuard } from '../system-access-token/system-access-scopes.guard';
 import { SystemAccessTokenGuard } from '../system-access-token/system-access-token.guard';
 import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
 import {
@@ -327,8 +329,8 @@ export class NotificationsController {
     return this.notificationsService.getNotificationServices();
   }
 
-  @UseGuards(SystemAccessTokenGuard)
-  @SetMetadata('allowSystemToken', true)
+  @UseGuards(SystemAccessTokenGuard, SystemAccessScopesGuard)
+  @RequireSystemScopes(['passthrough'])
   @Post('notify-external')
   @ApiOperation({
     summary:

@@ -23,17 +23,39 @@ export class JwtOrAccessTokenGuard implements CanActivate {
     const request = this.getRequest(context);
     const authHeader = request.headers?.authorization;
     const queryToken = request.query?.token;
+    const cookieHeader: string | undefined = request.headers?.cookie;
 
-    let token: string;
+    let token: string | undefined;
 
     // Check for token in Authorization header first
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7); // Remove 'Bearer '
     }
     // Fallback to query parameter
-    else if (queryToken) {
-      token = queryToken;
-    } else {
+    else if (queryToken && typeof queryToken === 'string') {
+      token = queryToken as string;
+    } else if (cookieHeader) {
+      // Try to parse cookies manually (avoid dependency on cookie-parser)
+      const cookies: Record<string, string> = {};
+      try {
+        cookieHeader.split(';').forEach((pair: string) => {
+          const idx = pair.indexOf('=');
+          if (idx > -1) {
+            const k = pair.slice(0, idx).trim();
+            const v = decodeURIComponent(pair.slice(idx + 1));
+            cookies[k] = v;
+          }
+        });
+        const cookieToken = cookies['zat_access'] || cookies['accessToken'];
+        if (cookieToken && typeof cookieToken === 'string') {
+          token = cookieToken;
+        }
+      } catch (e) {
+        // ignore cookie parse errors
+      }
+    }
+
+    if (!token) {
       throw new UnauthorizedException('No authentication token provided');
     }
 

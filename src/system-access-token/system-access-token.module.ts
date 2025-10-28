@@ -11,6 +11,7 @@ import { SystemAccessTokenRequest } from './system-access-token-request.entity';
 import { SystemAccessTokenRequestController } from './system-access-token-request.controller';
 import { SystemAccessTokenRequestResolver } from './system-access-token-request.resolver';
 import { SystemAccessTokenRequestService } from './system-access-token-request.service';
+import { SystemAccessScopesGuard } from './system-access-scopes.guard';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SystemAccessTokenRequestService } from './system-access-token-request.s
     SystemAccessTokenService,
     SystemAccessTokenResolver,
     SystemAccessTokenGuard,
+    SystemAccessScopesGuard,
     SystemAccessTokenRequestService,
     SystemAccessTokenRequestResolver,
   ],
@@ -35,6 +37,7 @@ import { SystemAccessTokenRequestService } from './system-access-token-request.s
   exports: [
     SystemAccessTokenService,
     SystemAccessTokenGuard,
+    SystemAccessScopesGuard,
     SystemAccessTokenRequestService,
   ],
 })

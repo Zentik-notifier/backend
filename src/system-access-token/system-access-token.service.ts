@@ -22,6 +22,7 @@ export class SystemAccessTokenService {
     expiresAt?: Date,
     requesterId?: string,
     description?: string,
+    scopes?: string[],
   ) {
     // Validate that the requester user exists if provided
     if (requesterId) {
@@ -43,6 +44,7 @@ export class SystemAccessTokenService {
       expiresAt,
       requesterId,
       description,
+      scopes,
     });
     const saved = await this.systemTokenRepository.save(rec);
 
@@ -69,6 +71,7 @@ export class SystemAccessTokenService {
     expiresAt?: Date,
     requesterId?: string,
     description?: string,
+    scopes?: string[],
   ) {
     // Validate that the requester user exists if provided
     if (requesterId) {
@@ -85,6 +88,7 @@ export class SystemAccessTokenService {
     if (expiresAt !== undefined) updateData.expiresAt = expiresAt;
     if (requesterId !== undefined) updateData.requesterId = requesterId;
     if (description !== undefined) updateData.description = description;
+    if (scopes !== undefined) updateData.scopes = scopes;
 
     const result = await this.systemTokenRepository.update(id, updateData);
     if (result.affected === 0) {

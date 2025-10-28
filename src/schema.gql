@@ -542,7 +542,7 @@ type Mutation {
   createOAuthProvider(input: CreateOAuthProviderDto!): OAuthProvider!
   createPayloadMapper(input: CreatePayloadMapperDto!): PayloadMapper!
   createSystemAccessTokenRequest(input: CreateSystemAccessTokenRequestDto!): SystemAccessTokenRequest!
-  createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String): SystemAccessTokenDto!
+  createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String, scopes: [String!]): SystemAccessTokenDto!
   createWebhook(input: CreateWebhookDto!): UserWebhook!
   declineSystemAccessTokenRequest(id: String!, input: DeclineSystemAccessTokenRequestDto): SystemAccessTokenRequest!
   deleteAccount: Boolean!
@@ -616,7 +616,7 @@ type Mutation {
 
   """Update an existing server setting"""
   updateServerSetting(configType: ServerSettingType!, input: UpdateServerSettingDto!): ServerSetting!
-  updateSystemToken(description: String, expiresAt: String, id: String!, maxCalls: Float, requesterId: String): SystemAccessTokenDto!
+  updateSystemToken(description: String, expiresAt: String, id: String!, maxCalls: Float, requesterId: String, scopes: [String!]): SystemAccessTokenDto!
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
   updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
@@ -1091,6 +1091,7 @@ type SystemAccessTokenDto {
   maxCalls: Float!
   rawToken: String
   requester: User
+  scopes: [String!]
   updatedAt: DateTime!
 }
 
