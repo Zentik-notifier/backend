@@ -195,23 +195,47 @@ export class MessagesController {
     const isAccessToken = !!request?.accessTokenScopes;
     const authType = isAccessToken ? 'AccessToken' : 'JWT';
     
+    // Extract request info for error logging
+    const method = request.method || 'POST';
+    const url = request.url || 'UNKNOWN';
+    const ip = request.ip || request.headers?.['x-forwarded-for'] || 'UNKNOWN';
+    
     console.log(`[PayloadMapper Transform] ${authType} | Parser: ${parserName} | BucketId: ${bucketId} | UserId: ${userId}`);
 
-    const result = await this.messagesService.transformAndCreate(
-      parserName,
-      payload,
-      userId,
-      bucketId,
-      headers,
-    );
+    try {
+      const result = await this.messagesService.transformAndCreate(
+        parserName,
+        payload,
+        userId,
+        bucketId,
+        headers,
+      );
 
-    if (result) {
-      console.log(`[PayloadMapper Transform] ✅ Message created | MessageId: ${result.id} | Parser: ${parserName}`);
-    } else {
-      console.log(`[PayloadMapper Transform] ⏭️ Parser skipped (no content) | Parser: ${parserName}`);
+      if (result) {
+        console.log(`[PayloadMapper Transform] ✅ Message created | MessageId: ${result.id} | Parser: ${parserName}`);
+      } else {
+        console.log(`[PayloadMapper Transform] ⏭️ Parser skipped (no content) | Parser: ${parserName}`);
+      }
+
+      // If parser was skipped, return undefined (will result in 204 No Content)
+      return result;
+    } catch (error: any) {
+      // Determine status code
+      const statusCode = error.status || error.statusCode || 500;
+      
+      // Log error with details
+      const payloadPreview = JSON.stringify(payload).substring(0, 200);
+      console.error(
+        `[PayloadMapper Transform] ❌ Error ${statusCode} | Parser: ${parserName} | BucketId: ${bucketId} | UserId: ${userId} | IP: ${ip} | Method: ${method} | URL: ${url} | Error: ${error.message} | Payload: ${payloadPreview}`,
+      );
+      
+      // Log stack trace for 500 errors
+      if (statusCode === 500) {
+        console.error(`[PayloadMapper Transform] ❌ Stack trace:`, error.stack);
+      }
+      
+      // Re-throw to maintain existing behavior
+      throw error;
     }
-
-    // If parser was skipped, return undefined (will result in 204 No Content)
-    return result;
   }
 }
