@@ -20,9 +20,14 @@ export class SystemAccessTokenGuard implements CanActivate {
     const request = this.getRequest(context);
     const authHeader = request.headers?.authorization as string | undefined;
 
+    // Extract request info for logging
+    const method = request.method || 'UNKNOWN';
+    const url = request.url || 'UNKNOWN';
+    const ip = request.ip || request.headers?.['x-forwarded-for'] || 'UNKNOWN';
+
     if (!authHeader || !authHeader.startsWith('Bearer sat_')) {
       this.logger.error(
-        'Missing or invalid system access token format in request',
+        `System access token format invalid - Method: ${method}, URL: ${url}, IP: ${ip}`,
       );
       throw new UnauthorizedException('Missing or invalid system access token');
     }
@@ -30,6 +35,9 @@ export class SystemAccessTokenGuard implements CanActivate {
     const token = authHeader.substring(7);
     const rec = await this.systemAccessTokenService.validateSystemToken(token);
     if (!rec) {
+      this.logger.warn(
+        `System access token invalid or expired - Method: ${method}, URL: ${url}, IP: ${ip}, Token: ${token.substring(0, 20)}...`,
+      );
       throw new UnauthorizedException('Invalid or expired system access token');
     }
 
