@@ -6,6 +6,8 @@ import { EmailService } from './auth/email.service';
 import { JwtOrAccessTokenGuard } from './auth/guards/jwt-or-access-token.guard';
 import { OAuthProvidersService } from './oauth-providers/oauth-providers.service';
 import { AccessTokenService } from './auth/access-token.service';
+import { ServerSettingsService } from './server-manager/server-settings.service';
+import { ServerSettingType } from './entities/server-setting.entity';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -32,6 +34,17 @@ describe('AppController', () => {
         {
           provide: AttachmentsService,
           useValue: { isAttachmentsEnabled: jest.fn().mockReturnValue(true) },
+        },
+        {
+          provide: ServerSettingsService,
+          useValue: {
+            getBooleanValue: jest.fn().mockImplementation((type: ServerSettingType, defaultValue: boolean) => {
+              if (type === ServerSettingType.EnableSystemTokenRequests) {
+                return Promise.resolve(defaultValue ?? true);
+              }
+              return Promise.resolve(defaultValue ?? false);
+            }),
+          },
         },
       ],
     })
