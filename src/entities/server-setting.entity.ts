@@ -96,6 +96,9 @@ export enum ServerSettingType {
   
   // System Access Token Requests
   EnableSystemTokenRequests = 'EnableSystemTokenRequests',
+  
+  // System Access Token Usage Tracking
+  SystemTokenUsageStats = 'SystemTokenUsageStats',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

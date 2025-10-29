@@ -271,6 +271,20 @@ export class ServerSettingsService {
       this.logger.error('Failed to ensure ServerStableIdentifier', e as any);
     }
 
+    // Initialize System Token Usage Stats with empty JSON
+    try {
+      const usageStats = await this.getSettingByType(ServerSettingType.SystemTokenUsageStats);
+      if (!usageStats) {
+        await this.upsertSetting({
+          configType: ServerSettingType.SystemTokenUsageStats,
+          valueText: '{}',
+        });
+        this.logger.log('Initialized SystemTokenUsageStats with empty JSON');
+      }
+    } catch (e) {
+      this.logger.error('Failed to initialize SystemTokenUsageStats', e as any);
+    }
+
     this.logger.log('Server settings initialization completed');
   }
 

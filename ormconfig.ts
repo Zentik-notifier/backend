@@ -38,6 +38,8 @@ import { AddSystemTokenRequestEvents1738205000000 } from './database/migrations/
 import { AddExchangeCodeToUserSessions1730220000000 } from './database/migrations/1730220000000-AddExchangeCodeToUserSessions';
 import { AddTotalCallsAndLastResetToSystemAccessTokens1738207000000 } from './database/migrations/1738207000000-AddTotalCallsAndLastResetToSystemAccessTokens';
 import { AddEnableSystemTokenRequests1738206000000 } from './database/migrations/1738206000000-AddEnableSystemTokenRequests';
+import { AddSystemTokenUsageStats1738208000000 } from './database/migrations/1738208000000-AddSystemTokenUsageStats';
+import { ExtendLogContextToText1738209000000 } from './database/migrations/1738209000000-ExtendLogContextToText';
 
 config({ path: '.env' });
 
@@ -97,6 +99,8 @@ const dataSource = new DataSource({
     AddSystemTokenRequestEvents1738205000000,
     AddEnableSystemTokenRequests1738206000000,
     AddTotalCallsAndLastResetToSystemAccessTokens1738207000000,
+    AddSystemTokenUsageStats1738208000000,
+    ExtendLogContextToText1738209000000,
   ],
   migrationsTableName: 'migrations',
 });

@@ -649,6 +649,51 @@ export class PushNotificationOrchestratorService {
 
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        // Read token usage headers and update ServerSettings stats
+        try {
+          const tokenId = res.headers.get('x-token-id');
+          const calls = res.headers.get('x-token-calls');
+          const maxCalls = res.headers.get('x-token-maxcalls');
+          const totalCalls = res.headers.get('x-token-totalcalls');
+          const lastReset = res.headers.get('x-token-lastreset');
+          const remaining = res.headers.get('x-token-remaining');
+
+          if (tokenId) {
+            const setting = await this.serverSettingsService.getSettingByType(
+              ServerSettingType.SystemTokenUsageStats,
+            );
+
+            let usageMap: Record<string, any> = {};
+            if (setting?.valueText) {
+              try {
+                usageMap = JSON.parse(setting.valueText);
+              } catch {
+                usageMap = {};
+              }
+            }
+
+            const prev = usageMap[tokenId] || {};
+            const nowIso = new Date().toISOString();
+            const newStats: Record<string, any> = { lastCall: nowIso };
+            if (calls) newStats.calls = Number(calls);
+            if (maxCalls) newStats.maxCalls = Number(maxCalls);
+            if (totalCalls) newStats.totalCalls = Number(totalCalls);
+            if (lastReset) newStats.lastReset = lastReset;
+            // remaining: if header present set numeric, else preserve previous or null
+            if (remaining !== null && remaining !== undefined) {
+              newStats.remaining = Number(remaining);
+            }
+
+            usageMap[tokenId] = { ...prev, ...newStats };
+
+            await this.serverSettingsService.updateSetting(
+              ServerSettingType.SystemTokenUsageStats,
+              { valueText: JSON.stringify(usageMap) },
+            );
+          }
+        } catch (e) {
+          this.logger.debug('Failed to update SystemTokenUsageStats from passthrough headers');
+        }
         return { success: true };
       }
       const error =

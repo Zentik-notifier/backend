@@ -51,7 +51,7 @@ export class Log {
 
   @Field({ nullable: true })
   @ApiProperty({ required: false })
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   context?: string;
 
   @Field({ nullable: true })

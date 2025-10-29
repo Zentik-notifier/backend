@@ -18,6 +18,11 @@ import { SystemAccessTokenService } from './system-access-token.service';
  * - X-Token-TotalCalls: Total calls ever made (after increment)
  * - X-Token-LastReset: ISO timestamp of last monthly reset
  * - X-Token-Remaining: Remaining calls in current month (maxCalls - calls)
+ * - X-Token-Id: The ID of the system access token used
+ * 
+ * Note: The external server calling notify-external should read these headers
+ * from the response and update its own ServerSettings.SystemTokenUsageStats
+ * to track token usage locally.
  */
 @Injectable()
 export class SystemAccessTokenStatsInterceptor implements NestInterceptor {
@@ -45,6 +50,7 @@ export class SystemAccessTokenStatsInterceptor implements NestInterceptor {
             response.setHeader('X-Token-Calls', updatedToken.calls || 0);
             response.setHeader('X-Token-MaxCalls', updatedToken.maxCalls || 0);
             response.setHeader('X-Token-TotalCalls', updatedToken.totalCalls || 0);
+            response.setHeader('X-Token-Id', updatedToken.id);
             
             if (updatedToken.lastResetAt) {
               response.setHeader(
