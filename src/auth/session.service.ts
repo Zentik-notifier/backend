@@ -170,6 +170,20 @@ export class SessionService {
     );
   }
 
+  /**
+   * Permanently delete sessions whose lastActivity is older than the provided cutoff.
+   * If lastActivity is null, fallback to createdAt for safety.
+   */
+  async deleteSessionsOlderThan(cutoff: Date): Promise<number> {
+    const result = await this.sessionRepository.delete([
+      { lastActivity: LessThan(cutoff) },
+      // Fallback: rows with no lastActivity but very old createdAt
+      { lastActivity: null as any, createdAt: LessThan(cutoff) } as any,
+    ] as any);
+
+    return result.affected ?? 0;
+  }
+
   async getSessionByTokenId(tokenId: string): Promise<UserSession | null> {
     return this.sessionRepository.findOne({
       where: { tokenId, isActive: true, expiresAt: MoreThan(new Date()) },

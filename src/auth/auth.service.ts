@@ -200,12 +200,22 @@ export class AuthService {
       throw new BadRequestException('User not found for session');
     }
 
-    const loginResult = await this.loginWithExternalProvider(
-      user as any,
-      { ipAddress: undefined, userAgent: undefined },
-      'oauth',
-    );
-    return loginResult as any;
+    // Reuse the existing session instead of creating a new one
+    const { accessToken, refreshToken, tokenId } = await this.generateTokens(user);
+    const expiresAt = await this.calculateRefreshTokenExpiration();
+
+    await this.sessionService.createSession(user.id, tokenId, expiresAt, {
+      // Reuse/update this session row instead of inserting a new one
+      sessionId: session.id,
+      // Preserve specific provider originally used during the OAuth login
+      loginProvider: session.loginProvider || 'oauth',
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      message: 'Tokens exchanged successfully',
+    } as any;
   }
 
   async register(

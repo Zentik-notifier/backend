@@ -31,6 +31,24 @@ export interface TranslationKey {
       regards: string;
       team: string;
     };
+    tokenRequestApproved: {
+      subject: string;
+      title: string;
+      description: string;
+      instructions: string;
+      selfServiceLink: string;
+      regards: string;
+      team: string;
+    };
+    tokenRequestDeclined: {
+      subject: string;
+      title: string;
+      description: string;
+      instructions: string;
+      selfServiceLink: string;
+      regards: string;
+      team: string;
+    };
   };
   notifications: {
     actions: {

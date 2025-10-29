@@ -27,6 +27,7 @@ import { SessionController } from './session.controller';
 import { SessionResolver } from './session.resolver';
 import { SessionService } from './session.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { SessionCleanupScheduler } from './session-cleanup.scheduler';
 import { LocalStrategy } from './strategies/local.strategy';
 
 @Module({
@@ -76,6 +77,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     AccessTokenGuard,
     OAuthProviderGuard,
     DynamicOAuthRegistryService,
+    SessionCleanupScheduler,
     EmailService,
   ],
   controllers: [AuthController, AccessTokenController, SessionController],

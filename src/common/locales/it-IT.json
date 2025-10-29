@@ -30,6 +30,24 @@
       "instructions2": "Questo codice scadrà tra 24 ore",
       "regards": "Cordiali saluti,",
       "team": "Il Team Zentik"
+    },
+    "tokenRequestApproved": {
+      "subject": "Richiesta Token di Sistema Approvata - Zentik",
+      "title": "Richiesta Token Approvata",
+      "description": "La tua richiesta per un token di accesso di sistema è stata approvata.",
+      "instructions": "Ora puoi usare il tuo token per accedere all'API di sistema. Assicurati di salvarlo in modo sicuro poiché non verrà mostrato nuovamente.",
+      "selfServiceLink": "Visualizza le tue richieste token nel portale self-service",
+      "regards": "Cordiali saluti,",
+      "team": "Il Team Zentik"
+    },
+    "tokenRequestDeclined": {
+      "subject": "Richiesta Token di Sistema Rifiutata - Zentik",
+      "title": "Richiesta Token Rifiutata",
+      "description": "La tua richiesta per un token di accesso di sistema è stata rifiutata.",
+      "instructions": "Se hai domande su questa decisione, contatta l'amministratore.",
+      "selfServiceLink": "Visualizza le tue richieste token nel portale self-service",
+      "regards": "Cordiali saluti,",
+      "team": "Il Team Zentik"
     }
   },
   "notifications": {

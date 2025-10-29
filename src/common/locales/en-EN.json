@@ -30,6 +30,24 @@
       "instructions2": "This code will expire in 24 hours",
       "regards": "Best regards,",
       "team": "The Zentik Team"
+    },
+    "tokenRequestApproved": {
+      "subject": "System Access Token Request Approved - Zentik",
+      "title": "Token Request Approved",
+      "description": "Your system access token request has been approved.",
+      "instructions": "You can now use your token to access the system API. Make sure to save it securely as it will not be shown again.",
+      "selfServiceLink": "View your token requests in the self-service portal",
+      "regards": "Best regards,",
+      "team": "The Zentik Team"
+    },
+    "tokenRequestDeclined": {
+      "subject": "System Access Token Request Declined - Zentik",
+      "title": "Token Request Declined",
+      "description": "Your system access token request has been declined.",
+      "instructions": "If you have questions about this decision, please contact the administrator.",
+      "selfServiceLink": "View your token requests in the self-service portal",
+      "regards": "Best regards,",
+      "team": "The Zentik Team"
     }
   },
   "notifications": {

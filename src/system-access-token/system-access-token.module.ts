@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { CommonModule } from '../common/common.module';
 import { User } from '../entities/user.entity';
 import { SystemAccessTokenController } from './system-access-token.controller';
 import { SystemAccessToken } from './system-access-token.entity';
@@ -21,6 +22,7 @@ import { SystemAccessScopesGuard } from './system-access-scopes.guard';
       User,
     ]),
     forwardRef(() => AuthModule),
+    CommonModule,
   ],
   providers: [
     SystemAccessTokenService,
