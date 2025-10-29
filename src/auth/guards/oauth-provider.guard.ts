@@ -15,8 +15,76 @@ export class OAuthProviderGuard implements CanActivate {
   constructor(private readonly oauthProvidersService: OAuthProvidersService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const httpCtx = context.switchToHttp();
+    const request = httpCtx.getRequest();
+    const response = httpCtx.getResponse();
     const provider: string = (request.params.provider || '').toLowerCase();
+    // Handle provider-declined errors gracefully (e.g., error=access_denied)
+    const error = (request.query?.error as string) || undefined;
+    const errorDescription = (request.query?.error_description as string) || undefined;
+    if (error) {
+      try {
+        // Prefer explicit redirect query, otherwise try to extract from state
+        let redirectUri: string | undefined = request.query?.redirect as any;
+        if (!redirectUri) {
+          const rawState: string | undefined = request.query?.state as any;
+          if (rawState) {
+            try {
+              const decoded = JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
+              redirectUri = decoded?.redirect as string | undefined;
+            } catch (e: any) {
+              this.logger.warn(`⚠️  Failed to decode state for redirect on error: ${e?.message}`);
+            }
+          }
+        }
+        const mobileScheme = process.env.MOBILE_APP_SCHEME || 'zentik';
+        if (
+          redirectUri &&
+          typeof redirectUri === 'string' &&
+          redirectUri.startsWith(mobileScheme)
+        ) {
+          const fragment = `#error=${encodeURIComponent(error)}&provider=${encodeURIComponent(provider)}` +
+            (errorDescription ? `&error_description=${encodeURIComponent(errorDescription)}` : '');
+          response.redirect(302, `${redirectUri}${fragment}`);
+          return false;
+        }
+
+        if (redirectUri && /^https?:\/\//i.test(redirectUri)) {
+          const fragment = `#error=${encodeURIComponent(error)}&provider=${encodeURIComponent(provider)}` +
+            (errorDescription ? `&error_description=${encodeURIComponent(errorDescription)}` : '');
+          response.redirect(302, `${redirectUri}${fragment}`);
+          return false;
+        }
+
+        // Final fallback: try to redirect to generic app oauth route if configured
+        const fallbackAppOauth = process.env.PUBLIC_APP_OAUTH_REDIRECT as string | undefined;
+        if (fallbackAppOauth) {
+          const fragment = `#error=${encodeURIComponent(error)}&provider=${encodeURIComponent(provider)}` +
+            (errorDescription ? `&error_description=${encodeURIComponent(errorDescription)}` : '');
+          response.redirect(302, `${fallbackAppOauth}${fragment}`);
+          return false;
+        }
+
+        // If no redirect known, return 200 JSON (avoid 401/404)
+        response.status(200).json({
+          message: 'OAuth authorization was denied by the user',
+          error,
+          error_description: errorDescription,
+          provider,
+        });
+        return false;
+      } catch (e) {
+        this.logger.warn(`Failed to handle provider error '${error}': ${e?.message}`);
+        response.status(200).json({
+          message: 'OAuth authorization failed',
+          error,
+          error_description: errorDescription,
+          provider,
+        });
+        return false;
+      }
+    }
+
 
     // Log della richiesta per debug
     if (!provider) {
