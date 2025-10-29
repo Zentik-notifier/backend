@@ -2,15 +2,17 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
+  Ip,
   Logger,
   Param,
   Patch,
   Post,
-  Request,
+  Query,
   Res,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -74,12 +76,13 @@ export class AuthController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   async register(
-    @Request() req,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
     @Body() registerDto: RegisterDto,
   ): Promise<RegisterResponse> {
     const context = {
-      ipAddress: req.ip || req.connection?.remoteAddress,
-      userAgent: req.headers['user-agent'],
+      ipAddress: ip,
+      userAgent,
     };
 
     return await this.authService.register(registerDto, context);
@@ -99,12 +102,13 @@ export class AuthController {
     description: 'Unauthorized - invalid credentials',
   })
   async login(
-    @Request() req,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
     @Body() loginDto: LoginDto,
   ): Promise<LoginResponse> {
     const context = {
-      ipAddress: req.ip || req.connection?.remoteAddress,
-      userAgent: req.headers['user-agent'],
+      ipAddress: ip,
+      userAgent,
     };
 
     return await this.authService.login(loginDto, context);
@@ -124,12 +128,13 @@ export class AuthController {
     description: 'Invalid refresh token',
   })
   async refreshToken(
-    @Request() req,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
     @Body() refreshTokenDto: RefreshTokenDto,
   ): Promise<RefreshTokenResponse> {
     const context = {
-      ipAddress: req.ip || req.connection?.remoteAddress,
-      userAgent: req.headers['user-agent'],
+      ipAddress: ip,
+      userAgent,
     };
 
     return await this.authService.refreshToken(
@@ -291,176 +296,26 @@ export class AuthController {
     type: LoginResponse,
   })
   @UseGuards(OAuthProviderGuard)
-  async providerCallback(@Request() req, @Res() res: any): Promise<any> {
-    const provider = req.params?.provider;
-    // this.logger.log(`🔄 OAuth callback received for provider: ${provider}`);
-
-    const context = {
-      ipAddress: req.ip || req.connection?.remoteAddress,
-      userAgent: req.headers['user-agent'],
-      locale: (req.query?.locale as string) || undefined,
-    };
-
-    // this.logger.log(`🔍 OAuth Context Details:`);
-    // this.logger.log(`   Provider: ${provider}`);
-    // this.logger.log(`   IP: ${context.ipAddress}`);
-    // this.logger.log(`   User Agent: ${context.userAgent}`);
-    // this.logger.log(`   Query params: ${JSON.stringify(req.query)}`);
-    // this.logger.log(`   State param: ${req.query?.state}`);
-    // this.logger.log(`   Redirect param: ${req.query?.redirect}`);
-
-    try {
-      // Check if this is a connection flow by examining the state
-      let isConnectionFlow = false;
-      let redirectUri: string | undefined = req.query?.redirect as
-        | string
-        | undefined;
-      let stateLocale: string | undefined;
-
-      if (!redirectUri) {
-        const rawState: string | undefined = req.query?.state as
-          | string
-          | undefined;
-        if (rawState) {
-          try {
-            const decoded = JSON.parse(
-              Buffer.from(rawState, 'base64url').toString('utf8'),
-            );
-            isConnectionFlow = !!decoded?.connectToUserId;
-            redirectUri = decoded?.redirect;
-            stateLocale = decoded?.locale as string | undefined;
-            // this.logger.debug(`🌐 OAuth state decoded: redirect='${redirectUri}', locale='${stateLocale ?? 'none'}'`);
-            // this.logger.log(`🔗 Connection flow detected: ${isConnectionFlow}`);
-          } catch (e) {
-            this.logger.warn(`⚠️  State decoding failed: ${e.message}`);
-          }
-        }
-      }
-
-      let result;
-      if (isConnectionFlow) {
-        // For connection flow, we don't create a new session, just return user info
-        this.logger.log(
-          `🔗 Processing provider connection (no new session created)`,
-        );
-        result = {
-          user: req.user,
-          // No tokens for connection flow
-        };
-      } else {
-        // Normal login flow - create session and tokens
-        // this.logger.log(`🔐 Processing normal OAuth login`);
-        const localeFromQuery = req.query?.locale as string | undefined;
-        // this.logger.debug(`🌐 OAuth callback locales: state='${stateLocale ?? 'none'}' query='${localeFromQuery ?? 'none'}'`);
-        result = await this.authService.loginWithExternalProvider(
-          req.user,
-          { ...context, locale: stateLocale || localeFromQuery },
-          provider,
-        );
-      }
-
-      this.logger.log(
-        `✅ OAuth ${isConnectionFlow ? 'connection' : 'login'} successful for provider: ${provider}, user: ${req.user?.id || 'unknown'}`,
-      );
-
-      // If a mobile redirect was passed via state, redirect to it with appropriate data
-      try {
-        // this.logger.log(`📱 Direct redirect param: ${redirectUri}`);
-
-        const mobileScheme = process.env.MOBILE_APP_SCHEME || 'zentik';
-        // this.logger.log(`📱 Mobile scheme configured: ${mobileScheme}`);
-        // this.logger.log(`📱 Redirect URI to check: ${redirectUri}`);
-
-        if (
-          redirectUri &&
-          typeof redirectUri === 'string' &&
-          redirectUri.startsWith(mobileScheme)
-        ) {
-          // this.logger.log(`📱 Mobile redirect detected: ${redirectUri}`);
-
-          let fragment: string;
-          if (isConnectionFlow) {
-            // For connection flow, send connection success parameters
-            fragment = `#connected=true&provider=${encodeURIComponent(provider)}`;
-            // this.logger.log(
-            //   `🔗 Redirecting to mobile app with connection success: ${redirectUri}${fragment}`,
-            // );
-          } else {
-            // For normal login, send tokens
-            fragment = `#accessToken=${encodeURIComponent(result.accessToken)}&refreshToken=${encodeURIComponent(result.refreshToken)}`;
-            // this.logger.log(
-            //   `🔐 Redirecting to mobile app to ${redirectUri}`,
-            // );
-          }
-
-          this.logger.log(`📱 Redirect URI: ${redirectUri}${fragment}`);
-          const location = `${redirectUri}${fragment}`;
-          return res.redirect(302, location);
-        } else {
-          this.logger.log(
-            `📱 No valid mobile redirect detected. Expected scheme: ${mobileScheme}://, got: ${redirectUri}`,
-          );
-          // this.logger.log('📱 Returning JSON response instead');
-        }
-      } catch (e) {
-        this.logger.warn(`⚠️  Mobile redirect parsing failed: ${e.message}`);
-        this.logger.warn(`⚠️  Stack trace: ${e.stack}`);
-        // fallback to JSON
-      }
-
-      this.logger.log(
-        `🌐 Completing ${isConnectionFlow ? 'connection' : 'login'} for web`,
-      );
-
-      // If normal web login, set cookies and redirect if redirectUri is http(s)
-      if (!isConnectionFlow && result?.accessToken && result?.refreshToken) {
-        try {
-          const cookieDomain = process.env.COOKIE_DOMAIN || undefined; // optional
-          const sameSite = (process.env.COOKIE_SAMESITE || 'None') as 'Lax' | 'Strict' | 'None';
-          const secure = (process.env.COOKIE_SECURE || 'true') === 'true';
-
-          const cookieOptions = {
-            httpOnly: true,
-            secure,
-            sameSite,
-            ...(cookieDomain ? { domain: cookieDomain } : {}),
-            path: '/',
-          } as any;
-
-          // Short-lived access token cookie
-          res.cookie('zat_access', result.accessToken, {
-            ...cookieOptions,
-            // Access token duration is short; rely on token expiry client-side
-          });
-
-          // Longer refresh token cookie
-          res.cookie('zat_refresh', result.refreshToken, {
-            ...cookieOptions,
-          });
-
-          // If redirectUri is a web URL, redirect there; otherwise return JSON
-          if (redirectUri && /^https?:\/\//i.test(redirectUri)) {
-            return res.redirect(302, redirectUri);
-          }
-        } catch (e) {
-          this.logger.warn(`⚠️  Failed to set cookies/redirect for web: ${e.message}`);
-        }
-      }
-
-      return res.json({
-        message: isConnectionFlow
-          ? 'Provider connected successfully'
-          : 'Login successful',
-        connected: isConnectionFlow,
-        provider: isConnectionFlow ? provider : undefined,
-      });
-    } catch (error) {
-      this.logger.error(
-        `❌ OAuth login failed for provider: ${provider}`,
-        error.stack,
-      );
-      throw error;
-    }
+  async providerCallback(
+    @Param('provider') provider: string,
+    @Query('redirect') redirect: string,
+    @Query('locale') locale: string,
+    @Query('state') state: string,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+    @GetUser() user: any,
+    @Res() res: any,
+  ): Promise<any> {
+    return this.authService.processOAuthProviderCallback(
+      provider,
+      redirect,
+      locale,
+      state,
+      ip,
+      userAgent,
+      user,
+      res,
+    );
   }
 
   @Post('request-password-reset')
@@ -575,6 +430,7 @@ export class AuthController {
   async logout(
     @GetUser('id') userId: string,
     @GetUser('tokenId') tokenId?: string,
+    @Res() res?: any,
   ): Promise<MessageResponse> {
     try {
       if (tokenId) {
@@ -586,30 +442,6 @@ export class AuthController {
       } else {
         this.logger.log(`Logout: no tokenId available for user=${userId}`);
       }
-
-      // Clear auth cookies for web
-      try {
-        const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
-        const sameSite = (process.env.COOKIE_SAMESITE || 'None') as 'Lax' | 'Strict' | 'None';
-        const secure = (process.env.COOKIE_SECURE || 'true') === 'true';
-        const cookieOptions = {
-          httpOnly: true,
-          secure,
-          sameSite,
-          ...(cookieDomain ? { domain: cookieDomain } : {}),
-          path: '/',
-        } as any;
-        // Expire cookies
-        (global as any)._noop = null; // no-op to keep typings happy
-        (this as any);
-        // Set empty and maxAge 0
-        (arguments as any); // avoid ts removal
-        (res => {
-          try {
-            (res?.cookie ? res : null);
-          } catch {}
-        });
-      } catch {}
 
       // Track logout event
       try {
@@ -714,6 +546,23 @@ export class AuthController {
       this.logger.error(`Email confirmation failed: ${error.message}`);
       throw error;
     }
+  }
+
+  @Post('exchange-code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Exchange OAuth code for tokens' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens exchanged successfully',
+    type: LoginResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired code',
+  })
+  async exchangeCode(@Body() body: { code: string; sessionId?: string }): Promise<LoginResponse> {
+    const { code, sessionId } = body;
+    return this.authService.exchangeOAuthCode(code, sessionId);
   }
 
   @Get('email-status/:email')

@@ -31,6 +31,7 @@ import { EmailService } from './email.service';
 import { SessionService } from './session.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
+import * as crypto from 'crypto';
 
 export interface JwtPayload {
   sub: string;
@@ -59,6 +60,153 @@ export class AuthService {
     private eventTrackingService: EventTrackingService,
     private serverSettingsService: ServerSettingsService,
   ) { }
+
+  async processOAuthProviderCallback(
+    provider: string,
+    redirect: string | undefined,
+    locale: string | undefined,
+    state: string | undefined,
+    ip: string | undefined,
+    userAgent: string | undefined,
+    user: any,
+    res: any,
+  ): Promise<any> {
+    const context = {
+      ipAddress: ip,
+      userAgent,
+      locale: locale || undefined,
+    };
+
+    try {
+      let isConnectionFlow = false;
+      let redirectUri: string | undefined = redirect;
+      let stateLocale: string | undefined;
+
+      if (!redirectUri && state) {
+        try {
+          const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+          isConnectionFlow = !!decoded?.connectToUserId;
+          redirectUri = decoded?.redirect;
+          stateLocale = decoded?.locale as string | undefined;
+        } catch (e: any) {
+          this.logger.warn(`State decoding failed: ${e.message}`);
+        }
+      }
+
+      let result: any;
+      if (isConnectionFlow) {
+        result = { user };
+      } else {
+        const localeFromQuery = locale;
+        result = await this.loginWithExternalProvider(
+          user,
+          { ...context, locale: stateLocale || localeFromQuery },
+          provider,
+        );
+      }
+
+      // Handle mobile deep link (custom scheme)
+      try {
+        const mobileScheme = process.env.MOBILE_APP_SCHEME || 'zentik';
+        if (
+          redirectUri &&
+          typeof redirectUri === 'string' &&
+          redirectUri.startsWith(mobileScheme)
+        ) {
+          let fragment: string;
+          if (isConnectionFlow) {
+            fragment = `#connected=true&provider=${encodeURIComponent(provider)}`;
+            const location = `${redirectUri}${fragment}`;
+            return res.redirect(302, location);
+          } else {
+            // Use code exchange on mobile as well
+            const exchangeCode = Buffer.from(crypto.randomBytes(16)).toString('base64url');
+            const latestSession = await this.sessionService.getLatestSessionForUser(result.user.id);
+            if (latestSession) {
+              await this.sessionService.setExchangeCode(latestSession.id, exchangeCode, new Date());
+              // schedule cleanup
+              setTimeout(async () => {
+                const session = await this.sessionService.findSessionByExchangeCode(exchangeCode);
+                if (session && session.exchangeCode === exchangeCode) {
+                  await this.sessionService.setExchangeCode(session.id, null as any, null as any);
+                }
+              }, 31000);
+              fragment = `#code=${exchangeCode}&sessionId=${latestSession.id}`;
+              const location = `${redirectUri}${fragment}`;
+              return res.redirect(302, location);
+            }
+          }
+        }
+      } catch (e: any) {
+        this.logger.warn(`Mobile redirect parsing failed: ${e.message}`);
+      }
+
+      // Proceed with web (code exchange)
+      if (!isConnectionFlow && result?.accessToken && result?.refreshToken) {
+        try {
+          if (redirectUri && /^https?:\/\//i.test(redirectUri)) {
+            const exchangeCode = Buffer.from(crypto.randomBytes(16)).toString('base64url');
+            const latestSession = await this.sessionService.getLatestSessionForUser(result.user.id);
+            if (latestSession) {
+              await this.sessionService.setExchangeCode(latestSession.id, exchangeCode, new Date());
+              setTimeout(async () => {
+                const session = await this.sessionService.findSessionByExchangeCode(exchangeCode);
+                if (session && session.exchangeCode === exchangeCode) {
+                  await this.sessionService.setExchangeCode(session.id, null as any, null as any);
+                }
+              }, 31000);
+              const fragment = `#code=${exchangeCode}&sessionId=${latestSession.id}`;
+              return res.redirect(302, `${redirectUri}${fragment}`);
+            }
+          }
+        } catch (e: any) {
+          this.logger.warn(`Failed to set exchange code/redirect: ${e.message}`);
+        }
+      }
+
+      return res.json({
+        message: isConnectionFlow ? 'Provider connected successfully' : 'Login successful',
+        connected: isConnectionFlow,
+        provider: isConnectionFlow ? provider : undefined,
+      });
+    } catch (error: any) {
+      this.logger.error(`OAuth login failed for provider: ${provider}`, error.stack);
+      throw error;
+    }
+  }
+
+  async exchangeOAuthCode(code: string, sessionId?: string): Promise<LoginResponse> {
+    if (!code) {
+      throw new BadRequestException('Code is required');
+    }
+
+    const session = await this.sessionService.findSessionByExchangeCode(code);
+    if (!session || (sessionId && session.id !== sessionId)) {
+      throw new BadRequestException('Invalid or expired code');
+    }
+    if (session.exchangeCodeRequestedAt) {
+      const now = Date.now();
+      const requestedAt = session.exchangeCodeRequestedAt.getTime();
+      if (now - requestedAt > 30000) {
+        await this.sessionService.setExchangeCode(session.id, null as any, null as any);
+        throw new BadRequestException('Code has expired');
+      }
+    }
+
+    await this.sessionService.setExchangeCode(session.id, null as any, null as any);
+
+    const user = await this.usersRepository.findOne({ where: { id: session.userId } });
+    if (!user) {
+      throw new BadRequestException('User not found for session');
+    }
+
+    const loginResult = await this.loginWithExternalProvider(
+      user as any,
+      { ipAddress: undefined, userAgent: undefined },
+      'oauth',
+    );
+    return loginResult as any;
+  }
 
   async register(
     registerDto: RegisterDto,

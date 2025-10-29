@@ -170,7 +170,7 @@ async function bootstrap() {
   logger.log('⏳ Creating NestJS application...');
 
   const app = await NestFactory.create(AppModule, {
-    bufferLogs: true, // Buffer logs until custom logger is set
+    // bufferLogs: true, // Buffer logs until custom logger is set
   });
 
   logger.log('✅ NestJS application created successfully');
@@ -422,6 +422,7 @@ export async function restartApplication(): Promise<void> {
 }
 
 bootstrap().catch((error) => {
-  console.error('💥 Failed to start application:', error);
+  const logger = new Logger('Bootstrap');
+  logger.error('Failed to start application:', error);
   process.exit(1);
 });

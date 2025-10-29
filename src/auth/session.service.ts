@@ -209,4 +209,22 @@ export class SessionService {
 
     return revoked;
   }
+
+  async getLatestSessionForUser(userId: string): Promise<UserSession | null> {
+    return this.sessionRepository.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async setExchangeCode(sessionId: string, code: string, requestedAt: Date): Promise<void> {
+    await this.sessionRepository.update({ id: sessionId }, {
+      exchangeCode: code,
+      exchangeCodeRequestedAt: requestedAt,
+    });
+  }
+
+  async findSessionByExchangeCode(code: string): Promise<UserSession | null> {
+    return this.sessionRepository.findOne({ where: { exchangeCode: code } });
+  }
 }

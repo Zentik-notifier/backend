@@ -75,6 +75,16 @@ export class UserSession {
   @ApiProperty({ description: 'Token expiration time' })
   expiresAt: Date;
 
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'text', nullable: true })
+  @ApiProperty({ description: 'Short-lived OAuth exchange code' })
+  exchangeCode?: string | null;
+
+  @Field(() => Date, { nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
+  @ApiProperty({ description: 'When the exchange code was generated' })
+  exchangeCodeRequestedAt?: Date | null;
+
   @Field()
   @Column({ default: true })
   @ApiProperty({ description: 'Whether the session is active' })

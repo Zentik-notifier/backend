@@ -1331,6 +1331,8 @@ type UserSession {
   browser: String
   createdAt: DateTime!
   deviceName: String
+  exchangeCode: String
+  exchangeCodeRequestedAt: DateTime
   expiresAt: DateTime!
   id: ID!
   ipAddress: String

@@ -21,8 +21,8 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       callbackUrl: `${publicUrl}/api/v1/auth/github/callback`,
       scopes: ['user:email', 'read:user'],
       iconUrl: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-      color: '#24292F',
-      textColor: '#FFFFFF',
+      color: '#FFFFFF',
+      textColor: '#000000',
     },
     {
       name: 'Google',
@@ -32,9 +32,9 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackUrl: `${publicUrl}/api/v1/auth/google/callback`,
       scopes: ['openid', 'email', 'profile'],
-      iconUrl: 'https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg',
-      color: '#4285F4',
-      textColor: '#FFFFFF',
+      iconUrl: 'https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s96-fcrop64=1,00000000ffffffff-rw',
+      color: '#FFFFFF',
+      textColor: '#000000',
     },
   ];
 
@@ -50,8 +50,18 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       if (existingProvider) {
         let updated = false;
         
+        if (!existingProvider.color || existingProvider.color !== providerData.color) {
+          existingProvider.color = providerData.color;
+          updated = true;
+        }
+        
         if (!existingProvider.textColor || existingProvider.textColor !== providerData.textColor) {
           existingProvider.textColor = providerData.textColor;
+          updated = true;
+        }
+        
+        if (!existingProvider.iconUrl || existingProvider.iconUrl !== providerData.iconUrl) {
+          existingProvider.iconUrl = providerData.iconUrl;
           updated = true;
         }
         
