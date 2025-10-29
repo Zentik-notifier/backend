@@ -4,6 +4,9 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
+  HttpCode,
+  HttpStatus,
   Logger,
   Param,
   Patch,
@@ -334,6 +337,8 @@ export class NotificationsController {
   @RequireSystemScopes(['passthrough'])
   @UseInterceptors(SystemAccessTokenStatsInterceptor)
   @Post('notify-external')
+  @HttpCode(HttpStatus.OK)
+  @Header('Content-Type', 'application/json')
   @ApiOperation({
     summary:
       'Send a push notification externally via system access token (stateless)',
@@ -365,33 +370,46 @@ export class NotificationsController {
     @GetSystemAccessToken()
     sat?: { id: string },
   ) {
+    this.logger.log(
+      `Passthrough recv | tokenId=${sat?.id || 'n/a'} provider=${body?.platform || 'n/a'}`,
+    );
+
     if (!body || !body.platform) {
+      this.logger.warn('[notify-external] Missing platform in request body');
       throw new BadRequestException('Missing platform');
     }
 
     if (sat) {
       this.logger.log(
-        `Processing external notification request using system access token: ${sat.id}`,
+        `[notify-external] Processing external notification request using system access token: ${sat.id}`,
       );
+    } else {
+      this.logger.warn('[notify-external] No system access token found in request');
     }
 
-    const result = await this.notificationsService.sendPrebuilt(body);
+    this.logger.debug(
+      `[notify-external] Request body - Platform: ${body.platform}, Payload present: ${!!body.payload}, DeviceData present: ${!!body.deviceData}`,
+    );
 
-    if (sat && result.success) {
+    try {
+      const result = await this.notificationsService.sendPrebuilt(body);
+
       this.logger.log(
-        `Incrementing call count for system access token: ${sat.id}`,
+        `Passthrough handled | tokenId=${sat?.id || 'n/a'} success=${result.success}`,
       );
-      await this.systemAccessTokenService.incrementCalls(sat.id);
-      try {
-        await this.eventsTrackingService.trackPushPassthrough(sat.id);
-      } catch { }
-    } else if (sat && !result.success) {
-      this.logger.warn(
-        `External notification failed for system access token: ${sat.id}, not incrementing call count`,
-      );
-    }
 
-    return result;
+      if (sat && result.success) {
+        await this.systemAccessTokenService.incrementCalls(sat.id);
+        try { await this.eventsTrackingService.trackPushPassthrough(sat.id); } catch {}
+      } else if (sat && !result.success) {
+        // no extra log, summary above already covers outcome
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Passthrough handled | tokenId=${sat?.id || 'n/a'} success=false error=${error}`);
+      throw error;
+    }
   }
 
   @Post('postpone')

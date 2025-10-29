@@ -72,6 +72,11 @@ export class JwtOrAccessTokenGuard implements CanActivate {
     if (token.startsWith('zat_')) {
       return this.validateAccessToken(token, request);
     } else {
+      // Allow system access token (sat_) to pass through to route-specific guards
+      const authHeader = request.headers?.authorization as string | undefined;
+      if (authHeader && authHeader.startsWith('Bearer sat_')) {
+        return true; // Let SystemAccessTokenGuard handle validation
+      }
       return this.validateJWT(context, request);
     }
   }

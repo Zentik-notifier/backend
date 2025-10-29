@@ -113,8 +113,16 @@ describe('PushNotificationOrchestratorService', () => {
   };
 
   const mockServerSettingsService = {
-    getSettingByType: jest.fn().mockResolvedValue({
-      valueNumber: 1000,
+    getSettingByType: jest.fn().mockImplementation(async (configType?: any) => {
+      // Return bundle id when requested
+      if (
+        configType &&
+        (configType === (require('../entities/server-setting.entity').ServerSettingType?.ApnBundleId) ||
+          String(configType).includes('ApnBundleId'))
+      ) {
+        return { valueText: 'com.apocaliss92.zentik' };
+      }
+      return { valueNumber: 1000 };
     }),
     getStringValue: jest.fn().mockResolvedValue('Off'),
     getBoolValue: jest.fn().mockResolvedValue(false),
@@ -539,7 +547,8 @@ describe('PushNotificationOrchestratorService', () => {
       const mockFetchResponse = {
         ok: true,
         json: jest.fn().mockResolvedValue({ success: true }),
-      };
+        headers: { get: jest.fn().mockReturnValue(null) },
+      } as any;
       (global.fetch as jest.Mock).mockResolvedValue(mockFetchResponse);
 
       // Use reflection to access private method for testing
@@ -551,14 +560,14 @@ describe('PushNotificationOrchestratorService', () => {
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
         'https://passthrough-server.com/notifications/notify-external',
-        {
+        expect.objectContaining({
           method: 'POST',
-          headers: {
+          headers: expect.objectContaining({
             'Content-Type': 'application/json',
             Authorization: 'Bearer passthrough-token-123',
-          },
+          }),
           body: expect.any(String),
-        },
+        }),
       );
     });
 
@@ -582,7 +591,8 @@ describe('PushNotificationOrchestratorService', () => {
         ok: false,
         status: 500,
         json: jest.fn().mockResolvedValue({ error: 'Internal Server Error' }),
-      };
+        headers: { get: jest.fn().mockReturnValue('application/json') },
+      } as any;
       (global.fetch as jest.Mock).mockResolvedValue(mockFetchResponse);
 
       const result = await (service as any).dispatchPush(

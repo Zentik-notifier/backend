@@ -29,6 +29,7 @@ import { IOSPushService } from './ios-push.service';
 import { NotificationServiceType } from './notifications.types';
 import { WebPushService } from './web-push.service';
 import { MessageReminderService } from '../messages/message-reminder.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class NotificationsService implements OnModuleInit {
@@ -46,6 +47,7 @@ export class NotificationsService implements OnModuleInit {
     private readonly reminderService: MessageReminderService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly eventsService: EventsService,
+    private readonly configService: ConfigService,
   ) { }
 
   async onModuleInit() {
@@ -93,10 +95,11 @@ export class NotificationsService implements OnModuleInit {
    */
   private async initializePushServices(): Promise<void> {
     try {
+      const forceActive = this.configService.get('FORCE_ACTIVE_PUSH_NOTIFICATIONS') === 'true';
       const { apnMode, firebaseMode, webMode } = await this.getPushModes();
 
       // Initialize iOS Push Service if enabled
-      if (apnMode === 'Onboard') {
+      if (apnMode === 'Onboard' || forceActive) {
         this.logger.log('Initializing iOS Push Service (APNs)...');
         try {
           // Trigger initialization by accessing private method through ensureInitialized
@@ -110,7 +113,7 @@ export class NotificationsService implements OnModuleInit {
       }
 
       // Initialize Firebase Push Service if enabled
-      if (firebaseMode === 'Onboard') {
+      if (firebaseMode === 'Onboard' || forceActive) {
         this.logger.log('Initializing Firebase Push Service...');
         try {
           await (this.firebasePushService as any).ensureInitialized();
@@ -123,7 +126,7 @@ export class NotificationsService implements OnModuleInit {
       }
 
       // Initialize Web Push Service if enabled
-      if (webMode === 'Onboard') {
+      if (webMode === 'Onboard' || forceActive) {
         this.logger.log('Initializing Web Push Service...');
         try {
           await (this.webPushService as any).ensureInitialized();

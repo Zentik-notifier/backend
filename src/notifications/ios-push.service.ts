@@ -238,17 +238,6 @@ export class IOSPushService {
       if (!fs.existsSync(keyPath)) {
         this.logger.error(`APNs private key file not found at: ${keyPath}`);
 
-        // try {
-        //   if (fs.existsSync('/data/storage')) {
-        //     const storageDirs = fs.readdirSync('/data/storage');
-        //     this.logger.error(`Directories in /data/storage: ${storageDirs.join(', ')}`);
-        //   } else {
-        //     this.logger.error('/data/storage directory does not exist');
-        //   }
-        // } catch (storageError) {
-        //   this.logger.error(`Cannot read /data/storage directory: ${storageError.message}`);
-        // }
-
         return;
       }
 

@@ -10,7 +10,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "kill-all": "lsof -ti:3000 | xargs kill -9",
-    "start:dev": "nest start --watch",
+    "start:dev": "npm run kill-all && nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "nest start",
     "start:prod_bkp": "node dist/main",

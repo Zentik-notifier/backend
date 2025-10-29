@@ -637,27 +637,58 @@ export class PushNotificationOrchestratorService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const url = `${server.replace(/\/$/, '')}/notifications/notify-external`;
+
       const payload = await this.buildExternalPayload(notification, userDevice);
+      this.logger.log(
+        `Passthrough send | notifId=${notification.id} platform=${payload.platform} url=${url} hasToken=${!!token}`,
+      );
+
       const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const contentType = res.headers.get('content-type') || '';
+
+      // Extract usage headers BEFORE parsing body
+      let tokenId: string | null = null;
+      let calls: string | null = null;
+      let maxCalls: string | null = null;
+      let totalCalls: string | null = null;
+      let lastReset: string | null = null;
+      let remaining: string | null = null;
+      try {
+        tokenId = res.headers.get('x-token-id');
+        calls = res.headers.get('x-token-calls');
+        maxCalls = res.headers.get('x-token-maxcalls');
+        totalCalls = res.headers.get('x-token-totalcalls');
+        lastReset = res.headers.get('x-token-lastreset');
+        remaining = res.headers.get('x-token-remaining');
+      } catch { }
+
+      // Parse body only if JSON
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json().catch(() => ({}));
+      } else {
+        const canReadText = typeof (res as any).text === 'function';
+        if (canReadText) {
+          await (res as any).text().catch(() => '');
+        }
+      }
+
       if (res.ok) {
+        this.logger.log(
+          `Passthrough done | notifId=${notification.id} status=ok tokenId=${tokenId || 'n/a'} calls=${calls || 'n/a'}/${maxCalls || 'n/a'} total=${totalCalls || 'n/a'} remaining=${remaining ?? 'n/a'}`,
+        );
+
         // Read token usage headers and update ServerSettings stats
         try {
-          const tokenId = res.headers.get('x-token-id');
-          const calls = res.headers.get('x-token-calls');
-          const maxCalls = res.headers.get('x-token-maxcalls');
-          const totalCalls = res.headers.get('x-token-totalcalls');
-          const lastReset = res.headers.get('x-token-lastreset');
-          const remaining = res.headers.get('x-token-remaining');
-
           if (tokenId) {
             const setting = await this.serverSettingsService.getSettingByType(
               ServerSettingType.SystemTokenUsageStats,
@@ -692,15 +723,21 @@ export class PushNotificationOrchestratorService {
             );
           }
         } catch (e) {
-          this.logger.debug('Failed to update SystemTokenUsageStats from passthrough headers');
+          this.logger.debug(
+            `Failed to update SystemTokenUsageStats from passthrough headers: ${e}`,
+          );
         }
         return { success: true };
       }
+
       const error =
         (data && (data.error || data.message)) || `HTTP ${res.status}`;
+      this.logger.warn(
+        `Passthrough done | notifId=${notification.id} status=${res.status} error=${error}`,
+      );
       return { success: false, error };
     } catch (error: any) {
-      this.logger.error('Passthrough push failed', error);
+      this.logger.error(`Passthrough done | notifId=${notification.id} status=exception error=${error?.message || 'unknown'}`);
       return { success: false, error: error?.message || 'Passthrough error' };
     }
   }
@@ -714,13 +751,19 @@ export class PushNotificationOrchestratorService {
         await this.iosPushService.buildAPNsPayload(notification, [], device);
       const priority = notification.message.deliveryType === 'SILENT' ? 5 : 10;
 
+      // Resolve bundleId/topic from ServerSettings first, then ENV, then safe default (dev)
+      const bundleSetting = await this.serverSettingsService.getSettingByType(
+        ServerSettingType.ApnBundleId,
+      );
+      const topic = bundleSetting?.valueText;
+
       return {
         platform: 'IOS',
         payload: {
           rawPayload,
           customPayload,
           priority,
-          topic: process.env.APN_BUNDLE_ID || 'com.apocaliss92.zentik',
+          topic,
         },
         deviceData: {
           token: device.deviceToken,
