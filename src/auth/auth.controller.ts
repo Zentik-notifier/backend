@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -273,6 +274,19 @@ export class AuthController {
     @GetUser('id') userId: string,
   ): Promise<UserIdentity[]> {
     return this.authService.getUserIdentities(userId);
+  }
+
+  @UseGuards(JwtOrAccessTokenGuard)
+  @ApiBearerAuth()
+  @Delete('identities/:identityId')
+  @ApiOperation({ summary: 'Disconnect an OAuth identity from current user' })
+  @ApiResponse({ status: 200, description: 'Identity disconnected' })
+  async disconnectIdentity(
+    @GetUser('id') userId: string,
+    @Param('identityId') identityId: string,
+  ): Promise<{ message: string }> {
+    await this.authService.disconnectIdentity(userId, identityId);
+    return { message: 'Identity disconnected' };
   }
 
   // External providers - dynamic routes

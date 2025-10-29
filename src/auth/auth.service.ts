@@ -667,6 +667,44 @@ export class AuthService {
     return identities;
   }
 
+  async disconnectIdentity(userId: string, identityId: string): Promise<void> {
+    this.logger.debug(
+      `Disconnecting OAuth identity: userId=${userId}, identityId=${identityId}`,
+    );
+
+    const identity = await this.identitiesRepository.findOne({
+      where: { id: identityId },
+    });
+
+    if (!identity) {
+      throw new BadRequestException('Identity not found');
+    }
+    if (identity.userId !== userId) {
+      throw new UnauthorizedException('Cannot remove identity of another user');
+    }
+
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const identities = await this.getUserIdentities(userId);
+    const remainingCount = identities.length - 1;
+
+    // Prevent locking the user out: if no password and this is the last identity
+    if (!user.hasPassword && remainingCount <= 0) {
+      throw new BadRequestException(
+        'You must set a password before disconnecting your last OAuth identity.',
+      );
+    }
+
+    await this.identitiesRepository.delete(identityId);
+
+    this.logger.log(
+      `Disconnected OAuth identity successfully: userId=${userId}, identityId=${identityId}`,
+    );
+  }
+
   async findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { id },
