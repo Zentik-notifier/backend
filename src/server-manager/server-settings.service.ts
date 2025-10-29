@@ -201,6 +201,7 @@ export class ServerSettingsService {
 
         // Prometheus
         { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
+      { configType: ServerSettingType.EnableSystemTokenRequests, envKey: 'ENABLE_SYSTEM_TOKEN_REQUESTS', type: 'boolean', defaultValue: true },
       ];
 
     for (const mapping of envMappings) {

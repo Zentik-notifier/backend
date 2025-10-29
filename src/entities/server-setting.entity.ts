@@ -93,6 +93,9 @@ export enum ServerSettingType {
   
   // Stable server identifier (UUID generated at bootstrap)
   ServerStableIdentifier = 'ServerStableIdentifier',
+  
+  // System Access Token Requests
+  EnableSystemTokenRequests = 'EnableSystemTokenRequests',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

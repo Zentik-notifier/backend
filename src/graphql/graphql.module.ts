@@ -14,6 +14,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { OAuthProvidersModule } from '../oauth-providers/oauth-providers.module';
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 import { UsersModule } from '../users/users.module';
+import { ServerManagerModule } from '../server-manager/server-manager.module';
 import { GraphQLSharedModule } from './graphql-shared.module';
 import { PayloadMapperResolver } from '../payload-mapper/payload-mapper.resolver';
 import { AuthResolver } from 'src/auth/auth.resolver';
@@ -71,6 +72,7 @@ const GRAPHQL_PATH = `/api/v1/graphql`;
     OAuthProvidersModule,
     PayloadMapperModule,
     AttachmentsModule,
+    ServerManagerModule,
   ],
   providers: [
     AuthResolver,

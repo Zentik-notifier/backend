@@ -623,4 +623,7 @@ export class PublicAppConfig {
 
   @Field()
   uploadEnabled: boolean;
+
+  @Field()
+  systemTokenRequestsEnabled: boolean;
 }

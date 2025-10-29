@@ -31,6 +31,8 @@ import { Locale } from '../common/types/i18n';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { OAuthProvidersService } from '../oauth-providers/oauth-providers.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 @Resolver()
 @Injectable()
@@ -44,17 +46,22 @@ export class AuthResolver {
     private readonly oauthProvidersService: OAuthProvidersService,
     private readonly emailService: EmailService,
     private readonly attachmentsService: AttachmentsService,
-  ) {}
+    private readonly serverSettingsService: ServerSettingsService,
+  ) { }
 
   @Query(() => PublicAppConfig)
   async publicAppConfig(): Promise<PublicAppConfig> {
     const providers =
       await this.oauthProvidersService.findEnabledProvidersPublic();
     const emailEnabled = await this.emailService.isEmailEnabled();
+    const systemTokenRequestsEnabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.EnableSystemTokenRequests,
+    );
     return {
       oauthProviders: providers,
       emailEnabled,
       uploadEnabled: await this.attachmentsService.isAttachmentsEnabled(),
+      systemTokenRequestsEnabled,
     };
   }
 

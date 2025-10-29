@@ -5,6 +5,8 @@ import { AttachmentsService } from './attachments/attachments.service';
 import { EmailService } from './auth/email.service';
 import { JwtOrAccessTokenGuard } from './auth/guards/jwt-or-access-token.guard';
 import { OAuthProvidersService } from './oauth-providers/oauth-providers.service';
+import { ServerSettingsService } from './server-manager/server-settings.service';
+import { ServerSettingType } from './entities/server-setting.entity';
 import {
   getAllIconMappings,
   listAllIcons,
@@ -19,6 +21,7 @@ export class AppController {
     private readonly oauthProvidersService: OAuthProvidersService,
     private readonly emailService: EmailService,
     private readonly attachmentsService: AttachmentsService,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   @Get('health')
@@ -47,11 +50,16 @@ export class AppController {
         await this.oauthProvidersService.findEnabledProvidersPublic();
       const emailEnabled = await this.emailService.isEmailEnabled();
       const uploadEnabled = await this.attachmentsService.isAttachmentsEnabled();
+      const systemTokenRequestsEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.EnableSystemTokenRequests,
+        true, // Default to enabled for backward compatibility
+      );
 
       return {
         oauthProviders: providers,
         emailEnabled,
         uploadEnabled,
+        systemTokenRequestsEnabled,
       };
     } catch (error) {
       throw error;

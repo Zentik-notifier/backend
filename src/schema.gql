@@ -807,6 +807,7 @@ type PostponeResponseDto {
 type PublicAppConfig {
   emailEnabled: Boolean!
   oauthProviders: [OAuthProviderPublicDto!]!
+  systemTokenRequestsEnabled: Boolean!
   uploadEnabled: Boolean!
 }
 
@@ -995,6 +996,7 @@ enum ServerSettingType {
   EmailSecure
   EmailType
   EmailUser
+  EnableSystemTokenRequests
   FirebaseClientEmail
   FirebasePrivateKey
   FirebaseProjectId
