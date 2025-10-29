@@ -166,7 +166,9 @@ export class SystemAccessTokenService {
   /** Increment the calls counter for a given token id. */
   async incrementCalls(id: string): Promise<void> {
     try {
+      // Increment both monthly calls and total calls
       await this.systemTokenRepository.increment({ id }, 'calls', 1);
+      await this.systemTokenRepository.increment({ id }, 'totalCalls', 1);
       this.logger.debug(
         `Incremented call count for system access token: ${id}`,
       );

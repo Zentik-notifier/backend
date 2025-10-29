@@ -12,6 +12,9 @@ import { SystemAccessTokenRequest } from './system-access-token-request.entity';
 import { SystemAccessTokenRequestController } from './system-access-token-request.controller';
 import { SystemAccessTokenRequestResolver } from './system-access-token-request.resolver';
 import { SystemAccessTokenRequestService } from './system-access-token-request.service';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SystemAccessTokenResetScheduler } from './system-access-token.reset.scheduler';
+import { SystemAccessTokenStatsInterceptor } from './system-access-token-stats.interceptor';
 import { SystemAccessScopesGuard } from './system-access-scopes.guard';
 import { EventsModule } from '../events/events.module';
 
@@ -25,6 +28,7 @@ import { EventsModule } from '../events/events.module';
     forwardRef(() => AuthModule),
     CommonModule,
     EventsModule,
+    ScheduleModule,
   ],
   providers: [
     SystemAccessTokenService,
@@ -33,6 +37,8 @@ import { EventsModule } from '../events/events.module';
     SystemAccessScopesGuard,
     SystemAccessTokenRequestService,
     SystemAccessTokenRequestResolver,
+    SystemAccessTokenResetScheduler,
+    SystemAccessTokenStatsInterceptor,
   ],
   controllers: [
     SystemAccessTokenController,
@@ -43,6 +49,7 @@ import { EventsModule } from '../events/events.module';
     SystemAccessTokenGuard,
     SystemAccessScopesGuard,
     SystemAccessTokenRequestService,
+    SystemAccessTokenStatsInterceptor,
   ],
 })
 export class SystemAccessTokenModule {}

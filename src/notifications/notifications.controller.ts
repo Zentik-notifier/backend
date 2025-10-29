@@ -8,8 +8,8 @@ import {
   Param,
   Patch,
   Post,
-  SetMetadata,
   UseGuards,
+  UseInterceptors
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -26,6 +26,7 @@ import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscrip
 import { GetSystemAccessToken } from '../system-access-token/decorators/get-system-access-token.decorator';
 import { RequireSystemScopes } from '../system-access-token/decorators/require-system-scopes.decorator';
 import { SystemAccessScopesGuard } from '../system-access-token/system-access-scopes.guard';
+import { SystemAccessTokenStatsInterceptor } from '../system-access-token/system-access-token-stats.interceptor';
 import { SystemAccessTokenGuard } from '../system-access-token/system-access-token.guard';
 import { SystemAccessTokenService } from '../system-access-token/system-access-token.service';
 import {
@@ -39,8 +40,8 @@ import {
   ExternalNotifyRequestDto
 } from './dto/external-notify.dto';
 import { PostponeNotificationDto, PostponeResponseDto } from './dto/postpone-notification.dto';
-import { NotificationsService } from './notifications.service';
 import { NotificationPostponeService } from './notification-postpone.service';
+import { NotificationsService } from './notifications.service';
 
 @UseGuards(JwtOrAccessTokenGuard)
 @Controller('notifications')
@@ -331,6 +332,7 @@ export class NotificationsController {
 
   @UseGuards(SystemAccessTokenGuard, SystemAccessScopesGuard)
   @RequireSystemScopes(['passthrough'])
+  @UseInterceptors(SystemAccessTokenStatsInterceptor)
   @Post('notify-external')
   @ApiOperation({
     summary:

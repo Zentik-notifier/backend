@@ -34,6 +34,11 @@ export class SystemAccessToken {
   @Field()
   calls: number;
 
+  @Column({ type: 'int', default: 0 })
+  @ApiProperty({ description: 'Total number of calls ever made by this token' })
+  @Field()
+  totalCalls: number;
+
   @Column({ type: 'text', nullable: true })
   @ApiProperty({ required: false, description: 'Plain text token (sat_...) saved for display/ops' })
   @Field({ nullable: true })
@@ -68,6 +73,11 @@ export class SystemAccessToken {
   @ApiProperty()
   @Field()
   updatedAt: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  @ApiProperty({ required: false, description: 'Last time the monthly calls counter was reset' })
+  @Field({ nullable: true })
+  lastResetAt?: Date;
 
   @Column({ type: 'text', array: true, default: '{}' })
   @ApiProperty({ type: [String], required: false })

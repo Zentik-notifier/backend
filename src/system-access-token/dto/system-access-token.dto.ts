@@ -12,8 +12,14 @@ export class SystemAccessTokenDto {
   @Field()
   calls: number;
 
+  @Field()
+  totalCalls: number;
+
   @Field(() => Date, { nullable: true })
   expiresAt?: Date;
+
+  @Field(() => Date, { nullable: true })
+  lastResetAt?: Date;
 
   @Field(() => User, { nullable: true })
   requester?: User;
