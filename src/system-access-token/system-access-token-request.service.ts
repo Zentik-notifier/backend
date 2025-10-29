@@ -22,6 +22,8 @@ import {
 import { EmailService } from '../auth/email.service';
 import { LocaleService } from '../common/services/locale.service';
 import { Locale } from '../common/types/i18n';
+import { EventsService } from '../events/events.service';
+import { EventType } from '../entities';
 
 @Injectable()
 export class SystemAccessTokenRequestService {
@@ -36,6 +38,7 @@ export class SystemAccessTokenRequestService {
     private readonly emailService: EmailService,
     private readonly localeService: LocaleService,
     private readonly configService: ConfigService,
+    private readonly eventsService: EventsService,
   ) { }
 
   /**
@@ -60,6 +63,13 @@ export class SystemAccessTokenRequestService {
 
     const saved = await this.requestRepository.save(request);
     this.logger.log(`Created token request ${saved.id} for user ${userId}`);
+
+    // Track event
+    await this.eventsService.createEvent({
+      type: EventType.SYSTEM_TOKEN_REQUEST_CREATED,
+      userId,
+      objectId: saved.id,
+    });
 
     return this.findOne(saved.id);
   }
@@ -116,6 +126,14 @@ export class SystemAccessTokenRequestService {
       `Approved token request ${requestId}, generated token ${token.id}`,
     );
 
+    // Track event
+    await this.eventsService.createEvent({
+      type: EventType.SYSTEM_TOKEN_REQUEST_APPROVED,
+      userId: request.userId,
+      objectId: request.id,
+      targetId: token.id,
+    });
+
     // Send email notification to the user
     await this.sendApprovalEmail(request).catch((error) => {
       this.logger.error(
@@ -159,6 +177,13 @@ export class SystemAccessTokenRequestService {
     await this.requestRepository.save(request);
 
     this.logger.log(`Declined token request ${requestId}`);
+
+    // Track event
+    await this.eventsService.createEvent({
+      type: EventType.SYSTEM_TOKEN_REQUEST_DECLINED,
+      userId: request.userId,
+      objectId: request.id,
+    });
 
     // Load user relation for email
     const requestWithUser = await this.requestRepository.findOne({

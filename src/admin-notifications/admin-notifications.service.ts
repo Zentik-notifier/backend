@@ -197,6 +197,9 @@ export class AdminNotificationsService implements OnModuleInit {
       [EventType.DEVICE_REGISTER]: '📱 Device Registered',
       [EventType.DEVICE_UNREGISTER]: '📱 Device Unregistered',
       [EventType.ACCOUNT_DELETE]: '⚠️ Account Deleted',
+      [EventType.SYSTEM_TOKEN_REQUEST_CREATED]: '🔑 System Token Request Created',
+      [EventType.SYSTEM_TOKEN_REQUEST_APPROVED]: '✅ System Token Request Approved',
+      [EventType.SYSTEM_TOKEN_REQUEST_DECLINED]: '❌ System Token Request Declined',
     };
 
     return titles[eventType] || `Event: ${eventType}`;

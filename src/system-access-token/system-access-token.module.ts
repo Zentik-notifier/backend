@@ -13,6 +13,7 @@ import { SystemAccessTokenRequestController } from './system-access-token-reques
 import { SystemAccessTokenRequestResolver } from './system-access-token-request.resolver';
 import { SystemAccessTokenRequestService } from './system-access-token-request.service';
 import { SystemAccessScopesGuard } from './system-access-scopes.guard';
+import { EventsModule } from '../events/events.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SystemAccessScopesGuard } from './system-access-scopes.guard';
     ]),
     forwardRef(() => AuthModule),
     CommonModule,
+    EventsModule,
   ],
   providers: [
     SystemAccessTokenService,
