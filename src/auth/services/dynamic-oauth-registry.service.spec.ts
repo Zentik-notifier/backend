@@ -118,7 +118,7 @@ describe('DynamicOAuthRegistryService', () => {
       expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
         'github',
       );
-      expect(service['unregisterProvider']).toHaveBeenCalledWith('github');
+      expect(service['unregisterProvider']).toHaveBeenCalledWith('GITHUB');
       expect(service['registerProvider']).not.toHaveBeenCalled();
     });
 
@@ -139,7 +139,7 @@ describe('DynamicOAuthRegistryService', () => {
 
       // Mock the registeredProviders map to return current config
       (service as any).registeredProviders = new Map([
-        ['github', { config: currentConfig }],
+        ['GITHUB', { config: currentConfig }],
       ]);
 
       await service.updateProvider(mockProvider);
@@ -176,7 +176,7 @@ describe('DynamicOAuthRegistryService', () => {
       expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
         'github',
       );
-      expect(service['unregisterProvider']).toHaveBeenCalledWith('github');
+      expect(service['unregisterProvider']).toHaveBeenCalledWith('GITHUB');
       expect(service['registerProvider']).toHaveBeenCalledWith(mockProvider);
     });
 
@@ -191,7 +191,7 @@ describe('DynamicOAuthRegistryService', () => {
       expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
         'github',
       );
-      expect(service['unregisterProvider']).toHaveBeenCalledWith('github');
+      expect(service['unregisterProvider']).toHaveBeenCalledWith('GITHUB');
       expect(service['registerProvider']).toHaveBeenCalledWith(mockProvider);
     });
   });

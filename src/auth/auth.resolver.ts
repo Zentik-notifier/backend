@@ -27,6 +27,8 @@ import {
 import { EmailService } from './email.service';
 import { JwtOrAccessTokenGuard } from './guards/jwt-or-access-token.guard';
 import { SessionService } from './session.service';
+import { MobileAppleAuthDto } from './dto/mobile-auth.dto';
+import { DeviceInfoDto } from './dto/auth.dto';
 import { Locale } from '../common/types/i18n';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { EventTrackingService } from '../events/event-tracking.service';
@@ -63,6 +65,37 @@ export class AuthResolver {
       uploadEnabled: await this.attachmentsService.isAttachmentsEnabled(),
       systemTokenRequestsEnabled,
     };
+  }
+
+  @Mutation(() => LoginResponse)
+  async appleLoginMobile(
+    @Args('input') input: MobileAppleAuthDto,
+  ): Promise<LoginResponse> {
+    this.logger.debug(`appleLoginMobile invoked: identityTokenPresent=${!!input?.identityToken}`);
+    const payload = (input.payload ? JSON.parse(input.payload) : undefined);
+    // Map deviceInfo into session context
+    return this.authService.mobileAppleLogin(
+      {
+        identityToken: input.identityToken,
+        payload,
+      },
+      {
+        deviceName: input.deviceName,
+        operatingSystem: input.platform ? `${input.platform}${input.osVersion ? ' ' + input.osVersion : ''}` : input.osVersion,
+        browser: input.browser,
+      },
+    );
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(JwtOrAccessTokenGuard)
+  async appleConnectMobile(
+    @Args('input') input: MobileAppleAuthDto,
+    @CurrentUser('id') userId: string,
+  ): Promise<boolean> {
+    this.logger.debug(`appleConnectMobile invoked: user=${userId} identityTokenPresent=${!!input?.identityToken}`);
+    const payload = (input.payload ? JSON.parse(input.payload) : undefined);
+    return this.authService.connectMobileAppleIdentity(userId, { identityToken: input.identityToken, payload }, {});
   }
 
   @Mutation(() => String)

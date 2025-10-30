@@ -14,3 +14,4 @@ export {
 export { ConfirmEmailDto } from './confirm-email.dto';
 export { EmailConfirmationResponseDto } from './email-confirmation-response.dto';
 export { RequestEmailConfirmationDto } from './request-email-confirmation.dto';
+export { MobileAppleAuthDto } from './mobile-auth.dto';

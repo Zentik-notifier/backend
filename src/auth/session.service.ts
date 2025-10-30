@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { UserSession } from '../entities/user-session.entity';
+import { OAuthProviderType } from '../entities/oauth-provider.entity';
 import { SessionInfoDto } from './dto/session.dto';
 
 interface DeviceInfo {
@@ -10,7 +11,7 @@ interface DeviceInfo {
   browser?: string;
   ipAddress?: string;
   userAgent?: string;
-  loginProvider?: string; // OAuth provider used for login
+  loginProvider?: OAuthProviderType; // OAuth provider used for login
   // If provided, update this existing session instead of creating a new one
   sessionId?: string;
 }

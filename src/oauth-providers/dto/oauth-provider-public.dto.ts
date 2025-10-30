@@ -12,12 +12,7 @@ export class OAuthProviderPublicDto {
   @ApiProperty({ description: 'The name of the OAuth provider' })
   name: string;
 
-  @Field()
-  @ApiProperty({
-    description:
-      'The unique identifier for the provider (e.g., github, google, custom)',
-  })
-  providerId: string;
+  // providerId removed from public DTO. Use lowercased(type) on clients when needed.
 
   @Field(() => OAuthProviderType)
   @ApiProperty({

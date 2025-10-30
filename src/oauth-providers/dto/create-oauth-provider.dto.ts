@@ -19,14 +19,6 @@ export class CreateOAuthProviderDto {
   @IsString()
   name: string;
 
-  @Field()
-  @ApiProperty({
-    description:
-      'The unique identifier for the provider (e.g., github, google, custom)',
-  })
-  @IsString()
-  providerId: string;
-
   @Field(() => OAuthProviderType)
   @ApiProperty({
     enum: OAuthProviderType,

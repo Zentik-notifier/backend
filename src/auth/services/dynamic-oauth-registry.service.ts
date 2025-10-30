@@ -20,6 +20,7 @@ interface ProviderStrategyConfig {
 @Injectable()
 export class DynamicOAuthRegistryService implements OnModuleInit {
   private readonly logger = new Logger(DynamicOAuthRegistryService.name);
+  // Keyed by enum value (uppercase), strategy registered in Passport with lowercase name
   private registeredProviders = new Map<string, ProviderStrategyConfig>();
   private isInitialized = false;
 
@@ -97,12 +98,14 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
   async registerProvider(provider: OAuthProvider): Promise<void> {
     try {
+      const enumKey = provider.type; // e.g. 'GOOGLE'
+      const idKey = provider.type.toLowerCase(); // e.g. 'google' for endpoints/strategy name
       this.logger.log(
-        `🔗 Registering OAuth provider: ${provider.name} (${provider.providerId})`,
+        `🔗 Registering OAuth provider: ${provider.name} (${enumKey})`,
       );
 
       // If provider is already registered, update it
-      if (this.registeredProviders.has(provider.providerId)) {
+      if (this.registeredProviders.has(enumKey)) {
         await this.updateProvider(provider);
         return;
       }
@@ -111,27 +114,27 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
       if (!strategy) {
         this.logger.warn(
-          `⚠️ Could not create strategy for provider: ${provider.providerId}`,
+          `⚠️ Could not create strategy for provider: ${idKey}`,
         );
         return;
       }
 
       // Register strategy with Passport
-      passport.use(provider.providerId, strategy);
+      passport.use(idKey, strategy);
 
       // Store provider configuration
-      this.registeredProviders.set(provider.providerId, {
-        name: provider.providerId,
+      this.registeredProviders.set(enumKey, {
+        name: enumKey,
         strategy,
         config: this.getProviderConfig(provider),
       });
 
       this.logger.log(
-        `✅ OAuth provider registered: ${provider.name} (${provider.providerId})`,
+        `✅ OAuth provider registered: ${provider.name} (${enumKey})`,
       );
     } catch (error) {
       this.logger.error(
-        `❌ Failed to register OAuth provider: ${provider.providerId}`,
+        `❌ Failed to register OAuth provider: ${provider?.type?.toString?.()}`,
         error,
       );
     }
@@ -139,25 +142,27 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
   async updateProvider(provider: OAuthProvider): Promise<void> {
     try {
+      const enumKey = provider.type;
+      const idKey = provider.type.toLowerCase();
       this.logger.log(
-        `🔄 Updating OAuth provider: ${provider.name} (${provider.providerId})`,
+        `🔄 Updating OAuth provider: ${provider.name} (${enumKey})`,
       );
 
       // Check if provider is currently enabled before deregistering
       const isCurrentlyEnabled =
-        await this.oauthProvidersService.isProviderEnabled(provider.providerId);
+        await this.oauthProvidersService.isProviderEnabled(provider.type.toLowerCase());
 
       if (!isCurrentlyEnabled) {
         this.logger.log(
-          `⚠️ Provider ${provider.providerId} is not currently enabled, deregistering...`,
+          `⚠️ Provider ${enumKey} is not currently enabled, deregistering...`,
         );
         // Unregister existing provider if it's not enabled
-        await this.unregisterProvider(provider.providerId);
+        await this.unregisterProvider(enumKey);
         return;
       }
 
       // Provider is enabled, check if configuration has actually changed
-      const currentConfig = this.registeredProviders.get(provider.providerId);
+      const currentConfig = this.registeredProviders.get(enumKey);
       if (currentConfig) {
         const newConfig = this.getProviderConfig(provider);
         const hasConfigChanged = this.hasConfigurationChanged(
@@ -167,7 +172,7 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
         if (!hasConfigChanged) {
           this.logger.log(
-            `ℹ️ Provider ${provider.providerId} configuration unchanged, skipping update`,
+            `ℹ️ Provider ${idKey} configuration unchanged, skipping update`,
           );
           return;
         }
@@ -175,21 +180,21 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
       // Configuration has changed or provider not registered, proceed with update
       this.logger.log(
-        `🔄 Configuration changed for provider ${provider.providerId}, updating...`,
+        `🔄 Configuration changed for provider ${enumKey}, updating...`,
       );
 
       // Unregister existing provider first
-      await this.unregisterProvider(provider.providerId);
+      await this.unregisterProvider(enumKey);
 
       // Register with new configuration
       await this.registerProvider(provider);
 
       this.logger.log(
-        `✅ OAuth provider updated: ${provider.name} (${provider.providerId})`,
+        `✅ OAuth provider updated: ${provider.name} (${enumKey})`,
       );
     } catch (error) {
       this.logger.error(
-        `❌ Failed to update OAuth provider: ${provider.providerId}`,
+        `❌ Failed to update OAuth provider: ${provider?.type?.toString?.()}`,
         error,
       );
     }
@@ -197,20 +202,22 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
   async unregisterProvider(providerId: string): Promise<void> {
     try {
-      this.logger.log(`🗑️ Unregistering OAuth provider: ${providerId}`);
+      const enumKey = providerId.toUpperCase();
+      const strategyName = enumKey.toLowerCase();
+      this.logger.log(`🗑️ Unregistering OAuth provider: ${enumKey}`);
 
-      if (!this.registeredProviders.has(providerId)) {
-        this.logger.warn(`⚠️ Provider not registered: ${providerId}`);
+      if (!this.registeredProviders.has(enumKey)) {
+        this.logger.warn(`⚠️ Provider not registered: ${enumKey}`);
         return;
       }
 
       // Remove from Passport
-      passport.unuse(providerId);
+      passport.unuse(strategyName);
 
       // Remove from our registry
-      this.registeredProviders.delete(providerId);
+      this.registeredProviders.delete(enumKey);
 
-      this.logger.log(`✅ OAuth provider unregistered: ${providerId}`);
+      this.logger.log(`✅ OAuth provider unregistered: ${enumKey}`);
     } catch (error) {
       this.logger.error(
         `❌ Failed to unregister OAuth provider: ${providerId}`,
@@ -309,6 +316,27 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
         //   `🔍 Raw profile received: ${JSON.stringify(profile)}`,
         // );
 
+        // Discord: log incoming payload and fetch @me for email visibility
+        let discordMe: any | undefined;
+        if (provider.type === OAuthProviderType.DISCORD) {
+          try {
+            this.logger.log(
+              `🔐 [DISCORD] OAuth callback received. accessToken=${accessToken?.slice(0, 8) || ''}..., refreshToken=${refreshToken?.slice(0, 8) || ''}...`,
+            );
+            this.logger.debug(`🔍 [DISCORD] Raw profile: ${JSON.stringify(profile)}`);
+            const resp = await fetch('https://discord.com/api/users/@me', {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: 'application/json',
+              },
+            });
+            discordMe = await resp.json().catch(() => undefined);
+            this.logger.debug(`📦 [DISCORD] /users/@me payload: ${JSON.stringify(discordMe)}`);
+          } catch (e) {
+            this.logger.warn(`[DISCORD] Failed to fetch /users/@me: ${e?.message}`);
+          }
+        }
+
         // For custom providers, we might need to fetch user info manually
         if (
           provider.type === OAuthProviderType.CUSTOM &&
@@ -359,7 +387,7 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
             }
           } else {
             this.logger.error(
-              `❌ No userInfoUrl configured for custom provider: ${provider.providerId}`,
+              `❌ No userInfoUrl configured for custom provider: ${provider.type}`,
             );
             return done(
               new Error('No userInfoUrl configured for custom provider'),
@@ -367,10 +395,6 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
             );
           }
         }
-
-        // this.logger.debug(
-        //   `🔍 Final profile for processing: ${JSON.stringify(profile)}`,
-        // );
 
         // Check if this is a connection flow by extracting user info from state
         let connectToUserId: string | undefined;
@@ -445,13 +469,22 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
         // Normalize profile based on provider type
         const normalizedProfile = this.normalizeProfile(profile, provider);
+        if (provider.type === OAuthProviderType.DISCORD && discordMe) {
+          // Prefer /users/@me fields when profile is empty or missing email
+          normalizedProfile.email = normalizedProfile.email || discordMe.email;
+          normalizedProfile.username = normalizedProfile.username || discordMe.username || discordMe.global_name;
+          normalizedProfile.displayName = normalizedProfile.displayName || discordMe.global_name || discordMe.username;
+          if (!normalizedProfile.avatar && discordMe.avatar) {
+            normalizedProfile.avatar = `https://cdn.discordapp.com/avatars/${discordMe.id}/${discordMe.avatar}.png`;
+          }
+        }
         // this.logger.debug(
         //   `🔍 Normalized profile: ${JSON.stringify(normalizedProfile)}`,
         // );
 
         // Create or update user using the auth service
         const user = await this.authService.findOrCreateUserFromProvider(
-          provider.providerId,
+          provider.type,
           {
             email: normalizedProfile.email,
             name: normalizedProfile.displayName,
@@ -466,12 +499,12 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
         );
 
         this.logger.log(
-          `✅ OAuth authentication successful for user: ${user.email} via ${provider.providerId}`,
+          `✅ OAuth authentication successful for user: ${user.email} via ${provider.type}`,
         );
         return done(null, user);
       } catch (error) {
         this.logger.error(
-          `❌ OAuth validation failed for provider: ${provider.providerId}`,
+          `❌ OAuth validation failed for provider: ${provider.type}`,
           error,
         );
         return done(error, false);
@@ -650,7 +683,7 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
     }
 
     // Generate default callback URL using UrlBuilderService
-    return this.urlBuilderService.buildOAuthCallbackUrl(provider.providerId);
+    return this.urlBuilderService.buildOAuthCallbackUrl(provider.type.toLowerCase());
   }
 
   private hasConfigurationChanged(currentConfig: any, newConfig: any): boolean {
@@ -680,6 +713,7 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
    * Get list of currently registered provider IDs
    */
   getRegisteredProviders(): string[] {
+    // Return enum keys
     return Array.from(this.registeredProviders.keys());
   }
 
@@ -687,7 +721,8 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
    * Check if a provider is currently registered
    */
   isProviderRegistered(providerId: string): boolean {
-    return this.registeredProviders.has(providerId);
+    const enumKey = providerId.toUpperCase();
+    return this.registeredProviders.has(enumKey);
   }
 
   /**
@@ -700,7 +735,8 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
       );
       return null;
     }
-    return this.registeredProviders.get(providerId) || null;
+    const enumKey = providerId.toUpperCase();
+    return this.registeredProviders.get(enumKey) || null;
   }
 
   /**

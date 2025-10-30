@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { OAuthProviderType } from './oauth-provider.entity';
 
 @ObjectType()
 @Entity('user_sessions')
@@ -58,12 +59,10 @@ export class UserSession {
   @ApiProperty({ description: 'User agent string' })
   userAgent?: string;
 
-  @Field({ nullable: true })
-  @Column({ length: 50, nullable: true })
-  @ApiProperty({
-    description: 'OAuth provider used for login (e.g., github, google, local)',
-  })
-  loginProvider?: string;
+  @Field(() => OAuthProviderType, { nullable: true })
+  @Column({ type: 'enum', enum: OAuthProviderType, enumName: 'oauth_provider_type_enum', nullable: true })
+  @ApiProperty({ description: 'OAuth provider used for login (enum)' })
+  loginProvider?: OAuthProviderType | null;
 
   @Field({ nullable: true })
   @Column({ type: 'timestamp', nullable: true })

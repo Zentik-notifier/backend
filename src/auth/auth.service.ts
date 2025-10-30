@@ -9,12 +9,15 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { Locale } from '../common/types/i18n';
+import { ServerSettingType } from '../entities/server-setting.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import {
   ChangePasswordDto,
   LoginDto,
@@ -29,9 +32,7 @@ import {
 } from './dto/auth.dto';
 import { EmailService } from './email.service';
 import { SessionService } from './session.service';
-import { ServerSettingsService } from '../server-manager/server-settings.service';
-import { ServerSettingType } from '../entities/server-setting.entity';
-import * as crypto from 'crypto';
+import { OAuthProviderType } from '../entities/oauth-provider.entity';
 
 export interface JwtPayload {
   sub: string;
@@ -61,8 +62,30 @@ export class AuthService {
     private serverSettingsService: ServerSettingsService,
   ) { }
 
+  private mapProviderToType(provider: string | undefined | null): OAuthProviderType | undefined {
+    const p = (provider || '').toLowerCase();
+    switch (p) {
+      case 'github':
+        return OAuthProviderType.GITHUB;
+      case 'google':
+        return OAuthProviderType.GOOGLE;
+      case 'discord':
+        return OAuthProviderType.DISCORD;
+      case 'apple':
+        return OAuthProviderType.APPLE;
+      case 'apple_signin':
+      case 'applemobile':
+        return OAuthProviderType.APPLE_SIGNIN;
+      case 'local':
+        return OAuthProviderType.LOCAL;
+      case 'custom':
+        return OAuthProviderType.CUSTOM;
+      default:
+        return undefined;
+    }
+  }
   async processOAuthProviderCallback(
-    provider: string,
+    providerKey: string,
     redirect: string | undefined,
     locale: string | undefined,
     state: string | undefined,
@@ -101,7 +124,7 @@ export class AuthService {
         result = await this.loginWithExternalProvider(
           user,
           { ...context, locale: stateLocale || localeFromQuery },
-          provider,
+          providerKey.toUpperCase() as OAuthProviderType,
         );
       }
 
@@ -115,7 +138,7 @@ export class AuthService {
         ) {
           let fragment: string;
           if (isConnectionFlow) {
-            fragment = `#connected=true&provider=${encodeURIComponent(provider)}`;
+            fragment = `#connected=true&provider=${encodeURIComponent(providerKey)}`;
             const location = `${redirectUri}${fragment}`;
             return res.redirect(302, location);
           } else {
@@ -139,6 +162,15 @@ export class AuthService {
         }
       } catch (e: any) {
         this.logger.warn(`Mobile redirect parsing failed: ${e.message}`);
+      }
+
+      // Web connection flow: redirect back to frontend or postMessage+close
+      if (isConnectionFlow) {
+        // Prefer redirect to returnUrl so WebBrowser.openAuthSessionAsync can auto-close
+        if (redirectUri && /^https?:\/\//i.test(redirectUri)) {
+          const fragment = `#connected=true&provider=${encodeURIComponent(providerKey)}`;
+          return res.redirect(302, `${redirectUri}${fragment}`);
+        }
       }
 
       // Proceed with web (code exchange)
@@ -167,10 +199,10 @@ export class AuthService {
       return res.json({
         message: isConnectionFlow ? 'Provider connected successfully' : 'Login successful',
         connected: isConnectionFlow,
-        provider: isConnectionFlow ? provider : undefined,
+        provider: isConnectionFlow ? providerKey : undefined,
       });
     } catch (error: any) {
-      this.logger.error(`OAuth login failed for provider: ${provider}`, error.stack);
+      this.logger.error(`OAuth login failed for provider: ${providerKey}`, error.stack);
       throw error;
     }
   }
@@ -208,7 +240,7 @@ export class AuthService {
       // Reuse/update this session row instead of inserting a new one
       sessionId: session.id,
       // Preserve specific provider originally used during the OAuth login
-      loginProvider: session.loginProvider || 'oauth',
+      loginProvider: session.loginProvider || undefined,
     });
 
     return {
@@ -216,6 +248,167 @@ export class AuthService {
       refreshToken,
       message: 'Tokens exchanged successfully',
     } as any;
+  }
+
+  async mobileAppleLogin(
+    body: any,
+    context: { ipAddress?: string; userAgent?: string; deviceName?: string; operatingSystem?: string; browser?: string },
+  ): Promise<LoginResponse> {
+    const { identityToken, payload } = body || {};
+
+    if (!identityToken) {
+      throw new BadRequestException('identityToken is required');
+    }
+
+    let appleSub: string | undefined;
+    let appleEmail: string | undefined;
+    let decodedClaims: Record<string, any> | undefined;
+    try {
+      const parts = String(identityToken).split('.');
+      if (parts.length >= 2) {
+        const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const json = Buffer.from(payloadB64, 'base64').toString('utf8');
+        decodedClaims = JSON.parse(json);
+        appleSub = decodedClaims?.sub;
+        // Prefer email from payload if present, fallback to token claims
+        appleEmail = (payload && payload.email) ? payload.email : decodedClaims?.email;
+      }
+      this.logger.debug(`Apple identityToken decoded: sub=${appleSub || 'n/a'} email=${appleEmail || 'n/a'}`);
+    } catch (e: any) {
+      this.logger.warn(`Failed to decode Apple identityToken: ${e.message}`);
+    }
+
+    if (!appleSub) {
+      throw new BadRequestException('Unable to determine Apple subject');
+    }
+
+    // Find or create identity
+    let identity = await this.identitiesRepository.findOne({
+      where: appleEmail ? ({ providerType: OAuthProviderType.APPLE_SIGNIN, email: appleEmail } as any) : ({ providerType: OAuthProviderType.APPLE_SIGNIN } as any),
+      relations: ['user'],
+    });
+
+    let authUser: User | null = (identity?.user as any) ?? null;
+
+    if (!authUser) {
+      if (appleEmail) {
+        authUser = (await this.usersRepository.findOne({ where: { email: appleEmail } })) ?? null;
+      }
+      if (!authUser) {
+        const created = this.usersRepository.create({
+          email: appleEmail || undefined,
+          username: appleEmail || `apple_${String(appleSub).slice(0, 10)}`,
+          isEmailConfirmed: !!appleEmail,
+        } as any);
+        authUser = (await this.usersRepository.save(created as any)) as any;
+      }
+
+      const newIdentity = this.identitiesRepository.create({
+        user: authUser,
+        provider: OAuthProviderType.APPLE_SIGNIN,
+        providerType: OAuthProviderType.APPLE_SIGNIN,
+        email: appleEmail || null,
+        metadata: JSON.stringify({ payload: payload || null, claims: decodedClaims || null }),
+      } as any);
+      await this.identitiesRepository.save(newIdentity as any);
+      identity = newIdentity as any;
+    } else {
+      // Update existing identity metadata/email if provided
+      const patch: any = { id: (identity as any).id, providerType: OAuthProviderType.APPLE_SIGNIN };
+      try { patch.metadata = JSON.stringify({ payload: payload || null, claims: decodedClaims || null }); } catch { }
+      if (appleEmail && !(identity as any).email) { patch.email = appleEmail; }
+      await this.identitiesRepository.save({ ...(identity as any), ...patch });
+    }
+
+    const { accessToken, refreshToken, tokenId } = await this.generateTokens(authUser as any);
+    const expiresAt = await this.calculateRefreshTokenExpiration();
+    await this.sessionService.createSession((authUser as any).id, tokenId, expiresAt, {
+      loginProvider: OAuthProviderType.APPLE_SIGNIN,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      deviceName: context.deviceName,
+      operatingSystem: context.operatingSystem,
+      browser: context.browser,
+    } as any);
+
+    // Provider metadata now stored on user identity
+
+    // Ensure the GraphQL type non-null user is returned
+    // Reload a fresh user entity with minimal fields if needed
+    const userForResponse = await this.usersRepository.findOne({ where: { id: (authUser as any).id } }) as any;
+
+    return {
+      accessToken,
+      refreshToken,
+      user: userForResponse || (authUser as any),
+      message: 'Login successful',
+    } as any;
+  }
+
+  async connectMobileAppleIdentity(
+    userId: string,
+    body: any,
+    context: { ipAddress?: string; userAgent?: string },
+  ): Promise<boolean> {
+    const { identityToken, payload } = body || {};
+    if (!identityToken) {
+      throw new BadRequestException('identityToken is required');
+    }
+
+    let appleSub: string | undefined;
+    let appleEmail: string | undefined;
+    let decodedClaims: Record<string, any> | undefined;
+    try {
+      const parts = String(identityToken).split('.');
+      if (parts.length >= 2) {
+        const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const json = Buffer.from(payloadB64, 'base64').toString('utf8');
+        decodedClaims = JSON.parse(json);
+        appleSub = decodedClaims?.sub;
+        appleEmail = (payload && payload.email) ? payload.email : decodedClaims?.email;
+      }
+      this.logger.debug(`Apple identityToken decoded for connect: sub=${appleSub || 'n/a'} email=${appleEmail || 'n/a'}`);
+    } catch (e: any) {
+      this.logger.warn(`Failed to decode Apple identityToken (connect): ${e.message}`);
+    }
+
+    if (!appleSub) {
+      throw new BadRequestException('Unable to determine Apple subject');
+    }
+
+    const currentUser = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!currentUser) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Check if an identity with same provider/email is already linked to another user
+    if (appleEmail) {
+      const existingByEmail = await this.identitiesRepository.findOne({ where: { providerType: OAuthProviderType.APPLE_SIGNIN, email: appleEmail }, relations: ['user'] } as any);
+      if (existingByEmail && (existingByEmail as any).userId && (existingByEmail as any).userId !== userId) {
+        throw new BadRequestException('This Apple account is already linked to another user');
+      }
+    }
+
+    let identity = await this.identitiesRepository.findOne({ where: { providerType: OAuthProviderType.APPLE_SIGNIN, user: { id: userId } as any }, relations: ['user'] } as any);
+
+    if (!identity) {
+      const newIdentity = this.identitiesRepository.create({
+        user: currentUser as any,
+        provider: OAuthProviderType.APPLE_SIGNIN,
+        providerType: OAuthProviderType.APPLE_SIGNIN,
+        email: appleEmail || null,
+        metadata: JSON.stringify({ payload: payload || null, claims: decodedClaims || null }),
+      } as any);
+      await this.identitiesRepository.save(newIdentity as any);
+    } else {
+      const patch: any = { id: (identity as any).id, providerType: OAuthProviderType.APPLE_SIGNIN };
+      try { patch.metadata = JSON.stringify({ payload: payload || null, claims: decodedClaims || null }); } catch {}
+      if (appleEmail && !(identity as any).email) { patch.email = appleEmail; }
+      await this.identitiesRepository.save({ ...(identity as any), ...patch });
+    }
+
+    // No session/tokens generated here
+    return true;
   }
 
   async register(
@@ -315,7 +508,7 @@ export class AuthService {
         {
           ipAddress: context?.ipAddress,
           userAgent: context?.userAgent,
-          loginProvider: 'local',
+          loginProvider: OAuthProviderType.LOCAL,
         },
       );
       const { password: __, ...userWithoutPassword2 } = savedUser;
@@ -383,7 +576,7 @@ export class AuthService {
     const session = await this.sessionService.createSession(user.id, tokenId, expiresAt, {
       ipAddress: context?.ipAddress,
       userAgent: context?.userAgent,
-      loginProvider: 'local',
+      loginProvider: OAuthProviderType.LOCAL,
       deviceName: deviceInfo?.deviceName,
       operatingSystem:
         deviceInfo?.platform && deviceInfo?.osVersion
@@ -531,7 +724,7 @@ export class AuthService {
   async loginWithExternalProvider(
     user: User,
     context?: LoginContext,
-    provider?: string,
+    provider?: OAuthProviderType,
   ) {
     // this.logger.debug(
     //   `🔍 External provider login for user: ${user.id} via provider: ${provider || 'unknown'}`,
@@ -567,14 +760,14 @@ export class AuthService {
     const session = await this.sessionService.createSession(user.id, tokenId, expiresAt, {
       ipAddress: context?.ipAddress,
       userAgent: context?.userAgent,
-      loginProvider: provider || 'oauth',
+      loginProvider: provider,
       deviceName: deviceInfo.deviceName,
       operatingSystem: deviceInfo.operatingSystem,
       browser: deviceInfo.browser,
     });
 
     this.logger.debug(
-      `OAuth session created: userId=${user.id}, deviceId=${session.id}, provider=${provider || 'oauth'}, tokenId=${tokenId.substring(0, 8)}...`,
+      `OAuth session created: userId=${user.id}, deviceId=${session.id}, provider=${provider}, tokenId=${tokenId.substring(0, 8)}...`,
     );
 
     // Track OAuth login event
@@ -843,14 +1036,13 @@ export class AuthService {
 
   // Methods for future external providers
   async findOrCreateUserFromProvider(
-    provider: string,
+    providerTypeEnum: OAuthProviderType,
     providerData: any,
     currentUserId?: string,
   ): Promise<User> {
     const {
       email,
       name,
-      providerId,
       avatarUrl,
       username,
       firstName,
@@ -858,21 +1050,19 @@ export class AuthService {
     } = providerData as {
       email?: string;
       name?: string;
-      providerId: string;
       avatarUrl?: string;
       username?: string;
       firstName?: string;
       lastName?: string;
     };
 
-    // this.logger.log(
-    //   `🔎 OAuth findOrCreate start: provider=${provider}, providerId=${providerId}, email=${email ?? 'n/a'}, username=${username ?? 'n/a'}, currentUserId=${currentUserId ?? 'none'}`,
-    // );
-
-    // 1) Try to find existing identity
-    const existingIdentity = await this.identitiesRepository.findOne({
-      where: { provider, providerId },
-    });
+    // 1) Try to find existing identity (only if we have an email)
+    let existingIdentity: UserIdentity | null = null as any;
+    if (email) {
+      existingIdentity = await this.identitiesRepository.findOne({
+        where: { providerType: providerTypeEnum as any, email } as any,
+      });
+    }
     if (existingIdentity) {
       this.logger.log(
         `🪪 Existing identity found: ${existingIdentity.id} → userId=${existingIdentity.userId}`,
@@ -881,10 +1071,10 @@ export class AuthService {
       // If we have a current user and the identity belongs to a different user, we have a conflict
       if (currentUserId && existingIdentity.userId !== currentUserId) {
         this.logger.warn(
-          `⚠️ Identity conflict: ${provider}/${providerId} is already linked to user ${existingIdentity.userId}, but current user is ${currentUserId}`,
+          `⚠️ Identity conflict: ${providerTypeEnum} is already linked to user ${existingIdentity.userId}, but current user is ${currentUserId}`,
         );
         throw new ConflictException(
-          `This ${provider} account is already linked to another user`,
+          `This ${providerTypeEnum} account is already linked to another user`,
         );
       }
 
@@ -972,9 +1162,10 @@ export class AuthService {
 
     // 5) Create user if needed (only if no current user was provided)
     if (!user && !currentUserId) {
-      const finalUsername = username || `${provider}_${providerId}`;
+      const typeLabel = providerTypeEnum?.toString().toLowerCase();
+      const finalUsername = username || `${typeLabel}_${Math.random().toString(36).slice(2, 8)}`;
       const derivedEmail =
-        email || `${provider}_${providerId}@users.noreply.${provider}.com`;
+        email || `${finalUsername}@users.noreply.${typeLabel}.com`;
       this.logger.log(
         `🆕 Creating new user: username=${finalUsername}, email=${derivedEmail}`,
       );
@@ -991,12 +1182,12 @@ export class AuthService {
           emailConfirmed: true, // OAuth users have verified emails
         });
         user = await this.usersRepository.save(user);
-        this.logger.log(`✅ User created: userId=${user.id}, provider=${provider}`);
+        this.logger.log(`✅ User created: userId=${user.id}, provider=${providerTypeEnum}`);
         // Send welcome email for newly created OAuth users
         try {
           const inferredLocale: Locale =
             (providerData?.locale as Locale) || 'en-EN';
-          // this.logger.debug(`📧 OAuth new user: sending welcome with locale='${inferredLocale}' provider=${provider}`);
+          // this.logger.debug(`📧 OAuth new user: sending welcome with locale='${inferredLocale}' provider=${providerTypeEnum}`);
           await this.emailService.sendWelcomeEmail(
             user.email,
             user.username ?? user.email.split('@')[0],
@@ -1033,8 +1224,8 @@ export class AuthService {
     // Ensure we have a user at this point
     if (!user) {
       const errorMsg = currentUserId
-        ? `Cannot link OAuth provider ${provider} to user: current user not found`
-        : `Cannot create or find user for OAuth provider ${provider}`;
+        ? `Cannot link OAuth provider ${providerTypeEnum} to user: current user not found`
+        : `Cannot create or find user for OAuth provider ${providerTypeEnum}`;
       this.logger.error(`❌ ${errorMsg}`);
       throw new BadRequestException(errorMsg);
     }
@@ -1089,17 +1280,17 @@ export class AuthService {
 
     // 6) Ensure identity exists and is linked
     let identity = await this.identitiesRepository.findOne({
-      where: { provider, providerId },
+      where: ({ providerType: providerTypeEnum as any, userId: user.id } as any),
     });
     if (!identity) {
       // this.logger.log('🆕 Creating new user identity link');
-      identity = this.identitiesRepository.create({
-        provider,
-        providerId,
+      const newIdentity = this.identitiesRepository.create({
+        providerType: providerTypeEnum,
         email: email || null,
         avatarUrl: avatarUrl || null,
         userId: user.id,
-      });
+      } as any);
+      identity = await this.identitiesRepository.save(newIdentity as any);
     } else {
       let identityNeedsUpdate = false;
       if (identity.userId !== user.id) {
@@ -1123,14 +1314,16 @@ export class AuthService {
       }
     }
 
-    try {
-      await this.identitiesRepository.save(identity);
-      this.logger.log(
-        `✅ Identity saved and linked: identityId=${identity.id} → userId=${user.id}`,
-      );
-    } catch (error) {
-      this.logger.error(`❌ Failed to save identity: ${error.message}`);
-      // Don't fail the entire process if identity save fails
+    if (identity) {
+      try {
+        await this.identitiesRepository.save(identity as any);
+        this.logger.log(
+          `✅ Identity saved and linked: identityId=${(identity as any).id} → userId=${user.id}`,
+        );
+      } catch (error) {
+        this.logger.error(`❌ Failed to save identity: ${error.message}`);
+        // Don't fail the entire process if identity save fails
+      }
     }
 
     return user;

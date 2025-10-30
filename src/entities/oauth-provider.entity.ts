@@ -14,6 +14,8 @@ export enum OAuthProviderType {
   GOOGLE = 'GOOGLE',
   DISCORD = 'DISCORD',
   APPLE = 'APPLE',
+  APPLE_SIGNIN = 'APPLE_SIGNIN',
+  LOCAL = 'LOCAL',
   CUSTOM = 'CUSTOM',
 }
 
@@ -41,8 +43,6 @@ export class OAuthProvider {
     description:
       'The unique identifier for the provider (e.g., github, google, custom)',
   })
-  @Column({ unique: true })
-  providerId: string;
 
   @Field(() => OAuthProviderType)
   @ApiProperty({

@@ -23,16 +23,6 @@ export class UpdateOAuthProviderDto {
   @IsString()
   name?: string;
 
-  @Field({ nullable: true })
-  @ApiProperty({
-    required: false,
-    description:
-      'The unique identifier for the provider (e.g., github, google, custom)',
-  })
-  @IsOptional()
-  @IsString()
-  providerId?: string;
-
   @Field(() => OAuthProviderType, { nullable: true })
   @ApiProperty({
     required: false,

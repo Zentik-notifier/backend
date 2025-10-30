@@ -37,13 +37,15 @@ export class OAuthProvidersInitService implements OnApplicationBootstrap {
       const hasCredentials =
         provider.clientId && provider.clientSecret ? '🔑' : '⚠️ NO CREDENTIALS';
 
+      const key = provider.type.toLowerCase();
       this.logger.log(
-        `  ${status} ${hasCredentials} ${provider.name} (${provider.providerId})`,
+        `  ${status} ${hasCredentials} ${provider.name} (${key})`,
       );
 
       if (!provider.clientId || !provider.clientSecret) {
+        const keyUpper = key.toUpperCase();
         this.logger.warn(
-          `    Missing credentials for ${provider.name}. Set ${provider.providerId.toUpperCase()}_CLIENT_ID and ${provider.providerId.toUpperCase()}_CLIENT_SECRET environment variables.`,
+          `    Missing credentials for ${provider.name}. Set ${keyUpper}_CLIENT_ID and ${keyUpper}_CLIENT_SECRET environment variables.`,
         );
       }
     }

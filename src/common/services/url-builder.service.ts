@@ -42,14 +42,14 @@ export class UrlBuilderService {
    * @returns Complete callback URL
    */
   buildOAuthCallbackUrl(
-    providerId: string,
+    providerKey: string,
     customCallbackUrl?: string,
   ): string {
     if (customCallbackUrl) {
       return customCallbackUrl;
     }
 
-    return this.buildUrl(`/auth/${providerId}/callback`);
+    return this.buildUrl(`/auth/${providerKey}/callback`);
   }
 
   /**

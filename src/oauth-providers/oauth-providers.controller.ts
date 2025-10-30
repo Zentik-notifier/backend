@@ -97,13 +97,13 @@ export class OAuthProvidersController {
     return this.oauthProvidersService.findOne(id);
   }
 
-  @Get('by-provider/:providerId')
+  @Get('by-provider/:key')
   @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get OAuth provider by provider ID (Admin only)' })
+  @ApiOperation({ summary: 'Get OAuth provider by key/type (Admin only)' })
   @ApiParam({
-    name: 'providerId',
-    description: 'OAuth provider identifier (e.g., github, google)',
+    name: 'key',
+    description: 'OAuth provider key (lowercased type, es. github, google, discord, apple)',
   })
   @ApiResponse({
     status: 200,
@@ -117,15 +117,12 @@ export class OAuthProvidersController {
   })
   @ApiResponse({ status: 404, description: 'OAuth provider not found' })
   async findByProviderId(
-    @Param('providerId') providerId: string,
+    @Param('key') key: string,
   ): Promise<OAuthProvider> {
-    this.logger.log(`Fetching OAuth provider by providerId: ${providerId}`);
-    const provider =
-      await this.oauthProvidersService.findByProviderId(providerId);
+    this.logger.log(`Fetching OAuth provider by key: ${key}`);
+    const provider = await this.oauthProvidersService.findByProviderId(key);
     if (!provider) {
-      throw new Error(
-        `OAuth provider with providerId '${providerId}' not found`,
-      );
+      throw new Error(`OAuth provider with key '${key}' not found`);
     }
     return provider;
   }
@@ -147,10 +144,7 @@ export class OAuthProvidersController {
     description: 'Forbidden - Admin access required',
   })
   @ApiResponse({ status: 404, description: 'OAuth provider not found' })
-  @ApiResponse({
-    status: 409,
-    description: 'Provider with same providerId already exists',
-  })
+  @ApiResponse({ status: 409, description: 'Provider conflict' })
   async update(
     @Param('id') id: string,
     @Body() updateOAuthProviderDto: UpdateOAuthProviderDto,
@@ -238,6 +232,6 @@ export class OAuthProvidersController {
   async getProviderConfig(@Param('id') id: string): Promise<any> {
     this.logger.log(`Getting configuration for OAuth provider: ${id}`);
     const provider = await this.oauthProvidersService.findOne(id);
-    return this.oauthProvidersService.getProviderConfig(provider.providerId);
+    return this.oauthProvidersService.getProviderConfig(provider.type.toLowerCase());
   }
 }

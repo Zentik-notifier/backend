@@ -10,6 +10,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LocaleService } from '../common/services/locale.service';
 import { UserIdentity } from '../entities/user-identity.entity';
+import { OAuthProviderType } from '../entities/oauth-provider.entity';
 import { UserSession } from '../entities/user-session.entity';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
@@ -63,8 +64,7 @@ describe('AuthService', () => {
 
   const mockUserIdentity: Partial<UserIdentity> = {
     id: 'identity-1',
-    provider: 'google',
-    providerId: 'google-123',
+    providerType: OAuthProviderType.GOOGLE,
     user: mockUser as User,
     createdAt: new Date(),
   };

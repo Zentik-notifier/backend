@@ -52,7 +52,7 @@ CREATE TYPE resource_type_enum AS ENUM ('BUCKET', 'USER_WEBHOOK');
 CREATE TYPE event_type_enum AS ENUM ('LOGIN', 'LOGIN_OAUTH', 'LOGOUT', 'REGISTER', 'PUSH_PASSTHROUGH', 'MESSAGE', 'NOTIFICATION', 'BUCKET_SHARING', 'BUCKET_UNSHARING', 'DEVICE_REGISTER', 'DEVICE_UNREGISTER', 'ACCOUNT_DELETE');
 -- NOTE: ACCOUNT_DELETE added in code; ensure DB enum updated in migrations when applying
 CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOnBigPayload');
-CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'CUSTOM');
+CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'DISCORD', 'APPLE', 'APPLE_SIGNIN', 'CUSTOM');
 CREATE TYPE execution_type_enum AS ENUM ('WEBHOOK', 'PAYLOAD_MAPPER');
 CREATE TYPE execution_status_enum AS ENUM ('SUCCESS', 'ERROR', 'TIMEOUT');
 CREATE TYPE log_level_enum AS ENUM ('error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly');
@@ -140,7 +140,6 @@ CREATE TABLE events (
 CREATE TABLE oauth_providers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    "providerId" VARCHAR(255) UNIQUE NOT NULL,
     type oauth_provider_type_enum NOT NULL,
     "clientId" VARCHAR(255) NOT NULL,
     "clientSecret" VARCHAR(255) NOT NULL,
@@ -271,12 +270,13 @@ CREATE TABLE user_identities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     provider VARCHAR(50) NOT NULL,
-    "providerId" VARCHAR(255) NOT NULL,
+    "providerType" oauth_provider_type_enum,
+    metadata TEXT,
     email VARCHAR(255),
     "avatarUrl" VARCHAR(500),
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(provider, "providerId")
+    UNIQUE("userId", "providerType")
 );
 
 -- Create user_sessions table
@@ -487,7 +487,7 @@ CREATE INDEX idx_user_sessions_token_id ON user_sessions("tokenId");
 CREATE INDEX idx_user_sessions_expires_at ON user_sessions("expiresAt");
 CREATE INDEX idx_user_identities_user_id ON user_identities("userId");
 CREATE INDEX idx_user_identities_provider ON user_identities(provider);
-CREATE INDEX idx_user_identities_provider_id ON user_identities("providerId");
+CREATE INDEX idx_user_identities_provider_type ON user_identities("providerType");
 CREATE INDEX idx_buckets_user_id ON buckets("userId");
 CREATE INDEX idx_user_devices_user_id ON user_devices("userId");
 CREATE INDEX idx_user_devices_device_token ON user_devices("deviceToken");
@@ -536,7 +536,6 @@ CREATE INDEX idx_system_access_token_requests_created_at ON system_access_token_
 
 -- Create indexes for oauth_providers table
 CREATE INDEX idx_oauth_providers_type ON oauth_providers(type);
-CREATE INDEX idx_oauth_providers_provider_id ON oauth_providers("providerId");
 CREATE INDEX idx_oauth_providers_enabled ON oauth_providers("isEnabled") WHERE "isEnabled" = true;
 
 -- Create a function to automatically update the updated_at column

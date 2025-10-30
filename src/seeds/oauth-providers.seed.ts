@@ -14,7 +14,6 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
   const defaultProviders = [
     {
       name: 'GitHub',
-      providerId: 'github',
       type: OAuthProviderType.GITHUB,
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
@@ -26,7 +25,6 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
     },
     {
       name: 'Google',
-      providerId: 'google',
       type: OAuthProviderType.GOOGLE,
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -38,7 +36,6 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
     },
     {
       name: 'Discord',
-      providerId: 'discord',
       type: OAuthProviderType.DISCORD,
       clientId: undefined,
       clientSecret: undefined,
@@ -52,22 +49,21 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       userInfoUrl: 'https://discord.com/api/users/@me',
       profileFields: ['id', 'username', 'email', 'avatar', 'discriminator'],
     },
-    {
-      name: 'Apple',
-      providerId: 'apple',
-      type: OAuthProviderType.APPLE,
-      clientId: undefined,
-      clientSecret: undefined,
-      callbackUrl: `${publicUrl}/api/v1/auth/apple/callback`,
-      scopes: ['name', 'email'],
-      iconUrl: 'https://cdn-icons-png.flaticon.com/128/15/15476.png',
-      color: '#FFFFFF',
-      textColor: '#000000',
-      authorizationUrl: 'https://appleid.apple.com/auth/authorize',
-      tokenUrl: 'https://appleid.apple.com/auth/token',
-      userInfoUrl: 'https://appleid.apple.com/auth/userinfo',
-      profileFields: ['sub', 'email', 'name'],
-    },
+    // {
+    //   name: 'Apple',
+    //   type: OAuthProviderType.APPLE,
+    //   clientId: undefined,
+    //   clientSecret: undefined,
+    //   callbackUrl: `${publicUrl}/api/v1/auth/apple/callback`,
+    //   scopes: ['name', 'email'],
+    //   iconUrl: 'https://cdn-icons-png.flaticon.com/128/5977/5977575.png',
+    //   color: '#FFFFFF',
+    //   textColor: '#000000',
+    //   authorizationUrl: 'https://appleid.apple.com/auth/authorize',
+    //   tokenUrl: 'https://appleid.apple.com/auth/token',
+    //   userInfoUrl: 'https://appleid.apple.com/auth/userinfo',
+    //   profileFields: ['sub', 'email', 'name'],
+    // },
   ];
 
   logger.log(`Processing ${defaultProviders.length} OAuth provider(s)...`);
@@ -76,7 +72,7 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
     try {
       // Check if provider already exists
       const existingProvider = await oauthProvidersRepo.findOne({
-        where: { providerId: providerData.providerId },
+        where: { type: providerData.type },
       });
 
       if (existingProvider) {

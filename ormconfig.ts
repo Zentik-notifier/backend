@@ -40,6 +40,7 @@ import { AddTotalCallsAndLastResetToSystemAccessTokens1738207000000 } from './da
 import { AddEnableSystemTokenRequests1738206000000 } from './database/migrations/1738206000000-AddEnableSystemTokenRequests';
 import { AddSystemTokenUsageStats1738208000000 } from './database/migrations/1738208000000-AddSystemTokenUsageStats';
 import { ExtendLogContextToText1738209000000 } from './database/migrations/1738209000000-ExtendLogContextToText';
+import { UserIdentitiesProviderRefactor1738702500000 } from './database/migrations/1738702500000-UserIdentitiesProviderRefactor';
 
 config({ path: '.env' });
 
@@ -101,6 +102,7 @@ const dataSource = new DataSource({
     AddTotalCallsAndLastResetToSystemAccessTokens1738207000000,
     AddSystemTokenUsageStats1738208000000,
     ExtendLogContextToText1738209000000,
+    UserIdentitiesProviderRefactor1738702500000,
   ],
   migrationsTableName: 'migrations',
 });

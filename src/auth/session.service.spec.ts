@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SessionService } from './session.service';
+import { OAuthProviderType } from '../entities/oauth-provider.entity';
 import { UserSession } from '../entities/user-session.entity';
 import { SessionInfoDto } from './dto/session.dto';
 
@@ -21,7 +22,7 @@ describe('SessionService', () => {
     deviceName: 'iPhone',
     operatingSystem: 'iOS 15.0',
     browser: 'Safari',
-    loginProvider: 'local',
+    loginProvider: OAuthProviderType.LOCAL,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -61,7 +62,7 @@ describe('SessionService', () => {
       browser: 'Safari',
       ipAddress: '192.168.1.1',
       userAgent: 'Mozilla/5.0',
-      loginProvider: 'local',
+      loginProvider: OAuthProviderType.LOCAL,
     };
 
     it('should create a new session successfully', async () => {
@@ -91,7 +92,7 @@ describe('SessionService', () => {
         deviceName: 'iPhone',
         operatingSystem: 'iOS 15.0',
         browser: 'Safari',
-        loginProvider: 'local',
+        loginProvider: OAuthProviderType.LOCAL,
       });
       expect(sessionRepository.save).toHaveBeenCalled();
     });
@@ -131,7 +132,7 @@ describe('SessionService', () => {
           deviceName: 'iPhone',
           operatingSystem: 'iOS 15.0',
           browser: 'Safari',
-          loginProvider: 'local',
+          loginProvider: OAuthProviderType.LOCAL,
         },
       );
     });

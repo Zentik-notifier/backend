@@ -17,6 +17,12 @@ export class OAuthProvidersService {
     private readonly oauthProvidersRepository: Repository<OAuthProvider>,
   ) {}
 
+  private toEnumFromKey(key: string): OAuthProviderType | null {
+    if (!key) return null;
+    const upper = key.toUpperCase();
+    return (OAuthProviderType as any)[upper] ?? null;
+  }
+
   // Method to be called by registry service to get notified of changes
   private registryService: any = null;
 
@@ -24,23 +30,16 @@ export class OAuthProvidersService {
     this.registryService = registryService;
   }
 
-  async create(
-    createOAuthProviderDto: CreateOAuthProviderDto,
-  ): Promise<OAuthProvider> {
-    // Check if provider with same providerId already exists
+  async create(createOAuthProviderDto: CreateOAuthProviderDto): Promise<OAuthProvider> {
+    // Ensure uniqueness by type
     const existingProvider = await this.oauthProvidersRepository.findOne({
-      where: { providerId: createOAuthProviderDto.providerId },
+      where: { type: createOAuthProviderDto.type },
     });
-
     if (existingProvider) {
-      throw new Error(
-        `OAuth provider with providerId '${createOAuthProviderDto.providerId}' already exists`,
-      );
+      throw new Error(`OAuth provider '${createOAuthProviderDto.type}' already exists`);
     }
 
-    const provider = this.oauthProvidersRepository.create(
-      createOAuthProviderDto,
-    );
+    const provider = this.oauthProvidersRepository.create(createOAuthProviderDto);
     const savedProvider = await this.oauthProvidersRepository.save(provider);
 
     // Notify registry if available
@@ -72,20 +71,20 @@ export class OAuthProvidersService {
   }
 
   async findByProviderId(providerId: string): Promise<OAuthProvider | null> {
-    const provider = await this.oauthProvidersRepository.findOne({
-      where: { providerId },
-    });
-
-    return provider;
+    // Backward-compatible: accept provider key (lowercased type)
+    const enumVal = this.toEnumFromKey(providerId);
+    if (!enumVal) return null;
+    return this.oauthProvidersRepository.findOne({ where: { type: enumVal } });
   }
 
-  async isProviderEnabled(providerId: string): Promise<boolean> {
+  async isProviderEnabled(providerKey: string): Promise<boolean> {
+    const enumVal = this.toEnumFromKey(providerKey);
+    if (!enumVal) return false;
     const provider = await this.oauthProvidersRepository.findOne({
-      where: { providerId },
+      where: { type: enumVal },
       select: ['isEnabled'],
     });
-
-    return provider?.isEnabled || false;
+    return !!provider?.isEnabled;
   }
 
   async findEnabledProviders(): Promise<OAuthProvider[]> {
@@ -104,17 +103,14 @@ export class OAuthProvidersService {
     });
 
     // Map to public DTO, excluding sensitive information
-    const publicProviders: OAuthProviderPublicDto[] = providers.map(
-      (provider) => ({
-        id: provider.id,
-        name: provider.name,
-        providerId: provider.providerId,
-        type: provider.type,
-        iconUrl: provider.iconUrl,
-        color: provider.color,
-        textColor: provider.textColor,
-      }),
-    );
+    const publicProviders: OAuthProviderPublicDto[] = providers.map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      type: provider.type,
+      iconUrl: provider.iconUrl,
+      color: provider.color,
+      textColor: provider.textColor,
+    } as any));
 
     return publicProviders;
   }
@@ -125,33 +121,17 @@ export class OAuthProvidersService {
   ): Promise<OAuthProvider> {
     const provider = await this.findOne(id);
 
-    // If updating providerId, check for conflicts
-    if (
-      updateOAuthProviderDto.providerId &&
-      updateOAuthProviderDto.providerId !== provider.providerId
-    ) {
-      const existingProvider = await this.oauthProvidersRepository.findOne({
-        where: { providerId: updateOAuthProviderDto.providerId },
-      });
-
-      if (existingProvider) {
-        throw new Error(
-          `OAuth provider with providerId '${updateOAuthProviderDto.providerId}' already exists`,
-        );
-      }
-    }
 
     Object.assign(provider, updateOAuthProviderDto);
     const updatedProvider = await this.oauthProvidersRepository.save(provider);
 
     // Notify registry if available
     if (this.registryService) {
+      const key = updatedProvider.type.toLowerCase();
       if (updatedProvider.isEnabled) {
         await this.registryService.updateProvider(updatedProvider);
       } else {
-        await this.registryService.unregisterProvider(
-          updatedProvider.providerId,
-        );
+        await this.registryService.unregisterProvider(key);
       }
     }
 
@@ -164,7 +144,7 @@ export class OAuthProvidersService {
 
     // Notify registry if available
     if (this.registryService) {
-      await this.registryService.unregisterProvider(provider.providerId);
+      await this.registryService.unregisterProvider(provider.type.toLowerCase());
     }
   }
 
@@ -176,19 +156,18 @@ export class OAuthProvidersService {
 
     // Notify registry if available
     if (this.registryService) {
+      const key = updatedProvider.type.toLowerCase();
       if (updatedProvider.isEnabled) {
         await this.registryService.registerProvider(updatedProvider);
       } else {
-        await this.registryService.unregisterProvider(
-          updatedProvider.providerId,
-        );
+        await this.registryService.unregisterProvider(key);
       }
     }
 
     return updatedProvider;
   }
 
-  async getProviderConfig(providerId: string): Promise<{
+  async getProviderConfig(providerKey: string): Promise<{
     clientId: string;
     clientSecret: string;
     callbackUrl?: string;
@@ -200,7 +179,7 @@ export class OAuthProvidersService {
     profileFields?: string[];
     additionalConfig?: any;
   } | null> {
-    const provider = await this.findByProviderId(providerId);
+    const provider = await this.findByProviderId(providerKey);
 
     if (!provider || !provider.isEnabled) {
       return null;

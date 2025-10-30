@@ -11,7 +11,6 @@ describe('OAuthProvidersService', () => {
 
   const mockOAuthProvider: OAuthProvider = {
     id: 'test-id',
-    providerId: 'github',
     name: 'GitHub',
     type: OAuthProviderType.GITHUB,
     clientId: 'test-client-id',
@@ -59,7 +58,6 @@ describe('OAuthProvidersService', () => {
     it('should create a new OAuth provider', async () => {
       const createDto: CreateOAuthProviderDto = {
         name: 'Test Provider',
-        providerId: 'test-provider',
         type: OAuthProviderType.CUSTOM,
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
@@ -68,7 +66,7 @@ describe('OAuthProvidersService', () => {
         tokenUrl: 'https://example.com/oauth/token',
         userInfoUrl: 'https://example.com/oauth/userinfo',
         profileFields: ['id', 'email', 'name'],
-      };
+      } as any;
 
       const mockProvider = {
         id: 'test-id',
@@ -86,16 +84,15 @@ describe('OAuthProvidersService', () => {
 
       expect(result).toEqual(mockProvider);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { providerId: createDto.providerId },
+        where: { type: createDto.type },
       });
       expect(mockRepository.create).toHaveBeenCalledWith(createDto);
       expect(mockRepository.save).toHaveBeenCalledWith(mockProvider);
     });
 
-    it('should throw error if provider with same providerId exists', async () => {
+    it('should throw error if provider with same type exists', async () => {
       const createDto: CreateOAuthProviderDto = {
         name: 'Test Provider',
-        providerId: 'test-provider',
         type: OAuthProviderType.CUSTOM,
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
@@ -104,12 +101,12 @@ describe('OAuthProvidersService', () => {
         tokenUrl: 'https://example.com/oauth/token',
         userInfoUrl: 'https://example.com/oauth/userinfo',
         profileFields: ['id', 'email', 'name'],
-      };
+      } as any;
 
       mockRepository.findOne.mockResolvedValue({ id: 'existing-id' });
 
       await expect(service.create(createDto)).rejects.toThrow(
-        "OAuth provider with providerId 'test-provider' already exists",
+        "OAuth provider 'CUSTOM' already exists",
       );
     });
   });
@@ -156,10 +153,9 @@ describe('OAuthProvidersService', () => {
   });
 
   describe('findByProviderId', () => {
-    it('should return a provider by providerId', async () => {
+    it('should return a provider by type key', async () => {
       const mockProvider = {
         id: 'test-id',
-        providerId: 'github',
         name: 'GitHub',
       };
 
@@ -169,7 +165,7 @@ describe('OAuthProvidersService', () => {
 
       expect(result).toEqual(mockProvider);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { providerId: 'github' },
+        where: { type: OAuthProviderType.GITHUB },
       });
     });
 
@@ -177,7 +173,6 @@ describe('OAuthProvidersService', () => {
       mockRepository.findOne.mockResolvedValue(null);
 
       const result = await service.findByProviderId('non-existent');
-
       expect(result).toBeNull();
     });
   });
@@ -205,12 +200,11 @@ describe('OAuthProvidersService', () => {
     it('should update an existing provider', async () => {
       const updateDto: UpdateOAuthProviderDto = {
         name: 'Updated Provider',
-      };
+      } as any;
 
       const existingProvider = {
         id: 'test-id',
         name: 'Old Name',
-        providerId: 'test-provider',
         type: OAuthProviderType.CUSTOM,
         clientId: 'old-client-id',
         clientSecret: 'old-client-secret',
@@ -258,7 +252,7 @@ describe('OAuthProvidersService', () => {
         id: 'test-id',
         name: 'Test Provider',
         isEnabled: true,
-      };
+      } as any;
 
       const toggledProvider = { ...mockProvider, isEnabled: false };
 
@@ -280,7 +274,7 @@ describe('OAuthProvidersService', () => {
       const result = await service.isProviderEnabled('github');
       expect(result).toBe(true);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { providerId: 'github' },
+        where: { type: OAuthProviderType.GITHUB },
         select: ['isEnabled'],
       });
     });

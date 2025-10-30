@@ -1,5 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
+import { OAuthProviderType } from '../../entities/oauth-provider.entity';
 
 @ObjectType()
 export class SessionInfoDto {
@@ -23,11 +24,9 @@ export class SessionInfoDto {
   @ApiProperty({ description: 'IP address' })
   ipAddress?: string;
 
-  @Field({ nullable: true })
-  @ApiProperty({
-    description: 'OAuth provider used for login (e.g., github, google, local)',
-  })
-  loginProvider?: string;
+  @Field(() => OAuthProviderType, { nullable: true })
+  @ApiProperty({ description: 'OAuth provider used for login (enum)' })
+  loginProvider?: OAuthProviderType | null;
 
   @Field({ nullable: true })
   @ApiProperty({ description: 'Geographic location' })

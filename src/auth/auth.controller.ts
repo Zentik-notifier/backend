@@ -50,6 +50,7 @@ import {
 import { JwtOrAccessTokenGuard } from './guards/jwt-or-access-token.guard';
 import { OAuthProviderGuard } from './guards/oauth-provider.guard';
 import { SessionService } from './session.service';
+import { MobileAppleAuthDto } from './dto';
 
 class MessageResponse {
   @ApiProperty({ example: 'Operation completed successfully' })
@@ -113,6 +114,40 @@ export class AuthController {
     };
 
     return await this.authService.login(loginDto, context);
+  }
+
+  @Post('apple/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Apple mobile login: returns session and persists provider response' })
+  @ApiBody({ type: MobileAppleAuthDto })
+  async appleLogin(
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+    @Body() body: MobileAppleAuthDto,
+  ): Promise<LoginResponse> {
+    return this.authService.mobileAppleLogin(body, {
+      ipAddress: ip,
+      userAgent,
+      deviceName: body.deviceName,
+      operatingSystem: body.platform ? `${body.platform}${body.osVersion ? ' ' + body.osVersion : ''}` : body.osVersion,
+      browser: body.browser,
+    });
+  }
+
+  // Removed legacy mobile responses endpoints in favor of unified apple/login
+
+  @UseGuards(JwtOrAccessTokenGuard)
+  @ApiBearerAuth()
+  @Post('apple/connect')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Connect Apple Sign In identity to current user (no login)' })
+  @ApiBody({ type: MobileAppleAuthDto })
+  async appleConnect(
+    @GetUser('id') userId: string,
+    @Body() body: MobileAppleAuthDto,
+  ): Promise<{ success: boolean }> {
+    const ok = await this.authService.connectMobileAppleIdentity(userId, body, {});
+    return { success: ok };
   }
 
   @Post('refresh')
