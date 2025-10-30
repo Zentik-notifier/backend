@@ -20,7 +20,7 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackUrl: `${publicUrl}/api/v1/auth/github/callback`,
       scopes: ['user:email', 'read:user'],
-      iconUrl: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+      iconUrl: 'https://cdn-icons-png.flaticon.com/128/1051/1051326.png',
       color: '#FFFFFF',
       textColor: '#000000',
     },
@@ -36,6 +36,38 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       color: '#FFFFFF',
       textColor: '#000000',
     },
+    {
+      name: 'Discord',
+      providerId: 'discord',
+      type: OAuthProviderType.DISCORD,
+      clientId: undefined,
+      clientSecret: undefined,
+      callbackUrl: `${publicUrl}/api/v1/auth/discord/callback`,
+      scopes: ['identify', 'email'],
+      iconUrl: 'https://cdn-icons-png.flaticon.com/128/5968/5968756.png',
+      color: '#FFFFFF',
+      textColor: '#5865F2',
+      authorizationUrl: 'https://discord.com/api/oauth2/authorize',
+      tokenUrl: 'https://discord.com/api/oauth2/token',
+      userInfoUrl: 'https://discord.com/api/users/@me',
+      profileFields: ['id', 'username', 'email', 'avatar', 'discriminator'],
+    },
+    {
+      name: 'Apple',
+      providerId: 'apple',
+      type: OAuthProviderType.APPLE,
+      clientId: undefined,
+      clientSecret: undefined,
+      callbackUrl: `${publicUrl}/api/v1/auth/apple/callback`,
+      scopes: ['name', 'email'],
+      iconUrl: 'https://cdn-icons-png.flaticon.com/128/15/15476.png',
+      color: '#FFFFFF',
+      textColor: '#000000',
+      authorizationUrl: 'https://appleid.apple.com/auth/authorize',
+      tokenUrl: 'https://appleid.apple.com/auth/token',
+      userInfoUrl: 'https://appleid.apple.com/auth/userinfo',
+      profileFields: ['sub', 'email', 'name'],
+    },
   ];
 
   logger.log(`Processing ${defaultProviders.length} OAuth provider(s)...`);
@@ -49,32 +81,32 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
 
       if (existingProvider) {
         let updated = false;
-        
+
         if (!existingProvider.color || existingProvider.color !== providerData.color) {
           existingProvider.color = providerData.color;
           updated = true;
         }
-        
+
         if (!existingProvider.textColor || existingProvider.textColor !== providerData.textColor) {
           existingProvider.textColor = providerData.textColor;
           updated = true;
         }
-        
+
         if (!existingProvider.iconUrl || existingProvider.iconUrl !== providerData.iconUrl) {
           existingProvider.iconUrl = providerData.iconUrl;
           updated = true;
         }
-        
+
         if (!existingProvider.callbackUrl || existingProvider.callbackUrl !== providerData.callbackUrl) {
           existingProvider.callbackUrl = providerData.callbackUrl;
           updated = true;
         }
-        
+
         if (existingProvider.scopes.join(',') !== providerData.scopes.join(',')) {
           existingProvider.scopes = providerData.scopes;
           updated = true;
         }
-        
+
         if (updated) {
           await oauthProvidersRepo.save(existingProvider);
           logger.log(
@@ -84,17 +116,29 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
           logger.log(`Provider already up to date: ${providerData.name}`);
         }
       } else {
-        // Create new provider only if credentials are available
-        if (!providerData.clientId || !providerData.clientSecret) {
-          logger.log(
-            `Skipping creation of ${providerData.name} - credentials not configured`,
-          );
-          continue;
-        }
-        
-        const newProvider = oauthProvidersRepo.create(providerData);
+        // Create new provider even without credentials
+        // If no credentials or placeholder, set isEnabled to false
+        const hasCredentials =
+          providerData.clientId &&
+          providerData.clientSecret &&
+          providerData.clientId !== 'PLACEHOLDER_NEEDS_CONFIGURATION' &&
+          providerData.clientSecret !== 'PLACEHOLDER_NEEDS_CONFIGURATION';
+
+        const providerToCreate = {
+          ...providerData,
+          isEnabled: !!hasCredentials,
+        } as any;
+
+        const newProvider = oauthProvidersRepo.create(providerToCreate);
         await oauthProvidersRepo.save(newProvider);
-        logger.log(`Created new OAuth provider: ${providerData.name}`);
+
+        if (hasCredentials) {
+          logger.log(`Created new OAuth provider: ${providerData.name}`);
+        } else {
+          logger.log(
+            `Created new OAuth provider (disabled): ${providerData.name} - credentials not configured`,
+          );
+        }
       }
     } catch (error) {
       logger.error(

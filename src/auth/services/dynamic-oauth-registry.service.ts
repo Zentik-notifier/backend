@@ -245,6 +245,34 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
           this.createValidateFunction(provider),
         );
 
+      case OAuthProviderType.DISCORD:
+        return new OAuth2Strategy(
+          {
+            authorizationURL: provider.authorizationUrl || 'https://discord.com/api/oauth2/authorize',
+            tokenURL: provider.tokenUrl || 'https://discord.com/api/oauth2/token',
+            clientID: provider.clientId,
+            clientSecret: provider.clientSecret,
+            callbackURL: this.getCallbackUrl(provider),
+            scope: provider.scopes,
+            passReqToCallback: true,
+          },
+          this.createValidateFunction(provider),
+        );
+
+      case OAuthProviderType.APPLE:
+        return new OAuth2Strategy(
+          {
+            authorizationURL: provider.authorizationUrl || 'https://appleid.apple.com/auth/authorize',
+            tokenURL: provider.tokenUrl || 'https://appleid.apple.com/auth/token',
+            clientID: provider.clientId,
+            clientSecret: provider.clientSecret,
+            callbackURL: this.getCallbackUrl(provider),
+            scope: provider.scopes,
+            passReqToCallback: true,
+          },
+          this.createValidateFunction(provider),
+        );
+
       case OAuthProviderType.CUSTOM:
         return new OAuth2Strategy(
           {

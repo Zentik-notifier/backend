@@ -740,9 +740,11 @@ type OAuthProviderPublicDto {
   type: OAuthProviderType!
 }
 
-"""Type of OAuth provider (GitHub, Google, or custom)"""
+"""Type of OAuth provider (GitHub, Google, Discord, Apple, or custom)"""
 enum OAuthProviderType {
+  APPLE
   CUSTOM
+  DISCORD
   GITHUB
   GOOGLE
 }

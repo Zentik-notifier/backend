@@ -12,13 +12,15 @@ import {
 export enum OAuthProviderType {
   GITHUB = 'GITHUB',
   GOOGLE = 'GOOGLE',
+  DISCORD = 'DISCORD',
+  APPLE = 'APPLE',
   CUSTOM = 'CUSTOM',
 }
 
 // GraphQL registrations
 registerEnumType(OAuthProviderType, {
   name: 'OAuthProviderType',
-  description: 'Type of OAuth provider (GitHub, Google, or custom)',
+  description: 'Type of OAuth provider (GitHub, Google, Discord, Apple, or custom)',
 });
 
 @ObjectType()
