@@ -12,8 +12,6 @@ import { OAuthProvidersService } from './oauth-providers.service';
 
 @Resolver(() => OAuthProvider)
 export class OAuthProvidersResolver {
-  private readonly logger = new Logger(OAuthProvidersResolver.name);
-
   constructor(private readonly oauthProvidersService: OAuthProvidersService) {}
 
   @Query(() => [OAuthProviderPublicDto], { name: 'enabledOAuthProviders' })

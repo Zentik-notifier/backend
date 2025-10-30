@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OAuthProvider, OAuthProviderType } from '../entities';
@@ -10,12 +10,10 @@ import {
 
 @Injectable()
 export class OAuthProvidersService {
-  private readonly logger = new Logger(OAuthProvidersService.name);
-
   constructor(
     @InjectRepository(OAuthProvider)
     private readonly oauthProvidersRepository: Repository<OAuthProvider>,
-  ) {}
+  ) { }
 
   private toEnumFromKey(key: string): OAuthProviderType | null {
     if (!key) return null;

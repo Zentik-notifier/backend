@@ -30,9 +30,8 @@ export class UpdateOAuthProviderDto {
     enumName: 'OAuthProviderType',
     description: 'The type of provider (GitHub, Google, or custom)',
   })
-  @IsOptional()
   @IsEnum(OAuthProviderType)
-  type?: OAuthProviderType;
+  type: OAuthProviderType;
 
   @Field({ nullable: true })
   @ApiProperty({ required: false, description: 'The OAuth client ID' })
