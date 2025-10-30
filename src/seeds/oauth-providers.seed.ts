@@ -15,8 +15,8 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
     {
       name: 'GitHub',
       type: OAuthProviderType.GITHUB,
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      clientId: "",
+      clientSecret: "",
       callbackUrl: `${publicUrl}/api/v1/auth/github/callback`,
       scopes: ['user:email', 'read:user'],
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/1051/1051326.png',
@@ -26,8 +26,8 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
     {
       name: 'Google',
       type: OAuthProviderType.GOOGLE,
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: "",
+      clientSecret: "",
       callbackUrl: `${publicUrl}/api/v1/auth/google/callback`,
       scopes: ['openid', 'email', 'profile'],
       iconUrl: 'https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s96-fcrop64=1,00000000ffffffff-rw',
@@ -37,8 +37,8 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
     {
       name: 'Discord',
       type: OAuthProviderType.DISCORD,
-      clientId: undefined,
-      clientSecret: undefined,
+      clientId: "",
+      clientSecret: "",
       callbackUrl: `${publicUrl}/api/v1/auth/discord/callback`,
       scopes: ['identify', 'email'],
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/5968/5968756.png',
@@ -52,8 +52,8 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
     // {
     //   name: 'Apple',
     //   type: OAuthProviderType.APPLE,
-    //   clientId: undefined,
-    //   clientSecret: undefined,
+    //   clientId: "",
+    //   clientSecret: "",
     //   callbackUrl: `${publicUrl}/api/v1/auth/apple/callback`,
     //   scopes: ['name', 'email'],
     //   iconUrl: 'https://cdn-icons-png.flaticon.com/128/5977/5977575.png',
@@ -112,29 +112,17 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
           logger.log(`Provider already up to date: ${providerData.name}`);
         }
       } else {
-        // Create new provider even without credentials
-        // If no credentials or placeholder, set isEnabled to false
-        const hasCredentials =
-          providerData.clientId &&
-          providerData.clientSecret &&
-          providerData.clientId !== 'PLACEHOLDER_NEEDS_CONFIGURATION' &&
-          providerData.clientSecret !== 'PLACEHOLDER_NEEDS_CONFIGURATION';
-
         const providerToCreate = {
           ...providerData,
-          isEnabled: !!hasCredentials,
+          isEnabled: false,
         } as any;
 
         const newProvider = oauthProvidersRepo.create(providerToCreate);
         await oauthProvidersRepo.save(newProvider);
 
-        if (hasCredentials) {
-          logger.log(`Created new OAuth provider: ${providerData.name}`);
-        } else {
-          logger.log(
-            `Created new OAuth provider (disabled): ${providerData.name} - credentials not configured`,
-          );
-        }
+        logger.log(
+          `Created new OAuth provider (disabled): ${providerData.name} - credentials not configured`,
+        );
       }
     } catch (error) {
       logger.error(
