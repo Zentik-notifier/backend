@@ -336,6 +336,12 @@ enum ExecutionType {
   WEBHOOK
 }
 
+type FileInfoDto {
+  mtime: DateTime!
+  name: String!
+  size: Float!
+}
+
 input GetEntityExecutionsInput {
   entityId: String
   entityName: String
@@ -569,6 +575,7 @@ type Mutation {
   deleteNotification(id: String!): Boolean!
   deleteOAuthProvider(id: String!): Boolean!
   deletePayloadMapper(id: String!): Boolean!
+  deleteServerFile(name: String!): Boolean!
   deleteWebhook(id: ID!): Boolean!
   deviceReportNotificationReceived(id: String!): Notification!
   executeWebhook(id: ID!): Boolean!
@@ -874,6 +881,7 @@ type Query {
   payloadMappers: [PayloadMapper!]!
   pendingPostpones: [NotificationPostpone!]!
   publicAppConfig: PublicAppConfig!
+  serverFiles: [FileInfoDto!]!
 
   """Get a specific server setting by type"""
   serverSetting(configType: ServerSettingType!): ServerSetting
