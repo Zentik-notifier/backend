@@ -52,7 +52,7 @@ CREATE TYPE resource_type_enum AS ENUM ('BUCKET', 'USER_WEBHOOK');
 CREATE TYPE event_type_enum AS ENUM ('LOGIN', 'LOGIN_OAUTH', 'LOGOUT', 'REGISTER', 'PUSH_PASSTHROUGH', 'MESSAGE', 'NOTIFICATION', 'BUCKET_SHARING', 'BUCKET_UNSHARING', 'DEVICE_REGISTER', 'DEVICE_UNREGISTER', 'ACCOUNT_DELETE');
 -- NOTE: ACCOUNT_DELETE added in code; ensure DB enum updated in migrations when applying
 CREATE TYPE user_setting_type_enum AS ENUM ('Timezone', 'Language', 'UnencryptOnBigPayload');
-CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'DISCORD', 'APPLE', 'APPLE_SIGNIN', 'CUSTOM');
+CREATE TYPE oauth_provider_type_enum AS ENUM ('GITHUB', 'GOOGLE', 'DISCORD', 'APPLE', 'APPLE_SIGNIN', 'FACEBOOK', 'MICROSOFT', 'CUSTOM');
 CREATE TYPE execution_type_enum AS ENUM ('WEBHOOK', 'PAYLOAD_MAPPER');
 CREATE TYPE execution_status_enum AS ENUM ('SUCCESS', 'ERROR', 'TIMEOUT');
 CREATE TYPE log_level_enum AS ENUM ('error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly');

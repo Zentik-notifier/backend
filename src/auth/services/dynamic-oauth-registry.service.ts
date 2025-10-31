@@ -6,10 +6,20 @@ import * as passport from 'passport';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
+import { Strategy as DiscordStrategy } from 'passport-discord';
+import { Strategy as FacebookStrategy } from 'passport-facebook';
+import { Strategy as AppleStrategy } from 'passport-appleid';
+import { Strategy as MicrosoftStrategy } from 'passport-microsoft';
+import * as fs from 'fs';
+import * as path from 'path';
+// import { Strategy as AmazonStrategy } from 'passport-amazon';
+// import { Strategy as LinkedinStrategy } from 'passport-linkedin-oauth2';
+// import { Strategy as RedditStrategy } from 'passport-reddit';
 import { UrlBuilderService } from '../../common/services/url-builder.service';
 import { OAuthProvider, OAuthProviderType } from '../../entities';
 import { OAuthProvidersService } from '../../oauth-providers/oauth-providers.service';
 import { AuthService } from '../auth.service';
+import { ServerSettingsService } from 'src/server-manager/server-settings.service';
 
 interface ProviderStrategyConfig {
   name: string;
@@ -27,11 +37,10 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
   constructor(
     private readonly oauthProvidersService: OAuthProvidersService,
     private readonly authService: AuthService,
-    private readonly moduleRef: ModuleRef,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly urlBuilderService: UrlBuilderService,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     this.logger.log('🔄 Initializing Dynamic OAuth Registry...');
@@ -253,10 +262,8 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
         );
 
       case OAuthProviderType.DISCORD:
-        return new OAuth2Strategy(
+        return new DiscordStrategy(
           {
-            authorizationURL: provider.authorizationUrl || 'https://discord.com/api/oauth2/authorize',
-            tokenURL: provider.tokenUrl || 'https://discord.com/api/oauth2/token',
             clientID: provider.clientId,
             clientSecret: provider.clientSecret,
             callbackURL: this.getCallbackUrl(provider),
@@ -266,11 +273,44 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
           this.createValidateFunction(provider),
         );
 
-      case OAuthProviderType.APPLE:
-        return new OAuth2Strategy(
+      case OAuthProviderType.APPLE: {
+        const { teamId, privateKeyPath, keyIdentifier } = JSON.parse(provider.additionalConfig || '{}');
+        return new AppleStrategy(
           {
-            authorizationURL: provider.authorizationUrl || 'https://appleid.apple.com/auth/authorize',
-            tokenURL: provider.tokenUrl || 'https://appleid.apple.com/auth/token',
+            clientID: provider.clientId,
+            teamId,
+            keyIdentifier,
+            privateKeyPath,
+            callbackURL: this.getCallbackUrl(provider),
+            passReqToCallback: true,
+          } as any,
+          // Signature for AppleStrategy with passReqToCallback: (req, accessToken, refreshToken, idToken, profile, done)
+          (req: any, accessToken: string, refreshToken: string, idToken: string, profile: any, done: any) => {
+            // Delegate to common validate, ignoring idToken
+            const validate = this.createValidateFunction(provider);
+            return (validate as any)(req, accessToken, refreshToken, profile, done);
+          },
+        );
+      }
+
+      case OAuthProviderType.FACEBOOK:
+        return new FacebookStrategy(
+          {
+            clientID: provider.clientId,
+            clientSecret: provider.clientSecret,
+            callbackURL: this.getCallbackUrl(provider),
+            scope: provider.scopes,
+            profileFields: ['id', 'name', 'displayName', 'email', 'picture'],
+            passReqToCallback: true,
+          },
+          this.createValidateFunction(provider),
+        );
+
+      case OAuthProviderType.MICROSOFT:
+        return new MicrosoftStrategy(
+          {
+            authorizationURL: provider.authorizationUrl || 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+            tokenURL: provider.tokenUrl || 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
             clientID: provider.clientId,
             clientSecret: provider.clientSecret,
             callbackURL: this.getCallbackUrl(provider),
@@ -315,27 +355,6 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
         // this.logger.debug(
         //   `🔍 Raw profile received: ${JSON.stringify(profile)}`,
         // );
-
-        // Discord: log incoming payload and fetch @me for email visibility
-        let discordMe: any | undefined;
-        if (provider.type === OAuthProviderType.DISCORD) {
-          try {
-            this.logger.log(
-              `🔐 [DISCORD] OAuth callback received. accessToken=${accessToken?.slice(0, 8) || ''}..., refreshToken=${refreshToken?.slice(0, 8) || ''}...`,
-            );
-            this.logger.debug(`🔍 [DISCORD] Raw profile: ${JSON.stringify(profile)}`);
-            const resp = await fetch('https://discord.com/api/users/@me', {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: 'application/json',
-              },
-            });
-            discordMe = await resp.json().catch(() => undefined);
-            this.logger.debug(`📦 [DISCORD] /users/@me payload: ${JSON.stringify(discordMe)}`);
-          } catch (e) {
-            this.logger.warn(`[DISCORD] Failed to fetch /users/@me: ${e?.message}`);
-          }
-        }
 
         // For custom providers, we might need to fetch user info manually
         if (
@@ -469,15 +488,6 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
         // Normalize profile based on provider type
         const normalizedProfile = this.normalizeProfile(profile, provider);
-        if (provider.type === OAuthProviderType.DISCORD && discordMe) {
-          // Prefer /users/@me fields when profile is empty or missing email
-          normalizedProfile.email = normalizedProfile.email || discordMe.email;
-          normalizedProfile.username = normalizedProfile.username || discordMe.username || discordMe.global_name;
-          normalizedProfile.displayName = normalizedProfile.displayName || discordMe.global_name || discordMe.username;
-          if (!normalizedProfile.avatar && discordMe.avatar) {
-            normalizedProfile.avatar = `https://cdn.discordapp.com/avatars/${discordMe.id}/${discordMe.avatar}.png`;
-          }
-        }
         // this.logger.debug(
         //   `🔍 Normalized profile: ${JSON.stringify(normalizedProfile)}`,
         // );
@@ -552,6 +562,39 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
           avatar: profile.photos?.[0]?.value,
           firstName: profile.name?.givenName || profile._json?.given_name,
           lastName: profile.name?.familyName || profile._json?.family_name,
+        };
+
+      case OAuthProviderType.DISCORD:
+        return {
+          id: profile.id?.toString() || 'unknown',
+          email: profile.email,
+          displayName: profile.username || profile.global_name,
+          username: profile.username,
+          avatar: profile.avatar ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png` : undefined,
+          firstName: profile.global_name?.split(' ')?.[0],
+          lastName: profile.global_name?.split(' ')?.slice(1)?.join(' '),
+        };
+
+      case OAuthProviderType.FACEBOOK:
+        return {
+          id: profile.id?.toString() || 'unknown',
+          email: profile.emails?.[0]?.value || profile._json?.email,
+          displayName: profile.displayName || profile._json?.name,
+          username: profile.username || profile._json?.name?.toLowerCase().replace(/\s/g, ''),
+          avatar: profile.photos?.[0]?.value || profile._json?.picture?.data?.url,
+          firstName: profile.name?.givenName || profile._json?.first_name || profile._json?.name?.split(' ')?.[0],
+          lastName: profile.name?.familyName || profile._json?.last_name || profile._json?.name?.split(' ')?.slice(1)?.join(' '),
+        };
+
+      case OAuthProviderType.MICROSOFT:
+        return {
+          id: profile.id?.toString() || profile._json?.sub || 'unknown',
+          email: profile.emails?.[0]?.value || profile._json?.mail || profile._json?.userPrincipalName,
+          displayName: profile.displayName || profile._json?.displayName,
+          username: profile._json?.userPrincipalName?.split('@')?.[0] || profile._json?.mail?.split('@')?.[0],
+          avatar: profile.photos?.[0]?.value,
+          firstName: profile.name?.givenName || profile._json?.givenName,
+          lastName: profile.name?.familyName || profile._json?.surname,
         };
 
       case OAuthProviderType.CUSTOM:
@@ -693,12 +736,12 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
       currentConfig.clientSecret !== newConfig.clientSecret ||
       currentConfig.callbackUrl !== newConfig.callbackUrl ||
       JSON.stringify(currentConfig.scopes) !==
-        JSON.stringify(newConfig.scopes) ||
+      JSON.stringify(newConfig.scopes) ||
       currentConfig.authorizationUrl !== newConfig.authorizationUrl ||
       currentConfig.tokenUrl !== newConfig.tokenUrl ||
       currentConfig.userInfoUrl !== newConfig.userInfoUrl ||
       JSON.stringify(currentConfig.profileFields) !==
-        JSON.stringify(newConfig.profileFields)
+      JSON.stringify(newConfig.profileFields)
     );
   }
 

@@ -64,6 +64,29 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       userInfoUrl: 'https://appleid.apple.com/auth/userinfo',
       profileFields: ['sub', 'email', 'name'],
     },
+    {
+      name: 'Facebook',
+      type: OAuthProviderType.FACEBOOK,
+      clientId: "",
+      clientSecret: "",
+      callbackUrl: `${publicUrl}/api/v1/auth/facebook/callback`,
+      scopes: ['email', 'public_profile'],
+      iconUrl: 'https://cdn-icons-png.flaticon.com/128/733/733547.png',
+      color: '#1877F2',
+      textColor: '#FFFFFF',
+    },
+    {
+      name: 'Microsoft',
+      type: OAuthProviderType.MICROSOFT,
+      clientId: "",
+      clientSecret: "",
+      callbackUrl: `${publicUrl}/api/v1/auth/microsoft/callback`,
+      scopes: ['user.read'],
+      iconUrl: 'https://cdn-icons-png.flaticon.com/128/732/732221.png',
+      color: '#00A4EF',
+      textColor: '#FFFFFF',
+      profileFields: ['id', 'mail', 'displayName', 'userPrincipalName', 'givenName', 'surname'],
+    },
   ];
 
   logger.log(`Processing ${defaultProviders.length} OAuth provider(s)...`);

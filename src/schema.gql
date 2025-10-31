@@ -748,15 +748,19 @@ type OAuthProviderPublicDto {
   type: OAuthProviderType!
 }
 
-"""Type of OAuth provider (GitHub, Google, Discord, Apple, or custom)"""
+"""
+Type of OAuth provider (GitHub, Google, Discord, Apple, Facebook, Microsoft, or custom)
+"""
 enum OAuthProviderType {
   APPLE
   APPLE_SIGNIN
   CUSTOM
   DISCORD
+  FACEBOOK
   GITHUB
   GOOGLE
   LOCAL
+  MICROSOFT
 }
 
 type PaginatedLogs {

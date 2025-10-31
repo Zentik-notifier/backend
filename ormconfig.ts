@@ -41,6 +41,7 @@ import { AddEnableSystemTokenRequests1738206000000 } from './database/migrations
 import { AddSystemTokenUsageStats1738208000000 } from './database/migrations/1738208000000-AddSystemTokenUsageStats';
 import { ExtendLogContextToText1738209000000 } from './database/migrations/1738209000000-ExtendLogContextToText';
 import { UserIdentitiesProviderRefactor1738702500000 } from './database/migrations/1738702500000-UserIdentitiesProviderRefactor';
+import { AddFacebookAndMicrosoftOAuthProviders1740000000000 } from './database/migrations/1740000000000-AddFacebookAndMicrosoftOAuthProviders';
 
 config({ path: '.env' });
 
@@ -103,6 +104,7 @@ const dataSource = new DataSource({
     AddSystemTokenUsageStats1738208000000,
     ExtendLogContextToText1738209000000,
     UserIdentitiesProviderRefactor1738702500000,
+    AddFacebookAndMicrosoftOAuthProviders1740000000000,
   ],
   migrationsTableName: 'migrations',
 });

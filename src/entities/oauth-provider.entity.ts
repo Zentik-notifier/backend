@@ -15,6 +15,8 @@ export enum OAuthProviderType {
   DISCORD = 'DISCORD',
   APPLE = 'APPLE',
   APPLE_SIGNIN = 'APPLE_SIGNIN',
+  FACEBOOK = 'FACEBOOK',
+  MICROSOFT = 'MICROSOFT',
   LOCAL = 'LOCAL',
   CUSTOM = 'CUSTOM',
 }
@@ -22,7 +24,7 @@ export enum OAuthProviderType {
 // GraphQL registrations
 registerEnumType(OAuthProviderType, {
   name: 'OAuthProviderType',
-  description: 'Type of OAuth provider (GitHub, Google, Discord, Apple, or custom)',
+  description: 'Type of OAuth provider (GitHub, Google, Discord, Apple, Facebook, Microsoft, or custom)',
 });
 
 @ObjectType()
