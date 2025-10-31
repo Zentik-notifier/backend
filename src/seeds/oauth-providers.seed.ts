@@ -44,10 +44,6 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/5968/5968756.png',
       color: '#FFFFFF',
       textColor: '#5865F2',
-      authorizationUrl: 'https://discord.com/api/oauth2/authorize',
-      tokenUrl: 'https://discord.com/api/oauth2/token',
-      userInfoUrl: 'https://discord.com/api/users/@me',
-      profileFields: ['id', 'username', 'email', 'avatar', 'discriminator'],
     },
     {
       name: 'Apple',
@@ -55,14 +51,10 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       clientId: "",
       clientSecret: "",
       callbackUrl: `${publicUrl}/api/v1/auth/apple/callback`,
-      scopes: ['name', 'email'],
+      scopes: [],
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/5977/5977575.png',
       color: '#FFFFFF',
       textColor: '#000000',
-      authorizationUrl: 'https://appleid.apple.com/auth/authorize',
-      tokenUrl: 'https://appleid.apple.com/auth/token',
-      userInfoUrl: 'https://appleid.apple.com/auth/userinfo',
-      profileFields: ['sub', 'email', 'name'],
     },
     {
       name: 'Facebook',
@@ -74,6 +66,7 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/733/733547.png',
       color: '#1877F2',
       textColor: '#FFFFFF',
+      profileFields: ['id', 'name', 'displayName', 'email', 'picture'],
     },
     {
       name: 'Microsoft',
@@ -85,7 +78,6 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/732/732221.png',
       color: '#00A4EF',
       textColor: '#FFFFFF',
-      profileFields: ['id', 'mail', 'displayName', 'userPrincipalName', 'givenName', 'surname'],
     },
   ];
 

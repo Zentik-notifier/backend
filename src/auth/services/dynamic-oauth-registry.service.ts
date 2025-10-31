@@ -10,8 +10,6 @@ import { Strategy as DiscordStrategy } from 'passport-discord';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { Strategy as AppleStrategy } from 'passport-appleid';
 import { Strategy as MicrosoftStrategy } from 'passport-microsoft';
-import * as fs from 'fs';
-import * as path from 'path';
 // import { Strategy as AmazonStrategy } from 'passport-amazon';
 // import { Strategy as LinkedinStrategy } from 'passport-linkedin-oauth2';
 // import { Strategy as RedditStrategy } from 'passport-reddit';
@@ -300,7 +298,7 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
             clientSecret: provider.clientSecret,
             callbackURL: this.getCallbackUrl(provider),
             scope: provider.scopes,
-            profileFields: ['id', 'name', 'displayName', 'email', 'picture'],
+            profileFields: provider.profileFields,
             passReqToCallback: true,
           },
           this.createValidateFunction(provider),
@@ -309,8 +307,7 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
       case OAuthProviderType.MICROSOFT:
         return new MicrosoftStrategy(
           {
-            authorizationURL: provider.authorizationUrl || 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-            tokenURL: provider.tokenUrl || 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+            authorizationURL: provider.authorizationUrl,
             clientID: provider.clientId,
             clientSecret: provider.clientSecret,
             callbackURL: this.getCallbackUrl(provider),
