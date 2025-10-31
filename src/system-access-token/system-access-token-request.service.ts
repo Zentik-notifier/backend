@@ -107,12 +107,13 @@ export class SystemAccessTokenRequestService {
       }
     }
 
-    // Generate a new system access token
+    // Generate a new system access token with passthrough scope
     const token = await this.systemAccessTokenService.createToken(
       request.maxRequests,
       expiresAt,
       request.userId,
       request.description,
+      ['passthrough'],
     );
 
     // Update the request with the token and plain text
