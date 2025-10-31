@@ -41,13 +41,6 @@ export class OAuthProvidersInitService implements OnApplicationBootstrap {
       this.logger.log(
         `  ${status} ${hasCredentials} ${provider.name} (${key})`,
       );
-
-      if (!provider.clientId || !provider.clientSecret) {
-        const keyUpper = key.toUpperCase();
-        this.logger.warn(
-          `    Missing credentials for ${provider.name}. Set ${keyUpper}_CLIENT_ID and ${keyUpper}_CLIENT_SECRET environment variables.`,
-        );
-      }
     }
   }
 }

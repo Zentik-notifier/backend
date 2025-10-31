@@ -367,6 +367,37 @@ export class AuthController {
     );
   }
 
+  // Support providers (like Apple) that use POST form_post for callback
+  @Post(':provider/callback')
+  @ApiOperation({ summary: 'OAuth callback for provider (POST)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful',
+    type: LoginResponse,
+  })
+  @UseGuards(OAuthProviderGuard)
+  async providerCallbackPost(
+    @Param('provider') provider: string,
+    @Query('redirect') redirect: string,
+    @Query('locale') locale: string,
+    @Query('state') state: string,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+    @GetUser() user: any,
+    @Res() res: any,
+  ): Promise<any> {
+    return this.authService.processOAuthProviderCallback(
+      provider,
+      redirect,
+      locale,
+      state,
+      ip,
+      userAgent,
+      user,
+      res,
+    );
+  }
+
   @Post('request-password-reset')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset' })
