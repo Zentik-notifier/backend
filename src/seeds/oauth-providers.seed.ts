@@ -51,7 +51,7 @@ export async function ensureOAuthProviders(dataSource: DataSource) {
       clientId: "",
       clientSecret: "",
       callbackUrl: `${publicUrl}/api/v1/auth/apple/callback`,
-      scopes: [],
+      scopes: ['name', 'email'],
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/5977/5977575.png',
       color: '#FFFFFF',
       textColor: '#000000',

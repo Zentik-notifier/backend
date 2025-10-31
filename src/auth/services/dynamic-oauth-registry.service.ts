@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ModuleRef } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import * as passport from 'passport';
 import { Strategy as GitHubStrategy } from 'passport-github2';
@@ -8,7 +7,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
-import { Strategy as AppleStrategy } from 'passport-appleid';
+import { Strategy as AppleStrategy } from '@nicokaiser/passport-apple';
 import { Strategy as MicrosoftStrategy } from 'passport-microsoft';
 // import { Strategy as AmazonStrategy } from 'passport-amazon';
 // import { Strategy as LinkedinStrategy } from 'passport-linkedin-oauth2';
@@ -17,7 +16,7 @@ import { UrlBuilderService } from '../../common/services/url-builder.service';
 import { OAuthProvider, OAuthProviderType } from '../../entities';
 import { OAuthProvidersService } from '../../oauth-providers/oauth-providers.service';
 import { AuthService } from '../auth.service';
-import { ServerSettingsService } from 'src/server-manager/server-settings.service';
+import * as fs from 'fs';
 
 interface ProviderStrategyConfig {
   name: string;
@@ -273,14 +272,22 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
       case OAuthProviderType.APPLE: {
         const { teamId, privateKeyPath, keyIdentifier } = JSON.parse(provider.additionalConfig || '{}');
+        if (!privateKeyPath) {
+          throw new Error('Apple privateKeyPath is not configured');
+        }
+        if (!fs.existsSync(privateKeyPath)) {
+          throw new Error(`Apple privateKeyPath not found: ${privateKeyPath}`);
+        }
+        const key = fs.readFileSync(privateKeyPath, 'utf8');
         return new AppleStrategy(
           {
             clientID: provider.clientId,
-            teamId,
-            keyIdentifier,
-            privateKeyPath,
+            teamID: teamId,
+            keyID: keyIdentifier,
+            key,
             callbackURL: this.getCallbackUrl(provider),
             passReqToCallback: true,
+            scope: provider.scopes || ['name', 'email'],
           } as any,
           // Signature for AppleStrategy with passReqToCallback: (req, accessToken, refreshToken, idToken, profile, done)
           (req: any, accessToken: string, refreshToken: string, idToken: string, profile: any, done: any) => {
@@ -722,7 +729,7 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
       return provider.callbackUrl;
     }
 
-    // Generate default callback URL using UrlBuilderService
+    // Generate default callback URL using UrlBuilderServ   ice
     return this.urlBuilderService.buildOAuthCallbackUrl(provider.type.toLowerCase());
   }
 

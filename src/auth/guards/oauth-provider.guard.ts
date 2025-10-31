@@ -12,7 +12,7 @@ import { OAuthProvidersService } from '../../oauth-providers/oauth-providers.ser
 export class OAuthProviderGuard implements CanActivate {
   private readonly logger = new Logger(OAuthProviderGuard.name);
 
-  constructor(private readonly oauthProvidersService: OAuthProvidersService) {}
+  constructor(private readonly oauthProvidersService: OAuthProvidersService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const httpCtx = context.switchToHttp();
@@ -109,14 +109,14 @@ export class OAuthProviderGuard implements CanActivate {
       }
 
       // Verifica che il provider abbia le credenziali necessarie
-      if (!oauthProvider.clientId || !oauthProvider.clientSecret) {
-        this.logger.error(`❌ Provider '${provider}' is missing credentials`);
-        this.logger.error(`   URL: ${request.url}`);
-        this.logger.error(`   Method: ${request.method}`);
-        throw new NotFoundException(
-          `Provider '${provider}' is not properly configured`,
-        );
-      }
+      // if (!oauthProvider.clientId || !oauthProvider.clientSecret) {
+      //   this.logger.error(`❌ Provider '${provider}' is missing credentials`);
+      //   this.logger.error(`   URL: ${request.url}`);
+      //   this.logger.error(`   Method: ${request.method}`);
+      //   throw new NotFoundException(
+      //     `Provider '${provider}' is not properly configured`,
+      //   );
+      // }
 
       // this.logger.log(
       //   `✅ Provider '${provider}' is enabled and properly configured, proceeding with OAuth flow`,
