@@ -706,6 +706,7 @@ export class PushNotificationOrchestratorService {
             const prev = usageMap[tokenId] || {};
             const nowIso = new Date().toISOString();
             const newStats: Record<string, any> = { lastCall: nowIso };
+            if (token) newStats.token = token;
             if (calls) newStats.calls = Number(calls);
             if (maxCalls) newStats.maxCalls = Number(maxCalls);
             if (totalCalls) newStats.totalCalls = Number(totalCalls);
