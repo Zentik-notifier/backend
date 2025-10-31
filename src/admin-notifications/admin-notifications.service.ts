@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Event, EventType } from '../entities';
 import { AdminSubscription } from '../entities/admin-subscription.entity';
 import { UserDevice } from '../entities/user-device.entity';
+import { UserSession } from '../entities/user-session.entity';
 import { User } from '../entities/user.entity';
 import { Bucket } from '../entities/bucket.entity';
 import { MessagesService } from '../messages/messages.service';
@@ -21,6 +22,8 @@ export class AdminNotificationsService implements OnModuleInit {
     private adminSubscriptionRepository: Repository<AdminSubscription>,
     @InjectRepository(UserDevice)
     private userDeviceRepository: Repository<UserDevice>,
+    @InjectRepository(UserSession)
+    private userSessionRepository: Repository<UserSession>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Bucket)
@@ -178,6 +181,20 @@ export class AdminNotificationsService implements OnModuleInit {
       }
     }
 
+    // For OAuth login events, get the provider from the user's most recent session
+    if (event.type === EventType.LOGIN_OAUTH && event.userId) {
+      const session = await this.userSessionRepository
+        .createQueryBuilder('session')
+        .where('session.userId = :userId', { userId: event.userId })
+        .andWhere('session.loginProvider IS NOT NULL')
+        .orderBy('session.createdAt', 'DESC')
+        .limit(1)
+        .getOne();
+      if (session) {
+        details.oauthProvider = session.loginProvider;
+      }
+    }
+
     return details;
   }
 
@@ -218,6 +235,10 @@ export class AdminNotificationsService implements OnModuleInit {
 
     if (details.email) {
       parts.push(`Email: ${details.email}`);
+    }
+
+    if (details.oauthProvider) {
+      parts.push(`Provider: ${details.oauthProvider}`);
     }
 
     if (details.devicePlatform) {
