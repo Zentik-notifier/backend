@@ -17,6 +17,7 @@ import dataSource from '../ormconfig';
 import { ensureAdminBucket } from './seeds/admin-bucket.seed';
 import { ensurePublicBucket } from './seeds/public-bucket.seed';
 import { ensureOAuthProviders } from './seeds/oauth-providers.seed';
+import * as bodyParser from 'body-parser';
 
 // Global reference to the application instance
 let appInstance: INestApplication | null = null;
@@ -176,6 +177,8 @@ async function bootstrap() {
   logger.log('✅ NestJS application created successfully');
 
   app.setGlobalPrefix('/api/v1');
+  // Enable urlencoded parsing for providers like Apple that POST form data to callback
+  app.use(bodyParser.urlencoded({ extended: true }));
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
