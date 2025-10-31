@@ -11,8 +11,10 @@ export class FilesAdminResolver {
   constructor(private readonly filesService: FilesAdminService) {}
 
   @Query(() => [FileInfoDto], { name: 'serverFiles' })
-  async serverFiles(): Promise<FileInfoDto[]> {
-    const list = await this.filesService.listFiles();
+  async serverFiles(
+    @Args('path', { type: () => String, nullable: true }) path?: string,
+  ): Promise<FileInfoDto[]> {
+    const list = await this.filesService.listEntries(path);
     return list.map((f) => ({ ...f }));
   }
 

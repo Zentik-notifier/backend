@@ -337,6 +337,7 @@ enum ExecutionType {
 }
 
 type FileInfoDto {
+  isDir: Boolean!
   mtime: DateTime!
   name: String!
   size: Float!
@@ -881,7 +882,7 @@ type Query {
   payloadMappers: [PayloadMapper!]!
   pendingPostpones: [NotificationPostpone!]!
   publicAppConfig: PublicAppConfig!
-  serverFiles: [FileInfoDto!]!
+  serverFiles(path: String): [FileInfoDto!]!
 
   """Get a specific server setting by type"""
   serverSetting(configType: ServerSettingType!): ServerSetting

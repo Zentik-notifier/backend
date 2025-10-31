@@ -29,18 +29,17 @@ export class FilesAdminService {
     return baseDir;
   }
 
-  async listFiles(): Promise<{ name: string; size: number; mtime: Date }[]> {
+  async listEntries(relativePath?: string): Promise<{ name: string; size: number; mtime: Date; isDir: boolean }[]> {
     const baseDir = await this.ensureBaseDir();
-    const entries = await fsp.readdir(baseDir, { withFileTypes: true });
-    const files: { name: string; size: number; mtime: Date }[] = [];
+    const targetDir = relativePath ? this.resolveSafePath(relativePath) : baseDir;
+    const entries = await fsp.readdir(targetDir, { withFileTypes: true });
+    const results: { name: string; size: number; mtime: Date; isDir: boolean }[] = [];
     for (const entry of entries) {
-      if (entry.isFile()) {
-        const full = path.join(baseDir, entry.name);
-        const stat = await fsp.stat(full);
-        files.push({ name: entry.name, size: stat.size, mtime: stat.mtime });
-      }
+      const full = path.join(targetDir, entry.name);
+      const stat = await fsp.stat(full);
+      results.push({ name: entry.name, size: entry.isFile() ? stat.size : 0, mtime: stat.mtime, isDir: entry.isDirectory() });
     }
-    return files;
+    return results.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name));
   }
 
   async saveFile(originalName: string, buffer: Buffer): Promise<{ name: string; size: number }> {

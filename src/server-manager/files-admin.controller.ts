@@ -8,6 +8,7 @@ import {
   UploadedFile,
   UseInterceptors,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -23,10 +24,10 @@ export class FilesAdminController {
   constructor(private readonly filesService: FilesAdminService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List files in server files directory' })
-  @ApiResponse({ status: 200, description: 'List of files' })
-  async list() {
-    return this.filesService.listFiles();
+  @ApiOperation({ summary: 'List files/directories in server files directory' })
+  @ApiResponse({ status: 200, description: 'List of entries' })
+  async list(@Query('path') path?: string) {
+    return this.filesService.listEntries(path);
   }
 
   @Post('upload')
