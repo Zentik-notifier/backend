@@ -15,6 +15,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { FilesAdminService } from './files-admin.service';
+import { Response } from 'express';
+import * as fs from 'fs';
 
 @ApiTags('Server Files')
 @Controller('server-manager/files')
@@ -43,19 +45,29 @@ export class FilesAdminController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File) {
+  async upload(@UploadedFile() file: Express.Multer.File, @Query('path') path?: string) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    return this.filesService.saveFile(file.originalname, file.buffer);
+    return this.filesService.saveFile(file.originalname, file.buffer, path);
   }
 
   @Delete(':name')
   @ApiOperation({ summary: 'Delete a file from the server files directory' })
   @ApiResponse({ status: 200, description: 'File deleted' })
-  async remove(@Param('name') name: string) {
-    await this.filesService.deleteFile(name);
+  async remove(@Param('name') name: string, @Query('path') path?: string) {
+    await this.filesService.deleteFile(name, path);
     return { deleted: true };
+  }
+
+  @Get(':name/download')
+  @ApiOperation({ summary: 'Download a file from the server files directory' })
+  @ApiResponse({ status: 200, description: 'File stream' })
+  async download(@Param('name') name: string, @Query('path') path: string | undefined, @Res() res: Response) {
+    const filePath = this.filesService.getAbsoluteFilePath(name, path);
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    fs.createReadStream(filePath).pipe(res);
   }
 }
 

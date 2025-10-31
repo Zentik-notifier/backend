@@ -576,7 +576,7 @@ type Mutation {
   deleteNotification(id: String!): Boolean!
   deleteOAuthProvider(id: String!): Boolean!
   deletePayloadMapper(id: String!): Boolean!
-  deleteServerFile(name: String!): Boolean!
+  deleteServerFile(name: String!, path: String): Boolean!
   deleteWebhook(id: ID!): Boolean!
   deviceReportNotificationReceived(id: String!): Notification!
   executeWebhook(id: ID!): Boolean!

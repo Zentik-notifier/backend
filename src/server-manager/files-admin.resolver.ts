@@ -19,8 +19,11 @@ export class FilesAdminResolver {
   }
 
   @Mutation(() => Boolean, { name: 'deleteServerFile' })
-  async deleteServerFile(@Args('name') name: string): Promise<boolean> {
-    await this.filesService.deleteFile(name);
+  async deleteServerFile(
+    @Args('name') name: string,
+    @Args('path', { type: () => String, nullable: true }) path?: string,
+  ): Promise<boolean> {
+    await this.filesService.deleteFile(name, path);
     return true;
   }
 }

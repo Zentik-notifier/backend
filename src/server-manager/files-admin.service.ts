@@ -42,22 +42,31 @@ export class FilesAdminService {
     return results.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name));
   }
 
-  async saveFile(originalName: string, buffer: Buffer): Promise<{ name: string; size: number }> {
-    const baseDir = await this.ensureBaseDir();
+  async saveFile(originalName: string, buffer: Buffer, relativeDir?: string): Promise<{ name: string; size: number }> {
+    await this.ensureBaseDir();
     const safeName = path.basename(originalName);
-    const dest = this.resolveSafePath(safeName);
+    const targetDir = relativeDir && relativeDir.trim() !== '' ? this.resolveSafePath(relativeDir) : this.getBaseDir();
+    await fsp.mkdir(targetDir, { recursive: true });
+    const dest = path.join(targetDir, safeName);
     await fsp.writeFile(dest, buffer);
     const stat = await fsp.stat(dest);
-    this.logger.log(`Saved file ${safeName} (${stat.size} bytes) in ${baseDir}`);
+    this.logger.log(`Saved file ${safeName} (${stat.size} bytes) in ${targetDir}`);
     return { name: safeName, size: stat.size };
   }
 
-  async deleteFile(name: string): Promise<void> {
-    const target = this.resolveSafePath(path.basename(name));
+  async deleteFile(name: string, relativeDir?: string): Promise<void> {
+    const base = relativeDir && relativeDir.trim() !== '' ? this.resolveSafePath(relativeDir) : this.getBaseDir();
+    const target = path.join(base, path.basename(name));
     if (fs.existsSync(target)) {
       await fsp.unlink(target);
       this.logger.log(`Deleted file ${path.basename(name)}`);
     }
+  }
+
+  getAbsoluteFilePath(name: string, relativeDir?: string): string {
+    const base = relativeDir && relativeDir.trim() !== '' ? this.resolveSafePath(relativeDir) : this.getBaseDir();
+    const target = path.join(base, path.basename(name));
+    return target;
   }
 }
 
