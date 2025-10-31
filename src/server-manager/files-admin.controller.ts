@@ -9,6 +9,7 @@ import {
   UseInterceptors,
   BadRequestException,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -23,7 +24,7 @@ import * as fs from 'fs';
 @UseGuards(JwtAuthGuard, AdminOnlyGuard)
 @ApiBearerAuth()
 export class FilesAdminController {
-  constructor(private readonly filesService: FilesAdminService) {}
+  constructor(private readonly filesService: FilesAdminService) { }
 
   @Get()
   @ApiOperation({ summary: 'List files/directories in server files directory' })
