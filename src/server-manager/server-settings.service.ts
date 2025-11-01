@@ -122,8 +122,8 @@ export class ServerSettingsService {
       possibleValues?: string[];
     }> = [
         // JWT
-        { configType: ServerSettingType.JwtAccessTokenExpiration, envKey: 'JWT_ACCESS_TOKEN_EXPIRATION', type: 'number', defaultValue: '1d' },
-        { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: '3d' },
+        { configType: ServerSettingType.JwtAccessTokenExpiration, envKey: 'JWT_ACCESS_TOKEN_EXPIRATION', type: 'string', defaultValue: '3h' },
+        { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'string', defaultValue: '7d' },
         { configType: ServerSettingType.JwtSecret, envKey: 'JWT_SECRET', type: 'string', defaultValue: () => crypto.randomBytes(64).toString('hex') },
         { configType: ServerSettingType.JwtRefreshSecret, envKey: 'JWT_REFRESH_SECRET', type: 'string', defaultValue: () => crypto.randomBytes(64).toString('hex') },
 

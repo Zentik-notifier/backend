@@ -17,6 +17,7 @@ import { EventTrackingService } from '../events/event-tracking.service';
 import { UserRole } from '../users/users.types';
 import { AuthService } from './auth.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 import {
   ChangePasswordDto,
   LoginDto,
@@ -159,8 +160,20 @@ describe('AuthService', () => {
         {
           provide: ServerSettingsService,
           useValue: {
-            getSettingByType: jest.fn().mockResolvedValue({
-              valueText: '7d',
+            getSettingByType: jest.fn().mockImplementation((configType: ServerSettingType) => {
+              if (configType === ServerSettingType.JwtAccessTokenExpiration) {
+                return Promise.resolve({ valueText: '15m' });
+              }
+              if (configType === ServerSettingType.JwtRefreshTokenExpiration) {
+                return Promise.resolve({ valueText: '7d' });
+              }
+              if (configType === ServerSettingType.JwtSecret) {
+                return Promise.resolve({ valueText: 'test-jwt-secret' });
+              }
+              if (configType === ServerSettingType.JwtRefreshSecret) {
+                return Promise.resolve({ valueText: 'test-jwt-refresh-secret' });
+              }
+              return Promise.resolve({ valueText: '7d' });
             }),
           },
         },
