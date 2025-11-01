@@ -1,17 +1,22 @@
-import { Resolver, ResolveField, Parent } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { Resolver, ResolveField, Parent, Mutation, Args } from '@nestjs/graphql';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserBucket } from '../entities/user-bucket.entity';
 import { User } from '../entities/user.entity';
 import { Bucket } from '../entities/bucket.entity';
+import { BucketsService } from './buckets.service';
+import { CurrentUser } from '../graphql/decorators/current-user.decorator';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 
-// Minimal resolver to resolve nested relations for UserBucket after removing legacy module
 @Resolver(() => UserBucket)
+@UseGuards(JwtOrAccessTokenGuard)
 export class UserBucketResolver {
   constructor(
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
     @InjectRepository(Bucket)
     private readonly bucketsRepository: Repository<Bucket>,
+    private readonly bucketsService: BucketsService,
   ) {}
 
   @ResolveField(() => User)
@@ -26,5 +31,13 @@ export class UserBucketResolver {
     return this.bucketsRepository.findOne({
       where: { id: userBucket.bucketId },
     });
+  }
+
+  @Mutation(() => UserBucket)
+  async regenerateMagicCode(
+    @Args('bucketId') bucketId: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<UserBucket> {
+    return this.bucketsService.regenerateMagicCode(userId, bucketId);
   }
 }

@@ -24,7 +24,7 @@ import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.gu
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { RequireMessageBucketCreation } from '../auth/decorators/require-scopes.decorator';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
-import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
 import { Message } from '../entities';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
@@ -33,7 +33,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { CombineMessageSources } from './decorators/combine-message-sources.decorator';
 import { MessagesService } from './messages.service';
 
-@UseGuards(JwtOrAccessTokenGuard)
+@UseGuards(MagicCodeGuard)
 @Controller('messages')
 @ApiTags('Messages')
 @ApiBearerAuth()
@@ -74,7 +74,7 @@ export class MessagesController {
     description: 'Access token does not have permission to create messages in this bucket',
   })
   async create(
-    @GetUser('id') userId: string,
+    @GetUser('id') userId: string | undefined,
     @CombineMessageSources() input: CreateMessageDto,
   ) {
     const result = await this.messagesService.create(input, userId);

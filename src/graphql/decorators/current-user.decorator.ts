@@ -10,8 +10,10 @@ export const CurrentUser = createParamDecorator(
     const ctx = GqlExecutionContext.create(context);
     const user = ctx.getContext().req.user;
 
+    // Allow undefined user for magic code requests
+    // The service will resolve the userId from the magic code
     if (!user) {
-      throw new UnauthorizedException('Authentication required');
+      return undefined;
     }
 
     return field ? user[field] : user;

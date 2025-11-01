@@ -2,7 +2,8 @@ import {
   BadRequestException,
   Injectable,
   Logger,
-  NotFoundException
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationPostponeService } from 'src/notifications/notification-postpone.service';
@@ -14,6 +15,7 @@ import { Bucket } from '../entities/bucket.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { UserSettingType } from '../entities/user-setting.types';
 import { User } from '../entities/user.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
@@ -46,6 +48,8 @@ export class MessagesService {
     private readonly bucketsRepository: Repository<Bucket>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(UserBucket)
+    private readonly userBucketRepository: Repository<UserBucket>,
     private readonly attachmentsService: AttachmentsService,
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
     private readonly serverSettingsService: ServerSettingsService,
@@ -62,7 +66,7 @@ export class MessagesService {
     bucketIdOrName: string,
     userId: string,
   ): Promise<Bucket> {
-    // First try to find by ID (if it's a valid UUID format)
+    // Try to find by ID (if it's a valid UUID format)
     const isValidUuid = isUuid(bucketIdOrName);
 
     let bucket: Bucket | null = null;
@@ -166,14 +170,18 @@ export class MessagesService {
 
   async create(
     createMessageDto: CreateMessageDto,
-    requesterId: string,
+    requesterId: string | undefined,
     skipEventTracking = false,
     executionId?: string,
   ): Promise<Message> {
     const bucket = await this.findBucketByIdOrName(
       createMessageDto.bucketId,
-      requesterId,
+      requesterId || '',
     );
+
+    if (!requesterId) {
+      throw new UnauthorizedException('Unable to determine user ID for message creation');
+    }
 
     // If locale missing, fallback from user settings
     if (!createMessageDto.locale) {

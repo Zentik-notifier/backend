@@ -1,7 +1,7 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { RequireMessageBucketCreation } from '../auth/decorators/require-scopes.decorator';
-import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
 import { Message } from '../entities/message.entity';
 import { CurrentUser } from '../graphql/decorators/current-user.decorator';
@@ -9,7 +9,7 @@ import { CreateMessageDto } from './dto';
 import { MessagesService } from './messages.service';
 
 @Resolver(() => Message)
-@UseGuards(JwtOrAccessTokenGuard, ScopesGuard)
+@UseGuards(MagicCodeGuard, ScopesGuard)
 @Injectable()
 export class MessagesResolver {
   constructor(private readonly messagesService: MessagesService) {}
@@ -21,7 +21,7 @@ export class MessagesResolver {
   @RequireMessageBucketCreation('bucketId')
   async createMessage(
     @Args('input') input: CreateMessageDto,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('id') userId: string | undefined,
   ): Promise<Message> {
     return this.messagesService.create(input, userId);
   }

@@ -7,6 +7,7 @@ import { Bucket } from '../entities/bucket.entity';
 import { Message } from '../entities/message.entity';
 import { MessageReminder } from '../entities/message-reminder.entity';
 import { Notification } from '../entities/notification.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { User } from '../entities/user.entity';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
@@ -25,7 +26,7 @@ import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Message, MessageReminder, Notification, UserDevice, Bucket, User]),
+    TypeOrmModule.forFeature([Message, MessageReminder, Notification, UserDevice, Bucket, User, UserBucket]),
     AuthModule,
     forwardRef(() => NotificationsModule),
     AttachmentsModule,
@@ -45,6 +46,6 @@ import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
     MessageReminderScheduler,
     MessagesResolver,
   ],
-  exports: [MessagesService, MessageReminderService],
+  exports: [MessagesService, MessageReminderService, MessagesResolver],
 })
 export class MessagesModule {}

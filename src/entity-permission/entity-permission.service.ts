@@ -3,15 +3,18 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository } from 'typeorm';
 import { EntityPermission } from '../entities/entity-permission.entity';
 import { User } from '../entities/user.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../users/users.types';
+import { generateMagicCode } from '../common/utils/code-generation.utils';
 
 export interface ResourceOwnershipCheck {
   resourceType: ResourceType;
@@ -28,6 +31,8 @@ export class EntityPermissionService {
     private entityPermissionRepository: Repository<EntityPermission>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(UserBucket)
+    private userBucketRepository: Repository<UserBucket>,
     private usersService: UsersService,
     private eventTrackingService: EventTrackingService,
   ) { }
@@ -139,6 +144,29 @@ export class EntityPermissionService {
     );
   }
 
+
+  private async createUserBucketIfNeeded(
+    resourceType: ResourceType,
+    resourceId: string,
+    userId: string,
+  ): Promise<void> {
+    if (resourceType === ResourceType.BUCKET) {
+      const existing = await this.userBucketRepository.findOne({
+        where: { userId, bucketId: resourceId },
+      });
+      
+      if (!existing) {
+        const magicCode = generateMagicCode();
+        const userBucket = this.userBucketRepository.create({
+          bucketId: resourceId,
+          userId,
+          magicCode,
+        });
+        await this.userBucketRepository.save(userBucket);
+      }
+    }
+  }
+
   /**
    * Grant permissions to a user for a resource using email/username identifier
    */
@@ -196,6 +224,9 @@ export class EntityPermissionService {
       const savedPermission =
         await this.entityPermissionRepository.save(permission);
 
+      // Create UserBucket if needed for buckets
+      await this.createUserBucketIfNeeded(resourceType, resourceId, user.id);
+
       // Track bucket sharing event if it's a bucket resource
       if (resourceType === ResourceType.BUCKET) {
         try {
@@ -224,6 +255,9 @@ export class EntityPermissionService {
       });
       const savedPermission =
         await this.entityPermissionRepository.save(permission);
+
+      // Create UserBucket if needed for buckets
+      await this.createUserBucketIfNeeded(resourceType, resourceId, user.id);
 
       // Track bucket sharing event if it's a bucket resource
       if (resourceType === ResourceType.BUCKET) {

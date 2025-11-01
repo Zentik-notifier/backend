@@ -16,6 +16,7 @@ import { EntityPermissionService } from '../entity-permission/entity-permission.
 import { EventTrackingService } from '../events/event-tracking.service';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
+import { generateMagicCode } from '../common/utils/code-generation.utils';
 import { UserRole } from '../users/users.types';
 import { CreateBucketDto, UpdateBucketDto, BucketPermissionsDto } from './dto/index';
 
@@ -356,12 +357,14 @@ export class BucketsService {
       .getCount();
   }
 
+
   async createUserBucket(
     userId: string,
     params: {
       bucketId: string;
       snoozeUntil?: string | undefined;
       snoozes?: any[];
+      generateMagicCode?: boolean;
     },
   ): Promise<UserBucket> {
     const existing = await this.userBucketRepository.findOne({
@@ -371,9 +374,15 @@ export class BucketsService {
       throw new ConflictException('User bucket relationship already exists');
     }
 
+    let magicCode: string | null = null;
+    if (params.generateMagicCode !== false) {
+      magicCode = generateMagicCode();
+    }
+
     const userBucket = this.userBucketRepository.create({
       bucketId: params.bucketId,
       userId,
+      magicCode,
       snoozeUntil: params.snoozeUntil
         ? new Date(params.snoozeUntil)
         : undefined,
@@ -610,5 +619,22 @@ export class BucketsService {
       isSharedWithMe,
       sharedCount,
     };
+  }
+
+  async findUserBucketByMagicCode(magicCode: string): Promise<UserBucket | null> {
+    return this.userBucketRepository.findOne({
+      where: { magicCode },
+      relations: ['bucket'],
+    });
+  }
+
+  async regenerateMagicCode(userId: string, bucketId: string): Promise<UserBucket> {
+    const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+    if (!userBucket) {
+      throw new NotFoundException('User bucket relationship not found');
+    }
+
+    userBucket.magicCode = generateMagicCode();
+    return this.userBucketRepository.save(userBucket);
   }
 }

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { EntityPermission } from '../entities/entity-permission.entity';
 import { InviteCode } from '../entities/invite-code.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { User } from '../entities/user.entity';
 import { EventsModule } from '../events/events.module';
 import { UsersModule } from '../users/users.module';
@@ -14,7 +15,7 @@ import { InviteCodeResolver } from './invite-code.resolver';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EntityPermission, InviteCode, User]),
+    TypeOrmModule.forFeature([EntityPermission, InviteCode, User, UserBucket]),
     AuthModule,
     UsersModule,
     EventsModule,

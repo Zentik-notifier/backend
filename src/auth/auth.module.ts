@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule } from '../common/common.module';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { UserAccessToken } from '../entities/user-access-token.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
 import { UserSession } from '../entities/user-session.entity';
@@ -21,6 +22,7 @@ import { EmailService } from './email.service';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtOrAccessTokenGuard } from './guards/jwt-or-access-token.guard';
+import { MagicCodeGuard } from './guards/magic-code.guard';
 import { OAuthProviderGuard } from './guards/oauth-provider.guard';
 import { DynamicOAuthRegistryService } from './services/dynamic-oauth-registry.service';
 import { SessionController } from './session.controller';
@@ -37,6 +39,7 @@ import { LocalStrategy } from './strategies/local.strategy';
       UserAccessToken,
       UserSession,
       UserIdentity,
+      UserBucket,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -75,6 +78,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     JwtAuthGuard,
     JwtOrAccessTokenGuard,
     AccessTokenGuard,
+    MagicCodeGuard,
     OAuthProviderGuard,
     DynamicOAuthRegistryService,
     SessionCleanupScheduler,
@@ -88,6 +92,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     JwtAuthGuard,
     JwtOrAccessTokenGuard,
     AccessTokenGuard,
+    MagicCodeGuard,
     EmailService,
   ],
 })

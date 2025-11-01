@@ -5,7 +5,6 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 import { AccessTokenService } from '../access-token.service';
@@ -16,7 +15,6 @@ export class JwtOrAccessTokenGuard implements CanActivate {
 
   constructor(
     private readonly accessTokenService: AccessTokenService,
-    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -57,15 +55,6 @@ export class JwtOrAccessTokenGuard implements CanActivate {
 
     if (!token) {
       throw new UnauthorizedException('No authentication token provided');
-    }
-
-    // Allow system access tokens on routes that explicitly opt-in via metadata
-    const allowSystemToken = this.reflector.get<boolean>(
-      'allowSystemToken',
-      context.getHandler(),
-    );
-    if (allowSystemToken && token.startsWith('sat_')) {
-      return true;
     }
 
     // Check if it's an access token (starts with 'zat_')

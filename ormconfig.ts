@@ -27,6 +27,7 @@ import { Log } from './src/entities/log.entity';
 import { SystemAccessToken } from './src/system-access-token/system-access-token.entity';
 import { AdminSubscription } from './src/entities/admin-subscription.entity';
 import { InitialSchema1762016264000 } from './database/migrations/1762016264000-InitialSchema';
+import { AddMagicCodeToUserBuckets1762032600961 } from './database/migrations/1762032600961-AddMagicCodeToUserBuckets';
 
 config({ path: '.env' });
 
@@ -75,6 +76,7 @@ const dataSource = new DataSource({
   ],
   migrations: [
     InitialSchema1762016264000,
+    AddMagicCodeToUserBuckets1762032600961,
   ],
   migrationsTableName: 'migrations',
 });

@@ -61,6 +61,14 @@ export class UserBucket {
   @Column()
   bucketId: string;
 
+  @Field(() => String, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Magic code for unauthenticated message creation',
+  })
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  magicCode?: string | null;
+
   @Field(() => Date, { nullable: true })
   @ApiProperty({
     required: false,
