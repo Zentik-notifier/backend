@@ -43,6 +43,7 @@ import { ExtendLogContextToText1738209000000 } from './database/migrations/17382
 import { UserIdentitiesProviderRefactor1738702500000 } from './database/migrations/1738702500000-UserIdentitiesProviderRefactor';
 import { AddFacebookAndMicrosoftOAuthProviders1740000000000 } from './database/migrations/1740000000000-AddFacebookAndMicrosoftOAuthProviders';
 import { AddServerFilesDirectoryToServerSettingsEnum1761999935000 } from './database/migrations/1761999935000-AddServerFilesDirectoryToServerSettingsEnum';
+import { ConvertJwtExpirationToText1761999940000 } from './database/migrations/1761999940000-ConvertJwtExpirationToText';
 
 config({ path: '.env' });
 
@@ -93,12 +94,12 @@ const dataSource = new DataSource({
     UpdateEnumsToUppercaseAndAddInviteCodes1729458000000,
     AddBucketCreationEvent1729520000000,
     IncreaseLogMessageLength1729522000000,
+    AddExchangeCodeToUserSessions1730220000000,
     AddExecutionIdToMessages1737561600000,
     CreateSystemAccessTokenRequests1738100000000,
     AddScopesToSystemAccessTokens1738101000000,
     AddServerStableIdentifierToServerSettingsEnum1738104000000,
     AddPlainTextTokenToSystemAccessTokens1738200000000,
-    AddExchangeCodeToUserSessions1730220000000,
     AddSystemTokenRequestEvents1738205000000,
     AddEnableSystemTokenRequests1738206000000,
     AddTotalCallsAndLastResetToSystemAccessTokens1738207000000,
@@ -107,6 +108,7 @@ const dataSource = new DataSource({
     UserIdentitiesProviderRefactor1738702500000,
     AddFacebookAndMicrosoftOAuthProviders1740000000000,
     AddServerFilesDirectoryToServerSettingsEnum1761999935000,
+    ConvertJwtExpirationToText1761999940000,
   ],
   migrationsTableName: 'migrations',
 });
