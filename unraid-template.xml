@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>Zentik-Notifier</Name>
-  <Repository>ghcr.io/zentik-notifier/zentik-notifier-backend:latest</Repository>
+  <Repository>ghcr.io/zentik-notifier/zentik-notifier:latest</Repository>
   <Registry>https://ghcr.io/</Registry>
   <Network>bridge</Network>
   <Shell>sh</Shell>
