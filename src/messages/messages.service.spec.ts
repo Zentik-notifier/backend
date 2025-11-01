@@ -7,6 +7,7 @@ import { Bucket } from '../entities/bucket.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
@@ -152,6 +153,13 @@ describe('MessagesService', () => {
           useValue: {
             find: jest.fn().mockResolvedValue([mockUser]),
             findOne: jest.fn().mockResolvedValue(mockUser),
+          },
+        },
+        {
+          provide: getRepositoryToken(UserBucket),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            findOne: jest.fn().mockResolvedValue(null),
           },
         },
         {

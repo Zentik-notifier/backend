@@ -1,6 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
+import { AccessTokenService } from '../auth/access-token.service';
 import { Message } from '../entities/message.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
+import { UserAccessToken } from '../entities/user-access-token.entity';
 import {
   CreateMessageDto,
   MessagesQueryDto,
@@ -60,6 +65,24 @@ describe('MessagesResolver', () => {
     create: jest.fn(),
   };
 
+  const mockAccessTokenService = {
+    validateAccessToken: jest.fn(),
+  };
+
+  const mockUserBucketRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockUserAccessTokenRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -68,9 +91,21 @@ describe('MessagesResolver', () => {
           provide: MessagesService,
           useValue: mockMessagesService,
         },
+        {
+          provide: AccessTokenService,
+          useValue: mockAccessTokenService,
+        },
+        {
+          provide: getRepositoryToken(UserBucket),
+          useValue: mockUserBucketRepository,
+        },
+        {
+          provide: getRepositoryToken(UserAccessToken),
+          useValue: mockUserAccessTokenRepository,
+        },
       ],
     })
-      .overrideGuard(JwtOrAccessTokenGuard)
+      .overrideGuard(MagicCodeGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
 

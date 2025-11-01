@@ -5,8 +5,10 @@ import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.gu
 import { AccessTokenService } from '../auth/access-token.service';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { Message } from '../entities/message.entity';
 import { UserAccessToken } from '../entities/user-access-token.entity';
+import { UserBucket } from '../entities/user-bucket.entity';
 import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
@@ -50,6 +52,15 @@ describe('MessagesController', () => {
     delete: jest.fn(),
   };
 
+  const mockUserBucketRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
   const mockJwtService = {
     sign: jest.fn(),
     verify: jest.fn(),
@@ -72,12 +83,16 @@ describe('MessagesController', () => {
           useValue: mockUserAccessTokenRepository,
         },
         {
+          provide: getRepositoryToken(UserBucket),
+          useValue: mockUserBucketRepository,
+        },
+        {
           provide: JwtService,
           useValue: mockJwtService,
         },
       ],
     })
-      .overrideGuard(JwtOrAccessTokenGuard)
+      .overrideGuard(MagicCodeGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(AccessTokenGuard)
       .useValue({ canActivate: jest.fn(() => true) })
