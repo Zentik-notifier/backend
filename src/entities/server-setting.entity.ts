@@ -52,6 +52,9 @@ export enum ServerSettingType {
   BackupMaxToKeep = 'BackupMaxToKeep',
   BackupCronJob = 'BackupCronJob',
   
+  // Server Files
+  ServerFilesDirectory = 'ServerFilesDirectory',
+  
   // Messages
   MessagesMaxAge = 'MessagesMaxAge',
   MessagesDeleteJobEnabled = 'MessagesDeleteJobEnabled',

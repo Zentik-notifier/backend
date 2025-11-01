@@ -65,7 +65,7 @@ export class FilesAdminController {
   @ApiOperation({ summary: 'Download a file from the server files directory' })
   @ApiResponse({ status: 200, description: 'File stream' })
   async download(@Param('name') name: string, @Query('path') path: string | undefined, @Res() res: Response) {
-    const filePath = this.filesService.getAbsoluteFilePath(name, path);
+    const filePath = await this.filesService.getAbsoluteFilePath(name, path);
     res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
     fs.createReadStream(filePath).pipe(res);

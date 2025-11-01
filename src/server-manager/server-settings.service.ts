@@ -164,6 +164,9 @@ export class ServerSettingsService {
         { configType: ServerSettingType.BackupMaxToKeep, envKey: 'BACKUP_MAX_TO_KEEP', type: 'number', defaultValue: 10 },
         { configType: ServerSettingType.BackupCronJob, envKey: 'BACKUP_CRON_JOB', type: 'string', defaultValue: '0 */12 * * *' },
 
+        // Server Files
+        { configType: ServerSettingType.ServerFilesDirectory, envKey: 'SERVER_FILES_DIR', type: 'string', defaultValue: '/data' },
+
         // Messages
         { configType: ServerSettingType.MessagesMaxAge, envKey: 'MESSAGES_MAX_AGE', type: 'string', defaultValue: '7d' },
         { configType: ServerSettingType.MessagesDeleteJobEnabled, envKey: 'MESSAGES_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },

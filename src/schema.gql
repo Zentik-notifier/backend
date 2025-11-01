@@ -1046,6 +1046,7 @@ enum ServerSettingType {
   RateLimitTrustProxyEnabled
   RateLimitTtlMs
   ResendApiKey
+  ServerFilesDirectory
   ServerStableIdentifier
   SystemTokenUsageStats
   VapidSubject

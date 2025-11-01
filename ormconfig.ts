@@ -42,6 +42,7 @@ import { AddSystemTokenUsageStats1738208000000 } from './database/migrations/173
 import { ExtendLogContextToText1738209000000 } from './database/migrations/1738209000000-ExtendLogContextToText';
 import { UserIdentitiesProviderRefactor1738702500000 } from './database/migrations/1738702500000-UserIdentitiesProviderRefactor';
 import { AddFacebookAndMicrosoftOAuthProviders1740000000000 } from './database/migrations/1740000000000-AddFacebookAndMicrosoftOAuthProviders';
+import { AddServerFilesDirectoryToServerSettingsEnum1761999935000 } from './database/migrations/1761999935000-AddServerFilesDirectoryToServerSettingsEnum';
 
 config({ path: '.env' });
 
@@ -105,6 +106,7 @@ const dataSource = new DataSource({
     ExtendLogContextToText1738209000000,
     UserIdentitiesProviderRefactor1738702500000,
     AddFacebookAndMicrosoftOAuthProviders1740000000000,
+    AddServerFilesDirectoryToServerSettingsEnum1761999935000,
   ],
   migrationsTableName: 'migrations',
 });

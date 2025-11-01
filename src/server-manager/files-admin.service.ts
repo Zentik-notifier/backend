@@ -1,21 +1,26 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
+import { ServerSettingType } from '../entities/server-setting.entity';
+import { ServerSettingsService } from './server-settings.service';
 
 @Injectable()
 export class FilesAdminService {
-  constructor(private readonly configService: ConfigService) { }
+  constructor(
+    private readonly serverSettingsService: ServerSettingsService,
+  ) { }
   private readonly logger = new Logger(FilesAdminService.name);
 
-  private getBaseDir(): string {
-    const base = this.configService.get('SERVER_FILES_DIR') || path.join(process.cwd(), 'storage', 'system-files');
+  private async getBaseDir(): Promise<string> {
+    const base =
+      (await this.serverSettingsService.getStringValue(ServerSettingType.ServerFilesDirectory)) ||
+      '/data'
     return base;
   }
 
-  private resolveSafePath(relativeOrName: string): string {
-    const baseDir = this.getBaseDir();
+  private async resolveSafePath(relativeOrName: string): Promise<string> {
+    const baseDir = await this.getBaseDir();
     const resolved = path.resolve(baseDir, relativeOrName);
     if (!resolved.startsWith(path.resolve(baseDir))) {
       throw new Error('Invalid path');
@@ -24,14 +29,14 @@ export class FilesAdminService {
   }
 
   async ensureBaseDir(): Promise<string> {
-    const baseDir = this.getBaseDir();
+    const baseDir = await this.getBaseDir();
     await fsp.mkdir(baseDir, { recursive: true });
     return baseDir;
   }
 
   async listEntries(relativePath?: string): Promise<{ name: string; size: number; mtime: Date; isDir: boolean }[]> {
     const baseDir = await this.ensureBaseDir();
-    const targetDir = relativePath ? this.resolveSafePath(relativePath) : baseDir;
+    const targetDir = relativePath ? await this.resolveSafePath(relativePath) : baseDir;
     const entries = await fsp.readdir(targetDir, { withFileTypes: true });
     const results: { name: string; size: number; mtime: Date; isDir: boolean }[] = [];
     for (const entry of entries) {
@@ -45,7 +50,7 @@ export class FilesAdminService {
   async saveFile(originalName: string, buffer: Buffer, relativeDir?: string): Promise<{ name: string; size: number }> {
     await this.ensureBaseDir();
     const safeName = path.basename(originalName);
-    const targetDir = relativeDir && relativeDir.trim() !== '' ? this.resolveSafePath(relativeDir) : this.getBaseDir();
+    const targetDir = relativeDir && relativeDir.trim() !== '' ? await this.resolveSafePath(relativeDir) : await this.getBaseDir();
     await fsp.mkdir(targetDir, { recursive: true });
     const dest = path.join(targetDir, safeName);
     await fsp.writeFile(dest, buffer);
@@ -55,7 +60,7 @@ export class FilesAdminService {
   }
 
   async deleteFile(name: string, relativeDir?: string): Promise<void> {
-    const base = relativeDir && relativeDir.trim() !== '' ? this.resolveSafePath(relativeDir) : this.getBaseDir();
+    const base = relativeDir && relativeDir.trim() !== '' ? await this.resolveSafePath(relativeDir) : await this.getBaseDir();
     const target = path.join(base, path.basename(name));
     if (fs.existsSync(target)) {
       await fsp.unlink(target);
@@ -63,8 +68,8 @@ export class FilesAdminService {
     }
   }
 
-  getAbsoluteFilePath(name: string, relativeDir?: string): string {
-    const base = relativeDir && relativeDir.trim() !== '' ? this.resolveSafePath(relativeDir) : this.getBaseDir();
+  async getAbsoluteFilePath(name: string, relativeDir?: string): Promise<string> {
+    const base = relativeDir && relativeDir.trim() !== '' ? await this.resolveSafePath(relativeDir) : await this.getBaseDir();
     const target = path.join(base, path.basename(name));
     return target;
   }

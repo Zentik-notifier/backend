@@ -67,6 +67,7 @@ CREATE TYPE server_setting_type_enum AS ENUM (
   'AttachmentsEnabled', 'AttachmentsStoragePath', 'AttachmentsMaxFileSize', 'AttachmentsAllowedMimeTypes',
   'AttachmentsDeleteJobEnabled', 'AttachmentsMaxAge',
   'BackupEnabled', 'BackupExecuteOnStart', 'BackupStoragePath', 'BackupMaxToKeep', 'BackupCronJob',
+  'ServerFilesDirectory',
   'MessagesMaxAge', 'MessagesDeleteJobEnabled',
   'EmailEnabled', 'EmailType', 'EmailHost', 'EmailPort', 'EmailSecure', 'EmailUser', 'EmailPass',
   'EmailFrom', 'EmailFromName', 'ResendApiKey',
@@ -75,7 +76,8 @@ CREATE TYPE server_setting_type_enum AS ENUM (
   'JwtSecret', 'JwtRefreshSecret',
   'CorsOrigin', 'CorsCredentials',
   'LogLevel', 'LogStorageEnabled', 'LogRetentionDays',
-  'PrometheusEnabled'
+  'PrometheusEnabled',
+  'ServerStableIdentifier', 'EnableSystemTokenRequests', 'SystemTokenUsageStats'
 );
 
 -- Create users table
