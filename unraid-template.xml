@@ -23,7 +23,7 @@
   <Config Name="DB Username" Target="DB_USERNAME" Default="zentik_user" Mode="" Description="Database connection username" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="DB Password" Target="DB_PASSWORD" Default="" Mode="" Description="Database connection password" Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="DB SSL" Target="DB_SSL" Default="false|true" Mode="" Description="Enable SSL for database connection" Type="Variable" Display="advanced" Required="false" Mask="false"/>
-  <Config Name="DB Synchronize" Target="DB_SYNCHRONIZE" Default="true|false" Mode="" Description="Automatically synchronize database schema" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="DB Synchronize" Target="DB_SYNCHRONIZE" Default="false|true" Mode="" Description="Automatically synchronize database schema" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="DB Drop Schema" Target="DB_DROP_SCHEMA" Default="false|true" Mode="" Description="Drop and recreate database schema on startup (DANGEROUS - development only)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   
   <!-- Admin Configuration -->

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
 import { CreateServerSettingDto, UpdateServerSettingDto } from './dto/server-setting.dto';
 import { v4 } from 'uuid';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ServerSettingsService {
@@ -117,12 +118,14 @@ export class ServerSettingsService {
       configType: ServerSettingType;
       envKey: string;
       type: 'string' | 'boolean' | 'number';
-      defaultValue?: string | boolean | number;
+      defaultValue?: string | boolean | number | (() => string);
       possibleValues?: string[];
     }> = [
         // JWT
-        { configType: ServerSettingType.JwtAccessTokenExpiration, envKey: 'JWT_ACCESS_TOKEN_EXPIRATION', type: 'number', defaultValue: 120 },
-        { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: 4320 }, // 3 days
+        { configType: ServerSettingType.JwtAccessTokenExpiration, envKey: 'JWT_ACCESS_TOKEN_EXPIRATION', type: 'number', defaultValue: '1d' },
+        { configType: ServerSettingType.JwtRefreshTokenExpiration, envKey: 'JWT_REFRESH_TOKEN_EXPIRATION', type: 'number', defaultValue: '3d' },
+        { configType: ServerSettingType.JwtSecret, envKey: 'JWT_SECRET', type: 'string', defaultValue: () => crypto.randomBytes(64).toString('hex') },
+        { configType: ServerSettingType.JwtRefreshSecret, envKey: 'JWT_REFRESH_SECRET', type: 'string', defaultValue: () => crypto.randomBytes(64).toString('hex') },
 
         // APN Push
         { configType: ServerSettingType.ApnPush, envKey: 'APN_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
@@ -186,10 +189,6 @@ export class ServerSettingsService {
         { configType: ServerSettingType.RateLimitMessagesRps, envKey: 'RATE_LIMIT_MESSAGES_RPS', type: 'number', defaultValue: 10 },
         { configType: ServerSettingType.RateLimitMessagesTtlMs, envKey: 'RATE_LIMIT_MESSAGES_TTL_MS', type: 'number', defaultValue: 1000 },
 
-        // JWT Secrets
-        { configType: ServerSettingType.JwtSecret, envKey: 'JWT_SECRET', type: 'string' },
-        { configType: ServerSettingType.JwtRefreshSecret, envKey: 'JWT_REFRESH_SECRET', type: 'string' },
-
         // CORS
         { configType: ServerSettingType.CorsOrigin, envKey: 'CORS_ORIGIN', type: 'string', defaultValue: '*' },
         { configType: ServerSettingType.CorsCredentials, envKey: 'CORS_CREDENTIALS', type: 'boolean', defaultValue: true },
@@ -201,12 +200,15 @@ export class ServerSettingsService {
 
         // Prometheus
         { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
-      { configType: ServerSettingType.EnableSystemTokenRequests, envKey: 'ENABLE_SYSTEM_TOKEN_REQUESTS', type: 'boolean', defaultValue: true },
+        { configType: ServerSettingType.EnableSystemTokenRequests, envKey: 'ENABLE_SYSTEM_TOKEN_REQUESTS', type: 'boolean', defaultValue: false },
       ];
 
     for (const mapping of envMappings) {
       const envValue = process.env[mapping.envKey];
-      const valueToUse = envValue !== undefined ? envValue : mapping.defaultValue;
+      const defaultValue = typeof mapping.defaultValue === 'function' 
+        ? mapping.defaultValue() 
+        : mapping.defaultValue;
+      const valueToUse = envValue !== undefined ? envValue : defaultValue;
 
       // Skip if no env value and no default
       if (valueToUse === undefined) {

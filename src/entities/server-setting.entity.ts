@@ -12,6 +12,8 @@ export enum ServerSettingType {
   // JWT
   JwtAccessTokenExpiration = 'JwtAccessTokenExpiration',
   JwtRefreshTokenExpiration = 'JwtRefreshTokenExpiration',
+  JwtSecret = 'JwtSecret',
+  JwtRefreshSecret = 'JwtRefreshSecret',
   
   // APN Push
   ApnPush = 'ApnPush',
@@ -74,10 +76,6 @@ export enum ServerSettingType {
   RateLimitBlockMs = 'RateLimitBlockMs',
   RateLimitMessagesRps = 'RateLimitMessagesRps',
   RateLimitMessagesTtlMs = 'RateLimitMessagesTtlMs',
-  
-  // JWT Secrets
-  JwtSecret = 'JwtSecret',
-  JwtRefreshSecret = 'JwtRefreshSecret',
   
   // CORS
   CorsOrigin = 'CorsOrigin',
