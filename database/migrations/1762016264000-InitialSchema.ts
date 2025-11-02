@@ -34,10 +34,26 @@ export class InitialSchema1762016264000 implements MigrationInterface {
     console.log('🗄️  Initializing empty database with full schema...');
 
     // Load and execute schema_init.sql
-    const schemaPath = path.join(__dirname, '../schema_init.sql');
-    
-    if (!fs.existsSync(schemaPath)) {
-      throw new Error(`Schema file not found at: ${schemaPath}`);
+    // Try multiple paths to support both development and production (dist) builds
+    const possiblePaths = [
+      path.join(__dirname, '../schema_init.sql'), // Development: database/migrations -> database/schema_init.sql
+      path.join(__dirname, '../../database/schema_init.sql'), // Production: dist/database/migrations -> database/schema_init.sql
+      path.join(process.cwd(), 'database/schema_init.sql'), // Root: backend/database/schema_init.sql
+      path.join(process.cwd(), 'schema_init.sql'), // Fallback: backend/schema_init.sql
+    ];
+
+    let schemaPath: string | null = null;
+    for (const candidatePath of possiblePaths) {
+      if (fs.existsSync(candidatePath)) {
+        schemaPath = candidatePath;
+        console.log(`✅ Found schema file at: ${schemaPath}`);
+        break;
+      }
+    }
+
+    if (!schemaPath) {
+      const pathsTried = possiblePaths.join('\n  - ');
+      throw new Error(`Schema file not found. Tried paths:\n  - ${pathsTried}`);
     }
 
     const schemaSql = fs.readFileSync(schemaPath, 'utf8');
