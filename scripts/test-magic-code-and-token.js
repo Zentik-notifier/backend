@@ -183,14 +183,14 @@ async function createMessageWithMagicCode(bucketId, bucketName, magicCode) {
     console.log(`  ✨ Testing magicCode for bucket: ${bucketName} (code: ${magicCode})`);
     
     // With magic code, we don't use Authorization header
-    // Instead, we use the magic code as the bucketId
+    // Instead, we use the magic code parameter
     const response = await fetch(`${BASE_URL}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        bucketId: magicCode, // Use magic code instead of actual bucket ID
+        magicCode: magicCode,
         title: testTitle,
         body: testBody
       })

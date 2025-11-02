@@ -67,21 +67,21 @@ export class MagicCodeGuard implements CanActivate {
   }
 
   private extractBucketId(context: ExecutionContext): string | undefined {
-    // For GraphQL, get bucketId from args
+    // For GraphQL, get bucketId or magicCode from args
     if (context.getType<any>() === 'graphql') {
       const ctx = GqlExecutionContext.create(context);
       const args = ctx.getArgs();
-      return args?.input?.bucketId || args?.bucketId;
+      return args?.input?.magicCode || args?.input?.bucketId || args?.magicCode || args?.bucketId;
     }
     
-    // For REST, try to get bucketId from different sources
+    // For REST, try to get bucketId or magicCode from different sources
     const request = context.switchToHttp().getRequest();
     const body = request.body || {};
     const query = request.query || {};
     const params = request.params || {};
     
-    // Check common locations
-    return body.bucketId || query.bucketId || params.bucketId;
+    // Check common locations - prioritize magicCode
+    return body.magicCode || query.magicCode || params.magicCode || body.bucketId || query.bucketId || params.bucketId;
   }
 
   private replaceBucketIdInRequest(context: ExecutionContext, resolvedBucketId: string): void {
@@ -89,15 +89,24 @@ export class MagicCodeGuard implements CanActivate {
     if (context.getType<any>() === 'graphql') {
       const ctx = GqlExecutionContext.create(context);
       const args = ctx.getArgs();
-      if (args?.input?.bucketId) {
+      if (args?.input?.magicCode) {
         args.input.bucketId = resolvedBucketId;
+        delete args.input.magicCode;
+      } else if (args?.input?.bucketId) {
+        args.input.bucketId = resolvedBucketId;
+      } else if (args?.magicCode) {
+        args.bucketId = resolvedBucketId;
+        delete args.magicCode;
       } else if (args?.bucketId) {
         args.bucketId = resolvedBucketId;
       }
     } else {
       // For REST, replace in body
       const request = context.switchToHttp().getRequest();
-      if (request.body?.bucketId) {
+      if (request.body?.magicCode) {
+        request.body.bucketId = resolvedBucketId;
+        delete request.body.magicCode;
+      } else if (request.body?.bucketId) {
         request.body.bucketId = resolvedBucketId;
       }
     }

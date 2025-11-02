@@ -250,13 +250,27 @@ export class CreateMessageDto {
   @IsString()
   locale?: string;
 
-  @Field()
+  @Field({ nullable: true })
   @ApiProperty({
     description:
       'Bucket ID or name. If a name is provided, the system will find the corresponding bucket by name.',
+    required: false,
   })
+  @IsOptional()
+  @ValidateIf((o) => !o.magicCode)
   @IsString()
-  bucketId: string;
+  bucketId?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    description:
+      'Magic code for unauthenticated message creation. Alternative to bucketId + authentication.',
+    required: false,
+  })
+  @IsOptional()
+  @ValidateIf((o) => !o.bucketId)
+  @IsString()
+  magicCode?: string;
 
   @Field({ nullable: true })
   @ApiProperty({

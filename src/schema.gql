@@ -150,7 +150,7 @@ input CreateMessageDto {
   attachmentUuids: [String!]
   attachments: [NotificationAttachmentDto!]
   body: String
-  bucketId: String!
+  bucketId: String
   collapseId: String
   deliveryType: NotificationDeliveryType!
   executionId: String
@@ -158,6 +158,7 @@ input CreateMessageDto {
   groupId: String
   imageUrl: String
   locale: String
+  magicCode: String
   maxReminders: Float
   postpones: [Float!]
   remindEveryMinutes: Float

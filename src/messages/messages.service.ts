@@ -174,6 +174,10 @@ export class MessagesService {
     skipEventTracking = false,
     executionId?: string,
   ): Promise<Message> {
+    if (!createMessageDto.bucketId) {
+      throw new BadRequestException('bucketId or magicCode is required');
+    }
+
     const bucket = await this.findBucketByIdOrName(
       createMessageDto.bucketId,
       requesterId || '',
