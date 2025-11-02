@@ -85,7 +85,10 @@ export class BucketsService {
 
     // Create UserBucket relationship immediately to optimize future snooze operations
     try {
-      await this.createUserBucket(userId, { bucketId: saved.id });
+      await this.createUserBucket(userId, { 
+        bucketId: saved.id,
+        generateMagicCode: createBucketDto.generateMagicCode 
+      });
     } catch (error) { }
 
     return reloaded ?? saved;

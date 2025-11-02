@@ -66,5 +66,12 @@ export class CreateBucketDto {
   @IsOptional()
   generateIconWithInitials?: boolean;
 
-  // deviceIds removed
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Whether to generate a magic code for unauthenticated access',
+    default: true,
+  })
+  @IsOptional()
+  generateMagicCode?: boolean;
 }

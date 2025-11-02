@@ -119,6 +119,7 @@ input CreateBucketDto {
   color: String
   description: String
   generateIconWithInitials: Boolean
+  generateMagicCode: Boolean
   icon: String
   isProtected: Boolean
   isPublic: Boolean
