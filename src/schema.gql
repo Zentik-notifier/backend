@@ -574,6 +574,7 @@ type Mutation {
 
   """Delete an invite code"""
   deleteInviteCode(id: String!): Boolean!
+  deleteMagicCode(bucketId: String!): UserBucket!
   deleteNotification(id: String!): Boolean!
   deleteOAuthProvider(id: String!): Boolean!
   deletePayloadMapper(id: String!): Boolean!

@@ -637,4 +637,14 @@ export class BucketsService {
     userBucket.magicCode = generateMagicCode();
     return this.userBucketRepository.save(userBucket);
   }
+
+  async deleteMagicCode(userId: string, bucketId: string): Promise<UserBucket> {
+    const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+    if (!userBucket) {
+      throw new NotFoundException('User bucket relationship not found');
+    }
+
+    userBucket.magicCode = null;
+    return this.userBucketRepository.save(userBucket);
+  }
 }

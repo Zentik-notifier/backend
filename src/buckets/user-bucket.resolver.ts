@@ -40,4 +40,12 @@ export class UserBucketResolver {
   ): Promise<UserBucket> {
     return this.bucketsService.regenerateMagicCode(userId, bucketId);
   }
+
+  @Mutation(() => UserBucket)
+  async deleteMagicCode(
+    @Args('bucketId') bucketId: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<UserBucket> {
+    return this.bucketsService.deleteMagicCode(userId, bucketId);
+  }
 }
