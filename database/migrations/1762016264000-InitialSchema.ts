@@ -49,13 +49,25 @@ export class InitialSchema1762016264000 implements MigrationInterface {
 
     // Step 4: Create migrations sequence
     await queryRunner.query(`
-      CREATE SEQUENCE public.migrations_id_seq
-      AS integer
-      START WITH 1
-      INCREMENT BY 1
-      NO MINVALUE
-      NO MAXVALUE
-      CACHE 1;
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE c.relkind = 'S'
+            AND c.relname = 'migrations_id_seq'
+            AND n.nspname = 'public'
+        ) THEN
+          CREATE SEQUENCE public.migrations_id_seq
+          AS integer
+          START WITH 1
+          INCREMENT BY 1
+          NO MINVALUE
+          NO MAXVALUE
+          CACHE 1;
+        END IF;
+      END$$;
     `);
 
     // Step 5: Create all tables (in dependency order)
@@ -100,8 +112,22 @@ export class InitialSchema1762016264000 implements MigrationInterface {
     ];
 
     for (const enumDef of enums) {
-      const values = enumDef.values.map(v => `'${v}'`).join(', ');
-      await queryRunner.query(`CREATE TYPE IF NOT EXISTS public."${enumDef.name}" AS ENUM (${values});`);
+      const values = enumDef.values
+        .map(v => "''" + v.replace(/'/g, "''") + "''")
+        .join(', ');
+
+      const doBlock = `
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = '${enumDef.name}' AND n.nspname = 'public'
+  ) THEN
+    EXECUTE 'CREATE TYPE public."${enumDef.name}" AS ENUM (${values})';
+  END IF;
+END$$;`;
+      await queryRunner.query(doBlock);
     }
   }
 
