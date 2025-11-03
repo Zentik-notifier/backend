@@ -624,9 +624,9 @@ export class EntityPermissionService {
         where: { role: UserRole.ADMIN },
       });
       adminUsers.forEach((admin) => userIds.add(admin.id));
-      this.logger.debug(
-        `Admin bucket ${bucketId}: Added ${adminUsers.length} admins as authorized users`,
-      );
+      // this.logger.debug(
+      //   `Admin bucket ${bucketId}: Added ${adminUsers.length} admins as authorized users`,
+      // );
     }
 
     // Get all permissions for this bucket to find users with access
