@@ -55,16 +55,21 @@ export class IOSPushService {
    */
   public async buildAPNsPayload(
     notification: Notification,
-    automaticActions: NotificationAction[],
+    userSettings?: AutoActionSettings,
     device?: UserDevice,
   ) {
-    // Validate iOS action limit (maximum 10 actions total)
     const message = notification.message;
 
-    // Build the aps payload
+    const automaticActions = generateAutomaticActions(
+      notification,
+      DevicePlatform.IOS,
+      this.localeService,
+      userSettings,
+    );
+
     const apsPayload: Aps = {
       alert: {
-        title: notification.message.title, // Use notification.message.title to support modified titles (e.g., reminder prefix)
+        title: notification.message.title,
         body: notification.message.body,
       },
       sound: message.sound || 'default',
@@ -113,7 +118,7 @@ export class IOSPushService {
 
     // Combine manual actions with automatic actions
     const allActions = [
-      ...(automaticActions || []),
+      ...automaticActions,
       ...(message.actions || []),
     ];
 
@@ -320,14 +325,6 @@ export class IOSPushService {
     }
 
     try {
-      // Generate automatic actions for iOS
-      const automaticActions = generateAutomaticActions(
-        notification,
-        DevicePlatform.IOS,
-        this.localeService,
-        userSettings,
-      );
-
       // Send to all device tokens, encrypting per-device sensitive values in build
       const results: NotificationResult[] = [];
       for (const token of deviceTokens) {
@@ -338,7 +335,7 @@ export class IOSPushService {
             payload,
           } = await this.buildAPNsPayload(
             notification,
-            automaticActions,
+            userSettings,
             device || undefined, // Pass the found device or undefined if not found
           );
 
@@ -379,7 +376,7 @@ export class IOSPushService {
                     // Rebuild payload WITHOUT encryption by omitting device when building
                     const retryBuild = await this.buildAPNsPayload(
                       notification,
-                      automaticActions,
+                      userSettings,
                       undefined,
                     );
 

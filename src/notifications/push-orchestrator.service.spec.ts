@@ -191,6 +191,15 @@ describe('PushNotificationOrchestratorService', () => {
                 return null;
               },
             ),
+            getMultipleUserSettings: jest.fn().mockResolvedValue(
+              new Map([
+                [UserSettingType.AutoAddDeleteAction, { valueBool: true }],
+                [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
+                [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
+                [UserSettingType.DefaultSnoozes, null],
+                [UserSettingType.DefaultPostpones, null],
+              ]),
+            ),
           },
         },
         {
@@ -535,6 +544,18 @@ describe('PushNotificationOrchestratorService', () => {
         .mockResolvedValueOnce('https://passthrough-server.com')  // Server URL
         .mockResolvedValueOnce('passthrough-token-123');  // Token
 
+      // Mock getMultipleUserSettings for this test
+      const mockUsersService = (service as any).usersService;
+      mockUsersService.getMultipleUserSettings.mockResolvedValue(
+        new Map([
+          [UserSettingType.AutoAddDeleteAction, { valueBool: true }],
+          [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
+          [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
+          [UserSettingType.DefaultSnoozes, null],
+          [UserSettingType.DefaultPostpones, null],
+        ]),
+      );
+
       // Mock buildAPNsPayload to return valid data
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
         payload: {
@@ -578,6 +599,18 @@ describe('PushNotificationOrchestratorService', () => {
         .mockResolvedValueOnce('https://passthrough-server.com')  // Server URL
         .mockResolvedValueOnce('passthrough-token-123');  // Token
 
+      // Mock getMultipleUserSettings for this test
+      const mockUsersService = (service as any).usersService;
+      mockUsersService.getMultipleUserSettings.mockResolvedValue(
+        new Map([
+          [UserSettingType.AutoAddDeleteAction, { valueBool: true }],
+          [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
+          [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
+          [UserSettingType.DefaultSnoozes, null],
+          [UserSettingType.DefaultPostpones, null],
+        ]),
+      );
+
       // Mock buildAPNsPayload to return valid data
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
         payload: {
@@ -610,6 +643,18 @@ describe('PushNotificationOrchestratorService', () => {
         .mockResolvedValueOnce('Passthrough')  // IOSPush mode
         .mockResolvedValueOnce('https://passthrough-server.com')  // Server URL
         .mockResolvedValueOnce('passthrough-token-123');  // Token
+
+      // Mock getMultipleUserSettings for this test
+      const mockUsersService = (service as any).usersService;
+      mockUsersService.getMultipleUserSettings.mockResolvedValue(
+        new Map([
+          [UserSettingType.AutoAddDeleteAction, { valueBool: true }],
+          [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
+          [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
+          [UserSettingType.DefaultSnoozes, null],
+          [UserSettingType.DefaultPostpones, null],
+        ]),
+      );
 
       // Mock buildAPNsPayload to return valid data
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
@@ -687,7 +732,7 @@ describe('PushNotificationOrchestratorService', () => {
 
       expect(mockIOSPushService.buildAPNsPayload).toHaveBeenCalledWith(
         mockNotification,
-        [],
+        expect.any(Object), // userSettings
         iosDevice,
       );
     });
@@ -697,7 +742,21 @@ describe('PushNotificationOrchestratorService', () => {
         ...mockUserDevice,
         platform: DevicePlatform.ANDROID,
         deviceToken: 'test_android_token',
+        userId: 'user-1',
+        id: 'device-1',
       };
+
+      // Mock getMultipleUserSettings for this test
+      const mockUsersService = (service as any).usersService;
+      mockUsersService.getMultipleUserSettings.mockResolvedValue(
+        new Map([
+          [UserSettingType.AutoAddDeleteAction, { valueBool: true }],
+          [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
+          [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
+          [UserSettingType.DefaultSnoozes, null],
+          [UserSettingType.DefaultPostpones, null],
+        ]),
+      );
 
       mockFirebasePushService.buildFirebaseMessage.mockResolvedValue({
         tokens: ['test_android_token'],
@@ -745,6 +804,7 @@ describe('PushNotificationOrchestratorService', () => {
       expect(mockFirebasePushService.buildFirebaseMessage).toHaveBeenCalledWith(
         mockNotification,
         ['test_android_token'],
+        expect.any(Object), // userSettings
       );
     });
 
@@ -753,6 +813,8 @@ describe('PushNotificationOrchestratorService', () => {
         ...mockUserDevice,
         platform: DevicePlatform.WEB,
         deviceToken: 'test_web_token',
+        userId: 'user-1',
+        id: 'device-1',
         subscriptionFields: {
           endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint',
           p256dh: 'test_p256dh_key',
@@ -761,6 +823,18 @@ describe('PushNotificationOrchestratorService', () => {
         publicKey: 'test_vapid_public_key',
         privateKey: 'test_vapid_private_key',
       };
+
+      // Mock getMultipleUserSettings for this test
+      const mockUsersService = (service as any).usersService;
+      mockUsersService.getMultipleUserSettings.mockResolvedValue(
+        new Map([
+          [UserSettingType.AutoAddDeleteAction, { valueBool: true }],
+          [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
+          [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
+          [UserSettingType.DefaultSnoozes, null],
+          [UserSettingType.DefaultPostpones, null],
+        ]),
+      );
 
       mockWebPushService.buildWebPayload.mockReturnValue({
         title: 'Test Web Notification',
@@ -805,6 +879,7 @@ describe('PushNotificationOrchestratorService', () => {
 
       expect(mockWebPushService.buildWebPayload).toHaveBeenCalledWith(
         mockNotification,
+        expect.any(Object), // userSettings
       );
     });
   });

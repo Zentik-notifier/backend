@@ -747,9 +747,26 @@ export class PushNotificationOrchestratorService {
     notification: Notification,
     device: UserDevice,
   ) {
+    // Get user settings for automatic actions
+    const configTypes = [
+      UserSettingType.AutoAddDeleteAction,
+      UserSettingType.AutoAddMarkAsReadAction,
+      UserSettingType.AutoAddOpenNotificationAction,
+      UserSettingType.DefaultSnoozes,
+      UserSettingType.DefaultPostpones,
+    ];
+
+    const settings = await this.usersService.getMultipleUserSettings(
+      device.userId,
+      configTypes,
+      device.id,
+    );
+
+    const userSettings = this.buildAutoActionSettings(settings);
+
     if (device.platform === DevicePlatform.IOS) {
       const { payload: rawPayload, customPayload } =
-        await this.iosPushService.buildAPNsPayload(notification, [], device);
+        await this.iosPushService.buildAPNsPayload(notification, userSettings, device);
       const priority = notification.message.deliveryType === 'SILENT' ? 5 : 10;
 
       // Resolve bundleId/topic from ServerSettings first, then ENV, then safe default (dev)
@@ -776,6 +793,7 @@ export class PushNotificationOrchestratorService {
       const msg = await this.firebasePushService.buildFirebaseMessage(
         notification,
         [device.deviceToken || ''],
+        userSettings,
       );
       return {
         platform: 'ANDROID',
@@ -787,7 +805,7 @@ export class PushNotificationOrchestratorService {
     }
 
     // WEB
-    const webPayload = this.webPushService.buildWebPayload(notification);
+    const webPayload = this.webPushService.buildWebPayload(notification, userSettings);
     return {
       platform: 'WEB',
       payload: webPayload,

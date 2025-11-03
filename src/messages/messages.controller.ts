@@ -91,7 +91,6 @@ export class MessagesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   @ApiBody({ type: CreateMessageWithAttachmentDto })
-  // @ApiBody({ schema: CreateMessageWithAttachmentApiBodySchema as any })
   @ApiResponse({
     status: 201,
     description: 'Message created successfully with attachment',
@@ -194,9 +193,6 @@ export class MessagesController {
       throw new Error('Parameter "bucketId" is required');
     }
 
-    const isAccessToken = !!request?.accessTokenScopes;
-    const authType = isAccessToken ? 'AccessToken' : 'JWT';
-    
     // Extract request info for error logging
     const method = request.method || 'POST';
     const url = request.url || 'UNKNOWN';

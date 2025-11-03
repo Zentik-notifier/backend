@@ -222,7 +222,7 @@ export class FirebasePushService {
     const { payload: iosPayload, customPayload } =
       await this.iosPushService.buildAPNsPayload(
         notification,
-        automaticActions,
+        userSettings,
       );
     // Build basic notification payload
     const payload: admin.messaging.MulticastMessage = {
