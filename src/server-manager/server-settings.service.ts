@@ -142,8 +142,8 @@ export class ServerSettingsService {
         { configType: ServerSettingType.FirebaseClientEmail, envKey: 'FIREBASE_CLIENT_EMAIL', type: 'string' },
 
         // Web Push
-        { configType: ServerSettingType.WebPush, envKey: 'WEB_PUSH', type: 'string', defaultValue: 'Off', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
-        { configType: ServerSettingType.VapidSubject, envKey: 'VAPID_SUBJECT', type: 'string' },
+        { configType: ServerSettingType.WebPush, envKey: 'WEB_PUSH', type: 'string', defaultValue: 'Onboard', possibleValues: ['Off', 'Local', 'Onboard', 'Passthrough'] },
+        { configType: ServerSettingType.VapidSubject, envKey: 'VAPID_SUBJECT', type: 'string', defaultValue: 'mailto:zentik@notifier.com' },
 
         // Push Passthrough
         { configType: ServerSettingType.PushNotificationsPassthroughServer, envKey: 'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER', type: 'string', defaultValue: 'https://notifier-api.zentik.app/api/v1' },
@@ -151,7 +151,7 @@ export class ServerSettingsService {
 
         // Attachments
         { configType: ServerSettingType.AttachmentsEnabled, envKey: 'ATTACHMENTS_ENABLED', type: 'boolean', defaultValue: false },
-        { configType: ServerSettingType.AttachmentsStoragePath, envKey: 'ATTACHMENTS_STORAGE_PATH', type: 'string', defaultValue: '/attachments'},
+        { configType: ServerSettingType.AttachmentsStoragePath, envKey: 'ATTACHMENTS_STORAGE_PATH', type: 'string', defaultValue: '/attachments' },
         { configType: ServerSettingType.AttachmentsMaxFileSize, envKey: 'ATTACHMENTS_MAX_FILE_SIZE', type: 'number', defaultValue: 10485760 },
         { configType: ServerSettingType.AttachmentsAllowedMimeTypes, envKey: 'ATTACHMENTS_ALLOWED_MIME_TYPES', type: 'string' },
         { configType: ServerSettingType.AttachmentsDeleteJobEnabled, envKey: 'ATTACHMENTS_DELETE_JOB_ENABLED', type: 'boolean', defaultValue: true },
@@ -160,7 +160,7 @@ export class ServerSettingsService {
         // Backup
         { configType: ServerSettingType.BackupEnabled, envKey: 'BACKUP_ENABLED', type: 'boolean', defaultValue: false },
         { configType: ServerSettingType.BackupExecuteOnStart, envKey: 'BACKUP_EXECUTE_ON_START', type: 'boolean', defaultValue: true },
-        { configType: ServerSettingType.BackupStoragePath, envKey: 'BACKUP_STORAGE_PATH', type: 'string' , defaultValue: '/backups'},
+        { configType: ServerSettingType.BackupStoragePath, envKey: 'BACKUP_STORAGE_PATH', type: 'string', defaultValue: '/backups' },
         { configType: ServerSettingType.BackupMaxToKeep, envKey: 'BACKUP_MAX_TO_KEEP', type: 'number', defaultValue: 10 },
         { configType: ServerSettingType.BackupCronJob, envKey: 'BACKUP_CRON_JOB', type: 'string', defaultValue: '0 */12 * * *' },
 
@@ -216,8 +216,8 @@ export class ServerSettingsService {
 
     for (const mapping of envMappings) {
       const envValue = process.env[mapping.envKey];
-      const defaultValue = typeof mapping.defaultValue === 'function' 
-        ? mapping.defaultValue() 
+      const defaultValue = typeof mapping.defaultValue === 'function'
+        ? mapping.defaultValue()
         : mapping.defaultValue;
       const valueToUse = envValue !== undefined ? envValue : defaultValue;
 
