@@ -22,7 +22,7 @@ export class AppController {
     private readonly emailService: EmailService,
     private readonly attachmentsService: AttachmentsService,
     private readonly serverSettingsService: ServerSettingsService,
-  ) {}
+  ) { }
 
   @Get('health')
   getHealth() {
@@ -52,7 +52,18 @@ export class AppController {
       const uploadEnabled = await this.attachmentsService.isAttachmentsEnabled();
       const systemTokenRequestsEnabled = await this.serverSettingsService.getBooleanValue(
         ServerSettingType.EnableSystemTokenRequests,
-        true, // Default to enabled for backward compatibility
+      );
+      const localRegistrationEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.LocalRegistrationEnabled,
+        false,
+      );
+      const socialRegistrationEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.SocialRegistrationEnabled,
+        false,
+      );
+      const socialLoginEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.SocialLoginEnabled,
+        true,
       );
 
       return {
@@ -60,6 +71,9 @@ export class AppController {
         emailEnabled,
         uploadEnabled,
         systemTokenRequestsEnabled,
+        localRegistrationEnabled,
+        socialRegistrationEnabled,
+        socialLoginEnabled,
       };
     } catch (error) {
       throw error;

@@ -626,4 +626,13 @@ export class PublicAppConfig {
 
   @Field()
   systemTokenRequestsEnabled: boolean;
+
+  @Field()
+  localRegistrationEnabled: boolean;
+
+  @Field()
+  socialRegistrationEnabled: boolean;
+
+  @Field()
+  socialLoginEnabled: boolean;
 }

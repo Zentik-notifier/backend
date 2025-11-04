@@ -201,6 +201,14 @@ export class ServerSettingsService {
         { configType: ServerSettingType.LogStorageEnabled, envKey: 'LOG_STORAGE_ENABLED', type: 'boolean', defaultValue: true },
         { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
 
+        // UI / Features
+        { configType: ServerSettingType.IconUploaderEnabled, envKey: 'ICON_UPLOADER_ENABLED', type: 'boolean', defaultValue: true },
+
+        // Registration
+        { configType: ServerSettingType.LocalRegistrationEnabled, envKey: 'LOCAL_REGISTRATION_ENABLED', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.SocialRegistrationEnabled, envKey: 'SOCIAL_REGISTRATION_ENABLED', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.SocialLoginEnabled, envKey: 'SOCIAL_LOGIN_ENABLED', type: 'boolean', defaultValue: false },
+
         // Prometheus
         { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
         { configType: ServerSettingType.EnableSystemTokenRequests, envKey: 'ENABLE_SYSTEM_TOKEN_REQUESTS', type: 'boolean', defaultValue: false },
@@ -213,11 +221,6 @@ export class ServerSettingsService {
         : mapping.defaultValue;
       const valueToUse = envValue !== undefined ? envValue : defaultValue;
 
-      // Skip if no env value and no default
-      if (valueToUse === undefined) {
-        continue;
-      }
-
       const dto: CreateServerSettingDto = {
         configType: mapping.configType,
         valueText: null,
@@ -226,20 +229,24 @@ export class ServerSettingsService {
         possibleValues: mapping.possibleValues ?? null,
       };
 
-      switch (mapping.type) {
-        case 'string':
-          dto.valueText = String(valueToUse);
-          break;
-        case 'boolean':
-          if (typeof valueToUse === 'boolean') {
-            dto.valueBool = valueToUse;
-          } else {
-            dto.valueBool = String(valueToUse).toLowerCase() === 'true';
-          }
-          break;
-        case 'number':
-          dto.valueNumber = typeof valueToUse === 'number' ? valueToUse : parseInt(String(valueToUse), 10);
-          break;
+      // Even if valueToUse is undefined (no env and no default), create the setting
+      // with null values so it appears in the UI. When a value exists, coerce by type.
+      if (valueToUse !== undefined) {
+        switch (mapping.type) {
+          case 'string':
+            dto.valueText = String(valueToUse);
+            break;
+          case 'boolean':
+            if (typeof valueToUse === 'boolean') {
+              dto.valueBool = valueToUse;
+            } else {
+              dto.valueBool = String(valueToUse).toLowerCase() === 'true';
+            }
+            break;
+          case 'number':
+            dto.valueNumber = typeof valueToUse === 'number' ? valueToUse : parseInt(String(valueToUse), 10);
+            break;
+        }
       }
 
       // Always upsert: creates if missing, updates only structure (possibleValues) if exists

@@ -92,6 +92,14 @@ export enum ServerSettingType {
   // Prometheus Metrics
   PrometheusEnabled = 'PrometheusEnabled',
   
+  // UI / Features
+  IconUploaderEnabled = 'IconUploaderEnabled',
+  
+  // Registration
+  LocalRegistrationEnabled = 'LocalRegistrationEnabled',
+  SocialRegistrationEnabled = 'SocialRegistrationEnabled',
+  SocialLoginEnabled = 'SocialLoginEnabled',
+  
   // Stable server identifier (UUID generated at bootstrap)
   ServerStableIdentifier = 'ServerStableIdentifier',
   

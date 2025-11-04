@@ -521,6 +521,17 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
           `❌ OAuth validation failed for provider: ${provider.type}`,
           error,
         );
+        // If social registration is disabled, avoid throwing to let UI handle gracefully
+        const isSocialDisabled =
+          (error?.message && String(error.message).includes('Social registration is disabled')) ||
+          (error?.response?.message && String(error.response.message).includes('Social registration is disabled'));
+
+        if (isSocialDisabled) {
+          this.logger.warn(`🚫 OAuth validation blocked (social registration disabled) for provider: ${provider.type}`);
+          // Attach a soft error to user payload so downstream can redirect with a sanitized error
+          return done(null, { oauthError: 'oauth_failed' } as any);
+        }
+
         return done(error, false);
       }
     };
@@ -725,12 +736,8 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
   }
 
   private getCallbackUrl(provider: OAuthProvider): string {
-    if (provider.callbackUrl) {
-      return provider.callbackUrl;
-    }
-
-    // Generate default callback URL using UrlBuilderServ   ice
-    return this.urlBuilderService.buildOAuthCallbackUrl(provider.type.toLowerCase());
+    const providerKey = String(provider.type || '').toLowerCase();
+    return this.urlBuilderService.buildOAuthCallbackUrl(providerKey);
   }
 
   private hasConfigurationChanged(currentConfig: any, newConfig: any): boolean {

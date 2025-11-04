@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+export const API_PREFIX = '/api/v1';
+
 @Injectable()
 export class UrlBuilderService {
   constructor(private readonly configService: ConfigService) { }
@@ -15,10 +17,9 @@ export class UrlBuilderService {
       this.configService.get<string>('PUBLIC_BACKEND_URL') ||
       'http://localhost:3000'
     ).replace(/\/$/, '');
-    const apiPrefix = '/api/v1';
 
     // Normalize API prefix to start with one / and no trailing /
-    const normalizedPrefix = `/${apiPrefix}`
+    const normalizedPrefix = `/${API_PREFIX}`
       .replace(/\/+/, '/')
       .replace(/\/$/, '');
 

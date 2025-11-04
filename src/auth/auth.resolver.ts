@@ -59,11 +59,26 @@ export class AuthResolver {
     const systemTokenRequestsEnabled = await this.serverSettingsService.getBooleanValue(
       ServerSettingType.EnableSystemTokenRequests,
     );
+    const socialLoginEnabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.SocialLoginEnabled,
+      true,
+    );
+    const localRegistrationEnabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.LocalRegistrationEnabled,
+      false,
+    );
+    const socialRegistrationEnabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.SocialRegistrationEnabled,
+      false,
+    );
     return {
       oauthProviders: providers,
       emailEnabled,
       uploadEnabled: await this.attachmentsService.isAttachmentsEnabled(),
       systemTokenRequestsEnabled,
+      socialLoginEnabled,
+      localRegistrationEnabled,
+      socialRegistrationEnabled,
     };
   }
 

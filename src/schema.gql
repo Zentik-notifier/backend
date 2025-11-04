@@ -834,7 +834,10 @@ type PostponeResponseDto {
 
 type PublicAppConfig {
   emailEnabled: Boolean!
+  localRegistrationEnabled: Boolean!
   oauthProviders: [OAuthProviderPublicDto!]!
+  socialLoginEnabled: Boolean!
+  socialRegistrationEnabled: Boolean!
   systemTokenRequestsEnabled: Boolean!
   uploadEnabled: Boolean!
 }
@@ -1030,10 +1033,12 @@ enum ServerSettingType {
   FirebasePrivateKey
   FirebaseProjectId
   FirebasePush
+  IconUploaderEnabled
   JwtAccessTokenExpiration
   JwtRefreshSecret
   JwtRefreshTokenExpiration
   JwtSecret
+  LocalRegistrationEnabled
   LogLevel
   LogRetentionDays
   LogStorageEnabled
@@ -1052,6 +1057,8 @@ enum ServerSettingType {
   ResendApiKey
   ServerFilesDirectory
   ServerStableIdentifier
+  SocialLoginEnabled
+  SocialRegistrationEnabled
   SystemTokenUsageStats
   VapidSubject
   WebPush

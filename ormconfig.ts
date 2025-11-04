@@ -28,6 +28,8 @@ import { SystemAccessToken } from './src/system-access-token/system-access-token
 import { AdminSubscription } from './src/entities/admin-subscription.entity';
 import { InitialSchema1762016264000 } from './database/migrations/1762016264000-InitialSchema';
 import { AddMagicCodeToUserBuckets1762032600961 } from './database/migrations/1762032600961-AddMagicCodeToUserBuckets';
+import { AddIconAndRegistrationSettings1762036000000 } from './database/migrations/1762036000000-AddIconAndRegistrationSettings';
+import { AddSocialLoginEnabledSetting1762037000000 } from './database/migrations/1762037000000-AddSocialLoginEnabledSetting';
 
 config({ path: '.env' });
 
@@ -77,6 +79,8 @@ const dataSource = new DataSource({
   migrations: [
     InitialSchema1762016264000,
     AddMagicCodeToUserBuckets1762032600961,
+    AddIconAndRegistrationSettings1762036000000,
+    AddSocialLoginEnabledSetting1762037000000,
   ],
   migrationsTableName: 'migrations',
 });

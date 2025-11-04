@@ -100,10 +100,39 @@ export class AuthService {
       locale: locale || undefined,
     };
 
+    // Early handling of soft OAuth error propagated from strategy
+    if (user && (user as any).oauthError) {
+      let redirectUri: string | undefined = redirect;
+      if (!redirectUri && state) {
+        try {
+          const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+          redirectUri = decoded?.redirect as string | undefined;
+        } catch {}
+      }
+
+      const mobileScheme = process.env.MOBILE_APP_SCHEME || 'zentik';
+      const provider = String(providerKey || '').toLowerCase();
+      const fragment = `#error=oauth_failed&provider=${encodeURIComponent(provider)}&flow=login`;
+
+      if (redirectUri && typeof redirectUri === 'string') {
+        if (redirectUri.startsWith(mobileScheme) || /^https?:\/\//i.test(redirectUri)) {
+          return res.redirect(302, `${redirectUri}${fragment}`);
+        }
+      }
+
+      return res.status(200).json({
+        message: 'OAuth authorization failed',
+        error: 'oauth_failed',
+        provider,
+      });
+    }
+
+    // Track potential redirect target outside try/catch
+    let redirectUri: string | undefined = redirect;
+    let stateLocale: string | undefined;
+
     try {
       let isConnectionFlow = false;
-      let redirectUri: string | undefined = redirect;
-      let stateLocale: string | undefined;
 
       if (!redirectUri && state) {
         try {
@@ -203,7 +232,44 @@ export class AuthService {
       });
     } catch (error: any) {
       this.logger.error(`OAuth login failed for provider: ${providerKey}`, error.stack);
-      throw error;
+
+      // Prefer returning a sanitized error back to the UI via redirect fragment
+      try {
+        // If we don't have redirectUri yet, try to decode from state
+        if (!redirectUri && state) {
+          try {
+            const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+            redirectUri = decoded?.redirect as string | undefined;
+          } catch {}
+        }
+
+        const mobileScheme = process.env.MOBILE_APP_SCHEME || 'zentik';
+        const provider = String(providerKey || '').toLowerCase();
+        const fragment = `#error=oauth_failed&provider=${encodeURIComponent(provider)}&flow=login`;
+
+        if (redirectUri && typeof redirectUri === 'string') {
+          if (redirectUri.startsWith(mobileScheme)) {
+            return res.redirect(302, `${redirectUri}${fragment}`);
+          }
+          if (/^https?:\/\//i.test(redirectUri)) {
+            return res.redirect(302, `${redirectUri}${fragment}`);
+          }
+        }
+
+        // Fallback: return a generic JSON without leaking backend error details
+        return res.status(200).json({
+          message: 'OAuth authorization failed',
+          error: 'oauth_failed',
+          provider: String(providerKey || '').toLowerCase(),
+        });
+      } catch {
+        // Final fallback: generic JSON
+        return res.status(200).json({
+          message: 'OAuth authorization failed',
+          error: 'oauth_failed',
+          provider: String(providerKey || '').toLowerCase(),
+        });
+      }
     }
   }
 
@@ -1162,6 +1228,17 @@ export class AuthService {
 
     // 5) Create user if needed (only if no current user was provided)
     if (!user && !currentUserId) {
+      // Respect server setting: disable social registration if configured
+      const socialRegistrationEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.SocialRegistrationEnabled,
+        false,
+      );
+      if (!socialRegistrationEnabled) {
+        this.logger.warn(
+          `🚫 Social registration is disabled. Provider=${providerTypeEnum}, email=${email ?? 'n/a'}`,
+        );
+        throw new BadRequestException('Social registration is disabled');
+      }
       const typeLabel = providerTypeEnum?.toString().toLowerCase();
       const finalUsername = username || `${typeLabel}_${Math.random().toString(36).slice(2, 8)}`;
       const derivedEmail =
