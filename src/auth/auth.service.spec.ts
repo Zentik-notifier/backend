@@ -104,7 +104,7 @@ describe('AuthService', () => {
     sendEmail: jest.fn(),
     sendWelcomeEmail: jest.fn(),
     sendPasswordResetEmail: jest.fn(),
-    isEmailEnabled: jest.fn().mockReturnValue(false),
+    isEmailEnabled: jest.fn().mockResolvedValue(false),
   };
 
   const mockLocaleService = {
@@ -329,6 +329,70 @@ describe('AuthService', () => {
       await expect(service.register(registerDto, context)).rejects.toThrow(
         ConflictException,
       );
+    });
+
+    it('should register a user with skipEmailConfirmation (admin)', async () => {
+      const { hash } = require('bcryptjs');
+      hash.mockResolvedValue('hashed-password');
+
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(usersRepository, 'create').mockReturnValue(mockUser as User);
+      jest.spyOn(usersRepository, 'save').mockResolvedValue(mockUser as User);
+
+      const result = await service.register(registerDto, context, {
+        skipEmailConfirmation: true,
+      });
+
+      expect(result).toBeDefined();
+      expect(result.user).toBeDefined();
+      expect(result.emailConfirmationRequired).toBe(false);
+      expect(result.accessToken).toBeUndefined();
+      expect(result.refreshToken).toBeUndefined();
+      expect(usersRepository.create).toHaveBeenCalledWith({
+        email: 'newuser@example.com',
+        username: 'newuser',
+        password: 'hashed-password',
+        hasPassword: true,
+        firstName: 'New',
+        lastName: 'User',
+        emailConfirmed: true,
+      });
+      // Email confirmation should not be sent when skipEmailConfirmation is true
+      expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('should register a user with email enabled and send confirmation', async () => {
+      const { hash } = require('bcryptjs');
+      hash.mockResolvedValue('hashed-password');
+
+      jest.spyOn(usersRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(usersRepository, 'create').mockReturnValue(mockUser as User);
+      jest.spyOn(usersRepository, 'save').mockResolvedValue({
+        ...mockUser,
+        emailConfirmed: false,
+      } as User);
+
+      mockEmailService.isEmailEnabled.mockResolvedValue(true);
+      jest
+        .spyOn(service as any, 'requestEmailConfirmation')
+        .mockResolvedValue({ sent: true });
+
+      const result = await service.register(registerDto, context);
+
+      expect(result).toBeDefined();
+      expect(result.user).toBeDefined();
+      expect(result.emailConfirmationRequired).toBe(true);
+      expect(result.accessToken).toBeUndefined();
+      expect(result.refreshToken).toBeUndefined();
+      expect(usersRepository.create).toHaveBeenCalledWith({
+        email: 'newuser@example.com',
+        username: 'newuser',
+        password: 'hashed-password',
+        hasPassword: true,
+        firstName: 'New',
+        lastName: 'User',
+        emailConfirmed: false,
+      });
     });
   });
 

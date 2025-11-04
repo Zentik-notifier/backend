@@ -1,4 +1,4 @@
-import { Injectable, Logger, UseGuards } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import { AuthService } from '../auth/auth.service';
 import { ChangePasswordDto, UpdateProfileDto } from '../auth/dto';
@@ -11,6 +11,7 @@ import {
   UpdateDeviceTokenDto,
   UpdateUserDeviceDto,
   UpdateUserRoleInput,
+  AdminCreateUserInput,
 } from './dto';
 import { UsersService } from './users.service';
 import { UserSetting } from '../entities/user-setting.entity';
@@ -183,6 +184,34 @@ export class UsersResolver {
     @Args('input') input: UpdateUserDeviceDto,
   ): Promise<UserDevice> {
     return this.usersService.updateUserDevice(userId, input);
+  }
+
+  @Mutation(() => User)
+  @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
+  async adminCreateUser(
+    @Args('input') input: AdminCreateUserInput,
+  ): Promise<User> {
+    // Reuse authService.register for validation and creation
+    // Skip email confirmation by default (true), but allow admin to override
+    const skipEmailConfirmation = input.skipEmailConfirmation ?? true;
+    const res = await this.authService.register({
+      email: input.email,
+      username: input.username,
+      password: input.password,
+    }, {}, { skipEmailConfirmation });
+    if (!res?.user) {
+      throw new BadRequestException('Failed to create user');
+    }
+    return res.user as any;
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
+  async adminDeleteUser(
+    @Args('userId') userId: string,
+  ): Promise<boolean> {
+    await this.usersService.deleteAccount(userId);
+    return true;
   }
 
   @Subscription(() => User, {

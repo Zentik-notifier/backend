@@ -480,9 +480,11 @@ export class AuthService {
   async register(
     registerDto: RegisterDto,
     context?: LoginContext,
+    options?: { skipEmailConfirmation?: boolean },
   ): Promise<RegisterResponse> {
     const { email, username, password, firstName, lastName } = registerDto;
     const localeInput = (registerDto as any)?.locale as string | undefined;
+    const skipEmailConfirmation = options?.skipEmailConfirmation ?? false;
 
     this.logger.debug(
       `Registration attempt for email: ${email}, username: ${username}`,
@@ -512,6 +514,7 @@ export class AuthService {
     const emailEnabled = await this.emailService.isEmailEnabled();
 
     // Create the user
+    // If skipEmailConfirmation is true (admin creating user), auto-confirm email
     const user = this.usersRepository.create({
       email,
       username,
@@ -519,7 +522,7 @@ export class AuthService {
       hasPassword: true, // Utenti registrati hanno password
       firstName,
       lastName,
-      emailConfirmed: emailEnabled ? false : true, // Se EMAIL è disabilitata, auto-conferma
+      emailConfirmed: skipEmailConfirmation ? true : (emailEnabled ? false : true), // Admin skip -> true, else check emailEnabled
     });
 
     const savedUser = await this.usersRepository.save(user);
@@ -530,8 +533,7 @@ export class AuthService {
     // Track registration event
     await this.eventTrackingService.trackRegister(savedUser.id);
 
-    // Se l'email è abilitata inviamo la conferma, altrimenti saltiamo
-    if (emailEnabled) {
+    if (!skipEmailConfirmation && emailEnabled) {
       try {
         const emailResult = await this.requestEmailConfirmation(
           email,
@@ -552,18 +554,28 @@ export class AuthService {
         );
         // Don't fail registration if email fails
       }
+    } else if (skipEmailConfirmation) {
+      this.logger.debug(`Email confirmation skipped (admin): userId=${savedUser.id}, email=${email}`);
     }
 
-    // Remove password from response
     const { password: _, ...userWithoutPassword } = savedUser;
 
-    // Messaggio coerente con la policy EMAIL_ENABLED
-    const message = emailEnabled
-      ? 'Registration completed successfully. Please check your email to confirm your account before logging in.'
-      : 'Registration completed successfully.';
+    const message = skipEmailConfirmation
+      ? 'Registration completed successfully. Email confirmed automatically.'
+      : emailEnabled
+        ? 'Registration completed successfully. Please check your email to confirm your account before logging in.'
+        : 'Registration completed successfully.';
+
+    if (skipEmailConfirmation) {
+      const { password: __, ...userWithoutPassword2 } = savedUser;
+      return {
+        message,
+        user: userWithoutPassword2,
+        emailConfirmationRequired: false,
+      } as any;
+    }
 
     if (!emailEnabled) {
-      // Genera token e sessione come nel login
       const { accessToken, refreshToken, tokenId } =
         await this.generateTokens(savedUser);
       const expiresAt = await this.calculateRefreshTokenExpiration();
@@ -587,6 +599,7 @@ export class AuthService {
       } as any;
     }
 
+    // Email enabled e skipEmailConfirmation false: richiedi conferma email
     return {
       message,
       user: userWithoutPassword,
