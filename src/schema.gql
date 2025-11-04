@@ -834,6 +834,7 @@ type PostponeResponseDto {
 
 type PublicAppConfig {
   emailEnabled: Boolean!
+  iconUploaderEnabled: Boolean!
   localRegistrationEnabled: Boolean!
   oauthProviders: [OAuthProviderPublicDto!]!
   socialLoginEnabled: Boolean!

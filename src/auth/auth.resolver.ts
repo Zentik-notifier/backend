@@ -40,6 +40,8 @@ import { ServerSettingType } from '../entities/server-setting.entity';
 @Injectable()
 export class AuthResolver {
   private readonly logger = new Logger(AuthResolver.name);
+  private publicAppConfigCache: { data: PublicAppConfig; fetchedAt: number } | null = null;
+  private static readonly PUBLIC_CACHE_TTL_MS = 30_000;
 
   constructor(
     private readonly authService: AuthService,
@@ -53,6 +55,12 @@ export class AuthResolver {
 
   @Query(() => PublicAppConfig)
   async publicAppConfig(): Promise<PublicAppConfig> {
+    if (
+      this.publicAppConfigCache &&
+      Date.now() - this.publicAppConfigCache.fetchedAt < AuthResolver.PUBLIC_CACHE_TTL_MS
+    ) {
+      return this.publicAppConfigCache.data;
+    }
     const providers =
       await this.oauthProvidersService.findEnabledProvidersPublic();
     const emailEnabled = await this.emailService.isEmailEnabled();
@@ -71,15 +79,23 @@ export class AuthResolver {
       ServerSettingType.SocialRegistrationEnabled,
       false,
     );
-    return {
+    const uploadEnabled = await this.attachmentsService.isAttachmentsEnabled();
+    const iconUploaderEnabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.IconUploaderEnabled,
+      true,
+    );
+    const response: PublicAppConfig = {
       oauthProviders: providers,
       emailEnabled,
-      uploadEnabled: await this.attachmentsService.isAttachmentsEnabled(),
+      uploadEnabled,
+      iconUploaderEnabled,
       systemTokenRequestsEnabled,
       socialLoginEnabled,
       localRegistrationEnabled,
       socialRegistrationEnabled,
     };
+    this.publicAppConfigCache = { data: response, fetchedAt: Date.now() };
+    return response;
   }
 
   @Mutation(() => LoginResponse)

@@ -635,4 +635,7 @@ export class PublicAppConfig {
 
   @Field()
   socialLoginEnabled: boolean;
+
+  @Field()
+  iconUploaderEnabled: boolean;
 }

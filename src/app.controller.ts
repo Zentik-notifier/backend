@@ -24,6 +24,10 @@ export class AppController {
     private readonly serverSettingsService: ServerSettingsService,
   ) { }
 
+  // In-memory cache for public endpoints
+  private publicAppConfigCache: { data: any; fetchedAt: number } | null = null;
+  private static readonly PUBLIC_CACHE_TTL_MS = 30_000;
+
   @Get('health')
   getHealth() {
     return {
@@ -46,10 +50,21 @@ export class AppController {
   @Get('public/app-config')
   async getPublicAppConfig() {
     try {
+      // Serve from cache if fresh
+      if (
+        this.publicAppConfigCache &&
+        Date.now() - this.publicAppConfigCache.fetchedAt < AppController.PUBLIC_CACHE_TTL_MS
+      ) {
+        return this.publicAppConfigCache.data;
+      }
       const providers =
         await this.oauthProvidersService.findEnabledProvidersPublic();
       const emailEnabled = await this.emailService.isEmailEnabled();
       const uploadEnabled = await this.attachmentsService.isAttachmentsEnabled();
+      const iconUploaderEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.IconUploaderEnabled,
+        true,
+      );
       const systemTokenRequestsEnabled = await this.serverSettingsService.getBooleanValue(
         ServerSettingType.EnableSystemTokenRequests,
       );
@@ -66,15 +81,19 @@ export class AppController {
         true,
       );
 
-      return {
+      const response = {
         oauthProviders: providers,
         emailEnabled,
         uploadEnabled,
+        iconUploaderEnabled,
         systemTokenRequestsEnabled,
         localRegistrationEnabled,
         socialRegistrationEnabled,
         socialLoginEnabled,
       };
+
+      this.publicAppConfigCache = { data: response, fetchedAt: Date.now() };
+      return response;
     } catch (error) {
       throw error;
     }
