@@ -88,7 +88,7 @@ export class OAuthProviderGuard implements CanActivate {
 
     // Log della richiesta per debug
     if (!provider) {
-      this.logger.error('❌ No provider specified in OAuth request');
+      this.logger.error('❌ [Guard] No provider specified in OAuth request');
       this.logger.error(`   URL: ${request.url}`);
       this.logger.error(`   Method: ${request.method}`);
       throw new NotFoundException('No provider specified');
@@ -96,17 +96,31 @@ export class OAuthProviderGuard implements CanActivate {
 
     try {
       // Verifica che il provider esista e sia abilitato nel database
+      // this.logger.debug(`🔒 [Guard] Looking up provider in database: ${provider}`);
       const oauthProvider =
         await this.oauthProvidersService.findByProviderId(provider);
 
-      if (!oauthProvider || !oauthProvider.isEnabled) {
+      if (!oauthProvider) {
         this.logger.error(
-          `❌ Provider '${provider}' is not found or disabled in database`,
+          `❌ [Guard] Provider '${provider}' not found in database`,
         );
+        this.logger.error(`   URL: ${request.url}`);
+        this.logger.error(`   Method: ${request.method}`);
+        throw new NotFoundException(`Provider '${provider}' not found`);
+      }
+
+      if (!oauthProvider.isEnabled) {
+        this.logger.error(
+          `❌ [Guard] Provider '${provider}' is disabled in database`,
+        );
+        this.logger.error(`   Provider name: ${oauthProvider.name}`);
         this.logger.error(`   URL: ${request.url}`);
         this.logger.error(`   Method: ${request.method}`);
         throw new NotFoundException(`Provider '${provider}' is not enabled`);
       }
+
+      // this.logger.log(`✅ [Guard] Provider verified: ${oauthProvider.name} (${oauthProvider.type})`);
+    
 
       // Verifica che il provider abbia le credenziali necessarie
       // if (!oauthProvider.clientId || !oauthProvider.clientSecret) {
@@ -131,8 +145,10 @@ export class OAuthProviderGuard implements CanActivate {
       );
     }
 
+    // this.logger.debug(`🔒 [Guard] Creating Passport AuthGuard for provider: ${provider}`);
     const GuardClass: any = AuthGuard(provider);
     const guardInstance = new GuardClass();
+    // this.logger.debug(`🔒 [Guard] AuthGuard instance created for provider: ${provider}`);
 
     // Build state to round-trip mobile redirect (if provided)
     const existingState: string | undefined = request.query?.state as
@@ -163,6 +179,14 @@ export class OAuthProviderGuard implements CanActivate {
       ...(stateToUse ? { state: stateToUse } : {}),
     });
 
-    return guardInstance.canActivate(context);
+    // this.logger.debug(`🔒 [Guard] Calling Passport AuthGuard.canActivate() for provider: ${provider}`);
+    try {
+      const result = await guardInstance.canActivate(context);
+      this.logger.log(`✅ [Guard] Passport AuthGuard completed for provider: ${provider}, result: ${result}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ [Guard] Passport AuthGuard failed for provider: ${provider}`, error);
+      throw error;
+    }
   }
 }

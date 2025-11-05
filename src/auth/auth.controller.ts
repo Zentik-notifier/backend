@@ -355,6 +355,9 @@ export class AuthController {
     @GetUser() user: any,
     @Res() res: any,
   ): Promise<any> {
+    this.logger.log(`🔄 [Controller] OAuth callback received for provider: ${provider}`);
+    this.logger.debug(`🔄 [Controller] OAuth callback details - redirect: ${redirect}, locale: ${locale}, state: ${state}, user: ${user?.email || 'anonymous'}`);
+    
     return this.authService.processOAuthProviderCallback(
       provider,
       redirect,

@@ -765,6 +765,7 @@ type OAuthProviderPublicDto {
   iconUrl: String
   id: String!
   name: String!
+  providerKey: String!
   textColor: String
   type: OAuthProviderType!
 }

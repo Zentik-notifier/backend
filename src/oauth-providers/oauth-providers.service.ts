@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OAuthProvider, OAuthProviderType } from '../entities';
@@ -10,6 +10,8 @@ import {
 
 @Injectable()
 export class OAuthProvidersService {
+  private readonly logger = new Logger(OAuthProvidersService.name);
+
   constructor(
     @InjectRepository(OAuthProvider)
     private readonly oauthProvidersRepository: Repository<OAuthProvider>,
@@ -19,6 +21,36 @@ export class OAuthProvidersService {
     if (!key) return null;
     const upper = key.toUpperCase();
     return (OAuthProviderType as any)[upper] ?? null;
+  }
+
+  private getProviderKey(provider: OAuthProvider): string {
+    let providerKey = String(provider.type || '').toLowerCase();
+
+    // For custom providers, use customTypeId from additionalConfig if available
+    if (provider.type === OAuthProviderType.CUSTOM) {
+
+      if (provider.additionalConfig) {
+        try {
+          const config = JSON.parse(provider.additionalConfig);
+
+          if (config.customTypeId) {
+            providerKey = config.customTypeId;
+          } else {
+            providerKey = provider.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            this.logger.warn(`⚠️ No customTypeId found for ${provider.name}, using sanitized name: ${providerKey}`);
+          }
+        } catch (error) {
+          // Fallback: use a sanitized version of the provider name as providerKey
+          providerKey = provider.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          this.logger.error(`❌ Failed to parse additionalConfig for ${provider.name}, using sanitized name: ${providerKey}`, error);
+        }
+      } else {
+        providerKey = provider.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        this.logger.warn(`⚠️ Custom provider ${provider.name} has no additionalConfig, using sanitized name: ${providerKey}`);
+      }
+    }
+
+    return providerKey;
   }
 
   // Method to be called by registry service to get notified of changes
@@ -69,20 +101,65 @@ export class OAuthProvidersService {
   }
 
   async findByProviderId(providerId: string): Promise<OAuthProvider | null> {
-    // Backward-compatible: accept provider key (lowercased type)
+    // First try to find by standard type enum
     const enumVal = this.toEnumFromKey(providerId);
-    if (!enumVal) return null;
-    return this.oauthProvidersRepository.findOne({ where: { type: enumVal } });
+    if (enumVal) {
+      // For non-custom providers, find by type
+      if (enumVal !== OAuthProviderType.CUSTOM) {
+        const provider = await this.oauthProvidersRepository.findOne({ where: { type: enumVal } });
+        return provider;
+      }
+
+      // For "custom" key, return the first custom provider (backward compatibility)
+      if (providerId.toLowerCase() === 'custom') {
+        const provider = await this.oauthProvidersRepository.findOne({ where: { type: OAuthProviderType.CUSTOM } });
+        return provider;
+      }
+    }
+
+    // For custom providers with customTypeId, search in additionalConfig
+    const customProviders = await this.oauthProvidersRepository.find({
+      where: { type: OAuthProviderType.CUSTOM }
+    });
+
+    for (const provider of customProviders) {
+      if (provider.additionalConfig) {
+        try {
+          const config = JSON.parse(provider.additionalConfig);
+          if (config.customTypeId === providerId) {
+            return provider;
+          }
+        } catch (error) {
+          this.logger.warn(`⚠️ Failed to parse additionalConfig for provider ${provider.name}:`, error);
+          // Skip providers with invalid additionalConfig
+        }
+      } else {
+        // Check if the sanitized name matches
+        const sanitizedName = provider.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (sanitizedName === providerId) {
+          return provider;
+        }
+      }
+    }
+
+    this.logger.warn(`⚠️ No provider found for ID: ${providerId}`);
+    return null;
   }
 
   async isProviderEnabled(providerKey: string): Promise<boolean> {
+    this.logger.debug(`🔍 Checking if provider is enabled: ${providerKey}`);
     const enumVal = this.toEnumFromKey(providerKey);
-    if (!enumVal) return false;
+    if (!enumVal) {
+      this.logger.debug(`🔍 Provider key ${providerKey} not found in enum`);
+      return false;
+    }
     const provider = await this.oauthProvidersRepository.findOne({
       where: { type: enumVal },
       select: ['isEnabled'],
     });
-    return !!provider?.isEnabled;
+    const isEnabled = !!provider?.isEnabled;
+    this.logger.debug(`🔍 Provider ${providerKey} enabled status: ${isEnabled}`);
+    return isEnabled;
   }
 
   async findEnabledProviders(): Promise<OAuthProvider[]> {
@@ -101,14 +178,18 @@ export class OAuthProvidersService {
     });
 
     // Map to public DTO, excluding sensitive information
-    const publicProviders: OAuthProviderPublicDto[] = providers.map((provider) => ({
-      id: provider.id,
-      name: provider.name,
-      type: provider.type,
-      iconUrl: provider.iconUrl,
-      color: provider.color,
-      textColor: provider.textColor,
-    } as any));
+    const publicProviders: OAuthProviderPublicDto[] = providers.map((provider) => {
+      const providerKey = this.getProviderKey(provider);
+      return {
+        id: provider.id,
+        name: provider.name,
+        type: provider.type,
+        iconUrl: provider.iconUrl,
+        color: provider.color,
+        textColor: provider.textColor,
+        providerKey,
+      };
+    });
 
     return publicProviders;
   }
@@ -125,10 +206,10 @@ export class OAuthProvidersService {
 
     // Notify registry if available
     if (this.registryService) {
-      const key = updatedProvider.type.toLowerCase();
       if (updatedProvider.isEnabled) {
         await this.registryService.updateProvider(updatedProvider);
       } else {
+        const key = this.getProviderKey(updatedProvider);
         await this.registryService.unregisterProvider(key);
       }
     }
@@ -142,7 +223,8 @@ export class OAuthProvidersService {
 
     // Notify registry if available
     if (this.registryService) {
-      await this.registryService.unregisterProvider(provider.type.toLowerCase());
+      const key = this.getProviderKey(provider);
+      await this.registryService.unregisterProvider(key);
     }
   }
 
@@ -154,10 +236,10 @@ export class OAuthProvidersService {
 
     // Notify registry if available
     if (this.registryService) {
-      const key = updatedProvider.type.toLowerCase();
       if (updatedProvider.isEnabled) {
         await this.registryService.registerProvider(updatedProvider);
       } else {
+        const key = this.getProviderKey(updatedProvider);
         await this.registryService.unregisterProvider(key);
       }
     }
@@ -177,11 +259,21 @@ export class OAuthProvidersService {
     profileFields?: string[];
     additionalConfig?: any;
   } | null> {
+    this.logger.debug(`🔍 Getting provider config for key: ${providerKey}`);
     const provider = await this.findByProviderId(providerKey);
 
-    if (!provider || !provider.isEnabled) {
+    if (!provider) {
+      this.logger.warn(`⚠️ Provider not found for key: ${providerKey}`);
       return null;
     }
+
+    if (!provider.isEnabled) {
+      this.logger.warn(`⚠️ Provider ${provider.name} is disabled`);
+      return null;
+    }
+
+    this.logger.log(`✅ Returning config for provider: ${provider.name} (${provider.type})`);
+    this.logger.debug(`🔍 Provider config - clientId: ${provider.clientId ? '[SET]' : '[NOT SET]'}, callbackUrl: ${provider.callbackUrl}`);
 
     return {
       clientId: provider.clientId,

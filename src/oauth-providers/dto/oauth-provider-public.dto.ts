@@ -43,4 +43,11 @@ export class OAuthProviderPublicDto {
     example: '#FFFFFF',
   })
   textColor?: string;
+
+  @Field()
+  @ApiProperty({ 
+    description: 'The provider key used for OAuth URLs (e.g., "github", "google", or custom provider ID)',
+    example: 'github'
+  })
+  providerKey: string;
 }

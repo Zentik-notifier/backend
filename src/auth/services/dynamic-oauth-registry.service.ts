@@ -105,9 +105,9 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
   async registerProvider(provider: OAuthProvider): Promise<void> {
     try {
       const enumKey = provider.type; // e.g. 'GOOGLE'
-      const idKey = provider.type.toLowerCase(); // e.g. 'google' for endpoints/strategy name
+      const idKey = this.getProviderKey(provider); // e.g. 'google' for endpoints/strategy name, or custom ID for custom providers
       this.logger.log(
-        `🔗 Registering OAuth provider: ${provider.name} (${enumKey})`,
+        `🔗 Registering OAuth provider: ${provider.name} (${enumKey}) with strategy key: ${idKey}`,
       );
 
       // If provider is already registered, update it
@@ -149,16 +149,13 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
   async updateProvider(provider: OAuthProvider): Promise<void> {
     try {
       const enumKey = provider.type;
-      const idKey = provider.type.toLowerCase();
+      const idKey = this.getProviderKey(provider);
       this.logger.log(
         `🔄 Updating OAuth provider: ${provider.name} (${enumKey})`,
       );
 
       // Check if provider is currently enabled before deregistering
-      const isCurrentlyEnabled =
-        await this.oauthProvidersService.isProviderEnabled(provider.type.toLowerCase());
-
-      if (!isCurrentlyEnabled) {
+      if (!provider.isEnabled) {
         this.logger.log(
           `⚠️ Provider ${enumKey} is not currently enabled, deregistering...`,
         );
@@ -325,7 +322,8 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
         );
 
       case OAuthProviderType.CUSTOM:
-        return new OAuth2Strategy(
+        // Create a custom OAuth2Strategy that properly handles userinfo endpoint
+        const customStrategy = new OAuth2Strategy(
           {
             authorizationURL: provider.authorizationUrl!,
             tokenURL: provider.tokenUrl!,
@@ -337,6 +335,57 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
           },
           this.createValidateFunction(provider),
         );
+
+        // Override the userProfile method to use the configured userInfoUrl
+        if (provider.userInfoUrl) {
+          const logger = this.logger; // Capture logger reference for closure
+          customStrategy.userProfile = function(accessToken: string, done: any) {
+            logger.log(`🔍 Custom userProfile called for ${provider.name}`);
+            logger.debug(`Token: ${accessToken?.substring(0, 10)}...`);
+            logger.debug(`UserInfo URL: ${provider.userInfoUrl}`);
+            
+            this._oauth2.get(provider.userInfoUrl!, accessToken, (err: any, body: any, res: any) => {
+              if (err) {
+                logger.error(`❌ OAuth2 userProfile error for ${provider.name}:`, err);
+                
+                // Provide specific guidance for 403 Forbidden error (insufficient scope)
+                if (err.statusCode === 403) {
+                  logger.error(`❌ UserInfo endpoint forbidden (403) - missing 'openid' scope`);
+                  logger.error(`💡 Solution: Add 'openid' scope to provider configuration in database`);
+                  logger.error(`🔧 SQL: UPDATE oauth_providers SET scopes = '["openid", "email", "profile", "name", "preferred_username"]'::jsonb WHERE additional_config->>'customTypeId' = '${provider.additionalConfig ? JSON.parse(provider.additionalConfig).customTypeId : 'unknown'}';`);
+                }
+                
+                return done(err);
+              }
+              
+              logger.log(`✅ OAuth2 userProfile response received for ${provider.name}`);
+              logger.debug(`Response body: ${body}`);
+              
+              try {
+                const profile = JSON.parse(body);
+                
+                // Map standard OpenID Connect fields to what our system expects
+                if (profile.sub && !profile.id) {
+                  profile.id = profile.sub; // Use 'sub' as the user ID
+                }
+                
+                // Add standard fields that Passport expects
+                profile.provider = 'custom';
+                profile._raw = body;
+                profile._json = profile;
+                
+                logger.log(`✅ Profile parsed successfully for ${provider.name}`);
+                // logger.debug(`Profile ID: ${profile.id}, Email: ${profile.email}`);
+                done(null, profile);
+              } catch (parseError) {
+                logger.error(`❌ Failed to parse profile JSON for ${provider.name}:`, parseError);
+                done(parseError);
+              }
+            });
+          };
+        }
+
+        return customStrategy;
 
       default:
         this.logger.error(`Unsupported provider type: ${provider.type}`);
@@ -353,70 +402,21 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
       done: any,
     ) => {
       try {
-        // this.logger.log(
-        //   `🔐 OAuth validation for provider: ${provider.providerId}`,
-        // );
-        // this.logger.debug(
-        //   `🔍 Raw profile received: ${JSON.stringify(profile)}`,
-        // );
+        this.logger.log(`🔐 OAuth validation started for provider: ${provider.name}`);
 
-        // For custom providers, we might need to fetch user info manually
+        // For custom providers, check if we got a valid profile from the userProfile method
         if (
           provider.type === OAuthProviderType.CUSTOM &&
           (!profile || Object.keys(profile).length === 0 || !profile.id)
         ) {
-          this.logger.log(
-            `🔍 Empty profile for custom provider, fetching user info from: ${provider.userInfoUrl}`,
+          this.logger.error(`❌ Empty profile received from custom provider ${provider.name}`);
+          this.logger.error(`💡 Check: 1) 'openid' scope, 2) userInfoUrl, 3) provider app config`);
+          this.logger.error(`   Scopes: ${JSON.stringify(provider.scopes)} | UserInfo: ${provider.userInfoUrl}`);
+          
+          return done(
+            new Error('Empty profile received from custom OAuth provider'),
+            false,
           );
-
-          if (provider.userInfoUrl) {
-            try {
-              const response = await fetch(provider.userInfoUrl, {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  Accept: 'application/json',
-                  'User-Agent': 'Zentik-OAuth-Client/1.0',
-                },
-              });
-
-              if (response.ok) {
-                const userInfo = await response.json();
-                this.logger.log(`✅ User info fetched successfully`);
-                this.logger.debug(
-                  `🔍 Fetched user info: ${JSON.stringify(userInfo)}`,
-                );
-
-                // Replace the empty profile with fetched user info
-                profile = userInfo;
-              } else {
-                this.logger.error(
-                  `❌ Failed to fetch user info: ${response.status} ${response.statusText}`,
-                );
-                const errorText = await response.text();
-                this.logger.debug(`🔍 Error response: ${errorText}`);
-                return done(
-                  new Error(
-                    `Failed to fetch user info: ${response.statusText}`,
-                  ),
-                  false,
-                );
-              }
-            } catch (fetchError) {
-              this.logger.error(`❌ Error fetching user info:`, fetchError);
-              return done(
-                new Error(`Error fetching user info: ${fetchError.message}`),
-                false,
-              );
-            }
-          } else {
-            this.logger.error(
-              `❌ No userInfoUrl configured for custom provider: ${provider.type}`,
-            );
-            return done(
-              new Error('No userInfoUrl configured for custom provider'),
-              false,
-            );
-          }
         }
 
         // Check if this is a connection flow by extracting user info from state
@@ -424,43 +424,26 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
         let localeFromState: string | undefined;
         if (req?.query?.state) {
           try {
-            // this.logger.debug(`🔍 Raw state parameter: ${req.query.state}`);
-
             // Try to decode the state - it might be base64url or regular base64
             let stateString: string;
             try {
-              // First try base64url decoding
-              stateString = Buffer.from(req.query.state, 'base64url').toString(
-                'utf8',
-              );
+              stateString = Buffer.from(req.query.state, 'base64url').toString('utf8');
             } catch (e) {
-              // If that fails, try regular base64 (convert base64url back to base64)
-              const regularBase64 = req.query.state
-                .replace(/-/g, '+')
-                .replace(/_/g, '/');
-              // Add padding if needed
+              // Fallback to regular base64
+              const regularBase64 = req.query.state.replace(/-/g, '+').replace(/_/g, '/');
               const padding = 4 - (regularBase64.length % 4);
               const paddedBase64 = regularBase64 + '='.repeat(padding % 4);
-              stateString = Buffer.from(paddedBase64, 'base64').toString(
-                'utf8',
-              );
+              stateString = Buffer.from(paddedBase64, 'base64').toString('utf8');
             }
 
             const decoded = JSON.parse(stateString);
-            // this.logger.debug(`🔍 Decoded state: ${JSON.stringify(decoded)}`);
             if (decoded?.locale) {
               localeFromState = String(decoded.locale);
-              // this.logger.debug(`🌐 OAuth locale from state: '${localeFromState}'`);
             }
 
             // Check if this is a connection flow
             if (decoded?.connectToUserId && decoded?.accessToken) {
-              this.logger.log(
-                `🔗 OAuth connection flow detected with access token`,
-              );
-              this.logger.debug(
-                `🔍 Access token from state: ${decoded.accessToken.substring(0, 50)}...`,
-              );
+              this.logger.log(`🔗 OAuth connection flow detected`);
 
               // Validate the access token to get user ID
               try {
@@ -469,16 +452,9 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
                   secret: jwtSecret,
                 });
                 connectToUserId = payload.sub;
-                this.logger.log(
-                  `✅ Connection flow validated for user: ${connectToUserId}`,
-                );
+                this.logger.log(`✅ Connection flow validated for user: ${connectToUserId}`);
               } catch (tokenError) {
-                this.logger.warn(
-                  `❌ Invalid access token in connection flow: ${tokenError.message}`,
-                );
-                this.logger.debug(
-                  `🔍 Token validation failed for token: ${decoded.accessToken.substring(0, 100)}...`,
-                );
+                this.logger.warn(`❌ Invalid access token in connection flow: ${tokenError.message}`);
                 return done(
                   new Error('Invalid access token for connection flow'),
                   false,
@@ -492,9 +468,6 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
 
         // Normalize profile based on provider type
         const normalizedProfile = this.normalizeProfile(profile, provider);
-        // this.logger.debug(
-        //   `🔍 Normalized profile: ${JSON.stringify(normalizedProfile)}`,
-        // );
 
         // Create or update user using the auth service
         const user = await this.authService.findOrCreateUserFromProvider(
@@ -512,23 +485,18 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
           connectToUserId, // Pass the current user ID if this is a connection flow
         );
 
-        this.logger.log(
-          `✅ OAuth authentication successful for user: ${user.email} via ${provider.type}`,
-        );
+        this.logger.log(`✅ OAuth authentication successful for user: ${user.email} via ${provider.type}`);
         return done(null, user);
       } catch (error) {
-        this.logger.error(
-          `❌ OAuth validation failed for provider: ${provider.type}`,
-          error,
-        );
+        this.logger.error(`❌ OAuth validation failed for provider: ${provider.type}`, error);
+        
         // If social registration is disabled, avoid throwing to let UI handle gracefully
         const isSocialDisabled =
           (error?.message && String(error.message).includes('Social registration is disabled')) ||
           (error?.response?.message && String(error.response.message).includes('Social registration is disabled'));
 
         if (isSocialDisabled) {
-          this.logger.warn(`🚫 OAuth validation blocked (social registration disabled) for provider: ${provider.type}`);
-          // Attach a soft error to user payload so downstream can redirect with a sanitized error
+          this.logger.warn(`🚫 Social registration disabled for provider: ${provider.type}`);
           return done(null, { oauthError: 'oauth_failed' } as any);
         }
 
@@ -735,8 +703,33 @@ export class DynamicOAuthRegistryService implements OnModuleInit {
     };
   }
 
+  private getProviderKey(provider: OAuthProvider): string {
+    let providerKey = String(provider.type || '').toLowerCase();
+    
+    // For custom providers, use customTypeId from additionalConfig if available
+    if (provider.type === OAuthProviderType.CUSTOM && provider.additionalConfig) {
+      try {
+        const config = JSON.parse(provider.additionalConfig);
+        if (config.customTypeId) {
+          providerKey = config.customTypeId;
+        } else {
+          providerKey = provider.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          this.logger.warn(`⚠️ No customTypeId for ${provider.name}, using sanitized name: ${providerKey}`);
+        }
+      } catch (error) {
+        this.logger.error(`❌ Failed to parse additionalConfig for ${provider.name}:`, error);
+        providerKey = provider.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+    } else if (provider.type === OAuthProviderType.CUSTOM) {
+      providerKey = provider.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      this.logger.warn(`⚠️ Custom provider ${provider.name} missing additionalConfig`);
+    }
+    
+    return providerKey;
+  }
+
   private getCallbackUrl(provider: OAuthProvider): string {
-    const providerKey = String(provider.type || '').toLowerCase();
+    const providerKey = this.getProviderKey(provider);
     return this.urlBuilderService.buildOAuthCallbackUrl(providerKey);
   }
 

@@ -232,6 +232,25 @@ export class OAuthProvidersController {
   async getProviderConfig(@Param('id') id: string): Promise<any> {
     this.logger.log(`Getting configuration for OAuth provider: ${id}`);
     const provider = await this.oauthProvidersService.findOne(id);
-    return this.oauthProvidersService.getProviderConfig(provider.type.toLowerCase());
+    const providerKey = this.getProviderKey(provider);
+    return this.oauthProvidersService.getProviderConfig(providerKey);
+  }
+
+  private getProviderKey(provider: OAuthProvider): string {
+    let providerKey = String(provider.type || '').toLowerCase();
+    
+    // For custom providers, use customTypeId from additionalConfig if available
+    if (provider.type === OAuthProviderType.CUSTOM && provider.additionalConfig) {
+      try {
+        const config = JSON.parse(provider.additionalConfig);
+        if (config.customTypeId) {
+          providerKey = config.customTypeId;
+        }
+      } catch (error) {
+        // If parsing fails, fall back to default behavior
+      }
+    }
+    
+    return providerKey;
   }
 }
