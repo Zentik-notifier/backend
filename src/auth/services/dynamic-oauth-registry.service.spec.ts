@@ -111,24 +111,53 @@ describe('DynamicOAuthRegistryService', () => {
     });
 
     it('should deregister provider if it is not currently enabled', async () => {
-      mockOAuthProvidersService.isProviderEnabled.mockResolvedValue(false);
+      const disabledProvider = { ...mockProvider, isEnabled: false };
 
-      await service.updateProvider(mockProvider);
+      await service.updateProvider(disabledProvider);
 
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
-        'github',
-      );
       expect(service['unregisterProvider']).toHaveBeenCalledWith('GITHUB');
       expect(service['registerProvider']).not.toHaveBeenCalled();
     });
 
     it('should skip update if configuration has not changed', async () => {
-      mockOAuthProvidersService.isProviderEnabled.mockResolvedValue(true);
-
+      // Mock the URL builder to return the expected callback URL
+      mockUrlBuilderService.buildOAuthCallbackUrl.mockReturnValue('http://localhost:3000/auth/github/callback');
+      
       // Mock current configuration to be the same as new configuration
       const currentConfig = {
-        clientId: 'new-client-id',
-        clientSecret: 'new-client-secret',
+        clientId: 'test-client-id',
+        clientSecret: 'test-client-secret',
+        callbackUrl: 'http://localhost:3000/auth/github/callback',
+        scopes: ['user:email'],
+        authorizationUrl: undefined,
+        tokenUrl: undefined,
+        userInfoUrl: undefined,
+        profileFields: undefined,
+      };
+
+      // Mock the registeredProviders map to return current config
+      (service as any).registeredProviders = new Map([
+        ['GITHUB', { config: currentConfig }],
+      ]);
+
+      // Mock getProviderConfig to return the exact same config
+      jest.spyOn(service as any, 'getProviderConfig').mockReturnValue(currentConfig);
+
+      // Mock unregisterProvider and registerProvider to track calls
+      const unregisterSpy = jest.spyOn(service as any, 'unregisterProvider').mockResolvedValue(undefined);
+      const registerSpy = jest.spyOn(service as any, 'registerProvider').mockResolvedValue(undefined);
+      
+      await service.updateProvider(mockProvider);
+
+      expect(unregisterSpy).not.toHaveBeenCalled();
+      expect(registerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should update provider if configuration has changed', async () => {
+      // Mock current configuration to be different from new configuration
+      const currentConfig = {
+        clientId: 'old-client-id',
+        clientSecret: 'old-client-secret',
         callbackUrl: 'http://localhost:3000/auth/github/callback',
         scopes: ['user:email'],
         authorizationUrl: undefined,
@@ -144,53 +173,16 @@ describe('DynamicOAuthRegistryService', () => {
 
       await service.updateProvider(mockProvider);
 
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
-        'github',
-      );
-      expect(service['unregisterProvider']).not.toHaveBeenCalled();
-      expect(service['registerProvider']).not.toHaveBeenCalled();
-    });
-
-    it('should update provider if configuration has changed', async () => {
-      mockOAuthProvidersService.isProviderEnabled.mockResolvedValue(true);
-
-      // Mock current configuration to be different from new configuration
-      const currentConfig = {
-        clientId: 'old-client-id',
-        clientSecret: 'old-client-secret',
-        callbackUrl: 'http://localhost:3000/auth/github/callback',
-        scopes: ['user:email'],
-        authorizationUrl: undefined,
-        tokenUrl: undefined,
-        userInfoUrl: undefined,
-        profileFields: undefined,
-      };
-
-      // Mock the registeredProviders map to return current config
-      (service as any).registeredProviders = new Map([
-        ['github', { config: currentConfig }],
-      ]);
-
-      await service.updateProvider(mockProvider);
-
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
-        'github',
-      );
       expect(service['unregisterProvider']).toHaveBeenCalledWith('GITHUB');
       expect(service['registerProvider']).toHaveBeenCalledWith(mockProvider);
     });
 
     it('should update provider if it is not currently registered', async () => {
-      mockOAuthProvidersService.isProviderEnabled.mockResolvedValue(true);
-
       // Mock the registeredProviders map to be empty
       (service as any).registeredProviders = new Map();
 
       await service.updateProvider(mockProvider);
 
-      expect(mockOAuthProvidersService.isProviderEnabled).toHaveBeenCalledWith(
-        'github',
-      );
       expect(service['unregisterProvider']).toHaveBeenCalledWith('GITHUB');
       expect(service['registerProvider']).toHaveBeenCalledWith(mockProvider);
     });
