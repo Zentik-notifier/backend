@@ -38,6 +38,14 @@ export class Bucket {
   iconAttachmentUuid: string;
 
   @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Public URL for the bucket icon (attachment URL if uploaded, otherwise original icon URL)',
+  })
+  @Column({ nullable: true })
+  iconUrl?: string;
+
+  @Field({ nullable: true })
   @ApiProperty({ required: false })
   @Column({ nullable: true })
   description: string;

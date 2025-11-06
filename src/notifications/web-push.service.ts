@@ -181,7 +181,7 @@ export class WebPushService {
       url,
       notificationId: notification.id,
       bucketId: message?.bucketId,
-      bucketIcon: message?.bucket.icon,
+      bucketIcon: message?.bucket.iconUrl || message?.bucket.icon,
       bucketName: message?.bucket.name,
       deliveryType: message?.deliveryType,
       locale: message?.locale,

@@ -30,6 +30,7 @@ import { InitialSchema1762016264000 } from './database/migrations/1762016264000-
 import { AddMagicCodeToUserBuckets1762032600961 } from './database/migrations/1762032600961-AddMagicCodeToUserBuckets';
 import { AddIconAndRegistrationSettings1762036000000 } from './database/migrations/1762036000000-AddIconAndRegistrationSettings';
 import { AddSocialLoginEnabledSetting1762037000000 } from './database/migrations/1762037000000-AddSocialLoginEnabledSetting';
+import { AddIconUrlToBuckets1762423000000 } from './database/migrations/1762423000000-AddIconUrlToBuckets';
 
 config({ path: '.env' });
 
@@ -81,6 +82,7 @@ const dataSource = new DataSource({
     AddMagicCodeToUserBuckets1762032600961,
     AddIconAndRegistrationSettings1762036000000,
     AddSocialLoginEnabledSetting1762037000000,
+    AddIconUrlToBuckets1762423000000,
   ],
   migrationsTableName: 'migrations',
 });

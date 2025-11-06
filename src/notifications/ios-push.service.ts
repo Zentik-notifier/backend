@@ -151,7 +151,7 @@ export class IOSPushService {
     const bucketColor: string | undefined =
       notification?.message?.bucket?.color || undefined;
     const bucketIconUrl: string | undefined =
-      notification?.message?.bucket?.icon || undefined;
+      notification?.message?.bucket?.iconUrl || notification?.message?.bucket?.icon || undefined;
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
     if (device && device.publicKey) {

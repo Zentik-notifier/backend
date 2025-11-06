@@ -68,6 +68,7 @@ type Bucket {
   description: String
   icon: String
   iconAttachmentUuid: String
+  iconUrl: String
   id: ID!
   isAdmin: Boolean
   isProtected: Boolean

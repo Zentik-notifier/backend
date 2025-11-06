@@ -67,15 +67,26 @@ export class BucketsService {
           createBucketDto.generateIconWithInitials ?? true,
         );
 
-        // Update bucket with icon attachment UUID and preserve original icon URL
+        // Build public URL for the attachment
+        const iconUrl = this.urlBuilderService.buildAttachmentUrl(attachment.id);
+
+        // Update bucket with icon attachment UUID and iconUrl
         await this.bucketsRepository.update(saved.id, {
-          iconAttachmentUuid: attachment.id
+          iconAttachmentUuid: attachment.id,
+          iconUrl: iconUrl
         });
         saved.iconAttachmentUuid = attachment.id;
+        saved.iconUrl = iconUrl;
       } catch (error) {
         this.logger.error(`Failed to generate icon for bucket ${saved.name}`, error.stack);
         // Don't fail bucket creation if icon generation fails
       }
+    } else if (saved.icon) {
+      // If attachments are disabled but icon URL is provided, use it as iconUrl
+      await this.bucketsRepository.update(saved.id, {
+        iconUrl: saved.icon
+      });
+      saved.iconUrl = saved.icon;
     }
 
     const reloaded = await this.bucketsRepository.findOne({
@@ -297,15 +308,26 @@ export class BucketsService {
           updateBucketDto.generateIconWithInitials ?? true,
         );
 
-        // Update bucket with icon attachment UUID (don't overwrite icon field)
+        // Build public URL for the attachment
+        const iconUrl = this.urlBuilderService.buildAttachmentUrl(attachment.id);
+
+        // Update bucket with icon attachment UUID and iconUrl
         await this.bucketsRepository.update(saved.id, {
-          iconAttachmentUuid: attachment.id
+          iconAttachmentUuid: attachment.id,
+          iconUrl: iconUrl
         });
         saved.iconAttachmentUuid = attachment.id;
+        saved.iconUrl = iconUrl;
       } catch (error) {
         this.logger.error(`Failed to regenerate icon for bucket ${saved.name}`, error.stack);
         // Don't fail bucket update if icon generation fails
       }
+    } else if (needsIconRegeneration && saved.icon) {
+      // If attachments are disabled but icon URL changed, update iconUrl
+      await this.bucketsRepository.update(saved.id, {
+        iconUrl: saved.icon
+      });
+      saved.iconUrl = saved.icon;
     }
 
     return saved;
