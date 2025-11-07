@@ -301,42 +301,29 @@ export class NotificationsResolver {
     @Args('ids', { type: () => [String] }) ids: string[],
     @CurrentUser('id') userId: string,
   ): Promise<MassMarkResult> {
-    let updatedCount = 0;
-    const processedMessageIds = new Set<string>();
+    // Use batch endpoint instead of marking one by one
+    const result = await this.notificationsService.markNotificationsAsReadBatch(
+      ids,
+      userId,
+    );
 
-    for (const id of ids) {
+    // Publish subscription updates for all updated notifications
+    for (const notification of result.notifications) {
       try {
-        const notification = await this.notificationsService.markAsRead(
-          id,
-          userId,
-        );
         await this.subscriptionService.publishNotificationUpdated(
           notification,
           userId,
         );
-
-        // Count the main notification
-        updatedCount++;
-
-        // Track message IDs to avoid double counting related notifications
-        if (!processedMessageIds.has(notification.message.id)) {
-          processedMessageIds.add(notification.message.id);
-
-          // Count related notifications from the same message
-          const relatedCount =
-            await this.notificationsService.countRelatedUnreadNotifications(
-              notification.message.id,
-              userId,
-            );
-          updatedCount += relatedCount;
-        }
       } catch (error) {
-        this.logger.error(`Failed to mark notification ${id} as read:`, error);
+        this.logger.error(
+          `Failed to publish subscription update for notification ${notification.id}:`,
+          error,
+        );
       }
     }
 
     return {
-      updatedCount,
+      updatedCount: result.updatedCount,
       success: true,
     };
   }
@@ -346,29 +333,29 @@ export class NotificationsResolver {
     @Args('ids', { type: () => [String] }) ids: string[],
     @CurrentUser('id') userId: string,
   ): Promise<MassMarkResult> {
-    let updatedCount = 0;
+    // Use batch endpoint instead of marking one by one
+    const result = await this.notificationsService.markNotificationsAsUnreadBatch(
+      ids,
+      userId,
+    );
 
-    for (const id of ids) {
+    // Publish subscription updates for all updated notifications
+    for (const notification of result.notifications) {
       try {
-        const notification = await this.notificationsService.markAsUnread(
-          id,
-          userId,
-        );
         await this.subscriptionService.publishNotificationUpdated(
           notification,
           userId,
         );
-        updatedCount++;
       } catch (error) {
         this.logger.error(
-          `Failed to mark notification ${id} as unread:`,
+          `Failed to publish subscription update for notification ${notification.id}:`,
           error,
         );
       }
     }
 
     return {
-      updatedCount,
+      updatedCount: result.updatedCount,
       success: true,
     };
   }

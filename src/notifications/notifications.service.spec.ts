@@ -16,6 +16,7 @@ import { ServerSettingsService } from '../server-manager/server-settings.service
 import { MessageReminderService } from '../messages/message-reminder.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { EventsService } from '../events/events.service';
+import { Event } from '../entities/event.entity';
 import {
   ExternalNotifyRequestDto,
   ExternalPlatform,
@@ -145,6 +146,10 @@ describe('NotificationsService', () => {
         },
         {
           provide: getRepositoryToken(UserDevice),
+          useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(Event),
           useValue: mockRepository,
         },
         {

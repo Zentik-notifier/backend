@@ -15,7 +15,7 @@ import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { EventsService } from '../events/events.service';
-import { EventType } from '../entities/event.entity';
+import { Event, EventType } from '../entities/event.entity';
 import { NotificationServiceInfo } from './dto';
 import {
   ExternalDeviceDataFcmDto,
@@ -38,6 +38,8 @@ export class NotificationsService implements OnModuleInit {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationsRepository: Repository<Notification>,
+    @InjectRepository(Event)
+    private readonly eventsRepository: Repository<Event>,
     private readonly urlBuilderService: UrlBuilderService,
     private readonly usersService: UsersService,
     private readonly iosPushService: IOSPushService,
@@ -64,6 +66,61 @@ export class NotificationsService implements OnModuleInit {
       limit: 1,
     });
     return existingEvent.total > 0;
+  }
+
+  /**
+   * Check in batch which notifications already have ACK events
+   * Returns a Set of notification IDs that already have ACK events
+   */
+  private async getExistingAckEventNotificationIds(
+    notifications: Array<{ id: string; userDeviceId: string }>,
+  ): Promise<Set<string>> {
+    if (notifications.length === 0) {
+      return new Set();
+    }
+
+    // Build pairs of (notificationId, deviceId) for the query
+    const notificationDevicePairs = notifications.map((n) => ({
+      notificationId: n.id,
+      deviceId: n.userDeviceId,
+    }));
+
+    if (notificationDevicePairs.length === 0) {
+      return new Set();
+    }
+
+    // Get all notification IDs and device IDs
+    const notificationIds = notificationDevicePairs.map((p) => p.notificationId);
+    const deviceIds = notificationDevicePairs.map((p) => p.deviceId);
+
+    // Create a Set for quick lookup of valid pairs
+    const validPairs = new Set(
+      notificationDevicePairs.map(
+        (p) => `${p.notificationId}:${p.deviceId}`,
+      ),
+    );
+
+    // Query for existing ACK events in batch
+    // Get all events where objectId is in notificationIds and targetId is in deviceIds
+    const existingEvents = await this.eventsRepository
+      .createQueryBuilder('event')
+      .select('event.objectId', 'notificationId')
+      .addSelect('event.targetId', 'deviceId')
+      .where('event.type = :type', { type: EventType.NOTIFICATION_ACK })
+      .andWhere('event.objectId IN (:...notificationIds)', {
+        notificationIds,
+      })
+      .andWhere('event.targetId IN (:...deviceIds)', { deviceIds })
+      .getRawMany();
+
+    // Filter to only include events that match valid (notificationId, deviceId) pairs
+    const existingNotificationIds = existingEvents
+      .filter((e) =>
+        validPairs.has(`${e.notificationId}:${e.deviceId}`),
+      )
+      .map((e) => e.notificationId as string);
+
+    return new Set(existingNotificationIds);
   }
 
   /**
@@ -253,6 +310,205 @@ export class NotificationsService implements OnModuleInit {
     this.logger.log(`Notification ${id} marked as unread for user ${userId}`);
 
     return this.findOne(id, userId);
+  }
+
+  async markNotificationsAsUnreadBatch(
+    ids: string[],
+    userId: string,
+  ): Promise<{ notifications: Notification[]; updatedCount: number }> {
+    if (ids.length === 0) {
+      return { notifications: [], updatedCount: 0 };
+    }
+
+    // Verify all notifications belong to the user
+    const notifications = await this.notificationsRepository.find({
+      where: { id: In(ids), userId },
+      relations: ['message', 'message.bucket', 'userDevice'],
+    });
+
+    if (notifications.length === 0) {
+      this.logger.warn(
+        `No notifications found for user ${userId} with provided IDs`,
+      );
+      return { notifications: [], updatedCount: 0 };
+    }
+
+    if (notifications.length !== ids.length) {
+      this.logger.warn(
+        `Only ${notifications.length} of ${ids.length} notifications found for user ${userId}`,
+      );
+    }
+
+    // Mark all specified notifications as unread in batch
+    const updateResult = await this.notificationsRepository
+      .createQueryBuilder()
+      .update(Notification)
+      .set({ readAt: () => 'NULL' })
+      .where('id IN (:...ids)', { ids: notifications.map((n) => n.id) })
+      .andWhere('userId = :userId', { userId })
+      .execute();
+
+    const updatedCount = updateResult.affected || 0;
+
+    // Reload updated notifications to return complete data
+    const updatedNotifications = await this.notificationsRepository.find({
+      where: { id: In(notifications.map((n) => n.id)), userId },
+      relations: ['message', 'message.bucket', 'userDevice'],
+    });
+
+    this.logger.log(
+      `Batch marked ${updatedCount} notifications as unread for user ${userId}`,
+    );
+
+    return {
+      notifications: updatedNotifications,
+      updatedCount,
+    };
+  }
+
+  async markNotificationsAsReadBatch(
+    ids: string[],
+    userId: string,
+  ): Promise<{ notifications: Notification[]; updatedCount: number }> {
+    if (ids.length === 0) {
+      return { notifications: [], updatedCount: 0 };
+    }
+
+    const readAt = new Date();
+
+    // First, verify all notifications belong to the user and get their message IDs
+    const notifications = await this.notificationsRepository.find({
+      where: { id: In(ids), userId },
+      relations: ['message'],
+    });
+
+    if (notifications.length === 0) {
+      this.logger.warn(
+        `No notifications found for user ${userId} with provided IDs`,
+      );
+      return { notifications: [], updatedCount: 0 };
+    }
+
+    if (notifications.length !== ids.length) {
+      this.logger.warn(
+        `Only ${notifications.length} of ${ids.length} notifications found for user ${userId}`,
+      );
+    }
+
+    // Get unique message IDs from the notifications to mark
+    const messageIds = new Set(
+      notifications.map((n) => n.message?.id).filter(Boolean),
+    );
+
+    // Mark the specified notifications as read
+    const updateResult = await this.notificationsRepository.update(
+      { id: In(notifications.map((n) => n.id)), userId, readAt: IsNull() },
+      { readAt },
+    );
+
+    let updatedCount = updateResult.affected || 0;
+
+    // Find and mark all related notifications from the same messages as read
+    const relatedNotifications = await this.notificationsRepository.find({
+      where: {
+        userId,
+        message: { id: In(Array.from(messageIds)) },
+        readAt: IsNull(),
+      },
+      relations: ['message'],
+    });
+
+    // Filter out notifications that are already in the original list
+    const originalNotificationIds = new Set(notifications.map((n) => n.id));
+    const newRelatedNotifications = relatedNotifications.filter(
+      (n) => !originalNotificationIds.has(n.id),
+    );
+
+    if (newRelatedNotifications.length > 0) {
+      const relatedUpdateResult = await this.notificationsRepository.update(
+        { id: In(newRelatedNotifications.map((n) => n.id)) },
+        { readAt },
+      );
+      updatedCount += relatedUpdateResult.affected || 0;
+      this.logger.log(
+        `Marked ${newRelatedNotifications.length} related notifications as read for user ${userId}`,
+      );
+    }
+
+    // Track NOTIFICATION_ACK events for device notifications in batch
+    const deviceNotifications = notifications.filter(
+      (n): n is Notification & { userDeviceId: string } => !!n.userDeviceId,
+    );
+    if (deviceNotifications.length > 0) {
+      // Check in batch which notifications already have ACK events
+      const existingAckNotificationIds =
+        await this.getExistingAckEventNotificationIds(deviceNotifications);
+
+      // Create ACK events in batch for notifications that don't have them yet
+      const eventsToCreate = deviceNotifications
+        .filter(
+          (n) =>
+            n.userDeviceId &&
+            !existingAckNotificationIds.has(n.id),
+        )
+        .map((n) =>
+          this.eventsRepository.create({
+            type: EventType.NOTIFICATION_ACK,
+            userId,
+            objectId: n.id,
+            targetId: n.userDeviceId!,
+          }),
+        );
+
+      if (eventsToCreate.length > 0) {
+        await this.eventsRepository.save(eventsToCreate);
+        this.logger.log(
+          `Created ${eventsToCreate.length} NOTIFICATION_ACK events in batch for user ${userId}`,
+        );
+      }
+    }
+
+    // Cancel reminders for all affected messages (for all users)
+    if (messageIds.size > 0) {
+      try {
+        let totalCancelled = 0;
+        for (const messageId of messageIds) {
+          const cancelledCount =
+            await this.reminderService.cancelRemindersByMessage(messageId);
+          totalCancelled += cancelledCount;
+        }
+        if (totalCancelled > 0) {
+          this.logger.log(
+            `Cancelled ${totalCancelled} reminder(s) for ${messageIds.size} message(s) (all users) on batch mark as read`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to cancel reminders on batch mark as read`,
+          error,
+        );
+      }
+    }
+
+    // Reload all updated notifications to return complete data
+    const allUpdatedNotificationIds = [
+      ...notifications.map((n) => n.id),
+      ...newRelatedNotifications.map((n) => n.id),
+    ];
+
+    const updatedNotifications = await this.notificationsRepository.find({
+      where: { id: In(allUpdatedNotificationIds), userId },
+      relations: ['message', 'message.bucket', 'userDevice'],
+    });
+
+    this.logger.log(
+      `Batch marked ${updatedCount} notifications as read for user ${userId}`,
+    );
+
+    return {
+      notifications: updatedNotifications,
+      updatedCount,
+    };
   }
 
   async markAllAsRead(userId: string): Promise<{ updatedCount: number }> {

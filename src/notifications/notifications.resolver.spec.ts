@@ -19,6 +19,8 @@ describe('NotificationsResolver', () => {
     markAsRead: jest.fn(),
     markAsUnread: jest.fn(),
     markAllAsRead: jest.fn(),
+    markNotificationsAsReadBatch: jest.fn(),
+    markNotificationsAsUnreadBatch: jest.fn(),
     remove: jest.fn(),
     getNotificationServices: jest.fn(),
     countRelatedUnreadNotifications: jest.fn(),
@@ -237,13 +239,35 @@ describe('NotificationsResolver', () => {
         readAt: new Date(),
       };
 
-      mockNotificationsService.markAsRead
-        .mockResolvedValueOnce(mockNotification1)
-        .mockResolvedValueOnce(mockNotification2);
+      const mockRelatedNotification1 = {
+        id: 'related-1',
+        message: { id: 'message-1' },
+        readAt: new Date(),
+      };
 
-      mockNotificationsService.countRelatedUnreadNotifications
-        .mockResolvedValueOnce(2) // 2 related notifications for message-1
-        .mockResolvedValueOnce(1); // 1 related notification for message-2
+      const mockRelatedNotification2 = {
+        id: 'related-2',
+        message: { id: 'message-1' },
+        readAt: new Date(),
+      };
+
+      const mockRelatedNotification3 = {
+        id: 'related-3',
+        message: { id: 'message-2' },
+        readAt: new Date(),
+      };
+
+      // Mock batch method to return all updated notifications (main + related)
+      mockNotificationsService.markNotificationsAsReadBatch.mockResolvedValue({
+        notifications: [
+          mockNotification1,
+          mockNotification2,
+          mockRelatedNotification1,
+          mockRelatedNotification2,
+          mockRelatedNotification3,
+        ],
+        updatedCount: 5, // 2 main + 3 related
+      });
 
       const result = await resolver.massMarkNotificationsAsRead(
         notificationIds,
@@ -251,33 +275,20 @@ describe('NotificationsResolver', () => {
       );
 
       expect(result).toEqual({
-        updatedCount: 5, // 2 main notifications + 2 related + 1 related
+        updatedCount: 5, // 2 main notifications + 3 related
         success: true,
       });
 
-      expect(mockNotificationsService.markAsRead).toHaveBeenCalledTimes(2);
-      expect(mockNotificationsService.markAsRead).toHaveBeenCalledWith(
-        'notification-1',
-        userId,
-      );
-      expect(mockNotificationsService.markAsRead).toHaveBeenCalledWith(
-        'notification-2',
-        userId,
-      );
-
       expect(
-        mockNotificationsService.countRelatedUnreadNotifications,
-      ).toHaveBeenCalledTimes(2);
+        mockNotificationsService.markNotificationsAsReadBatch,
+      ).toHaveBeenCalledTimes(1);
       expect(
-        mockNotificationsService.countRelatedUnreadNotifications,
-      ).toHaveBeenCalledWith('message-1', userId);
-      expect(
-        mockNotificationsService.countRelatedUnreadNotifications,
-      ).toHaveBeenCalledWith('message-2', userId);
+        mockNotificationsService.markNotificationsAsReadBatch,
+      ).toHaveBeenCalledWith(notificationIds, userId);
 
       expect(
         mockSubscriptionService.publishNotificationUpdated,
-      ).toHaveBeenCalledTimes(2);
+      ).toHaveBeenCalledTimes(5); // All 5 notifications
     });
 
     it('should handle notifications from the same message without double counting', async () => {
@@ -296,13 +307,21 @@ describe('NotificationsResolver', () => {
         readAt: new Date(),
       };
 
-      mockNotificationsService.markAsRead
-        .mockResolvedValueOnce(mockNotification1)
-        .mockResolvedValueOnce(mockNotification2);
+      const mockRelatedNotification = {
+        id: 'related-1',
+        message: { id: 'message-1' },
+        readAt: new Date(),
+      };
 
-      mockNotificationsService.countRelatedUnreadNotifications.mockResolvedValueOnce(
-        1,
-      ); // Only called once for message-1
+      // Mock batch method - the service handles deduplication internally
+      mockNotificationsService.markNotificationsAsReadBatch.mockResolvedValue({
+        notifications: [
+          mockNotification1,
+          mockNotification2,
+          mockRelatedNotification,
+        ],
+        updatedCount: 3, // 2 main + 1 related (service handles deduplication)
+      });
 
       const result = await resolver.massMarkNotificationsAsRead(
         notificationIds,
@@ -310,35 +329,42 @@ describe('NotificationsResolver', () => {
       );
 
       expect(result).toEqual({
-        updatedCount: 3, // 2 main notifications + 1 related (not double counted)
+        updatedCount: 3, // 2 main notifications + 1 related (service handles deduplication)
         success: true,
       });
 
       expect(
-        mockNotificationsService.countRelatedUnreadNotifications,
+        mockNotificationsService.markNotificationsAsReadBatch,
       ).toHaveBeenCalledTimes(1);
       expect(
-        mockNotificationsService.countRelatedUnreadNotifications,
-      ).toHaveBeenCalledWith('message-1', userId);
+        mockNotificationsService.markNotificationsAsReadBatch,
+      ).toHaveBeenCalledWith(notificationIds, userId);
+
+      expect(
+        mockSubscriptionService.publishNotificationUpdated,
+      ).toHaveBeenCalledTimes(3);
     });
 
     it('should handle errors gracefully and continue processing', async () => {
       const notificationIds = ['notification-1', 'notification-2'];
       const userId = 'user-1';
 
-      const mockNotification2 = {
-        id: 'notification-2',
-        message: { id: 'message-2' },
-        readAt: new Date(),
-      };
-
-      mockNotificationsService.markAsRead
-        .mockRejectedValueOnce(new Error('Failed to mark as read'))
-        .mockResolvedValueOnce(mockNotification2);
-
-      mockNotificationsService.countRelatedUnreadNotifications.mockResolvedValueOnce(
-        1,
-      );
+      // Mock batch method to return only valid notifications (service filters invalid ones)
+      mockNotificationsService.markNotificationsAsReadBatch.mockResolvedValue({
+        notifications: [
+          {
+            id: 'notification-2',
+            message: { id: 'message-2' },
+            readAt: new Date(),
+          },
+          {
+            id: 'related-1',
+            message: { id: 'message-2' },
+            readAt: new Date(),
+          },
+        ],
+        updatedCount: 2, // Only valid notification + 1 related
+      });
 
       const result = await resolver.massMarkNotificationsAsRead(
         notificationIds,
@@ -346,14 +372,20 @@ describe('NotificationsResolver', () => {
       );
 
       expect(result).toEqual({
-        updatedCount: 2, // Only the successful notification + 1 related
+        updatedCount: 2, // Only valid notification + 1 related
         success: true,
       });
 
-      expect(mockNotificationsService.markAsRead).toHaveBeenCalledTimes(2);
       expect(
-        mockNotificationsService.countRelatedUnreadNotifications,
+        mockNotificationsService.markNotificationsAsReadBatch,
       ).toHaveBeenCalledTimes(1);
+      expect(
+        mockNotificationsService.markNotificationsAsReadBatch,
+      ).toHaveBeenCalledWith(notificationIds, userId);
+
+      expect(
+        mockSubscriptionService.publishNotificationUpdated,
+      ).toHaveBeenCalledTimes(2);
     });
   });
 });
