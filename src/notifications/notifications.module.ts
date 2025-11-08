@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CommonModule } from '../common/common.module';
 import { Bucket } from '../entities/bucket.entity';
 import { EntityPermission } from '../entities/entity-permission.entity';
+import { Event } from '../entities/event.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { NotificationPostpone } from '../entities/notification-postpone.entity';
@@ -35,6 +36,7 @@ import { NotificationsResolver } from './notifications.resolver';
       Bucket,
       UserDevice,
       EntityPermission,
+      Event,
     ]),
     UsersModule,
     AuthModule,

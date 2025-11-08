@@ -108,7 +108,7 @@ export class NotificationsResolver {
     private postponeService: NotificationPostponeService,
     private subscriptionService: GraphQLSubscriptionService,
     private eventsService: EventsService,
-  ) {}
+  ) { }
 
   @Query(() => [Notification])
   async notifications(

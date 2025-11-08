@@ -353,9 +353,9 @@ describe('NotificationsResolver', () => {
       mockNotificationsService.markNotificationsAsReadBatch.mockResolvedValue({
         notifications: [
           {
-            id: 'notification-2',
-            message: { id: 'message-2' },
-            readAt: new Date(),
+        id: 'notification-2',
+        message: { id: 'message-2' },
+        readAt: new Date(),
           },
           {
             id: 'related-1',
