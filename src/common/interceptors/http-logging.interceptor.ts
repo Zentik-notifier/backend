@@ -1,14 +1,14 @@
 import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
   CallHandler,
+  ExecutionContext,
+  Injectable,
   Logger,
+  NestInterceptor,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { LogLevel } from '../../entities/log-level.enum';
 import { LogStorageService } from '../../server-manager/log-storage.service';
-import { LogLevel } from '../../entities/log.entity';
 
 /**
  * Interceptor that logs HTTP requests to the database

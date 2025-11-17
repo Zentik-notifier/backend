@@ -198,8 +198,8 @@ export class ServerSettingsService {
 
         // Logging
         { configType: ServerSettingType.LogLevel, envKey: 'LOG_LEVEL', type: 'string', defaultValue: 'info', possibleValues: ['error', 'warn', 'info', 'debug', 'verbose'] },
-        { configType: ServerSettingType.LogStorageEnabled, envKey: 'LOG_STORAGE_ENABLED', type: 'boolean', defaultValue: true },
-        { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
+        { configType: ServerSettingType.LogStorageDirectory, envKey: 'LOG_STORAGE_DIRECTORY', type: 'string', defaultValue: '/logs' },
+        { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 7 },
 
         // UI / Features
         { configType: ServerSettingType.IconUploaderEnabled, envKey: 'ICON_UPLOADER_ENABLED', type: 'boolean', defaultValue: true },
@@ -213,6 +213,9 @@ export class ServerSettingsService {
         { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
         { configType: ServerSettingType.EnableSystemTokenRequests, envKey: 'ENABLE_SYSTEM_TOKEN_REQUESTS', type: 'boolean', defaultValue: false },
       ];
+
+    const createdSettings: string[] = [];
+    const updatedSettings: string[] = [];
 
     for (const mapping of envMappings) {
       const envValue = process.env[mapping.envKey];
@@ -254,16 +257,27 @@ export class ServerSettingsService {
       if (!existing) {
         // Create new setting with env/default value
         await this.upsertSetting(dto);
-        this.logger.log(`Created ${mapping.configType} = ${valueToUse}`);
+        createdSettings.push(`${mapping.configType}=${valueToUse}`);
       } else {
         // Update only possibleValues to keep it in sync, preserve user-modified values
         if (mapping.possibleValues &&
           JSON.stringify(existing.possibleValues) !== JSON.stringify(mapping.possibleValues)) {
           existing.possibleValues = mapping.possibleValues;
           await this.serverSettingsRepository.save(existing);
-          this.logger.log(`Updated possibleValues for ${mapping.configType}`);
+          updatedSettings.push(`${mapping.configType} (possibleValues)`);
         }
       }
+    }
+
+    // Log once with all changes
+    if (createdSettings.length > 0 || updatedSettings.length > 0) {
+      this.logger.log({
+        message: 'Server settings initialized',
+        created: createdSettings.length,
+        updated: updatedSettings.length,
+        createdSettings: createdSettings.length > 0 ? createdSettings : undefined,
+        updatedSettings: updatedSettings.length > 0 ? updatedSettings : undefined,
+      });
     }
 
     // Ensure a stable server identifier exists

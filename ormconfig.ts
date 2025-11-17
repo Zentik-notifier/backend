@@ -23,7 +23,6 @@ import {
   MessageReminder,
 } from './src/entities';
 import { ServerSetting } from './src/entities/server-setting.entity';
-import { Log } from './src/entities/log.entity';
 import { SystemAccessToken } from './src/system-access-token/system-access-token.entity';
 import { AdminSubscription } from './src/entities/admin-subscription.entity';
 import { InitialSchema1762016264000 } from './database/migrations/1762016264000-InitialSchema';
@@ -31,6 +30,7 @@ import { AddMagicCodeToUserBuckets1762032600961 } from './database/migrations/17
 import { AddIconAndRegistrationSettings1762036000000 } from './database/migrations/1762036000000-AddIconAndRegistrationSettings';
 import { AddSocialLoginEnabledSetting1762037000000 } from './database/migrations/1762037000000-AddSocialLoginEnabledSetting';
 import { AddIconUrlToBuckets1762423000000 } from './database/migrations/1762423000000-AddIconUrlToBuckets';
+import { AddLogStorageDirectorySetting1762438000000 } from './database/migrations/1762438000000-AddLogStorageDirectorySetting';
 
 config({ path: '.env' });
 
@@ -73,7 +73,6 @@ const dataSource = new DataSource({
     OAuthProvider,
     UserSetting,
     ServerSetting,
-    Log,
     AdminSubscription,
     MessageReminder,
   ],
@@ -83,6 +82,7 @@ const dataSource = new DataSource({
     AddIconAndRegistrationSettings1762036000000,
     AddSocialLoginEnabledSetting1762037000000,
     AddIconUrlToBuckets1762423000000,
+    AddLogStorageDirectorySetting1762438000000,
   ],
   migrationsTableName: 'migrations',
 });

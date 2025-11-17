@@ -86,8 +86,8 @@ export enum ServerSettingType {
   
   // Logging
   LogLevel = 'LogLevel',
-  LogStorageEnabled = 'LogStorageEnabled',
   LogRetentionDays = 'LogRetentionDays',
+  LogStorageDirectory = 'LogStorageDirectory',
   
   // Prometheus Metrics
   PrometheusEnabled = 'PrometheusEnabled',

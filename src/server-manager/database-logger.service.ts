@@ -1,6 +1,6 @@
 import { Injectable, LoggerService, Scope, Inject, forwardRef, Logger, ConsoleLogger, LogLevel as NestLogLevel } from '@nestjs/common';
 import { LogStorageService } from './log-storage.service';
-import { LogLevel } from '../entities/log.entity';
+import { LogLevel } from '../entities/log-level.enum';
 import { ServerSettingsService } from './server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
@@ -106,21 +106,45 @@ export class DatabaseLoggerService implements LoggerService {
     level: LogLevel,
     message: any,
     context?: string,
-    trace?: string,
+    trace?: any,
   ): void {
-    // Convert message to string if it's an object
-    const messageStr = typeof message === 'string'
-      ? message
-      : JSON.stringify(message);
+    // Extract message string and metadata from object if needed
+    let messageStr: string;
+    let metadata: any;
 
-    const metadata = typeof message === 'object' && message !== null ? message : undefined;
+    if (typeof message === 'object' && message !== null) {
+      // If message is an object with a 'message' property, use it
+      if ('message' in message && typeof message.message === 'string') {
+        messageStr = message.message;
+        // Use the rest of the object as metadata (excluding the message property)
+        const { message: _, ...rest } = message;
+        metadata = Object.keys(rest).length > 0 ? rest : undefined;
+      } else {
+        // Otherwise stringify the whole object
+        messageStr = JSON.stringify(message);
+        metadata = message;
+      }
+    } else {
+      messageStr = String(message);
+      metadata = undefined;
+    }
+
+    // Convert trace to string if it's an object/Error
+    const traceStr = trace 
+      ? (typeof trace === 'string' 
+          ? trace 
+          : (trace instanceof Error 
+              ? trace.stack || trace.message
+              : JSON.stringify(trace)))
+      : undefined;
+
     const timestamp = new Date();
 
     // Save asynchronously without blocking the logging operation
     setImmediate(() => {
       // Save to database
       this.logStorageService
-        .saveLog(level, messageStr, context, trace, metadata)
+        .saveLog(level, messageStr, context, traceStr, metadata)
         .catch((error) => {
           // Silently fail to avoid infinite loops
           console.error('Failed to save log to database:', error);

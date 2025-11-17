@@ -1053,7 +1053,7 @@ enum ServerSettingType {
   LocalRegistrationEnabled
   LogLevel
   LogRetentionDays
-  LogStorageEnabled
+  LogStorageDirectory
   MessagesDeleteJobEnabled
   MessagesMaxAge
   PrometheusEnabled

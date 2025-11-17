@@ -23,7 +23,6 @@ import {
   MessageReminder,
 } from '../entities';
 import { ServerSetting } from '../entities/server-setting.entity';
-import { Log } from '../entities/log.entity';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
 import { SystemAccessTokenRequest } from '../system-access-token/system-access-token-request.entity';
 import { AdminSubscription } from '../entities/admin-subscription.entity';
@@ -71,7 +70,6 @@ export const databaseConfig: TypeOrmModuleOptions = {
     OAuthProvider,
     UserSetting,
     ServerSetting,
-    Log,
     AdminSubscription,
     MessageReminder,
   ],

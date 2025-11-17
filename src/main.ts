@@ -55,47 +55,41 @@ async function logServerSettings(serverSettingsService: ServerSettingsService) {
   const logger = new Logger('ServerSettings');
 
   try {
-    logger.log('🔧 Server Settings:');
-
     const settings = await serverSettingsService.getAllSettings();
 
     if (settings.length === 0) {
-      logger.log('  No server settings found');
+      logger.log('No server settings found');
       return;
     }
 
-    // Group settings by type for better readability
-    const settingsByType = settings.reduce((acc, setting) => {
-      if (!acc[setting.configType]) {
-        acc[setting.configType] = [];
+    // Prepare settings summary for metadata
+    const settingsSummary = settings.reduce((acc, setting) => {
+      // Get the actual value based on the setting type
+      let value = '';
+      if (setting.valueText !== null && setting.valueText !== undefined) {
+        value = setting.valueText;
+      } else if (setting.valueBool !== null && setting.valueBool !== undefined) {
+        value = setting.valueBool.toString();
+      } else if (setting.valueNumber !== null && setting.valueNumber !== undefined) {
+        value = setting.valueNumber.toString();
+      } else {
+        value = 'null';
       }
-      acc[setting.configType].push(setting);
+
+      const maskedValue = maskSensitiveValue(setting.configType, value);
+      acc[setting.configType] = maskedValue;
       return acc;
-    }, {} as Record<string, ServerSetting[]>);
+    }, {} as Record<string, string>);
 
-    // Log settings grouped by type
-    Object.entries(settingsByType).forEach(([type, typeSettings]) => {
-      logger.log(`  📋 ${type}:`);
-      typeSettings.forEach(setting => {
-        // Get the actual value based on the setting type
-        let value = '';
-        if (setting.valueText !== null && setting.valueText !== undefined) {
-          value = setting.valueText;
-        } else if (setting.valueBool !== null && setting.valueBool !== undefined) {
-          value = setting.valueBool.toString();
-        } else if (setting.valueNumber !== null && setting.valueNumber !== undefined) {
-          value = setting.valueNumber.toString();
-        } else {
-          value = 'null';
-        }
-
-        const maskedValue = maskSensitiveValue(setting.configType, value);
-        logger.log(`    ${setting.configType}=${maskedValue}`);
-      });
+    // Log once with all settings in metadata
+    logger.log({
+      message: 'Server settings loaded',
+      count: settings.length,
+      settings: settingsSummary,
     });
 
   } catch (error) {
-    logger.error('❌ Failed to load server settings:', error);
+    logger.error('Failed to load server settings:', error);
   }
 }
 

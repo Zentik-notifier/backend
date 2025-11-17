@@ -5,7 +5,6 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AuthModule } from '../auth/auth.module';
 import { SystemAccessTokenModule } from '../system-access-token/system-access-token.module';
 import { ServerSetting } from '../entities/server-setting.entity';
-import { Log } from '../entities/log.entity';
 import { ServerManagerService } from './server-manager.service';
 import { ServerManagerResolver } from './server-manager.resolver';
 import { FilesAdminResolver } from './files-admin.resolver';
@@ -20,7 +19,7 @@ import { FilesAdminService } from './files-admin.service';
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([ServerSetting, Log]),
+    TypeOrmModule.forFeature([ServerSetting]),
     forwardRef(() => AuthModule),
     forwardRef(() => SystemAccessTokenModule),
     PrometheusModule.register({

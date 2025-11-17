@@ -1,7 +1,43 @@
-import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, InputType, Int, ObjectType, ID } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { Log, LogLevel } from '../../entities/log.entity';
+import { LogLevel } from '../../entities/log-level.enum';
+import { GraphQLJSON } from '../../common/types/json.type';
+
+@ObjectType()
+export class Log {
+  @Field(() => ID)
+  @ApiProperty()
+  id: string;
+
+  @Field(() => LogLevel)
+  @ApiProperty({ enum: LogLevel })
+  level: LogLevel;
+
+  @Field()
+  @ApiProperty()
+  message: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  context?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  trace?: string;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @ApiProperty({ required: false })
+  metadata?: Record<string, any>;
+
+  @Field()
+  @ApiProperty()
+  timestamp: Date;
+
+  @Field()
+  @ApiProperty()
+  createdAt: Date;
+}
 
 @InputType()
 export class GetLogsInput {
