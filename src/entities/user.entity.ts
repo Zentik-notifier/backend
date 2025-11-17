@@ -36,7 +36,7 @@ export class User {
   username: string;
 
   // Password field is excluded from GraphQL schema (no @Field decorator)
-  @Column()
+  @Column({ nullable: true })
   password: string;
 
   @Field()
@@ -44,7 +44,7 @@ export class User {
     example: true,
     description: 'Whether the user has a password set',
   })
-  @Column({ default: true })
+  @Column({ default: false })
   hasPassword: boolean;
 
   @Field({ nullable: true })

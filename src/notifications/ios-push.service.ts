@@ -170,6 +170,7 @@ export class IOSPushService {
           message.attachments || [],
         ),
         tapAction: effectiveTapAction,
+        deliveryType: message.deliveryType,
       };
 
       const enc = await encryptWithPublicKey(
@@ -179,8 +180,12 @@ export class IOSPushService {
       // place single blob in payload
       payload.enc = enc;
 
+      // Add deliveryType to payload so NSE can check it BEFORE decryption (for SILENT notifications)
+      payload.deliveryType = message.deliveryType;
+
       // Provide a minimal visible alert to ensure notification shows if NSE doesn't run
-      if (payload.aps) {
+      // BUT skip the alert for SILENT notifications to prevent banner from showing
+      if (payload.aps && message.deliveryType !== NotificationDeliveryType.SILENT) {
         payload.aps.alert = {
           title: 'Encrypted Notification',
         } as any;
@@ -189,6 +194,7 @@ export class IOSPushService {
       // No encryption path: include essential fields directly to ensure NSE/CE can access them
       payload.notificationId = notification.id;
       payload.bucketId = message.bucketId;
+      payload.deliveryType = message.deliveryType;
       if (bucketName) payload.bucketName = bucketName;
       if (bucketIconUrl) payload.bucketIconUrl = bucketIconUrl;
       if (bucketColor) payload.bucketColor = bucketColor;
