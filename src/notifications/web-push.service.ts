@@ -177,9 +177,11 @@ export class WebPushService {
     return {
       title: message?.title || 'Zentik',
       body: message?.body || '',
+      subtitle: message?.subtitle,
       image: imageUrl,
       url,
       notificationId: notification.id,
+      messageId: message?.id, // Include messageId for proper database tracking
       bucketId: message?.bucketId,
       bucketIcon: message?.bucket.iconUrl || message?.bucket.icon,
       bucketName: message?.bucket.name,

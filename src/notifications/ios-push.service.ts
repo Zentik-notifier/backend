@@ -36,7 +36,7 @@ export class IOSPushService {
   constructor(
     private localeService: LocaleService,
     private serverSettingsService: ServerSettingsService,
-  ) {}
+  ) { }
 
   /**
    * Ensure provider is initialized before use (lazy initialization)
@@ -126,9 +126,9 @@ export class IOSPushService {
     const effectiveTapAction: NotificationAction = message.tapAction
       ? message.tapAction
       : {
-          type: NotificationActionType.OPEN_NOTIFICATION,
-          value: notification.id,
-        };
+        type: NotificationActionType.OPEN_NOTIFICATION,
+        value: notification.id,
+      };
 
     // Build the complete payload with only 'aps' key
     const payload: any = {
@@ -161,6 +161,7 @@ export class IOSPushService {
         body: alert?.body ?? message.body,
         subtitle: alert?.subtitle ?? message.subtitle,
         notificationId: notification.id,
+        messageId: message.id,
         bucketId: message.bucketId,
         bucketName,
         bucketIconUrl,
@@ -180,19 +181,20 @@ export class IOSPushService {
       // place single blob in payload
       payload.enc = enc;
 
-      // Add deliveryType to payload so NSE can check it BEFORE decryption (for SILENT notifications)
+      // Add deliveryType to payload so NSE can check it BEFORE decryption
       payload.deliveryType = message.deliveryType;
 
-      // Provide a minimal visible alert to ensure notification shows if NSE doesn't run
-      // BUT skip the alert for SILENT notifications to prevent banner from showing
-      if (payload.aps && message.deliveryType !== NotificationDeliveryType.SILENT) {
+      // For non-SILENT encrypted: Provide minimal alert in case NSE doesn't run
+      // For SILENT: alert was already removed above, don't re-add it
+      if (payload.aps) {
         payload.aps.alert = {
           title: 'Encrypted Notification',
-        } as any;
+        };
       }
     } else {
       // No encryption path: include essential fields directly to ensure NSE/CE can access them
       payload.notificationId = notification.id;
+      payload.messageId = message.id;
       payload.bucketId = message.bucketId;
       payload.deliveryType = message.deliveryType;
       if (bucketName) payload.bucketName = bucketName;
