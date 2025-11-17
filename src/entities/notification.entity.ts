@@ -21,6 +21,10 @@ export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // Foreign key column - not exposed to GraphQL
+  @Column()
+  messageId: string;
+
   @Field(() => Message)
   @ApiProperty({ type: () => Message })
   @ManyToOne(() => Message, { onDelete: 'CASCADE' })
