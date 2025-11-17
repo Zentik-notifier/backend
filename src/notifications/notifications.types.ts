@@ -5,6 +5,7 @@ export enum NotificationDeliveryType {
   SILENT = 'SILENT',
   NORMAL = 'NORMAL',
   CRITICAL = 'CRITICAL',
+  NO_PUSH = 'NO_PUSH',
 }
 
 export enum NotificationActionType {

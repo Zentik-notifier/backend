@@ -18,6 +18,7 @@ import { UsersService } from '../users/users.service';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { AutoActionSettings } from './notification-actions.util';
+import { NotificationDeliveryType } from './notifications.types';
 import { WebPushService } from './web-push.service';
 
 export interface PushResult {
@@ -216,6 +217,11 @@ export class PushNotificationOrchestratorService {
 
       // If device is local-only, skip external push
       if (device.onlyLocal) {
+        continue;
+      }
+
+      // If message deliveryType is NO_PUSH, skip external push (notification already saved to DB)
+      if (notif.message?.deliveryType === NotificationDeliveryType.NO_PUSH) {
         continue;
       }
 

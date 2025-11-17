@@ -32,6 +32,7 @@ import { AddSocialLoginEnabledSetting1762037000000 } from './database/migrations
 import { AddIconUrlToBuckets1762423000000 } from './database/migrations/1762423000000-AddIconUrlToBuckets';
 import { AddLogStorageDirectorySetting1762438000000 } from './database/migrations/1762438000000-AddLogStorageDirectorySetting';
 import { MakePasswordNullable1731839520000 } from './database/migrations/1731839520000-MakePasswordNullable';
+import { AddNoPushDeliveryType1731847000000 } from './database/migrations/1731847000000-AddNoPushDeliveryType';
 
 config({ path: '.env' });
 
@@ -85,6 +86,7 @@ const dataSource = new DataSource({
     AddIconUrlToBuckets1762423000000,
     AddLogStorageDirectorySetting1762438000000,
     MakePasswordNullable1731839520000,
+    AddNoPushDeliveryType1731847000000,
   ],
   migrationsTableName: 'migrations',
 });

@@ -713,6 +713,7 @@ input NotificationAttachmentDto {
 enum NotificationDeliveryType {
   CRITICAL
   NORMAL
+  NO_PUSH
   SILENT
 }
 
