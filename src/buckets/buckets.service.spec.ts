@@ -323,20 +323,140 @@ describe('BucketsService', () => {
         where: { id: 'bucket-1' },
         relations: ['user'],
       });
-      expect(bucketsRepository.save).toHaveBeenCalled();
+      expect(bucketsRepository.update).toHaveBeenCalled();
       // Icon generation triggered if name, color, or icon changed
       expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
+    it('should not regenerate icon if no relevant fields changed', async () => {
+      // Reset mocks
+      jest.clearAllMocks();
+      
+      // Mock bucket with same values as update DTO
+      const unchangedBucket = {
+        ...mockBucket,
+        name: 'Unchanged Bucket',
+        color: '#00FF00',
+        icon: 'same-icon.png',
+      };
+      
+      jest
+        .spyOn(bucketsRepository, 'findOne')
+        .mockResolvedValue(unchangedBucket as any);
+      
+      // Update with same values (no changes to name, color, or icon)
+      const sameValuesDto: UpdateBucketDto = {
+        description: 'Only description changed',
+      };
+
+      await service.update('bucket-1', 'user-1', sameValuesDto);
+
+      // Icon should NOT be regenerated since name/color/icon didn't change
+      expect(attachmentsService.generateAndSaveBucketIcon).not.toHaveBeenCalled();
+      expect(bucketsRepository.update).toHaveBeenCalled();
+    });
+
+    it('should regenerate icon when name changes', async () => {
+      jest.clearAllMocks();
+      
+      const bucketWithDifferentName = {
+        ...mockBucket,
+        name: 'Old Name',
+      };
+      
+      jest
+        .spyOn(bucketsRepository, 'findOne')
+        .mockResolvedValue(bucketWithDifferentName as any);
+
+      const updateWithNewName: UpdateBucketDto = {
+        name: 'New Name',
+      };
+
+      await service.update('bucket-1', 'user-1', updateWithNewName);
+
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
+    });
+
+    it('should regenerate icon when color changes', async () => {
+      jest.clearAllMocks();
+      
+      const bucketWithDifferentColor = {
+        ...mockBucket,
+        color: '#FF0000',
+      };
+      
+      jest
+        .spyOn(bucketsRepository, 'findOne')
+        .mockResolvedValue(bucketWithDifferentColor as any);
+
+      const updateWithNewColor: UpdateBucketDto = {
+        color: '#00FF00',
+      };
+
+      await service.update('bucket-1', 'user-1', updateWithNewColor);
+
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
+    });
+
+    it('should regenerate icon when icon URL changes', async () => {
+      jest.clearAllMocks();
+      
+      const bucketWithDifferentIcon = {
+        ...mockBucket,
+        icon: 'old-icon.png',
+      };
+      
+      jest
+        .spyOn(bucketsRepository, 'findOne')
+        .mockResolvedValue(bucketWithDifferentIcon as any);
+
+      const updateWithNewIcon: UpdateBucketDto = {
+        icon: 'new-icon.png',
+      };
+
+      await service.update('bucket-1', 'user-1', updateWithNewIcon);
+
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalled();
+    });
+
+    it('should handle generateIconWithInitials parameter correctly', async () => {
+      jest.clearAllMocks();
+      
+      const updateWithGenerateIconWithInitials: UpdateBucketDto = {
+        name: 'New Name',
+        generateIconWithInitials: false,
+      };
+
+      await service.update('bucket-1', 'user-1', updateWithGenerateIconWithInitials);
+
+      // Verify icon generation was called with the correct generateIconWithInitials parameter
+      expect(attachmentsService.generateAndSaveBucketIcon).toHaveBeenCalledWith(
+        'user-1',
+        expect.any(String),
+        'New Name',
+        expect.any(String),
+        expect.anything(),
+        false, // generateIconWithInitials should be false
+      );
+    });
+
     it('should update bucket when user has admin permissions', async () => {
+      jest.clearAllMocks();
+      
       const mockSharedBucket = {
         ...mockBucket,
         user: { ...mockUser, id: 'user-2' } as any,
       };
       jest
         .spyOn(bucketsRepository, 'findOne')
-        .mockResolvedValue(mockSharedBucket as any);
+        .mockResolvedValueOnce(mockSharedBucket as any) // First call in update method
+        .mockResolvedValueOnce({ // Second call after update
+          ...mockSharedBucket,
+          ...mockUpdateBucketDto,
+          iconAttachmentUuid: 'attachment-1',
+          iconUrl: '/api/v1/attachments/public/attachment-1.png',
+        } as any);
 
       const result = await service.update(
         'bucket-1',
@@ -350,7 +470,11 @@ describe('BucketsService', () => {
         'bucket-1',
         [Permission.ADMIN],
       );
-      expect(result).toEqual(mockBucket);
+      expect(result).toMatchObject({
+        id: 'bucket-1',
+        name: 'Updated Bucket',
+        user: { id: 'user-2' },
+      });
     });
 
     it('should throw NotFoundException when bucket not found', async () => {
