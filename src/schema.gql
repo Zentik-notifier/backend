@@ -284,6 +284,7 @@ type EntityPermission {
 }
 
 type Event {
+  additionalInfo: JSON
   createdAt: DateTime!
   id: String!
   objectId: String
@@ -342,6 +343,7 @@ enum ExecutionStatus {
 
 """Types of executions that are tracked"""
 enum ExecutionType {
+  NOTIFICATION
   PAYLOAD_MAPPER
   WEBHOOK
 }

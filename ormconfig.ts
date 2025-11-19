@@ -33,6 +33,7 @@ import { AddIconUrlToBuckets1762423000000 } from './database/migrations/17624230
 import { AddLogStorageDirectorySetting1762438000000 } from './database/migrations/1762438000000-AddLogStorageDirectorySetting';
 import { MakePasswordNullable1731839520000 } from './database/migrations/1731839520000-MakePasswordNullable';
 import { AddNoPushDeliveryType1731847000000 } from './database/migrations/1731847000000-AddNoPushDeliveryType';
+import { AddAdditionalInfoToEventsAndNotificationExecution1732021200000 } from './database/migrations/1732021200000-AddAdditionalInfoToEventsAndNotificationExecution';
 
 config({ path: '.env' });
 
@@ -87,6 +88,7 @@ const dataSource = new DataSource({
     AddLogStorageDirectorySetting1762438000000,
     MakePasswordNullable1731839520000,
     AddNoPushDeliveryType1731847000000,
+    AddAdditionalInfoToEventsAndNotificationExecution1732021200000,
   ],
   migrationsTableName: 'migrations',
 });

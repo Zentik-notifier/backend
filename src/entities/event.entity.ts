@@ -1,4 +1,5 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { GraphQLJSON } from '../common/types/json.type';
 import {
   Column,
   CreateDateColumn,
@@ -57,6 +58,10 @@ export class Event {
   @Field({ nullable: true })
   @Column({ nullable: true })
   targetId?: string;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
+  additionalInfo?: Record<string, any>;
 
   @Field()
   @CreateDateColumn()

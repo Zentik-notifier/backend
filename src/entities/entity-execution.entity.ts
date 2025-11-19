@@ -13,6 +13,7 @@ import { User } from './user.entity';
 export enum ExecutionType {
   WEBHOOK = 'WEBHOOK',
   PAYLOAD_MAPPER = 'PAYLOAD_MAPPER',
+  NOTIFICATION = 'NOTIFICATION',
 }
 
 registerEnumType(ExecutionType, {
