@@ -47,6 +47,33 @@ export class BucketsResolver {
     return buckets;
   }
 
+  @ResolveField(() => String, { name: 'name' })
+  async nameField(
+    @Parent() bucket: Bucket,
+    @CurrentUser('id') userId: string,
+  ): Promise<string> {
+    // If userBucket is pre-loaded and has customName, use it
+    if (bucket.userBucket?.customName) {
+      return bucket.userBucket.customName;
+    }
+
+    // Fallback to loading userBucket if not pre-loaded
+    try {
+      const userBucket = await this.bucketsService.findUserBucketByBucketAndUser(
+        bucket.id,
+        userId,
+      );
+      if (userBucket?.customName) {
+        return userBucket.customName;
+      }
+    } catch {
+      // If no userBucket found, use original name
+    }
+
+    // Return original bucket name
+    return bucket.name;
+  }
+
   @ResolveField(() => UserBucket, { name: 'userBucket', nullable: true })
   async userBucketField(
     @Parent() bucket: Bucket,

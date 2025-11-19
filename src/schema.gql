@@ -654,6 +654,7 @@ type Mutation {
   """Update an existing server setting"""
   updateServerSetting(configType: ServerSettingType!, input: UpdateServerSettingDto!): ServerSetting!
   updateSystemToken(description: String, expiresAt: String, id: String!, maxCalls: Float, requesterId: String, scopes: [String!]): SystemAccessTokenDto!
+  updateUserBucketCustomName(bucketId: String!, customName: String): UserBucket!
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
   updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
@@ -1328,6 +1329,7 @@ type UserBucket {
   bucket: Bucket!
   bucketId: String!
   createdAt: DateTime!
+  customName: String
   id: ID!
   magicCode: String
   snoozeUntil: DateTime

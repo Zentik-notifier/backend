@@ -34,6 +34,7 @@ import { AddLogStorageDirectorySetting1762438000000 } from './database/migration
 import { MakePasswordNullable1731839520000 } from './database/migrations/1731839520000-MakePasswordNullable';
 import { AddNoPushDeliveryType1731847000000 } from './database/migrations/1731847000000-AddNoPushDeliveryType';
 import { AddAdditionalInfoToEventsAndNotificationExecution1732021200000 } from './database/migrations/1732021200000-AddAdditionalInfoToEventsAndNotificationExecution';
+import { AddCustomNameToUserBucket1732050933000 } from './database/migrations/1732050933000-AddCustomNameToUserBucket';
 
 config({ path: '.env' });
 
@@ -89,6 +90,7 @@ const dataSource = new DataSource({
     MakePasswordNullable1731839520000,
     AddNoPushDeliveryType1731847000000,
     AddAdditionalInfoToEventsAndNotificationExecution1732021200000,
+    AddCustomNameToUserBucket1732050933000,
   ],
   migrationsTableName: 'migrations',
 });

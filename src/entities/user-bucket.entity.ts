@@ -69,6 +69,14 @@ export class UserBucket {
   @Column({ type: 'varchar', nullable: true, unique: true })
   magicCode?: string | null;
 
+  @Field(() => String, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Custom name for the bucket (overrides bucket.name)',
+  })
+  @Column({ type: 'varchar', nullable: true })
+  customName?: string | null;
+
   @Field(() => Date, { nullable: true })
   @ApiProperty({
     required: false,

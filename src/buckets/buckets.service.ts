@@ -673,4 +673,18 @@ export class BucketsService {
     userBucket.magicCode = null;
     return this.userBucketRepository.save(userBucket);
   }
+
+  async updateUserBucketCustomName(
+    userId: string,
+    bucketId: string,
+    customName: string | null,
+  ): Promise<UserBucket> {
+    const userBucket = await this.findUserBucketByBucketAndUser(bucketId, userId);
+    if (!userBucket) {
+      throw new NotFoundException('User bucket relationship not found');
+    }
+
+    userBucket.customName = customName;
+    return this.userBucketRepository.save(userBucket);
+  }
 }

@@ -28,9 +28,28 @@ export class UserBucketResolver {
   @ResolveField(() => Bucket)
   async bucket(@Parent() userBucket: UserBucket) {
     if (userBucket.bucket) return userBucket.bucket;
-    return this.bucketsRepository.findOne({
+    const bucket = await this.bucketsRepository.findOne({
       where: { id: userBucket.bucketId },
     });
+    
+    // If customName is set, override the bucket name
+    if (bucket && userBucket.customName) {
+      return {
+        ...bucket,
+        name: userBucket.customName,
+      };
+    }
+    
+    return bucket;
+  }
+
+  @Mutation(() => UserBucket)
+  async updateUserBucketCustomName(
+    @Args('bucketId') bucketId: string,
+    @Args('customName', { type: () => String, nullable: true }) customName: string | null,
+    @CurrentUser('id') userId: string,
+  ): Promise<UserBucket> {
+    return this.bucketsService.updateUserBucketCustomName(userId, bucketId, customName);
   }
 
   @Mutation(() => UserBucket)
