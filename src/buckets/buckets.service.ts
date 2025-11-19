@@ -54,40 +54,12 @@ export class BucketsService {
     this.logger.log(`Bucket created: ${saved.id} by user ${userId}`);
     await this.eventTrackingService.trackBucketCreation(userId, saved.id);
 
-    // Generate bucket icon automatically (only if attachments are enabled)
-    const attachmentsEnabled = await this.attachmentsService.isAttachmentsEnabled();
-    if (attachmentsEnabled) {
-      try {
-        const attachment = await this.attachmentsService.generateAndSaveBucketIcon(
-          userId,
-          saved.id,
-          saved.name,
-          saved.color || '#007AFF',
-          saved.icon,
-          createBucketDto.generateIconWithInitials ?? true,
-        );
-
-        // Build public URL for the attachment
-        const iconUrl = this.urlBuilderService.buildAttachmentUrl(attachment.id);
-
-        // Update bucket with icon attachment UUID and iconUrl
-        await this.bucketsRepository.update(saved.id, {
-          iconAttachmentUuid: attachment.id,
-          iconUrl: iconUrl
-        });
-        saved.iconAttachmentUuid = attachment.id;
-        saved.iconUrl = iconUrl;
-      } catch (error) {
-        this.logger.error(`Failed to generate icon for bucket ${saved.name}`, error.stack);
-        // Don't fail bucket creation if icon generation fails
-      }
-    } else if (saved.icon) {
-      // If attachments are disabled but icon URL is provided, use it as iconUrl
-      await this.bucketsRepository.update(saved.id, {
-        iconUrl: saved.icon
-      });
-      saved.iconUrl = saved.icon;
-    }
+    // Regenerate icon automatically
+    await this.regenerateBucketIconIfNeeded(
+      userId,
+      saved,
+      createBucketDto.generateIconWithInitials ?? true,
+    );
 
     const reloaded = await this.bucketsRepository.findOne({
       where: { id: saved.id },
@@ -96,9 +68,9 @@ export class BucketsService {
 
     // Create UserBucket relationship immediately to optimize future snooze operations
     try {
-      await this.createUserBucket(userId, { 
+      await this.createUserBucket(userId, {
         bucketId: saved.id,
-        generateMagicCode: createBucketDto.generateMagicCode 
+        generateMagicCode: createBucketDto.generateMagicCode
       });
     } catch (error) { }
 
@@ -245,6 +217,54 @@ export class BucketsService {
     return baseBucket;
   }
 
+  /**
+   * Regenerates bucket icon if attachments are enabled.
+   * Falls back to using the icon URL if attachments are disabled.
+   * @param userId - The user ID performing the operation
+   * @param bucket - The bucket entity to update
+   * @param generateIconWithInitials - Whether to generate icon with initials
+   */
+  private async regenerateBucketIconIfNeeded(
+    userId: string,
+    bucket: Bucket,
+    generateIconWithInitials: boolean = true,
+  ): Promise<void> {
+    const attachmentsEnabled = await this.attachmentsService.isAttachmentsEnabled();
+    
+    if (attachmentsEnabled) {
+      try {
+        const attachment = await this.attachmentsService.generateAndSaveBucketIcon(
+          userId,
+          bucket.id,
+          bucket.name,
+          bucket.color || '#007AFF',
+          bucket.icon,
+          generateIconWithInitials,
+        );
+
+        // Build public URL for the attachment
+        const iconUrl = this.urlBuilderService.buildAttachmentUrl(attachment.id);
+
+        // Update bucket with icon attachment UUID and iconUrl
+        await this.bucketsRepository.update(bucket.id, {
+          iconAttachmentUuid: attachment.id,
+          iconUrl: iconUrl
+        });
+        bucket.iconAttachmentUuid = attachment.id;
+        bucket.iconUrl = iconUrl;
+      } catch (error) {
+        this.logger.error(`Failed to generate icon for bucket ${bucket.name}`, error.stack);
+        // Don't fail bucket operation if icon generation fails
+      }
+    } else if (bucket.icon) {
+      // If attachments are disabled but icon URL is provided, use it as iconUrl
+      await this.bucketsRepository.update(bucket.id, {
+        iconUrl: bucket.icon
+      });
+      bucket.iconUrl = bucket.icon;
+    }
+  }
+
   async update(
     id: string,
     userId: string,
@@ -289,48 +309,29 @@ export class BucketsService {
     const iconChanged = updateBucketDto.icon !== undefined && updateBucketDto.icon !== bucket.icon;
     const needsIconRegeneration = nameChanged || colorChanged || iconChanged;
 
-    // Update basic bucket properties
-    Object.assign(bucket, updateBucketDto);
+    // Store generateIconWithInitials before updating bucket
+    const generateIconWithInitials = updateBucketDto.generateIconWithInitials ?? true;
 
-    // Save bucket
-    const saved = await this.bucketsRepository.save(bucket);
+    // Update basic bucket properties (excluding non-entity fields)
+    const { generateIconWithInitials: _, ...bucketUpdates } = updateBucketDto;
+    Object.assign(bucket, bucketUpdates);
 
-    // Regenerate icon if needed (only if attachments are enabled)
-    const attachmentsEnabled = await this.attachmentsService.isAttachmentsEnabled();
-    if (needsIconRegeneration && attachmentsEnabled) {
-      try {
-        const attachment = await this.attachmentsService.generateAndSaveBucketIcon(
-          userId,
-          saved.id,
-          saved.name,
-          saved.color || '#007AFF',
-          saved.icon,
-          updateBucketDto.generateIconWithInitials ?? true,
-        );
-
-        // Build public URL for the attachment
-        const iconUrl = this.urlBuilderService.buildAttachmentUrl(attachment.id);
-
-        // Update bucket with icon attachment UUID and iconUrl
-        await this.bucketsRepository.update(saved.id, {
-          iconAttachmentUuid: attachment.id,
-          iconUrl: iconUrl
-        });
-        saved.iconAttachmentUuid = attachment.id;
-        saved.iconUrl = iconUrl;
-      } catch (error) {
-        this.logger.error(`Failed to regenerate icon for bucket ${saved.name}`, error.stack);
-        // Don't fail bucket update if icon generation fails
-      }
-    } else if (needsIconRegeneration && saved.icon) {
-      // If attachments are disabled but icon URL changed, update iconUrl
-      await this.bucketsRepository.update(saved.id, {
-        iconUrl: saved.icon
-      });
-      saved.iconUrl = saved.icon;
+    // Regenerate icon if needed
+    if (needsIconRegeneration) {
+      await this.regenerateBucketIconIfNeeded(
+        userId,
+        bucket,
+        generateIconWithInitials,
+      );
     }
 
-    return saved;
+    await this.bucketsRepository.update(bucket.id, bucket);
+    const saved = await this.bucketsRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+
+    return saved!;
   }
 
   async remove(id: string, userId: string): Promise<void> {

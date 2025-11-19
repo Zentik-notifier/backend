@@ -11,12 +11,11 @@ export class UpdateBucketDto {
   @IsNotEmpty()
   name?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @ApiProperty({ required: false, description: 'Icon for the bucket' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  icon?: string;
+  icon?: string | null;
 
   @Field({ nullable: true })
   @ApiProperty({ required: false, description: 'Description of the bucket' })
