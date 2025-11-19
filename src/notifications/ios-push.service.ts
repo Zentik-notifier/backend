@@ -170,7 +170,6 @@ export class IOSPushService {
           message.attachments || [],
         ),
         tapAction: effectiveTapAction,
-        // deliveryType removed - already outside enc for NSE check
       };
 
       const enc = await encryptWithPublicKey(
