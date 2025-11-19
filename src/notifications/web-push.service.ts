@@ -181,21 +181,13 @@ export class WebPushService {
       image: imageUrl,
       url,
       notificationId: notification.id,
-      messageId: message?.id, // Include messageId for proper database tracking
       bucketId: message?.bucketId,
       bucketIcon: message?.bucket.iconUrl || message?.bucket.icon,
       bucketName: message?.bucket.name,
       deliveryType: message?.deliveryType,
-      locale: message?.locale,
-      sound: message?.sound,
-      badge: 1,
       actions: allActions,
       tapAction: effectiveTapAction,
       attachments: message?.attachments,
-      addMarkAsReadAction: !!message?.addMarkAsReadAction,
-      addOpenNotificationAction: !!message?.addOpenNotificationAction,
-      addDeleteAction: !!message?.addDeleteAction,
-      snoozes: message?.snoozes || [],
     };
   }
 

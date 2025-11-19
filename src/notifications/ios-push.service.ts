@@ -161,7 +161,6 @@ export class IOSPushService {
         body: alert?.body ?? message.body,
         subtitle: alert?.subtitle ?? message.subtitle,
         notificationId: notification.id,
-        messageId: message.id,
         bucketId: message.bucketId,
         bucketName,
         bucketIconUrl,
@@ -171,7 +170,7 @@ export class IOSPushService {
           message.attachments || [],
         ),
         tapAction: effectiveTapAction,
-        deliveryType: message.deliveryType,
+        // deliveryType removed - already outside enc for NSE check
       };
 
       const enc = await encryptWithPublicKey(
@@ -194,7 +193,6 @@ export class IOSPushService {
     } else {
       // No encryption path: include essential fields directly to ensure NSE/CE can access them
       payload.notificationId = notification.id;
-      payload.messageId = message.id;
       payload.bucketId = message.bucketId;
       payload.deliveryType = message.deliveryType;
       if (bucketName) payload.bucketName = bucketName;
