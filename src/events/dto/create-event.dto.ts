@@ -1,5 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { GraphQLJSON } from '../../common/types/json.type';
 import { EventType } from '../../entities';
 
 @InputType()
@@ -22,4 +23,9 @@ export class CreateEventDto {
   @IsOptional()
   @IsString()
   targetId?: string;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @IsOptional()
+  @IsObject()
+  additionalInfo?: Record<string, any>;
 }

@@ -48,21 +48,33 @@ export class EventTrackingService {
     });
   }
 
-  async trackNotification(userId: string, deviceId: string, notificationId?: string): Promise<void> {
+  async trackNotification(
+    userId: string, 
+    deviceId: string, 
+    notificationId?: string,
+    platform?: string,
+  ): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.NOTIFICATION,
       userId,
       objectId: notificationId,
       targetId: deviceId,
+      additionalInfo: platform ? { platform } : undefined,
     });
   }
 
-  async trackNotificationAck(userId: string, deviceId: string, notificationId: string): Promise<void> {
+  async trackNotificationAck(
+    userId: string, 
+    deviceId: string, 
+    notificationId: string,
+    platform?: string,
+  ): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.NOTIFICATION_ACK,
       userId,
       objectId: notificationId,
       targetId: deviceId,
+      additionalInfo: platform ? { platform } : undefined,
     });
   }
 

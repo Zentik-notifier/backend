@@ -10,6 +10,7 @@ import { Notification } from '../entities/notification.entity';
 import { NotificationPostpone } from '../entities/notification-postpone.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
+import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
 import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
 import { MessagesModule } from '../messages/messages.module';
@@ -42,6 +43,7 @@ import { NotificationsResolver } from './notifications.resolver';
     AuthModule,
     CommonModule,
     EntityPermissionModule,
+    EntityExecutionModule,
     EventsModule,
     GraphQLSharedModule,
     forwardRef(() => MessagesModule),

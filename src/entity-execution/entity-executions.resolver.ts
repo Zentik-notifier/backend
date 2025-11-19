@@ -25,18 +25,19 @@ export class EntityExecutionsResolver {
     @Args('input') input: GetEntityExecutionsInput,
     @CurrentUser('id') userId: string,
   ): Promise<EntityExecution[]> {
+    // Always use the authenticated user's ID, ignore input.userId for security
     // If no filters provided, return all executions for the user
-    if (!input.type && !input.entityId && !input.userId) {
+    if (!input.type && !input.entityId) {
       return this.entityExecutionService.findByUserId(userId);
     }
 
-    // If type is provided, use the new method that supports entityId filtering
+    // If type is provided, use the method that supports entityId filtering
     if (input.type) {
       return this.entityExecutionService.findByTypeAndEntity(
         input.type,
         input.entityId,
         undefined,
-        input.userId || userId,
+        userId, // Always use authenticated user's ID
       );
     }
 
@@ -46,13 +47,8 @@ export class EntityExecutionsResolver {
         ExecutionType.PAYLOAD_MAPPER, // Default to PAYLOAD_MAPPER if no type specified
         input.entityId,
         undefined,
-        input.userId || userId,
+        userId, // Always use authenticated user's ID
       );
-    }
-
-    // If only userId is provided (different from current user), filter by that user
-    if (input.userId && input.userId !== userId) {
-      return this.entityExecutionService.findByUserId(input.userId);
     }
 
     // Fallback to current user executions

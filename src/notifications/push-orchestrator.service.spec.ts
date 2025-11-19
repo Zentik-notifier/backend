@@ -12,6 +12,7 @@ import { UrlBuilderService } from '../common/services/url-builder.service';
 import { LocaleService } from '../common/services/locale.service';
 import { BucketsService } from '../buckets/buckets.service';
 import { EventTrackingService } from '../events/event-tracking.service';
+import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 import { UsersService } from '../users/users.service';
 import { UserSettingType } from '../entities/user-setting.types';
 import { Notification } from '../entities/notification.entity';
@@ -178,6 +179,12 @@ describe('PushNotificationOrchestratorService', () => {
           useValue: {
             trackNotification: jest.fn(),
             trackPushPassthrough: jest.fn(),
+          },
+        },
+        {
+          provide: EntityExecutionService,
+          useValue: {
+            create: jest.fn().mockResolvedValue({ id: 'execution-1' }),
           },
         },
         {

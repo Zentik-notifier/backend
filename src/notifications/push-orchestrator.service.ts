@@ -4,11 +4,13 @@ import { In, Repository } from 'typeorm';
 import { BucketsService } from '../buckets/buckets.service';
 import { LocaleService } from '../common/services/locale.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
+import { ExecutionStatus, ExecutionType } from '../entities/entity-execution.entity';
 import { Message } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { UserSettingType } from '../entities/user-setting.types';
+import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
@@ -48,10 +50,27 @@ export class PushNotificationOrchestratorService {
     private readonly urlBuilderService: UrlBuilderService,
     private readonly bucketsService: BucketsService,
     private readonly eventTrackingService: EventTrackingService,
+    private readonly entityExecutionService: EntityExecutionService,
     private readonly usersService: UsersService,
     private readonly serverSettingsService: ServerSettingsService,
     private readonly localeService: LocaleService,
   ) { }
+
+  /**
+   * Privatize notification data for logging/tracking purposes
+   */
+  private privatizeNotificationData(notification: Notification, bucketName?: string): string {
+    const message = notification.message;
+    return JSON.stringify({
+      id: notification.id,
+      messageId: message?.id,
+      title: message?.title ? `${message.title.substring(0, 5)}...` : undefined,
+      body: message?.body ? `${message.body.substring(0, 5)}...` : undefined,
+      bucketName: bucketName ? `${bucketName.substring(0, 5)}...` : undefined,
+      deliveryType: message?.deliveryType,
+      createdAt: notification.createdAt,
+    });
+  }
 
   /**
  * Get device-specific settings for multiple devices in one batch
@@ -242,8 +261,10 @@ export class PushNotificationOrchestratorService {
       // Get device-specific settings
       const deviceSettings = deviceSettingsMap.get(device.id);
 
+      // Extract bucket name for tracking
+      const bucketName = notif.message?.bucket?.name;
 
-      const result = await this.dispatchPush(notif, device, deviceSettings);
+      const result = await this.dispatchPush(notif, device, deviceSettings, bucketName);
       try {
         if (result.success) {
           successCount++;
@@ -278,6 +299,8 @@ export class PushNotificationOrchestratorService {
                 const retry = await this.sendPushToSingleDeviceStateless(
                   notif,
                   { ...device, onlyLocal: device.onlyLocal } as any,
+                  undefined, // userSettings
+                  bucketName, // bucketName
                 );
                 if (retry.success) {
                   successCount++;
@@ -490,7 +513,13 @@ export class PushNotificationOrchestratorService {
     notification: Notification,
     userDevice: UserDevice,
     userSettings?: AutoActionSettings,
+    bucketName?: string,
   ): Promise<{ success: boolean; error?: string }> {
+    const startTime = Date.now();
+    let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
+    let executionError: string | undefined;
+    let executionOutput: string | undefined;
+
     try {
       // If userSettings not provided, fetch from database
       let settings = userSettings;
@@ -510,36 +539,105 @@ export class PushNotificationOrchestratorService {
         settings = this.buildAutoActionSettings(userSettingsMap);
       }
 
+      let result: { success: boolean; error?: string };
+      let providerResponse: any;
+
       if (userDevice.platform === DevicePlatform.IOS) {
-        const result = await this.iosPushService.send(notification, [
+        const iosResult = await this.iosPushService.send(notification, [
           userDevice,
         ], settings);
-        return { success: !!result.success, error: result.error };
+        providerResponse = iosResult;
+        result = { success: !!iosResult.success, error: iosResult.error };
+        
+        // Check for payload too large from iOS service flags
+        if (iosResult.payloadTooLargeDetected) {
+          const retryInfo = iosResult.retryAttempted 
+            ? ` (retry ${iosResult.results?.[0]?.retrySuccess ? 'succeeded' : 'failed'})`
+            : ' (retry not attempted)';
+          executionError = `iOS PayloadTooLarge detected${retryInfo}`;
+          executionStatus = iosResult.results?.[0]?.retrySuccess ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
+        }
       } else if (userDevice.platform === DevicePlatform.ANDROID) {
-        const result = await this.firebasePushService.send(notification, [
+        const androidResult = await this.firebasePushService.send(notification, [
           userDevice,
         ], settings);
-        const ok = result.success && (result.successCount || 0) > 0;
-        const firstError = result.results?.find((r) => !r.success)?.error;
-        return { success: ok, error: ok ? undefined : firstError };
+        providerResponse = androidResult;
+        const ok = androidResult.success && (androidResult.successCount || 0) > 0;
+        const firstError = androidResult.results?.find((r) => !r.success)?.error;
+        result = { success: ok, error: ok ? undefined : firstError };
       } else if (userDevice.platform === DevicePlatform.WEB) {
-        const result = await this.webPushService.send(notification, [
+        const webResult = await this.webPushService.send(notification, [
           userDevice,
         ], settings);
-        const ok = !!result.success;
-        const firstError = result.results?.find((r) => !r.success)?.error;
-        return { success: ok, error: ok ? undefined : firstError };
+        providerResponse = webResult;
+        const ok = !!webResult.success;
+        const firstError = webResult.results?.find((r) => !r.success)?.error;
+        result = { success: ok, error: ok ? undefined : firstError };
       } else {
         this.logger.warn(
           `Unsupported platform for device ${userDevice.id}: ${userDevice.platform}`,
         );
-        return { success: false, error: 'Unsupported platform' };
+        result = { success: false, error: 'Unsupported platform' };
+        executionStatus = ExecutionStatus.SKIPPED;
+        executionError = 'Unsupported platform';
       }
+
+      if (!result.success && result.error) {
+        executionStatus = ExecutionStatus.ERROR;
+        executionError = result.error;
+      } else {
+        executionOutput = JSON.stringify({ 
+          deviceId: userDevice.id, 
+          platform: userDevice.platform,
+          sentAt: new Date().toISOString(),
+          providerResponse,
+        });
+      }
+
+      // Track execution in entity_executions
+      const durationMs = Date.now() - startTime;
+      await this.entityExecutionService.create({
+        type: ExecutionType.NOTIFICATION,
+        status: executionStatus,
+        entityId: notification.id,
+        userId: userDevice.userId,
+        input: this.privatizeNotificationData(notification, bucketName),
+        output: executionOutput,
+        errors: executionError,
+        durationMs,
+      });
+
+      // Track event with platform info
+      await this.eventTrackingService.trackNotification(
+        userDevice.userId,
+        userDevice.id,
+        notification.id,
+        userDevice.platform,
+      );
+
+      return result;
     } catch (error: any) {
+      const durationMs = Date.now() - startTime;
+      executionStatus = ExecutionStatus.ERROR;
+      executionError = error.message;
+
       this.logger.error(
         `Failed to send push (stateless) for notification ${notification.id} (device ${userDevice.id})`,
         error,
       );
+
+      // Track failed execution
+      await this.entityExecutionService.create({
+        type: ExecutionType.NOTIFICATION,
+        status: executionStatus,
+        entityId: notification.id,
+        userId: userDevice.userId,
+        input: this.privatizeNotificationData(notification, bucketName),
+        output: undefined,
+        errors: executionError,
+        durationMs,
+      });
+
       return { success: false, error: error.message };
     }
   }
@@ -589,6 +687,7 @@ export class PushNotificationOrchestratorService {
     notification: Notification,
     userDevice: UserDevice,
     userSettings?: AutoActionSettings,
+    bucketName?: string,
   ): Promise<{ success: boolean; error?: string }> {
 
 
@@ -607,7 +706,7 @@ export class PushNotificationOrchestratorService {
 
     // Onboard - use local onboard push services (APN, Firebase, WebPush)
     if (mode === 'Onboard') {
-      return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings);
+      return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings, bucketName);
     }
 
     // Passthrough - use passthrough server
@@ -625,7 +724,7 @@ export class PushNotificationOrchestratorService {
         return { success: false, error };
       }
 
-      return this.sendViaPassthrough(server, token, notification, userDevice);
+      return this.sendViaPassthrough(server, token, notification, userDevice, bucketName);
     }
 
     // Should never reach here due to validation in getPushMode
@@ -640,7 +739,13 @@ export class PushNotificationOrchestratorService {
     token: string,
     notification: Notification,
     userDevice: UserDevice,
+    bucketName?: string,
   ): Promise<{ success: boolean; error?: string }> {
+    const startTime = Date.now();
+    let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
+    let executionError: string | undefined;
+    let executionOutput: string | undefined;
+
     try {
       const url = `${server.replace(/\/$/, '')}/notifications/notify-external`;
 
@@ -693,6 +798,17 @@ export class PushNotificationOrchestratorService {
           `Passthrough done | notifId=${notification.id} status=ok tokenId=${tokenId || 'n/a'} calls=${calls || 'n/a'}/${maxCalls || 'n/a'} total=${totalCalls || 'n/a'} remaining=${remaining ?? 'n/a'}`,
         );
 
+        executionOutput = JSON.stringify({
+          deviceId: userDevice.id,
+          platform: userDevice.platform,
+          sentAt: new Date().toISOString(),
+          response: {
+            status: res.status,
+            statusText: res.statusText,
+            data,
+          },
+        });
+
         // Read token usage headers and update ServerSettings stats
         try {
           if (tokenId) {
@@ -734,6 +850,28 @@ export class PushNotificationOrchestratorService {
             `Failed to update SystemTokenUsageStats from passthrough headers: ${e}`,
           );
         }
+
+        // Track successful passthrough execution
+        const durationMs = Date.now() - startTime;
+        await this.entityExecutionService.create({
+          type: ExecutionType.NOTIFICATION,
+          status: executionStatus,
+          entityId: notification.id,
+          userId: userDevice.userId,
+          input: this.privatizeNotificationData(notification, bucketName),
+          output: executionOutput,
+          errors: undefined,
+          durationMs,
+        });
+
+        // Track event with platform info
+        await this.eventTrackingService.trackNotification(
+          userDevice.userId,
+          userDevice.id,
+          notification.id,
+          userDevice.platform,
+        );
+
         return { success: true };
       }
 
@@ -742,9 +880,55 @@ export class PushNotificationOrchestratorService {
       this.logger.warn(
         `Passthrough done | notifId=${notification.id} status=${res.status} error=${error}`,
       );
+
+      // Track failed passthrough execution
+      executionStatus = ExecutionStatus.ERROR;
+      executionError = error;
+      const durationMs = Date.now() - startTime;
+      
+      // Include response details in output even for errors
+      const errorOutput = JSON.stringify({
+        deviceId: userDevice.id,
+        platform: userDevice.platform,
+        sentAt: new Date().toISOString(),
+        response: {
+          status: res.status,
+          statusText: res.statusText,
+          data,
+        },
+      });
+      
+      await this.entityExecutionService.create({
+        type: ExecutionType.NOTIFICATION,
+        status: executionStatus,
+        entityId: notification.id,
+        userId: userDevice.userId,
+        input: this.privatizeNotificationData(notification, bucketName),
+        output: errorOutput,
+        errors: executionError,
+        durationMs,
+      });
+
       return { success: false, error };
     } catch (error: any) {
       this.logger.error(`Passthrough done | notifId=${notification.id} status=exception error=${error?.message || 'unknown'}`);
+
+      // Track exception in passthrough execution
+      const durationMs = Date.now() - startTime;
+      executionStatus = ExecutionStatus.ERROR;
+      executionError = error?.message || 'Passthrough error';
+
+      await this.entityExecutionService.create({
+        type: ExecutionType.NOTIFICATION,
+        status: executionStatus,
+        entityId: notification.id,
+        userId: userDevice.userId,
+        input: this.privatizeNotificationData(notification, bucketName),
+        output: undefined,
+        errors: executionError,
+        durationMs,
+      });
+
       return { success: false, error: error?.message || 'Passthrough error' };
     }
   }

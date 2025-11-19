@@ -19,12 +19,17 @@ export interface NotificationResult {
   token: string;
   result?: any;
   error?: string;
+  payloadTooLarge?: boolean;
+  retriedWithoutEncryption?: boolean;
+  retrySuccess?: boolean;
 }
 
 export interface SendResult {
   success: boolean;
   results?: NotificationResult[];
   error?: string;
+  payloadTooLargeDetected?: boolean;
+  retryAttempted?: boolean;
 }
 
 @Injectable()
@@ -332,6 +337,9 @@ export class IOSPushService {
     try {
       // Send to all device tokens, encrypting per-device sensitive values in build
       const results: NotificationResult[] = [];
+      let payloadTooLargeDetected = false;
+      let retryAttempted = false;
+      
       for (const token of deviceTokens) {
         try {
           const device = devices.find((d) => d.deviceToken === token);
@@ -352,7 +360,15 @@ export class IOSPushService {
             (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
 
           const result = await this.provider.send(notification_apn, token);
-          results.push({ token, result });
+          
+          const resultEntry: NotificationResult = { 
+            token, 
+            result,
+            payloadTooLarge: false,
+            retriedWithoutEncryption: false,
+            retrySuccess: false,
+          };
+          results.push(resultEntry);
 
           if (result.failed && result.failed.length > 0) {
             // Enhanced error logging for APN issues
@@ -372,12 +388,19 @@ export class IOSPushService {
                 (statusCode === 403 || statusCode === 413) &&
                 reason === 'PayloadTooLarge'
               ) {
+                // Mark flags
+                resultEntry.payloadTooLarge = true;
+                payloadTooLargeDetected = true;
+                
                 // NOTE: the decision to retry will be checked upstream by orchestrator per user setting
                 this.logger.warn(
                   `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption...`,
                 );
                 (async () => {
                   try {
+                    retryAttempted = true;
+                    resultEntry.retriedWithoutEncryption = true;
+                    
                     // Rebuild payload WITHOUT encryption by omitting device when building
                     const retryBuild = await this.buildAPNsPayload(
                       notification,
@@ -398,7 +421,18 @@ export class IOSPushService {
                       retryNotification,
                       token,
                     );
-                    results.push({ token, result: retryResult });
+                    
+                    const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
+                    resultEntry.retrySuccess = retrySuccess;
+                    resultEntry.result = retryResult; // Update with retry result
+                    
+                    results.push({ 
+                      token, 
+                      result: retryResult,
+                      payloadTooLarge: true,
+                      retriedWithoutEncryption: true,
+                      retrySuccess,
+                    });
 
                     if (retryResult.failed && retryResult.failed.length > 0) {
                       this.logger.error(
@@ -421,7 +455,14 @@ export class IOSPushService {
                         8,
                       )}...: ${retryError?.message}`,
                     );
-                    results.push({ token, error: retryError?.message });
+                    resultEntry.retrySuccess = false;
+                    results.push({ 
+                      token, 
+                      error: retryError?.message,
+                      payloadTooLarge: true,
+                      retriedWithoutEncryption: true,
+                      retrySuccess: false,
+                    });
                   }
                 })();
               }
@@ -467,6 +508,8 @@ export class IOSPushService {
       return {
         success: successCount > 0,
         results,
+        payloadTooLargeDetected,
+        retryAttempted,
       };
     } catch (error) {
       this.logger.error('Error sending via APNs:', error);
