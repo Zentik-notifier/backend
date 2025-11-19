@@ -548,10 +548,10 @@ export class PushNotificationOrchestratorService {
         ], settings);
         providerResponse = iosResult;
         result = { success: !!iosResult.success, error: iosResult.error };
-        
+
         // Check for payload too large from iOS service flags
         if (iosResult.payloadTooLargeDetected) {
-          const retryInfo = iosResult.retryAttempted 
+          const retryInfo = iosResult.retryAttempted
             ? ` (retry ${iosResult.results?.[0]?.retrySuccess ? 'succeeded' : 'failed'})`
             : ' (retry not attempted)';
           executionError = `iOS PayloadTooLarge detected${retryInfo}`;
@@ -586,8 +586,8 @@ export class PushNotificationOrchestratorService {
         executionStatus = ExecutionStatus.ERROR;
         executionError = result.error;
       } else {
-        executionOutput = JSON.stringify({ 
-          deviceId: userDevice.id, 
+        executionOutput = JSON.stringify({
+          deviceId: userDevice.id,
           platform: userDevice.platform,
           sentAt: new Date().toISOString(),
           providerResponse,
@@ -599,6 +599,7 @@ export class PushNotificationOrchestratorService {
       await this.entityExecutionService.create({
         type: ExecutionType.NOTIFICATION,
         status: executionStatus,
+        entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
         input: this.privatizeNotificationData(notification, bucketName),
@@ -630,6 +631,7 @@ export class PushNotificationOrchestratorService {
       await this.entityExecutionService.create({
         type: ExecutionType.NOTIFICATION,
         status: executionStatus,
+        entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
         input: this.privatizeNotificationData(notification, bucketName),
@@ -856,6 +858,7 @@ export class PushNotificationOrchestratorService {
         await this.entityExecutionService.create({
           type: ExecutionType.NOTIFICATION,
           status: executionStatus,
+          entityName: userDevice.platform,
           entityId: notification.id,
           userId: userDevice.userId,
           input: this.privatizeNotificationData(notification, bucketName),
@@ -885,7 +888,7 @@ export class PushNotificationOrchestratorService {
       executionStatus = ExecutionStatus.ERROR;
       executionError = error;
       const durationMs = Date.now() - startTime;
-      
+
       // Include response details in output even for errors
       const errorOutput = JSON.stringify({
         deviceId: userDevice.id,
@@ -897,10 +900,11 @@ export class PushNotificationOrchestratorService {
           data,
         },
       });
-      
+
       await this.entityExecutionService.create({
         type: ExecutionType.NOTIFICATION,
         status: executionStatus,
+        entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
         input: this.privatizeNotificationData(notification, bucketName),
@@ -921,6 +925,7 @@ export class PushNotificationOrchestratorService {
       await this.entityExecutionService.create({
         type: ExecutionType.NOTIFICATION,
         status: executionStatus,
+        entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
         input: this.privatizeNotificationData(notification, bucketName),
