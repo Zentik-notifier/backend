@@ -279,6 +279,7 @@ describe('IOSPushService', () => {
         subtitle: 'Test Subtitle',
         bucketId: 'bucket-1',
         sound: 'default',
+        deliveryType: 'NORMAL',
         actions: [],
         attachments: [
           {
@@ -336,13 +337,15 @@ describe('IOSPushService', () => {
           'thread-id': 'bucket-1',
         },
         enc: expect.any(String),
+        dty: expect.any(String), // deliveryType abbreviated
       });
 
-      // Verify that bucket fields are included in encrypted payload
+      // Verify that bucket fields are NOT in payload (only bucketId in encrypted blob)
       expect(result.payload.enc).toBeDefined();
-      expect(result.payload.bucketName).toBeUndefined(); // Should be encrypted
-      expect(result.payload.bucketIconUrl).toBeUndefined(); // Should be encrypted
-      expect(result.payload.bucketColor).toBeUndefined(); // Should be encrypted
+      expect(result.payload.bid).toBeUndefined(); // Should be in encrypted blob only
+      expect(result.payload.bucketName).toBeUndefined(); // Removed from payload
+      expect(result.payload.bucketIconUrl).toBeUndefined(); // Removed from payload
+      expect(result.payload.bucketColor).toBeUndefined(); // Removed from payload
     });
 
     it('should build APNs payload with bucket fields for non-encrypted device', async () => {
@@ -366,13 +369,16 @@ describe('IOSPushService', () => {
           'content-available': 1,
           'thread-id': 'bucket-1',
         },
-        notificationId: 'notification-1',
-        bucketId: 'bucket-1',
-        bucketName: 'Test Bucket',
-        bucketIconUrl: 'https://example.com/bucket-icon.png',
-        bucketColor: '#FF0000',
+        nid: 'notification-1', // notificationId abbreviated
+        bid: 'bucket-1', // bucketId abbreviated
+        dty: expect.any(String), // deliveryType abbreviated
       });
 
+      // Verify bucket fields are NOT in payload (optimized - only bucketId)
+      expect(result.payload.bucketName).toBeUndefined(); // Removed from payload
+      expect(result.payload.bucketIconUrl).toBeUndefined(); // Removed from payload
+      expect(result.payload.bucketColor).toBeUndefined(); // Removed from payload
+      
       // Verify no encryption blob for non-encrypted device
       expect(result.payload.enc).toBeUndefined();
     });
@@ -418,22 +424,22 @@ describe('IOSPushService', () => {
       });
     });
 
-    it('should include attachmentData in payload (excluding ICON attachments)', async () => {
+    it('should include attachmentData in payload as string array (excluding ICON attachments)', async () => {
       const result = await service.buildAPNsPayload(
         mockNotification as any,
         mockUserSettings,
         undefined, // Non-encrypted
       );
 
-      // Should include attachmentData but filter out ICON attachments
-      expect(result.payload.attachmentData).toEqual([
-        {
-          mediaType: 'IMAGE',
-          url: 'https://example.com/image.jpg',
-          name: 'image.jpg',
-        },
+      // Should include attachments as string array format: ["IMAGE:url"]
+      // ICON attachments should be filtered out
+      expect(result.payload.att).toEqual([
+        'IMAGE:https://example.com/image.jpg',
         // ICON attachment should be filtered out
       ]);
+      
+      // Old format should not be present
+      expect(result.payload.attachmentData).toBeUndefined();
     });
 
     it('should handle missing bucket gracefully', async () => {
@@ -459,9 +465,10 @@ describe('IOSPushService', () => {
             subtitle: 'Test Subtitle',
           },
         },
-        notificationId: 'notification-1',
-        bucketId: 'bucket-1',
-        // bucketName, bucketIconUrl, bucketColor should be undefined
+        nid: 'notification-1', // notificationId abbreviated
+        bid: 'bucket-1', // bucketId abbreviated
+        dty: expect.any(String), // deliveryType abbreviated
+        // bucketName, bucketIconUrl, bucketColor removed from payload
       });
 
       expect(result.payload.bucketName).toBeUndefined();
@@ -469,7 +476,7 @@ describe('IOSPushService', () => {
       expect(result.payload.bucketColor).toBeUndefined();
     });
 
-    it('should include actions in payload', async () => {
+    it('should include actions in payload (abbreviated key)', async () => {
       const result = await service.buildAPNsPayload(
         mockNotification as any,
         mockUserSettings,
@@ -477,10 +484,14 @@ describe('IOSPushService', () => {
       );
 
       // Actions should include automatic actions generated from userSettings
-      expect(result.payload.actions).toBeDefined();
-      expect(Array.isArray(result.payload.actions)).toBe(true);
+      // Actions use abbreviated key "act"
+      expect(result.payload.act).toBeDefined();
+      expect(Array.isArray(result.payload.act)).toBe(true);
       // Should include automatic actions based on userSettings
-      expect(result.payload.actions.length).toBeGreaterThan(0);
+      expect(result.payload.act.length).toBeGreaterThan(0);
+      
+      // Old key should not be present
+      expect(result.payload.actions).toBeUndefined();
     });
 
     it('should handle priority correctly', async () => {
@@ -491,6 +502,95 @@ describe('IOSPushService', () => {
       );
 
       expect(result.customPayload.priority).toBe(10);
+    });
+
+    it('should separate NAVIGATE/BACKGROUND_CALL actions in encrypted blob and others outside', async () => {
+      const notificationWithActions = {
+        ...mockNotification,
+        message: {
+          ...mockNotification.message,
+          actions: [
+            {
+              type: NotificationActionType.NAVIGATE,
+              value: '/test',
+              title: 'Navigate',
+            },
+            {
+              type: NotificationActionType.BACKGROUND_CALL,
+              value: 'https://api.example.com',
+              title: 'Call API',
+            },
+            {
+              type: NotificationActionType.MARK_AS_READ,
+              value: 'notification-1',
+              title: 'Mark as Read',
+            },
+            {
+              type: NotificationActionType.DELETE,
+              value: 'notification-1',
+              title: 'Delete',
+            },
+          ],
+        },
+      };
+
+      const result = await service.buildAPNsPayload(
+        notificationWithActions as any,
+        mockUserSettings,
+        mockDevice as any, // Encrypted device
+      );
+
+      // NAVIGATE and BACKGROUND_CALL should be in encrypted blob (enc)
+      expect(result.payload.enc).toBeDefined();
+      
+      // Other actions (MARK_AS_READ, DELETE) should be outside encrypted blob
+      expect(result.payload.act).toBeDefined();
+      expect(Array.isArray(result.payload.act)).toBe(true);
+      
+      // Verify that public actions don't include NAVIGATE or BACKGROUND_CALL
+      const publicActions = result.payload.act || [];
+      const hasNavigate = publicActions.some(
+        (action: any) => action.type === NotificationActionType.NAVIGATE,
+      );
+      const hasBackgroundCall = publicActions.some(
+        (action: any) => action.type === NotificationActionType.BACKGROUND_CALL,
+      );
+      
+      expect(hasNavigate).toBe(false);
+      expect(hasBackgroundCall).toBe(false);
+    });
+
+    it('should include all actions in payload for non-encrypted device', async () => {
+      const notificationWithActions = {
+        ...mockNotification,
+        message: {
+          ...mockNotification.message,
+          actions: [
+            {
+              type: NotificationActionType.NAVIGATE,
+              value: '/test',
+              title: 'Navigate',
+            },
+            {
+              type: NotificationActionType.MARK_AS_READ,
+              value: 'notification-1',
+              title: 'Mark as Read',
+            },
+          ],
+        },
+      };
+
+      const nonEncryptedDevice = { ...mockDevice, publicKey: undefined };
+      const result = await service.buildAPNsPayload(
+        notificationWithActions as any,
+        mockUserSettings,
+        nonEncryptedDevice as any,
+      );
+
+      // For non-encrypted devices, all actions should be in payload
+      expect(result.payload.act).toBeDefined();
+      expect(Array.isArray(result.payload.act)).toBe(true);
+      expect(result.payload.act.length).toBeGreaterThan(0);
     });
   });
 });
