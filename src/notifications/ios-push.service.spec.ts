@@ -334,15 +334,17 @@ describe('IOSPushService', () => {
           sound: 'default',
           'mutable-content': 1,
           'content-available': 1,
-          'thread-id': 'bucket-1',
         },
         enc: expect.any(String),
-        dty: expect.any(String), // deliveryType abbreviated
+        nid: 'notification-1', // notificationId abbreviated (public field)
+        bid: 'bucket-1', // bucketId abbreviated (public field)
+        mid: 'message-1', // messageId abbreviated (public field)
+        dty: expect.any(String), // deliveryType abbreviated (public field)
       });
 
-      // Verify that bucket fields are NOT in payload (only bucketId in encrypted blob)
+      // Verify that bucket fields are NOT in payload (only bucketId in root, not encrypted)
       expect(result.payload.enc).toBeDefined();
-      expect(result.payload.bid).toBeUndefined(); // Should be in encrypted blob only
+      expect(result.payload.bid).toBe('bucket-1'); // bid is in payload root (public field)
       expect(result.payload.bucketName).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketIconUrl).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketColor).toBeUndefined(); // Removed from payload
@@ -362,16 +364,19 @@ describe('IOSPushService', () => {
           alert: {
             title: 'Test Message',
             body: 'Test Body',
-            subtitle: 'Test Subtitle',
+            // subtitle is NOT in aps.alert, it's in payload root as 'stl'
           },
           sound: 'default',
           'mutable-content': 1,
           'content-available': 1,
-          'thread-id': 'bucket-1',
         },
-        nid: 'notification-1', // notificationId abbreviated
-        bid: 'bucket-1', // bucketId abbreviated
-        dty: expect.any(String), // deliveryType abbreviated
+        nid: 'notification-1', // notificationId abbreviated (public field)
+        bid: 'bucket-1', // bucketId abbreviated (public field)
+        mid: 'message-1', // messageId abbreviated (public field)
+        dty: expect.any(String), // deliveryType abbreviated (public field)
+        tit: 'Test Message', // title abbreviated (sensitive field in root for non-encrypted)
+        bdy: 'Test Body', // body abbreviated (sensitive field in root for non-encrypted)
+        stl: 'Test Subtitle', // subtitle abbreviated (sensitive field in root for non-encrypted)
       });
 
       // Verify bucket fields are NOT in payload (optimized - only bucketId)
@@ -417,11 +422,12 @@ describe('IOSPushService', () => {
       );
 
       // For regular notifications without bucket fields, should use full alert
+      // subtitle is NOT in aps.alert, it's in payload root as 'stl'
       expect(result.payload.aps.alert).toEqual({
         title: 'Test Message',
         body: 'Test Body',
-        subtitle: 'Test Subtitle',
       });
+      expect(result.payload.stl).toBe('Test Subtitle'); // subtitle in payload root
     });
 
     it('should include attachmentData in payload as string array (excluding ICON attachments)', async () => {
@@ -462,12 +468,16 @@ describe('IOSPushService', () => {
           alert: {
             title: 'Test Message',
             body: 'Test Body',
-            subtitle: 'Test Subtitle',
+            // subtitle is NOT in aps.alert, it's in payload root as 'stl'
           },
         },
-        nid: 'notification-1', // notificationId abbreviated
-        bid: 'bucket-1', // bucketId abbreviated
-        dty: expect.any(String), // deliveryType abbreviated
+        nid: 'notification-1', // notificationId abbreviated (public field)
+        bid: 'bucket-1', // bucketId abbreviated (public field)
+        mid: 'message-1', // messageId abbreviated (public field)
+        dty: expect.any(String), // deliveryType abbreviated (public field)
+        tit: 'Test Message', // title abbreviated (sensitive field in root for non-encrypted)
+        bdy: 'Test Body', // body abbreviated (sensitive field in root for non-encrypted)
+        stl: 'Test Subtitle', // subtitle abbreviated (sensitive field in root for non-encrypted)
         // bucketName, bucketIconUrl, bucketColor removed from payload
       });
 
@@ -501,7 +511,7 @@ describe('IOSPushService', () => {
         undefined,
       );
 
-      expect(result.customPayload.priority).toBe(10);
+      expect(result.priority).toBe(10);
     });
 
     it('should separate NAVIGATE/BACKGROUND_CALL actions in encrypted blob and others outside', async () => {

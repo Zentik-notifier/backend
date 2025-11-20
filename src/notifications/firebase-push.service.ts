@@ -219,7 +219,7 @@ export class FirebasePushService {
       userSettings,
     );
 
-    const { payload: iosPayload, customPayload } =
+    const { payload: iosPayload } =
       await this.iosPushService.buildAPNsPayload(
         notification,
         userSettings,
@@ -230,7 +230,6 @@ export class FirebasePushService {
       apns: {
         payload: {
           ...iosPayload,
-          ...customPayload,
         },
       },
     };

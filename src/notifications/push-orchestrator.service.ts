@@ -960,9 +960,8 @@ export class PushNotificationOrchestratorService {
     const userSettings = this.buildAutoActionSettings(settings);
 
     if (device.platform === DevicePlatform.IOS) {
-      const { payload: rawPayload, customPayload } =
+      const { payload: rawPayload, priority } =
         await this.iosPushService.buildAPNsPayload(notification, userSettings, device);
-      const priority = notification.message.deliveryType === 'SILENT' ? 5 : 10;
 
       // Resolve bundleId/topic from ServerSettings first, then ENV, then safe default (dev)
       const bundleSetting = await this.serverSettingsService.getSettingByType(
@@ -974,7 +973,6 @@ export class PushNotificationOrchestratorService {
         platform: 'IOS',
         payload: {
           rawPayload,
-          customPayload,
           priority,
           topic,
         },

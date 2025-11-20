@@ -9,6 +9,7 @@ import { UserDevice } from '../entities/user-device.entity';
 import { DevicePlatform } from '../users/dto';
 import { AutoActionSettings, generateAutomaticActions } from './notification-actions.util';
 import {
+  MediaType,
   NotificationActionType,
   NotificationDeliveryType,
 } from './notifications.types';
@@ -52,6 +53,12 @@ export class IOSPushService {
     this.initialized = true;
   }
 
+  private formatAttachments(attachments: any[]): string[] {
+    return attachments
+      .filter((att) => att.mediaType?.toUpperCase() !== MediaType.ICON)
+      .map((att) => `${att.mediaType}:${att.url}`);
+  };
+
   /**
    * Build APNs payload for iOS notifications
    * Creates a complete payload with only the 'aps' key and custom data
@@ -81,19 +88,6 @@ export class IOSPushService {
       'mutable-content': 1,
       'content-available': 1,
     };
-    apsPayload['thread-id'] = !message.collapseId
-      ? message.groupId || notification.message.bucketId
-      : undefined;
-
-    // Add collapse ID if present
-    if (message.collapseId) {
-      apsPayload['apns-collapse-id'] = message.collapseId;
-    }
-
-    // Add subtitle if present
-    if (notification.message.subtitle) {
-      (apsPayload.alert as any).subtitle = notification.message.subtitle;
-    }
 
     let priority = 10;
     // Configure delivery type based on notification.deliveryType
@@ -135,22 +129,6 @@ export class IOSPushService {
         value: notification.id,
       };
 
-    // Build the complete payload with only 'aps' key
-    const payload: any = {
-      aps: apsPayload,
-    };
-
-    // Build customPayload clone
-    const customPayload = {
-      // keep only non-sensitive, minimal info
-      priority: priority,
-    } as any;
-
-    // Add tapAction to payload for non-encrypted devices
-    if (!device || !device.publicKey) {
-      payload.tapAction = effectiveTapAction;
-    }
-
     // Separate actions: NAVIGATE/BACKGROUND_CALL go in encrypted blob, others outside
     const sensitiveActions = allActions.filter(
       (action) =>
@@ -161,67 +139,60 @@ export class IOSPushService {
       (action) =>
         action.type !== NotificationActionType.NAVIGATE &&
         action.type !== NotificationActionType.BACKGROUND_CALL,
-    );
+    ) || [];
 
-    // Format attachments as array of strings: `${type}:${url}`
-    const formatAttachments = (attachments: any[]): string[] => {
-      return attachments
-        .filter((att) => att.mediaType?.toUpperCase() !== 'ICON')
-        .map((att) => `${att.mediaType}:${att.url}`);
+    let payload: any = {
+      aps: apsPayload,
+      nid: notification.id,
+      bid: message.bucketId,
+      mid: message.id,
+      dty: message.deliveryType,
+    };
+
+    const sensitivePayload = {
+      tit: message.title,
+      bdy: message.body,
+      stl: message.subtitle,
+      att: this.formatAttachments(message.attachments || []),
+      tap: effectiveTapAction,
     };
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
     if (device && device.publicKey) {
-      const alert: any = payload.aps?.alert || {};
-      // Abbreviated keys (3 letters) for minimal payload size
       const sensitive: any = {
-        tit: alert?.title ?? message.title, // title
-        bdy: alert?.body ?? message.body, // body
-        stl: alert?.subtitle ?? message.subtitle, // subtitle
-        nid: notification.id, // notificationId
-        bid: message.bucketId, // bucketId (only this for bucket)
-        act: sensitiveActions, // actions (only NAVIGATE/BACKGROUND_CALL)
-        att: formatAttachments(message.attachments || []), // attachmentData as string array
-        tap: effectiveTapAction, // tapAction
+        ...sensitivePayload,
       };
+
+      if (!!sensitiveActions.length) {
+        sensitive.act = sensitiveActions;
+      }
+      if (!!publicActions.length) {
+        payload.act = publicActions;
+      }
 
       const enc = await encryptWithPublicKey(
         JSON.stringify(sensitive),
         device.publicKey,
       );
-      // place single blob in payload
       payload.enc = enc;
-
-      // Add deliveryType to payload so NSE can check it BEFORE decryption (abbreviated)
-      payload.dty = message.deliveryType; // deliveryType
-
-      // Add public actions outside encrypted blob (abbreviated)
-      if (publicActions && publicActions.length > 0) {
-        payload.act = publicActions; // actions
-      }
-
-      // For non-SILENT encrypted: Provide minimal alert in case NSE doesn't run
-      // For SILENT: alert was already removed above, don't re-add it
-      if (payload.aps) {
-        payload.aps.alert = {
-          title: 'Encrypted Notification',
-        };
-      }
+      payload.aps.alert = {
+        title: 'Encrypted Notification',
+      };
     } else {
-      // No encryption path: include essential fields directly (abbreviated keys)
-      payload.nid = notification.id; // notificationId
-      payload.bid = message.bucketId; // bucketId
-      payload.dty = message.deliveryType; // deliveryType
-      if (allActions && allActions.length > 0) {
+      payload = {
+        ...payload,
+        ...sensitivePayload,
+      }
+      if (!!allActions.length) {
         payload.act = allActions; // actions
       }
-      if (message.attachments && (message.attachments as any[]).length > 0) {
-        payload.att = formatAttachments(message.attachments || []); // attachmentData as string array
+      if (!!message.attachments?.length) {
+        payload.att = this.formatAttachments(message.attachments || []); // attachmentData as string array
       }
     }
 
     return {
-      customPayload,
+      priority,
       payload,
     };
   }
@@ -347,30 +318,34 @@ export class IOSPushService {
       const results: NotificationResult[] = [];
       let payloadTooLargeDetected = false;
       let retryAttempted = false;
-      
+
       for (const token of deviceTokens) {
         try {
           const device = devices.find((d) => d.deviceToken === token);
           const {
-            customPayload: { priority, ...customPayload },
+            priority,
             payload,
           } = await this.buildAPNsPayload(
             notification,
             userSettings,
             device || undefined, // Pass the found device or undefined if not found
           );
+          const message = notification.message;
 
           const notification_apn = new apn.Notification();
           notification_apn.rawPayload = payload;
-          notification_apn.payload = customPayload;
-          notification_apn.priority = priority as number;
+          notification_apn.priority = priority;
           notification_apn.topic =
             (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
+          notification_apn.threadId = message.groupId || notification.message.bucketId;
+          if (message.collapseId) {
+            notification_apn.collapseId = message.collapseId;
+          }
 
           const result = await this.provider.send(notification_apn, token);
-          
-          const resultEntry: NotificationResult = { 
-            token, 
+
+          const resultEntry: NotificationResult = {
+            token,
             result,
             payloadTooLarge: false,
             retriedWithoutEncryption: false,
@@ -380,7 +355,7 @@ export class IOSPushService {
 
           if (result.failed && result.failed.length > 0) {
             // Enhanced error logging for APN issues
-            result.failed.forEach((failedResult) => {
+            for (const failedResult of result.failed) {
               this.logger.error(
                 `❌ APN Error for token ${token.substring(0, 8)}...:`,
               );
@@ -391,7 +366,7 @@ export class IOSPushService {
 
               // Retry strategy for PayloadTooLarge: resend without encryption (guarded by user setting)
               const statusCode = Number(failedResult.status);
-              const reason = (failedResult as any)?.response?.reason;
+              const reason = (failedResult)?.response?.reason;
               if (
                 (statusCode === 403 || statusCode === 413) &&
                 reason === 'PayloadTooLarge'
@@ -399,80 +374,76 @@ export class IOSPushService {
                 // Mark flags
                 resultEntry.payloadTooLarge = true;
                 payloadTooLargeDetected = true;
-                
+
                 // NOTE: the decision to retry will be checked upstream by orchestrator per user setting
                 this.logger.warn(
                   `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption...`,
                 );
-                (async () => {
-                  try {
-                    retryAttempted = true;
-                    resultEntry.retriedWithoutEncryption = true;
-                    
-                    // Rebuild payload WITHOUT encryption by omitting device when building
-                    const retryBuild = await this.buildAPNsPayload(
-                      notification,
-                      userSettings,
-                      undefined,
-                    );
+                try {
+                  retryAttempted = true;
+                  resultEntry.retriedWithoutEncryption = true;
 
-                    // Ensure actions and attachments are present in retry raw payload
-                    const retryNotification = new apn.Notification();
-                    retryNotification.rawPayload = retryBuild.payload;
-                    retryNotification.payload = retryBuild.customPayload;
-                    retryNotification.priority = retryBuild.customPayload
-                      .priority as number;
-                    retryNotification.topic =
-                      (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
+                  // Rebuild payload WITHOUT encryption by omitting device when building
+                  const retryBuild = await this.buildAPNsPayload(
+                    notification,
+                    userSettings,
+                    undefined,
+                  );
 
-                    const retryResult = await this.provider!.send(
-                      retryNotification,
-                      token,
-                    );
-                    
-                    const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
-                    resultEntry.retrySuccess = retrySuccess;
-                    resultEntry.result = retryResult; // Update with retry result
-                    
-                    results.push({ 
-                      token, 
-                      result: retryResult,
-                      payloadTooLarge: true,
-                      retriedWithoutEncryption: true,
-                      retrySuccess,
-                    });
+                  // Ensure actions and attachments are present in retry raw payload
+                  const retryNotification = new apn.Notification();
+                  retryNotification.rawPayload = retryBuild.payload;
+                  retryNotification.priority = retryBuild.priority;
+                  retryNotification.topic =
+                    (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
 
-                    if (retryResult.failed && retryResult.failed.length > 0) {
-                      this.logger.error(
-                        `❌ Retry failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
-                          retryResult.failed,
-                        )}`,
-                      );
-                    } else {
-                      this.logger.log(
-                        `✅ Retry without encryption succeeded for ${token.substring(
-                          0,
-                          8,
-                        )}...`,
-                      );
-                    }
-                  } catch (retryError: any) {
+                  const retryResult = await this.provider!.send(
+                    retryNotification,
+                    token,
+                  );
+
+                  const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
+                  resultEntry.retrySuccess = retrySuccess;
+                  resultEntry.result = retryResult; // Update with retry result
+
+                  results.push({
+                    token,
+                    result: retryResult,
+                    payloadTooLarge: true,
+                    retriedWithoutEncryption: true,
+                    retrySuccess,
+                  });
+
+                  if (retryResult.failed && retryResult.failed.length > 0) {
                     this.logger.error(
-                      `❌ Retry without encryption crashed for ${token.substring(
+                      `❌ Retry failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
+                        retryResult.failed,
+                      )}`,
+                    );
+                  } else {
+                    this.logger.log(
+                      `✅ Retry without encryption succeeded for ${token.substring(
                         0,
                         8,
-                      )}...: ${retryError?.message}`,
+                      )}...`,
                     );
-                    resultEntry.retrySuccess = false;
-                    results.push({ 
-                      token, 
-                      error: retryError?.message,
-                      payloadTooLarge: true,
-                      retriedWithoutEncryption: true,
-                      retrySuccess: false,
-                    });
                   }
-                })();
+                } catch (retryError: any) {
+                  this.logger.error(
+                    `❌ Retry without encryption crashed for ${token.substring(
+                      0,
+                      8,
+                    )}...: ${retryError?.message}`,
+                  );
+                  resultEntry.retrySuccess = false;
+                  results.push({
+                    token,
+                    error: retryError?.message,
+                    payloadTooLarge: true,
+                    retriedWithoutEncryption: true,
+                    retrySuccess: false,
+                  });
+                }
               }
 
               // Special handling for BadEnvironmentKeyInToken
@@ -493,7 +464,7 @@ export class IOSPushService {
                   `  If your app is in production, ensure APN_PRODUCTION=true and your p8 key is for production.`,
                 );
               }
-            });
+            }
           } else {
             // this.logger.log(
             //   `✅ Successfully sent notification to ${token.substring(0, 8)}...`,
@@ -561,7 +532,7 @@ export class IOSPushService {
     );
 
     const ok = !result.failed || result.failed.length === 0;
-    return { success: ok, results: [{ token, result }] } as any;
+    return { success: ok, results: [{ token, result }] };
   }
 
   async shutdown(): Promise<void> {
@@ -569,19 +540,5 @@ export class IOSPushService {
       this.provider.shutdown();
       this.logger.log('APNs provider shut down');
     }
-  }
-
-  /**
-   * Filters out ICON attachments from the attachments array
-   * Icons should not be included in notification attachments
-   */
-  private filterOutIconAttachments(attachments: any[]): any[] {
-    if (!attachments || !Array.isArray(attachments)) {
-      return [];
-    }
-
-    return attachments.filter(
-      (attachment) => attachment.mediaType?.toUpperCase() !== 'ICON',
-    );
   }
 }
