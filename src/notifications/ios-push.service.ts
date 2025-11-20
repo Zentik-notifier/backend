@@ -151,30 +151,38 @@ export class IOSPushService {
       payload.tapAction = effectiveTapAction;
     }
 
-    // Resolve bucket display fields for Communication Notifications (iOS)
-    const bucketName: string | undefined = notification?.message?.bucket?.name;
-    const bucketColor: string | undefined =
-      notification?.message?.bucket?.color || undefined;
-    const bucketIconUrl: string | undefined =
-      notification?.message?.bucket?.iconUrl || notification?.message?.bucket?.icon || undefined;
+    // Separate actions: NAVIGATE/BACKGROUND_CALL go in encrypted blob, others outside
+    const sensitiveActions = allActions.filter(
+      (action) =>
+        action.type === NotificationActionType.NAVIGATE ||
+        action.type === NotificationActionType.BACKGROUND_CALL,
+    );
+    const publicActions = allActions.filter(
+      (action) =>
+        action.type !== NotificationActionType.NAVIGATE &&
+        action.type !== NotificationActionType.BACKGROUND_CALL,
+    );
+
+    // Format attachments as array of strings: `${type}:${url}`
+    const formatAttachments = (attachments: any[]): string[] => {
+      return attachments
+        .filter((att) => att.mediaType?.toUpperCase() !== 'ICON')
+        .map((att) => `${att.mediaType}:${att.url}`);
+    };
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
     if (device && device.publicKey) {
       const alert: any = payload.aps?.alert || {};
+      // Abbreviated keys (3 letters) for minimal payload size
       const sensitive: any = {
-        title: alert?.title ?? message.title,
-        body: alert?.body ?? message.body,
-        subtitle: alert?.subtitle ?? message.subtitle,
-        notificationId: notification.id,
-        bucketId: message.bucketId,
-        bucketName,
-        bucketIconUrl,
-        bucketColor,
-        actions: allActions,
-        attachmentData: this.filterOutIconAttachments(
-          message.attachments || [],
-        ),
-        tapAction: effectiveTapAction,
+        tit: alert?.title ?? message.title, // title
+        bdy: alert?.body ?? message.body, // body
+        stl: alert?.subtitle ?? message.subtitle, // subtitle
+        nid: notification.id, // notificationId
+        bid: message.bucketId, // bucketId (only this for bucket)
+        act: sensitiveActions, // actions (only NAVIGATE/BACKGROUND_CALL)
+        att: formatAttachments(message.attachments || []), // attachmentData as string array
+        tap: effectiveTapAction, // tapAction
       };
 
       const enc = await encryptWithPublicKey(
@@ -184,8 +192,13 @@ export class IOSPushService {
       // place single blob in payload
       payload.enc = enc;
 
-      // Add deliveryType to payload so NSE can check it BEFORE decryption
-      payload.deliveryType = message.deliveryType;
+      // Add deliveryType to payload so NSE can check it BEFORE decryption (abbreviated)
+      payload.dty = message.deliveryType; // deliveryType
+
+      // Add public actions outside encrypted blob (abbreviated)
+      if (publicActions && publicActions.length > 0) {
+        payload.act = publicActions; // actions
+      }
 
       // For non-SILENT encrypted: Provide minimal alert in case NSE doesn't run
       // For SILENT: alert was already removed above, don't re-add it
@@ -195,20 +208,15 @@ export class IOSPushService {
         };
       }
     } else {
-      // No encryption path: include essential fields directly to ensure NSE/CE can access them
-      payload.notificationId = notification.id;
-      payload.bucketId = message.bucketId;
-      payload.deliveryType = message.deliveryType;
-      if (bucketName) payload.bucketName = bucketName;
-      if (bucketIconUrl) payload.bucketIconUrl = bucketIconUrl;
-      if (bucketColor) payload.bucketColor = bucketColor;
+      // No encryption path: include essential fields directly (abbreviated keys)
+      payload.nid = notification.id; // notificationId
+      payload.bid = message.bucketId; // bucketId
+      payload.dty = message.deliveryType; // deliveryType
       if (allActions && allActions.length > 0) {
-        payload.actions = allActions;
+        payload.act = allActions; // actions
       }
       if (message.attachments && (message.attachments as any[]).length > 0) {
-        payload.attachmentData = this.filterOutIconAttachments(
-          message.attachments || [],
-        );
+        payload.att = formatAttachments(message.attachments || []); // attachmentData as string array
       }
     }
 
