@@ -569,7 +569,7 @@ describe('PushNotificationOrchestratorService', () => {
           aps: { alert: { title: 'Test' } },
           enc: 'encrypted_data',
         },
-        customPayload: { priority: 10 },
+        priority: 10,
       });
 
       const mockFetchResponse = {
@@ -624,7 +624,7 @@ describe('PushNotificationOrchestratorService', () => {
           aps: { alert: { title: 'Test' } },
           enc: 'encrypted_data',
         },
-        customPayload: { priority: 10 },
+        priority: 10,
       });
 
       const mockFetchResponse = {
@@ -669,7 +669,7 @@ describe('PushNotificationOrchestratorService', () => {
           aps: { alert: { title: 'Test' } },
           enc: 'encrypted_data',
         },
-        customPayload: { priority: 10 },
+        priority: 10,
       });
 
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
@@ -708,7 +708,7 @@ describe('PushNotificationOrchestratorService', () => {
           },
           enc: 'encrypted_data_blob',
         },
-        customPayload: { priority: 10 },
+        priority: 10,
       });
 
       const payload = await (service as any).buildExternalPayload(
@@ -728,7 +728,6 @@ describe('PushNotificationOrchestratorService', () => {
             },
             enc: 'encrypted_data_blob',
           },
-          customPayload: { priority: 10 },
           priority: 10,
           topic: 'com.apocaliss92.zentik',
         },
