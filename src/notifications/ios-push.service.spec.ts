@@ -326,7 +326,6 @@ describe('IOSPushService', () => {
           alert: { title: 'Encrypted Notification' },
           sound: 'default',
           'mutable-content': 1,
-          'content-available': 1,
         },
         enc: expect.any(String),
         nid: 'notification-1', // notificationId abbreviated (public field)
@@ -371,7 +370,6 @@ describe('IOSPushService', () => {
           },
           sound: 'default',
           'mutable-content': 1,
-          'content-available': 1,
         },
         nid: 'notification-1', // notificationId abbreviated (public field)
         bid: 'bucket-1', // bucketId abbreviated (public field)
@@ -386,7 +384,7 @@ describe('IOSPushService', () => {
       expect(result.payload.bucketName).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketIconUrl).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketColor).toBeUndefined(); // Removed from payload
-      
+
       // Verify no encryption blob for non-encrypted device
       expect(result.payload.enc).toBeUndefined();
 
@@ -453,7 +451,7 @@ describe('IOSPushService', () => {
         'IMAGE:https://example.com/image.jpg',
         // ICON attachment should be filtered out
       ]);
-      
+
       // Old format should not be present
       expect(result.payload.attachmentData).toBeUndefined();
     });
@@ -509,7 +507,7 @@ describe('IOSPushService', () => {
       expect(Array.isArray(result.payload.act)).toBe(true);
       // Should include automatic actions based on userSettings
       expect(result.payload.act.length).toBeGreaterThan(0);
-      
+
       // Old key should not be present
       expect(result.payload.actions).toBeUndefined();
     });
@@ -562,11 +560,11 @@ describe('IOSPushService', () => {
 
       // NAVIGATE and BACKGROUND_CALL should be in encrypted blob (enc)
       expect(result.payload.enc).toBeDefined();
-      
+
       // Other actions (MARK_AS_READ, DELETE) should be outside encrypted blob
       expect(result.payload.act).toBeDefined();
       expect(Array.isArray(result.payload.act)).toBe(true);
-      
+
       // Verify that public actions don't include NAVIGATE or BACKGROUND_CALL
       const publicActions = result.payload.act || [];
       const hasNavigate = publicActions.some(
@@ -575,7 +573,7 @@ describe('IOSPushService', () => {
       const hasBackgroundCall = publicActions.some(
         (action: any) => action.type === NotificationActionType.BACKGROUND_CALL,
       );
-      
+
       expect(hasNavigate).toBe(false);
       expect(hasBackgroundCall).toBe(false);
 
