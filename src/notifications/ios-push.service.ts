@@ -163,7 +163,6 @@ export class IOSPushService {
       },
       sound: message.sound || 'default',
       'mutable-content': 1,
-      'content-available': 1,
     };
 
     if (message.collapseId) {
