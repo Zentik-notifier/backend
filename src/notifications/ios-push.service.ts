@@ -70,11 +70,11 @@ export class IOSPushService {
     // Privatize encrypted blob if present
     if (privatized.enc) {
       privatized.enc = `${String(privatized.enc).substring(0, 20)}...`;
-      
+
       // If there's an encrypted blob, add privatized sensitive fields to root as "sensitive"
       if (sensitive) {
         const privatizedSensitive: any = {};
-        
+
         // Privatize sensitive payload fields
         if (sensitive.tit) {
           privatizedSensitive.tit = `${String(sensitive.tit).substring(0, 5)}...`;
@@ -96,7 +96,7 @@ export class IOSPushService {
             value: sensitive.tap.value ? `${String(sensitive.tap.value).substring(0, 8)}...` : sensitive.tap.value,
           };
         }
-        
+
         // Privatize sensitive actions if present
         if (sensitive.act && Array.isArray(sensitive.act)) {
           privatizedSensitive.act = sensitive.act.map((action: any) => ({
@@ -105,7 +105,7 @@ export class IOSPushService {
             title: action.title ? `${String(action.title).substring(0, 5)}...` : action.title,
           }));
         }
-        
+
         privatized.sensitive = privatizedSensitive;
       }
     }
@@ -176,9 +176,7 @@ export class IOSPushService {
     let priority = 10;
     // Configure delivery type based on notification.deliveryType
     if (message.deliveryType === NotificationDeliveryType.CRITICAL) {
-      // Critical: Push con banner e alert critico
       apsPayload['interruption-level'] = 'time-sensitive';
-      // apsPayload['interruption-level'] = 'critical';
       apsPayload['relevance-score'] = 1.0;
 
       // Use critical sound if no custom sound specified
@@ -186,10 +184,8 @@ export class IOSPushService {
         apsPayload.sound = 'critical';
       }
     } else if (message.deliveryType === NotificationDeliveryType.NORMAL) {
-      // Normal: Push con banner standard
       apsPayload['interruption-level'] = 'active';
     } else if (message.deliveryType === NotificationDeliveryType.SILENT) {
-      // Silent: Solo app, no banner
       apsPayload['interruption-level'] = 'passive';
       apsPayload['content-available'] = 1;
       priority = 5;
@@ -427,14 +423,14 @@ export class IOSPushService {
           const device = devices.find((d) => d.deviceToken === token);
           const {
             notification_apn,
-            privatizedPayload,
+            privatizedPayload: privatizedPayloadForToken,
           } = await this.buildAPNsPayload(
             notification,
             userSettings,
             device || undefined, // Pass the found device or undefined if not found
           );
 
-          privatizedPayload.push(privatizedPayload);
+          privatizedPayload.push(privatizedPayloadForToken);
 
           const result = await this.provider.send(notification_apn, token);
 
