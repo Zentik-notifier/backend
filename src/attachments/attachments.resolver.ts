@@ -1,5 +1,5 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, ID, Query, Resolver } from '@nestjs/graphql';
+import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { Attachment } from '../entities/attachment.entity';
@@ -35,5 +35,14 @@ export class AttachmentsResolver {
     @GetUser('id') userId: string,
   ): Promise<Attachment[]> {
     return this.attachmentsService.findByMessage(messageId, userId);
+  }
+
+  @Mutation(() => Boolean)
+  async deleteAttachment(
+    @Args('id', { type: () => ID }) id: string,
+    @GetUser('id') userId: string,
+  ): Promise<boolean> {
+    await this.attachmentsService.remove(id, userId);
+    return true;
   }
 }

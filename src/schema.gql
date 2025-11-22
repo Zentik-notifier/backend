@@ -580,6 +580,7 @@ type Mutation {
   createWebhook(input: CreateWebhookDto!): UserWebhook!
   declineSystemAccessTokenRequest(id: String!, input: DeclineSystemAccessTokenRequestDto): SystemAccessTokenRequest!
   deleteAccount: Boolean!
+  deleteAttachment(id: ID!): Boolean!
 
   """Delete a specific backup file"""
   deleteBackup(filename: String!): Boolean!

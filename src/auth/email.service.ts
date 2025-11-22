@@ -39,7 +39,11 @@ export class EmailService {
     private configService: ConfigService,
     private localeService: LocaleService,
     private serverSettingsService: ServerSettingsService,
-  ) {}
+  ) {
+    this.ensureInitialized().catch(error => {
+      this.logger.error('Error initializing email service', error);
+    });
+  }
 
   private async ensureInitialized() {
     if (this.initialized) {
@@ -133,7 +137,7 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     await this.ensureInitialized();
-    
+
     if (this.provider === EmailProvider.RESEND) {
       return this.sendEmailWithResend(options);
     } else {
