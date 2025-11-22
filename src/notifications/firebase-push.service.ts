@@ -20,6 +20,7 @@ interface FirebaseMulticastResult {
     error?: string;
     messageId?: string;
   }>;
+  privatizedPayload?: any;
 }
 
 @Injectable()
@@ -127,7 +128,7 @@ export class FirebasePushService {
       const tokens: string[] = devices
         .map((d) => d.deviceToken)
         .filter((t): t is string => typeof t === 'string' && t.length > 0);
-      const firebaseMessage = await this.buildFirebaseMessage(
+      const { message: firebaseMessage, privatizedPayload } = await this.buildFirebaseMessage(
         notification,
         tokens,
         userSettings,
@@ -195,6 +196,7 @@ export class FirebasePushService {
         successCount: response.successCount,
         failureCount: response.failureCount,
         results,
+        privatizedPayload,
       };
     } catch (error) {
       this.logger.error('Failed to send Firebase notification:', error);
@@ -209,7 +211,7 @@ export class FirebasePushService {
     notification: Notification,
     deviceTokens: string[],
     userSettings?: AutoActionSettings,
-  ): Promise<admin.messaging.MulticastMessage> {
+  ): Promise<{ message: admin.messaging.MulticastMessage; privatizedPayload: admin.messaging.MulticastMessage }> {
     const message = notification.message;
     // Generate automatic actions for Android
     const automaticActions = generateAutomaticActions(
@@ -271,7 +273,11 @@ export class FirebasePushService {
     }
 
     // Privatize sensitive fields in payload before returning
-    return this.privatizeFirebasePayload(payload);
+    const privatizedPayload = this.privatizeFirebasePayload(payload);
+    return {
+      message: payload,
+      privatizedPayload,
+    };
   }
 
   /**

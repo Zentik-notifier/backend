@@ -12,6 +12,7 @@ import { ServerSettingType } from '../entities/server-setting.entity';
 interface WebPushSendResult {
   success: boolean;
   results: Array<{ endpoint: string; success: boolean; error?: string }>;
+  privatizedPayload?: any;
 }
 
 @Injectable()
@@ -61,7 +62,8 @@ export class WebPushService {
       return { success: false, results: [] };
     }
 
-    const payload = JSON.stringify(this.buildWebPayload(notification, userSettings));
+    const { payload: webPayload, privatizedPayload: webPrivatizedPayload } = this.buildWebPayload(notification, userSettings);
+    const payload = JSON.stringify(webPayload);
 
     const results: Array<{
       endpoint: string;
@@ -124,7 +126,7 @@ export class WebPushService {
     }
 
     const success = results.some((r) => r.success);
-    return { success, results };
+    return { success, results, privatizedPayload: webPrivatizedPayload };
   }
 
   /**
@@ -191,7 +193,11 @@ export class WebPushService {
     };
 
     // Privatize sensitive fields in payload before returning
-    return this.privatizeWebPayload(payload);
+    const privatizedPayload = this.privatizeWebPayload(payload);
+    return {
+      payload,
+      privatizedPayload,
+    };
   }
 
   /**

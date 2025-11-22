@@ -31,6 +31,13 @@ export interface PushResult {
   error?: string;
 }
 
+interface BuiltExternalPayload {
+  platform: DevicePlatform;
+  privatizedPayload: any;
+  payload: any;
+  deviceData: any;
+}
+
 @Injectable()
 export class PushNotificationOrchestratorService {
   private readonly logger = new Logger(
@@ -56,45 +63,6 @@ export class PushNotificationOrchestratorService {
     private readonly localeService: LocaleService,
   ) { }
 
-  /**
-   * Privatize notification data for logging/tracking purposes
-   * This is a fallback method that creates a basic privatized version of notification data
-   * The actual payloads should be privatized by individual push services
-   */
-  private privatizeNotificationData(notification: Notification, bucketName?: string): string {
-    const message = notification.message;
-    return JSON.stringify({
-      id: notification.id,
-      messageId: message?.id,
-      title: message?.title ? `${message.title.substring(0, 5)}...` : undefined,
-      body: message?.body ? `${message.body.substring(0, 5)}...` : undefined,
-      bucketName: bucketName ? `${bucketName.substring(0, 5)}...` : undefined,
-      deliveryType: message?.deliveryType,
-      createdAt: notification.createdAt,
-    });
-  }
-
-  /**
-   * Privatize payload for logging/tracking purposes
-   * Uses payload-specific privatization from push services
-   */
-  private privatizePayloadForTracking(payload: any, platform: DevicePlatform): string {
-    if (!payload) {
-      return '';
-    }
-
-    try {
-      // If payload is already privatized (has ... in sensitive fields), return as-is
-      const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
-
-      // For iOS payloads, they're already privatized by ios-push.service
-      // For Firebase payloads, they're already privatized by firebase-push.service
-      // For WebPush payloads, they're already privatized by web-push.service
-      return payloadStr;
-    } catch {
-      return '';
-    }
-  }
 
   /**
  * Get device-specific settings for multiple devices in one batch
@@ -288,7 +256,7 @@ export class PushNotificationOrchestratorService {
       // Extract bucket name for tracking
       const bucketName = notif.message?.bucket?.name;
 
-      const result = await this.dispatchPush(notif, device, deviceSettings, bucketName);
+      const result = await this.dispatchPush(notif, device, deviceSettings);
       try {
         if (result.success) {
           successCount++;
@@ -323,8 +291,6 @@ export class PushNotificationOrchestratorService {
                 const retry = await this.sendPushToSingleDeviceStateless(
                   notif,
                   { ...device, onlyLocal: device.onlyLocal } as any,
-                  undefined, // userSettings
-                  bucketName, // bucketName
                 );
                 if (retry.success) {
                   successCount++;
@@ -537,12 +503,12 @@ export class PushNotificationOrchestratorService {
     notification: Notification,
     userDevice: UserDevice,
     userSettings?: AutoActionSettings,
-    bucketName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
     let executionError: string | undefined;
     let executionOutput: string | undefined;
+    let privatizedInput: string = JSON.stringify({ platform: userDevice.platform, notificationId: notification.id });
 
     try {
       // If userSettings not provided, fetch from database
@@ -565,15 +531,19 @@ export class PushNotificationOrchestratorService {
 
       let result: { success: boolean; error?: string };
       let providerResponse: any;
+      let privatizedInput: any;
 
       if (userDevice.platform === DevicePlatform.IOS) {
-        const iosResult = await this.iosPushService.send(notification, [
+        const { privatizedPayload, ...iosResult } = await this.iosPushService.send(notification, [
           userDevice,
         ], settings);
         providerResponse = iosResult;
         result = { success: !!iosResult.success, error: iosResult.error };
 
-        // Check for payload too large from iOS service flags
+        if (privatizedPayload) {
+          privatizedInput = JSON.stringify(privatizedPayload);
+        }
+
         if (iosResult.payloadTooLargeDetected) {
           const retryInfo = iosResult.retryAttempted
             ? ` (retry ${iosResult.results?.[0]?.retrySuccess ? 'succeeded' : 'failed'})`
@@ -582,21 +552,29 @@ export class PushNotificationOrchestratorService {
           executionStatus = iosResult.results?.[0]?.retrySuccess ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
         }
       } else if (userDevice.platform === DevicePlatform.ANDROID) {
-        const androidResult = await this.firebasePushService.send(notification, [
+        const { privatizedPayload, ...androidResult } = await this.firebasePushService.send(notification, [
           userDevice,
         ], settings);
         providerResponse = androidResult;
         const ok = androidResult.success && (androidResult.successCount || 0) > 0;
         const firstError = androidResult.results?.find((r) => !r.success)?.error;
         result = { success: ok, error: ok ? undefined : firstError };
+
+        if (privatizedPayload) {
+          privatizedInput = JSON.stringify(privatizedPayload);
+        }
       } else if (userDevice.platform === DevicePlatform.WEB) {
-        const webResult = await this.webPushService.send(notification, [
+        const { privatizedPayload, ...webResult } = await this.webPushService.send(notification, [
           userDevice,
         ], settings);
         providerResponse = webResult;
         const ok = !!webResult.success;
         const firstError = webResult.results?.find((r) => !r.success)?.error;
         result = { success: ok, error: ok ? undefined : firstError };
+
+        if (privatizedPayload) {
+          privatizedInput = JSON.stringify(privatizedPayload);
+        }
       } else {
         this.logger.warn(
           `Unsupported platform for device ${userDevice.id}: ${userDevice.platform}`,
@@ -604,6 +582,7 @@ export class PushNotificationOrchestratorService {
         result = { success: false, error: 'Unsupported platform' };
         executionStatus = ExecutionStatus.SKIPPED;
         executionError = 'Unsupported platform';
+        privatizedInput = JSON.stringify({ platform: userDevice.platform, notificationId: notification.id, error: 'Unsupported platform' });
       }
 
       if (!result.success && result.error) {
@@ -626,7 +605,7 @@ export class PushNotificationOrchestratorService {
         entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
-        input: this.privatizeNotificationData(notification, bucketName),
+        input: privatizedInput,
         output: executionOutput,
         errors: executionError,
         durationMs,
@@ -651,14 +630,14 @@ export class PushNotificationOrchestratorService {
         error,
       );
 
-      // Track failed execution
+
       await this.entityExecutionService.create({
         type: ExecutionType.NOTIFICATION,
         status: executionStatus,
         entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
-        input: this.privatizeNotificationData(notification, bucketName),
+        input: privatizedInput,
         output: undefined,
         errors: executionError,
         durationMs,
@@ -713,7 +692,6 @@ export class PushNotificationOrchestratorService {
     notification: Notification,
     userDevice: UserDevice,
     userSettings?: AutoActionSettings,
-    bucketName?: string,
   ): Promise<{ success: boolean; error?: string }> {
 
 
@@ -732,7 +710,7 @@ export class PushNotificationOrchestratorService {
 
     // Onboard - use local onboard push services (APN, Firebase, WebPush)
     if (mode === 'Onboard') {
-      return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings, bucketName);
+      return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings);
     }
 
     // Passthrough - use passthrough server
@@ -750,7 +728,7 @@ export class PushNotificationOrchestratorService {
         return { success: false, error };
       }
 
-      return this.sendViaPassthrough(server, token, notification, userDevice, bucketName);
+      return this.sendViaPassthrough(server, token, notification, userDevice);
     }
 
     // Should never reach here due to validation in getPushMode
@@ -765,7 +743,6 @@ export class PushNotificationOrchestratorService {
     token: string,
     notification: Notification,
     userDevice: UserDevice,
-    bucketName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
@@ -776,6 +753,10 @@ export class PushNotificationOrchestratorService {
       const url = `${server.replace(/\/$/, '')}/notifications/notify-external`;
 
       const payload = await this.buildExternalPayload(notification, userDevice);
+      if (!payload) {
+        return { success: false, error: 'Failed to build external payload' };
+      }
+      const { privatizedPayload, ...rest } = payload;
       this.logger.log(
         `Passthrough send | notifId=${notification.id} platform=${payload.platform} url=${url} hasToken=${!!token}`,
       );
@@ -787,7 +768,7 @@ export class PushNotificationOrchestratorService {
           'Accept': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(rest),
       });
 
       const contentType = res.headers.get('content-type') || '';
@@ -878,6 +859,8 @@ export class PushNotificationOrchestratorService {
         }
 
         // Track successful passthrough execution
+        // Payload is already privatized by buildExternalPayload
+        const privatizedPassthroughInput = JSON.stringify(privatizedPayload);
         const durationMs = Date.now() - startTime;
         await this.entityExecutionService.create({
           type: ExecutionType.NOTIFICATION,
@@ -885,7 +868,7 @@ export class PushNotificationOrchestratorService {
           entityName: userDevice.platform,
           entityId: notification.id,
           userId: userDevice.userId,
-          input: this.privatizeNotificationData(notification, bucketName),
+          input: privatizedPassthroughInput,
           output: executionOutput,
           errors: undefined,
           durationMs,
@@ -925,13 +908,15 @@ export class PushNotificationOrchestratorService {
         },
       });
 
+      // Payload is already privatized by buildExternalPayload
+      const privatizedPassthroughInput = JSON.stringify(privatizedPayload);
       await this.entityExecutionService.create({
         type: ExecutionType.NOTIFICATION,
         status: executionStatus,
         entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
-        input: this.privatizeNotificationData(notification, bucketName),
+        input: privatizedPassthroughInput,
         output: errorOutput,
         errors: executionError,
         durationMs,
@@ -946,13 +931,29 @@ export class PushNotificationOrchestratorService {
       executionStatus = ExecutionStatus.ERROR;
       executionError = error?.message || 'Passthrough error';
 
+      // If payload was not built, create fallback input
+      const fallbackInput = JSON.stringify({
+        platform: userDevice.platform,
+        notificationId: notification.id,
+        error: executionError
+      });
+
+      // Try to get payload if buildExternalPayload was called before error
+      let privatizedPassthroughInput = fallbackInput;
+      try {
+        const payload = await this.buildExternalPayload(notification, userDevice);
+        privatizedPassthroughInput = JSON.stringify(payload);
+      } catch {
+        // If buildExternalPayload also fails, use fallback
+      }
+
       await this.entityExecutionService.create({
         type: ExecutionType.NOTIFICATION,
         status: executionStatus,
         entityName: userDevice.platform,
         entityId: notification.id,
         userId: userDevice.userId,
-        input: this.privatizeNotificationData(notification, bucketName),
+        input: privatizedPassthroughInput,
         output: undefined,
         errors: executionError,
         durationMs,
@@ -983,13 +984,16 @@ export class PushNotificationOrchestratorService {
 
     const userSettings = this.buildAutoActionSettings(settings);
 
+    let returnValue: BuiltExternalPayload | null = null;
+
     if (device.platform === DevicePlatform.IOS) {
-      const { payload, priority, topic } =
+      const { payload, priority, topic, privatizedPayload } =
         await this.iosPushService.buildAPNsPayload(notification, userSettings, device);
 
       // Payload is already privatized by ios-push.service
-      return {
-        platform: 'IOS',
+      returnValue = {
+        platform: DevicePlatform.IOS,
+        privatizedPayload,
         payload: {
           payload,
           priority,
@@ -1002,33 +1006,39 @@ export class PushNotificationOrchestratorService {
     }
 
     if (device.platform === DevicePlatform.ANDROID) {
-      const msg = await this.firebasePushService.buildFirebaseMessage(
+      const { message: firebaseMessage, privatizedPayload } = await this.firebasePushService.buildFirebaseMessage(
         notification,
         [device.deviceToken || ''],
         userSettings,
       );
-      return {
-        platform: 'ANDROID',
-        payload: msg,
+      returnValue = {
+        platform: DevicePlatform.ANDROID,
+        privatizedPayload,
+        payload: firebaseMessage,
         deviceData: {
           token: device.deviceToken,
         },
       };
     }
 
-    // WEB
-    const webPayload = this.webPushService.buildWebPayload(notification, userSettings);
-    return {
-      platform: 'WEB',
-      payload: webPayload,
-      deviceData: {
-        endpoint: device.subscriptionFields?.endpoint,
-        p256dh: device.subscriptionFields?.p256dh,
-        auth: device.subscriptionFields?.auth,
-        publicKey: device.publicKey,
-        privateKey: device.privateKey,
-      },
-    };
+    if (device.platform === DevicePlatform.WEB) {
+      // WEB
+      const { payload: webPayload, privatizedPayload } = this.webPushService.buildWebPayload(notification, userSettings);
+      returnValue = {
+        platform: DevicePlatform.WEB,
+        privatizedPayload,
+        payload: webPayload,
+        deviceData: {
+          endpoint: device.subscriptionFields?.endpoint,
+          p256dh: device.subscriptionFields?.p256dh,
+          auth: device.subscriptionFields?.auth,
+          publicKey: device.publicKey,
+          privateKey: device.privateKey,
+        },
+      };
+    }
+
+    return returnValue;
   }
 
   /**

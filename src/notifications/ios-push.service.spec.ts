@@ -84,7 +84,7 @@ describe('IOSPushService', () => {
       };
 
       const payload = {
-        rawPayload: {
+        payload: {
           aps: {
             alert: { title: 'Encrypted Notification' },
             sound: 'default',
@@ -93,7 +93,6 @@ describe('IOSPushService', () => {
           },
           enc: 'encrypted_data_blob',
         },
-        customPayload: { priority: 10 },
         priority: 10,
         topic: 'com.test.app',
       };
@@ -103,7 +102,7 @@ describe('IOSPushService', () => {
         failed: [],
       });
 
-      const result = await service.sendPrebuilt(deviceData, payload);
+      const result = await service.sendPrebuilt({ deviceData, payload });
 
       expect(result.success).toBe(true);
       expect(result.results).toHaveLength(1);
@@ -117,8 +116,7 @@ describe('IOSPushService', () => {
 
       expect(mockProvider.send).toHaveBeenCalledWith(
         expect.objectContaining({
-          rawPayload: payload.rawPayload,
-          payload: payload.customPayload,
+          rawPayload: payload.payload,
           priority: payload.priority,
           topic: payload.topic,
         }),
@@ -132,13 +130,12 @@ describe('IOSPushService', () => {
       };
 
       const payload = {
-        rawPayload: {
+        payload: {
           aps: {
             alert: { title: 'Test Notification' },
             sound: 'default',
           },
         },
-        customPayload: { priority: 10 },
         priority: 10,
         topic: 'com.test.app',
       };
@@ -153,7 +150,7 @@ describe('IOSPushService', () => {
         ],
       });
 
-      const result = await service.sendPrebuilt(deviceData, payload);
+      const result = await service.sendPrebuilt({ deviceData, payload });
 
       expect(result.success).toBe(false);
       expect(result.results).toHaveLength(1);
@@ -179,13 +176,12 @@ describe('IOSPushService', () => {
       };
 
       const payload = {
-        rawPayload: { aps: { alert: { title: 'Test' } } },
-        customPayload: { priority: 10 },
+        payload: { aps: { alert: { title: 'Test' } } },
         priority: 10,
         topic: 'com.test.app',
       };
 
-      await expect(service.sendPrebuilt(deviceData, payload)).rejects.toThrow(
+      await expect(service.sendPrebuilt({ deviceData, payload })).rejects.toThrow(
         'APNs provider not initialized',
       );
     });
@@ -196,15 +192,14 @@ describe('IOSPushService', () => {
       };
 
       const payload = {
-        rawPayload: { aps: { alert: { title: 'Test' } } },
-        customPayload: { priority: 10 },
+        payload: { aps: { alert: { title: 'Test' } } },
         priority: 10,
         topic: 'com.test.app',
       };
 
       mockProvider.send.mockRejectedValue(new Error('Network error'));
 
-      await expect(service.sendPrebuilt(deviceData, payload)).rejects.toThrow(
+      await expect(service.sendPrebuilt({ deviceData, payload })).rejects.toThrow(
         'Network error',
       );
     });
@@ -215,8 +210,8 @@ describe('IOSPushService', () => {
       };
 
       const payload = {
-        rawPayload: { aps: { alert: { title: 'Test' } } },
-        customPayload: {},
+        payload: { aps: { alert: { title: 'Test' } } },
+        priority: undefined,
         topic: 'com.test.app',
       };
 
@@ -225,13 +220,12 @@ describe('IOSPushService', () => {
         failed: [],
       });
 
-      const result = await service.sendPrebuilt(deviceData, payload);
+      const result = await service.sendPrebuilt({ deviceData, payload });
 
       expect(result.success).toBe(true);
       expect(mockProvider.send).toHaveBeenCalledWith(
         expect.objectContaining({
-          rawPayload: payload.rawPayload,
-          payload: payload.customPayload,
+          rawPayload: payload.payload,
           topic: payload.topic,
         }),
         'test_device_token_123',
@@ -244,8 +238,7 @@ describe('IOSPushService', () => {
       };
 
       const payload = {
-        rawPayload: { aps: { alert: { title: 'Test' } } },
-        customPayload: { priority: 10 },
+        payload: { aps: { alert: { title: 'Test' } } },
         priority: 10,
         topic: 'com.apocaliss92.zentik', // Include topic in payload
       };
@@ -255,13 +248,13 @@ describe('IOSPushService', () => {
         failed: [],
       });
 
-      const result = await service.sendPrebuilt(deviceData, payload);
+      const result = await service.sendPrebuilt({ deviceData, payload });
 
       expect(result.success).toBe(true);
       expect(mockProvider.send).toHaveBeenCalledWith(
         expect.objectContaining({
-          rawPayload: payload.rawPayload,
-          payload: payload.customPayload,
+          rawPayload: payload.payload,
+          priority: payload.priority,
           topic: 'com.apocaliss92.zentik',
         }),
         'test_device_token_123',
@@ -348,6 +341,16 @@ describe('IOSPushService', () => {
       expect(result.payload.bucketName).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketIconUrl).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketColor).toBeUndefined(); // Removed from payload
+
+      // Verify privatizedPayload includes sensitive field with privatized data
+      expect(result.privatizedPayload).toBeDefined();
+      expect(result.privatizedPayload.enc).toMatch(/^.{17,20}\.\.\.$/); // Privatized encrypted blob (mock-encrypted-data is 19 chars)
+      expect(result.privatizedPayload.sensitive).toBeDefined();
+      expect(result.privatizedPayload.sensitive.tit).toMatch(/^.{5}\.\.\.$/); // Privatized title
+      expect(result.privatizedPayload.sensitive.bdy).toMatch(/^.{5}\.\.\.$/); // Privatized body
+      expect(result.privatizedPayload.sensitive.stl).toMatch(/^.{5}\.\.\.$/); // Privatized subtitle
+      expect(result.privatizedPayload.sensitive.att).toBeDefined(); // Privatized attachments
+      expect(result.privatizedPayload.sensitive.tap).toBeDefined(); // Privatized tap action
     });
 
     it('should build APNs payload with bucket fields for non-encrypted device', async () => {
@@ -386,6 +389,13 @@ describe('IOSPushService', () => {
       
       // Verify no encryption blob for non-encrypted device
       expect(result.payload.enc).toBeUndefined();
+
+      // Verify privatizedPayload for non-encrypted device (no sensitive field)
+      expect(result.privatizedPayload).toBeDefined();
+      expect(result.privatizedPayload.tit).toMatch(/^.{5}\.\.\.$/); // Privatized title
+      expect(result.privatizedPayload.bdy).toMatch(/^.{5}\.\.\.$/); // Privatized body
+      expect(result.privatizedPayload.stl).toMatch(/^.{5}\.\.\.$/); // Privatized subtitle
+      expect(result.privatizedPayload.sensitive).toBeUndefined(); // No sensitive field for non-encrypted
     });
 
     it('should build APNs payload with Communication Notifications format when bucket fields present', async () => {
@@ -568,6 +578,23 @@ describe('IOSPushService', () => {
       
       expect(hasNavigate).toBe(false);
       expect(hasBackgroundCall).toBe(false);
+
+      // Verify privatizedPayload includes sensitive actions in sensitive field
+      expect(result.privatizedPayload.sensitive).toBeDefined();
+      expect(result.privatizedPayload.sensitive.act).toBeDefined();
+      expect(Array.isArray(result.privatizedPayload.sensitive.act)).toBe(true);
+      // Verify sensitive actions are privatized
+      result.privatizedPayload.sensitive.act.forEach((action: any) => {
+        if (action.value) {
+          // Value is substring(0, 8) + "...", so "/test" (5 chars) becomes "/test..." (8 chars total)
+          // Pattern should accept any length before "..."
+          expect(String(action.value)).toMatch(/\.\.\.$/); // Must end with ...
+          expect(String(action.value).length).toBeGreaterThanOrEqual(3); // At least "..."
+        }
+        if (action.title) {
+          expect(action.title).toMatch(/^.{5}\.\.\.$/);
+        }
+      });
     });
 
     it('should include all actions in payload for non-encrypted device', async () => {

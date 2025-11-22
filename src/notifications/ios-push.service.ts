@@ -31,6 +31,7 @@ export interface SendResult {
   error?: string;
   payloadTooLargeDetected?: boolean;
   retryAttempted?: boolean;
+  privatizedPayload?: any;
 }
 
 @Injectable()
@@ -63,12 +64,50 @@ export class IOSPushService {
    * Privatize sensitive fields in APNs payload for logging/tracking purposes
    * Returns a copy of the payload with sensitive fields privatized
    */
-  private privatizePayload(payload: any): any {
+  private privatizePayload(payload: any, sensitive: any): any {
     const privatized = { ...payload };
 
     // Privatize encrypted blob if present
     if (privatized.enc) {
       privatized.enc = `${String(privatized.enc).substring(0, 20)}...`;
+      
+      // If there's an encrypted blob, add privatized sensitive fields to root as "sensitive"
+      if (sensitive) {
+        const privatizedSensitive: any = {};
+        
+        // Privatize sensitive payload fields
+        if (sensitive.tit) {
+          privatizedSensitive.tit = `${String(sensitive.tit).substring(0, 5)}...`;
+        }
+        if (sensitive.bdy) {
+          privatizedSensitive.bdy = `${String(sensitive.bdy).substring(0, 5)}...`;
+        }
+        if (sensitive.stl) {
+          privatizedSensitive.stl = `${String(sensitive.stl).substring(0, 5)}...`;
+        }
+        if (sensitive.att) {
+          privatizedSensitive.att = Array.isArray(sensitive.att)
+            ? [`${sensitive.att[0]?.substring(0, 10) || ''}...`]
+            : `${String(sensitive.att).substring(0, 10)}...`;
+        }
+        if (sensitive.tap) {
+          privatizedSensitive.tap = {
+            ...sensitive.tap,
+            value: sensitive.tap.value ? `${String(sensitive.tap.value).substring(0, 8)}...` : sensitive.tap.value,
+          };
+        }
+        
+        // Privatize sensitive actions if present
+        if (sensitive.act && Array.isArray(sensitive.act)) {
+          privatizedSensitive.act = sensitive.act.map((action: any) => ({
+            ...action,
+            value: action.value ? `${String(action.value).substring(0, 8)}...` : action.value,
+            title: action.title ? `${String(action.title).substring(0, 5)}...` : action.title,
+          }));
+        }
+        
+        privatized.sensitive = privatizedSensitive;
+      }
     }
 
     // Privatize sensitive fields if present (non-encrypted payload)
@@ -203,8 +242,9 @@ export class IOSPushService {
     };
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
+    let sensitive: any = null;
     if (device && device.publicKey) {
-      const sensitive: any = {
+      sensitive = {
         ...sensitivePayload,
       };
 
@@ -245,7 +285,9 @@ export class IOSPushService {
     // Privatize sensitive fields in the final payload that will be sent (notification_apn.rawPayload)
     // Create a deep copy to avoid modifying the original payload that will be sent
     const finalPayload = notification_apn.rawPayload;
-    const privatizedPayload = this.privatizePayload(JSON.parse(JSON.stringify(finalPayload)));
+    // Pass the full sensitive object (including act if present) for encryption case, or just sensitivePayload for non-encrypted
+    const sensitiveForPrivatization = sensitive || sensitivePayload;
+    const privatizedPayload = this.privatizePayload(JSON.parse(JSON.stringify(finalPayload)), sensitiveForPrivatization);
 
     return {
       payload,
@@ -378,16 +420,21 @@ export class IOSPushService {
       let payloadTooLargeDetected = false;
       let retryAttempted = false;
 
+      const privatizedPayload: any[] = [];
+
       for (const token of deviceTokens) {
         try {
           const device = devices.find((d) => d.deviceToken === token);
           const {
-            notification_apn
+            notification_apn,
+            privatizedPayload,
           } = await this.buildAPNsPayload(
             notification,
             userSettings,
             device || undefined, // Pass the found device or undefined if not found
           );
+
+          privatizedPayload.push(privatizedPayload);
 
           const result = await this.provider.send(notification_apn, token);
 
@@ -530,6 +577,7 @@ export class IOSPushService {
         results,
         payloadTooLargeDetected,
         retryAttempted,
+        privatizedPayload,
       };
     } catch (error) {
       this.logger.error('Error sending via APNs:', error);
@@ -549,20 +597,22 @@ export class IOSPushService {
     body: any,
   ): Promise<SendResult> {
     await this.ensureInitialized();
-    const { deviceData: { token }, payload: { payload, priority, topic } } = body;
+    const { deviceData: { token }, payload: payloadData } = body;
 
     if (!this.provider) {
       this.logger.error('APNs provider not initialized');
       throw new Error('APNs provider not initialized');
     }
 
+    // Extract payload structure: { payload, priority, topic }
+    const { payload: rawPayload, priority, topic } = payloadData;
+
     // Reconstruct apn.Notification from components
     const notification_apn = new apn.Notification();
-    notification_apn.payload = payload;
+    notification_apn.rawPayload = rawPayload;
     notification_apn.priority = priority;
     notification_apn.topic = topic;
 
-    this.logger.log(`Payload: ${JSON.stringify(payload)}`);
     this.logger.log(`Sending APN notification to token: ${token} and topic ${topic} with priority ${priority}`);
     const result = await this.provider.send(notification_apn, token);
 

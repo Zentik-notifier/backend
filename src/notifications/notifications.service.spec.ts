@@ -581,7 +581,7 @@ describe('NotificationsService', () => {
       const iosPayload: ExternalNotifyRequestDto = {
         platform: ExternalPlatform.IOS,
         payload: {
-          rawPayload: {
+          payload: {
             aps: {
               alert: { title: 'Encrypted Notification' },
               sound: 'default',
@@ -590,7 +590,6 @@ describe('NotificationsService', () => {
             },
             enc: 'encrypted_data_blob',
           },
-          customPayload: { priority: 10 },
           priority: 10,
           topic: 'com.test.app',
         },
@@ -604,10 +603,7 @@ describe('NotificationsService', () => {
       const result = await service.sendPrebuilt(iosPayload);
 
       expect(result).toEqual({ success: true });
-      expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(
-        iosPayload.deviceData,
-        iosPayload.payload,
-      );
+      expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(iosPayload);
     });
 
     it('should send Android prebuilt notification successfully', async () => {
@@ -683,8 +679,7 @@ describe('NotificationsService', () => {
       const iosPayload: ExternalNotifyRequestDto = {
         platform: ExternalPlatform.IOS,
         payload: {
-          rawPayload: { aps: { alert: { title: 'Test' } } },
-          customPayload: { priority: 10 },
+          payload: { aps: { alert: { title: 'Test' } } },
           priority: 10,
           topic: 'com.test.app',
         },
@@ -698,10 +693,7 @@ describe('NotificationsService', () => {
       const result = await service.sendPrebuilt(iosPayload);
 
       expect(result).toEqual({ success: false });
-      expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(
-        iosPayload.deviceData,
-        iosPayload.payload,
-      );
+      expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(iosPayload);
     });
 
     it('should handle Android notification failure', async () => {
@@ -776,8 +768,7 @@ describe('NotificationsService', () => {
       const iosPayload: ExternalNotifyRequestDto = {
         platform: ExternalPlatform.IOS,
         payload: {
-          rawPayload: { aps: { alert: { title: 'Test' } } },
-          customPayload: { priority: 10 },
+          payload: { aps: { alert: { title: 'Test' } } },
           priority: 10,
           topic: 'com.test.app',
         },

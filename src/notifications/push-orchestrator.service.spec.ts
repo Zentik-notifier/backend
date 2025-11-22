@@ -260,7 +260,14 @@ describe('PushNotificationOrchestratorService', () => {
       // Replace UsersService mock for this test
       (service as any).usersService = mockUsersService;
 
-      mockIOSPushService.send.mockResolvedValue({ success: true });
+      mockIOSPushService.send.mockResolvedValue({ 
+        success: true,
+        privatizedPayload: {
+          aps: { alert: { title: 'Test...' } },
+          nid: 'notification-1',
+          bid: 'bucket-1',
+        },
+      });
 
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
@@ -299,7 +306,14 @@ describe('PushNotificationOrchestratorService', () => {
         autoAddOpenNotificationAction: true,
       };
 
-      mockIOSPushService.send.mockResolvedValue({ success: true });
+      mockIOSPushService.send.mockResolvedValue({ 
+        success: true,
+        privatizedPayload: {
+          aps: { alert: { title: 'Test...' } },
+          nid: 'notification-1',
+          bid: 'bucket-1',
+        },
+      });
 
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
@@ -328,7 +342,14 @@ describe('PushNotificationOrchestratorService', () => {
 
       (service as any).usersService = mockUsersService;
 
-      mockIOSPushService.send.mockResolvedValue({ success: true });
+      mockIOSPushService.send.mockResolvedValue({ 
+        success: true,
+        privatizedPayload: {
+          aps: { alert: { title: 'Test...' } },
+          nid: 'notification-1',
+          bid: 'bucket-1',
+        },
+      });
 
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
@@ -394,6 +415,11 @@ describe('PushNotificationOrchestratorService', () => {
       mockWebPushService.send.mockResolvedValue({
         success: true,
         results: [{ success: true }],
+        privatizedPayload: {
+          title: 'Test...',
+          body: 'Test...',
+          notificationId: 'notification-1',
+        },
       });
 
       const result = await service.sendPushToSingleDeviceStateless(
@@ -417,7 +443,14 @@ describe('PushNotificationOrchestratorService', () => {
 
   describe('sendPushToSingleDeviceStateless', () => {
     it('should send iOS push notification successfully', async () => {
-      mockIOSPushService.send.mockResolvedValue({ success: true });
+      mockIOSPushService.send.mockResolvedValue({ 
+        success: true,
+        privatizedPayload: {
+          aps: { alert: { title: 'Test...' } },
+          nid: 'notification-1',
+          bid: 'bucket-1',
+        },
+      });
 
       const userSettings = {
         autoAddDeleteAction: true,
@@ -475,6 +508,11 @@ describe('PushNotificationOrchestratorService', () => {
       mockWebPushService.send.mockResolvedValue({
         success: true,
         results: [{ success: true }],
+        privatizedPayload: {
+          title: 'Test...',
+          body: 'Test...',
+          notificationId: 'notification-1',
+        },
       });
 
       const userSettings = {
@@ -570,6 +608,12 @@ describe('PushNotificationOrchestratorService', () => {
           enc: 'encrypted_data',
         },
         priority: 10,
+        topic: 'com.apocaliss92.zentik',
+        privatizedPayload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data...',
+          sensitive: { tit: 'Test...', bdy: 'Test...' },
+        },
       });
 
       const mockFetchResponse = {
@@ -625,6 +669,12 @@ describe('PushNotificationOrchestratorService', () => {
           enc: 'encrypted_data',
         },
         priority: 10,
+        topic: 'com.apocaliss92.zentik',
+        privatizedPayload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data...',
+          sensitive: { tit: 'Test...', bdy: 'Test...' },
+        },
       });
 
       const mockFetchResponse = {
@@ -670,6 +720,12 @@ describe('PushNotificationOrchestratorService', () => {
           enc: 'encrypted_data',
         },
         priority: 10,
+        topic: 'com.apocaliss92.zentik',
+        privatizedPayload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data...',
+          sensitive: { tit: 'Test...', bdy: 'Test...' },
+        },
       });
 
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
@@ -709,6 +765,27 @@ describe('PushNotificationOrchestratorService', () => {
           enc: 'encrypted_data_blob',
         },
         priority: 10,
+        topic: 'com.apocaliss92.zentik',
+        privatizedPayload: {
+          aps: {
+            alert: { title: 'Encrypted Notification' },
+            sound: 'default',
+            'mutable-content': 1,
+            'content-available': 1,
+          },
+          enc: 'encrypted_data_blob...',
+          nid: 'notification-1',
+          bid: 'bucket-1',
+          mid: 'message-1',
+          dty: 'NORMAL',
+          sensitive: {
+            tit: 'Test...',
+            bdy: 'Test...',
+            stl: 'Test...',
+            att: ['IMAGE:https://...'],
+            tap: { type: 'OPEN_NOTIFICATION', value: 'notif...' },
+          },
+        },
       });
 
       const payload = await (service as any).buildExternalPayload(
@@ -717,9 +794,29 @@ describe('PushNotificationOrchestratorService', () => {
       );
 
       expect(payload).toEqual({
-        platform: 'IOS',
+        platform: DevicePlatform.IOS,
+        privatizedPayload: {
+          aps: {
+            alert: { title: 'Encrypted Notification' },
+            sound: 'default',
+            'mutable-content': 1,
+            'content-available': 1,
+          },
+          enc: 'encrypted_data_blob...',
+          nid: 'notification-1',
+          bid: 'bucket-1',
+          mid: 'message-1',
+          dty: 'NORMAL',
+          sensitive: {
+            tit: 'Test...',
+            bdy: 'Test...',
+            stl: 'Test...',
+            att: ['IMAGE:https://...'],
+            tap: { type: 'OPEN_NOTIFICATION', value: 'notif...' },
+          },
+        },
         payload: {
-          rawPayload: {
+          payload: {
             aps: {
               alert: { title: 'Encrypted Notification' },
               sound: 'default',
@@ -765,18 +862,35 @@ describe('PushNotificationOrchestratorService', () => {
       );
 
       mockFirebasePushService.buildFirebaseMessage.mockResolvedValue({
-        tokens: ['test_android_token'],
-        apns: {
-          payload: {
-            aps: {
-              alert: { title: 'Test Notification', body: 'Test Body' },
-              sound: 'default',
+        message: {
+          tokens: ['test_android_token'],
+          apns: {
+            payload: {
+              aps: {
+                alert: { title: 'Test Notification', body: 'Test Body' },
+                sound: 'default',
+              },
             },
           },
+          data: {
+            notificationId: 'test-notification-id',
+            actions: JSON.stringify([]),
+          },
         },
-        data: {
-          notificationId: 'test-notification-id',
-          actions: JSON.stringify([]),
+        privatizedPayload: {
+          tokens: ['test_android_token'],
+          apns: {
+            payload: {
+              aps: {
+                alert: { title: 'Test...', body: 'Test...' },
+                sound: 'default',
+              },
+            },
+          },
+          data: {
+            notificationId: 'test-notification-id',
+            actions: JSON.stringify([]),
+          },
         },
       });
 
@@ -786,7 +900,22 @@ describe('PushNotificationOrchestratorService', () => {
       );
 
       expect(payload).toEqual({
-        platform: 'ANDROID',
+        platform: DevicePlatform.ANDROID,
+        privatizedPayload: {
+          tokens: ['test_android_token'],
+          apns: {
+            payload: {
+              aps: {
+                alert: { title: 'Test...', body: 'Test...' },
+                sound: 'default',
+              },
+            },
+          },
+          data: {
+            notificationId: 'test-notification-id',
+            actions: JSON.stringify([]),
+          },
+        },
         payload: {
           tokens: ['test_android_token'],
           apns: {
@@ -843,16 +972,30 @@ describe('PushNotificationOrchestratorService', () => {
       );
 
       mockWebPushService.buildWebPayload.mockReturnValue({
-        title: 'Test Web Notification',
-        body: 'Test Web Body',
-        url: '/',
-        notificationId: 'test-notification-id',
-        actions: [
-          {
-            action: 'OPEN',
-            title: 'Open',
-          },
-        ],
+        payload: {
+          title: 'Test Web Notification',
+          body: 'Test Web Body',
+          url: '/',
+          notificationId: 'test-notification-id',
+          actions: [
+            {
+              action: 'OPEN',
+              title: 'Open',
+            },
+          ],
+        },
+        privatizedPayload: {
+          title: 'Test...',
+          body: 'Test...',
+          url: '/',
+          notificationId: 'test-notification-id',
+          actions: [
+            {
+              action: 'OPEN',
+              title: 'Open',
+            },
+          ],
+        },
       });
 
       const payload = await (service as any).buildExternalPayload(
@@ -861,7 +1004,19 @@ describe('PushNotificationOrchestratorService', () => {
       );
 
       expect(payload).toEqual({
-        platform: 'WEB',
+        platform: DevicePlatform.WEB,
+        privatizedPayload: {
+          title: 'Test...',
+          body: 'Test...',
+          url: '/',
+          notificationId: 'test-notification-id',
+          actions: [
+            {
+              action: 'OPEN',
+              title: 'Open',
+            },
+          ],
+        },
         payload: {
           title: 'Test Web Notification',
           body: 'Test Web Body',
