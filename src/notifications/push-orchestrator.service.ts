@@ -58,6 +58,8 @@ export class PushNotificationOrchestratorService {
 
   /**
    * Privatize notification data for logging/tracking purposes
+   * This is a fallback method that creates a basic privatized version of notification data
+   * The actual payloads should be privatized by individual push services
    */
   private privatizeNotificationData(notification: Notification, bucketName?: string): string {
     const message = notification.message;
@@ -70,6 +72,28 @@ export class PushNotificationOrchestratorService {
       deliveryType: message?.deliveryType,
       createdAt: notification.createdAt,
     });
+  }
+
+  /**
+   * Privatize payload for logging/tracking purposes
+   * Uses payload-specific privatization from push services
+   */
+  private privatizePayloadForTracking(payload: any, platform: DevicePlatform): string {
+    if (!payload) {
+      return '';
+    }
+
+    try {
+      // If payload is already privatized (has ... in sensitive fields), return as-is
+      const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
+
+      // For iOS payloads, they're already privatized by ios-push.service
+      // For Firebase payloads, they're already privatized by firebase-push.service
+      // For WebPush payloads, they're already privatized by web-push.service
+      return payloadStr;
+    } catch {
+      return '';
+    }
   }
 
   /**
@@ -960,19 +984,14 @@ export class PushNotificationOrchestratorService {
     const userSettings = this.buildAutoActionSettings(settings);
 
     if (device.platform === DevicePlatform.IOS) {
-      const { payload: rawPayload, priority } =
+      const { payload, priority, topic } =
         await this.iosPushService.buildAPNsPayload(notification, userSettings, device);
 
-      // Resolve bundleId/topic from ServerSettings first, then ENV, then safe default (dev)
-      const bundleSetting = await this.serverSettingsService.getSettingByType(
-        ServerSettingType.ApnBundleId,
-      );
-      const topic = bundleSetting?.valueText;
-
+      // Payload is already privatized by ios-push.service
       return {
         platform: 'IOS',
         payload: {
-          rawPayload,
+          payload,
           priority,
           topic,
         },

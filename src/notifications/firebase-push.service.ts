@@ -32,7 +32,7 @@ export class FirebasePushService {
     private readonly iosPushService: IOSPushService,
     private localeService: LocaleService,
     private serverSettingsService: ServerSettingsService,
-  ) {}
+  ) { }
 
   /**
    * Ensure Firebase is initialized before use (lazy initialization)
@@ -229,7 +229,7 @@ export class FirebasePushService {
       tokens: deviceTokens,
       apns: {
         payload: {
-          ...iosPayload,
+          ...iosPayload
         },
       },
     };
@@ -264,13 +264,73 @@ export class FirebasePushService {
       const effectiveTapAction = message.tapAction
         ? message.tapAction
         : ({
-            type: NotificationActionType.OPEN_NOTIFICATION,
-            value: notification.id,
-          } as any);
+          type: NotificationActionType.OPEN_NOTIFICATION,
+          value: notification.id,
+        } as any);
       payload.data.tapAction = JSON.stringify(effectiveTapAction);
     }
 
-    return payload;
+    // Privatize sensitive fields in payload before returning
+    return this.privatizeFirebasePayload(payload);
+  }
+
+  /**
+   * Privatize sensitive fields in Firebase payload for logging/tracking purposes
+   * Returns a copy of the payload with sensitive fields privatized
+   */
+  private privatizeFirebasePayload(payload: admin.messaging.MulticastMessage): admin.messaging.MulticastMessage {
+    const privatized = JSON.parse(JSON.stringify(payload)); // Deep copy
+
+    // Privatize iOS payload if present (contains sensitive data)
+    if (privatized.apns?.payload) {
+      if (privatized.apns.payload.enc) {
+        privatized.apns.payload.enc = `${String(privatized.apns.payload.enc).substring(0, 20)}...`;
+      }
+      if (privatized.apns.payload.tit) {
+        privatized.apns.payload.tit = `${String(privatized.apns.payload.tit).substring(0, 5)}...`;
+      }
+      if (privatized.apns.payload.bdy) {
+        privatized.apns.payload.bdy = `${String(privatized.apns.payload.bdy).substring(0, 5)}...`;
+      }
+      if (privatized.apns.payload.stl) {
+        privatized.apns.payload.stl = `${String(privatized.apns.payload.stl).substring(0, 5)}...`;
+      }
+      if (privatized.apns.payload.att) {
+        privatized.apns.payload.att = Array.isArray(privatized.apns.payload.att)
+          ? [`${privatized.apns.payload.att[0]?.substring(0, 10) || ''}...`]
+          : `${String(privatized.apns.payload.att).substring(0, 10)}...`;
+      }
+      if (privatized.apns.payload.tap) {
+        privatized.apns.payload.tap = {
+          ...privatized.apns.payload.tap,
+          value: privatized.apns.payload.tap.value ? `${String(privatized.apns.payload.tap.value).substring(0, 8)}...` : privatized.apns.payload.tap.value,
+        };
+      }
+    }
+
+    // Privatize Android data fields if present
+    if (privatized.data) {
+      if (privatized.data.subtitle) {
+        privatized.data.subtitle = `${String(privatized.data.subtitle).substring(0, 5)}...`;
+      }
+      if (privatized.data.attachmentData) {
+        privatized.data.attachmentData = `${String(privatized.data.attachmentData).substring(0, 20)}...`;
+      }
+      if (privatized.data.tapAction) {
+        try {
+          const tapAction = JSON.parse(privatized.data.tapAction);
+          if (tapAction.value) {
+            tapAction.value = `${String(tapAction.value).substring(0, 8)}...`;
+            privatized.data.tapAction = JSON.stringify(tapAction);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Keep tokens, android, apns structure unchanged
+    return privatized;
   }
 
   /**

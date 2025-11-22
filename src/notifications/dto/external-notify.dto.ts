@@ -1,13 +1,9 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
   IsObject,
-  IsOptional,
-  IsString,
-  ValidateNested,
-  IsNumber,
+  IsString
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export enum ExternalPlatform {
   IOS = 'IOS',

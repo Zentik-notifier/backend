@@ -879,8 +879,7 @@ export class NotificationsService implements OnModuleInit {
         `Sending iOS prebuilt notification to token: ${(body.deviceData as ExternalDeviceDataIosDto).token}`,
       );
       const res = await this.iosPushService.sendPrebuilt(
-        body.deviceData as ExternalDeviceDataIosDto,
-        body.payload,
+        body
       );
       this.logger.log(`iOS sendPrebuilt result: ${JSON.stringify(res)}`);
       return { success: res.success };

@@ -174,7 +174,7 @@ export class WebPushService {
       url = `/notifications/${effectiveTapAction.value || notification.id}`;
     }
 
-    return {
+    const payload = {
       title: message?.title || 'Zentik',
       body: message?.body || '',
       subtitle: message?.subtitle,
@@ -189,6 +189,42 @@ export class WebPushService {
       tapAction: effectiveTapAction,
       attachments: message?.attachments,
     };
+
+    // Privatize sensitive fields in payload before returning
+    return this.privatizeWebPayload(payload);
+  }
+
+  /**
+   * Privatize sensitive fields in Web Push payload for logging/tracking purposes
+   * Returns a copy of the payload with sensitive fields privatized
+   */
+  private privatizeWebPayload(payload: any): any {
+    const privatized = { ...payload };
+    
+    // Privatize sensitive text fields
+    if (privatized.title) {
+      privatized.title = `${String(privatized.title).substring(0, 5)}...`;
+    }
+    if (privatized.body) {
+      privatized.body = `${String(privatized.body).substring(0, 5)}...`;
+    }
+    if (privatized.subtitle) {
+      privatized.subtitle = `${String(privatized.subtitle).substring(0, 5)}...`;
+    }
+    if (privatized.tapAction?.value) {
+      privatized.tapAction = {
+        ...privatized.tapAction,
+        value: `${String(privatized.tapAction.value).substring(0, 8)}...`,
+      };
+    }
+    if (privatized.attachments) {
+      privatized.attachments = Array.isArray(privatized.attachments) && privatized.attachments.length > 0
+        ? [{ ...privatized.attachments[0], url: `${String(privatized.attachments[0]?.url || '').substring(0, 10)}...` }]
+        : privatized.attachments;
+    }
+    
+    // Keep notificationId, bucketId, bucketIcon, bucketName, deliveryType, actions structure unchanged
+    return privatized;
   }
 
   public async sendPrebuilt(

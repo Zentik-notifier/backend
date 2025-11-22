@@ -60,6 +60,44 @@ export class IOSPushService {
   };
 
   /**
+   * Privatize sensitive fields in APNs payload for logging/tracking purposes
+   * Returns a copy of the payload with sensitive fields privatized
+   */
+  private privatizePayload(payload: any): any {
+    const privatized = { ...payload };
+
+    // Privatize encrypted blob if present
+    if (privatized.enc) {
+      privatized.enc = `${String(privatized.enc).substring(0, 20)}...`;
+    }
+
+    // Privatize sensitive fields if present (non-encrypted payload)
+    if (privatized.tit) {
+      privatized.tit = `${String(privatized.tit).substring(0, 5)}...`;
+    }
+    if (privatized.bdy) {
+      privatized.bdy = `${String(privatized.bdy).substring(0, 5)}...`;
+    }
+    if (privatized.stl) {
+      privatized.stl = `${String(privatized.stl).substring(0, 5)}...`;
+    }
+    if (privatized.att) {
+      privatized.att = Array.isArray(privatized.att)
+        ? [`${privatized.att[0]?.substring(0, 10) || ''}...`]
+        : `${String(privatized.att).substring(0, 10)}...`;
+    }
+    if (privatized.tap) {
+      privatized.tap = {
+        ...privatized.tap,
+        value: privatized.tap.value ? `${String(privatized.tap.value).substring(0, 8)}...` : privatized.tap.value,
+      };
+    }
+
+    // Keep aps, nid, bid, mid, dty, act (public actions) unchanged
+    return privatized;
+  }
+
+  /**
    * Build APNs payload for iOS notifications
    * Creates a complete payload with only the 'aps' key and custom data
    * If publicKey is provided, encrypts sensitive fields in-place.
@@ -88,6 +126,13 @@ export class IOSPushService {
       'mutable-content': 1,
       'content-available': 1,
     };
+
+    if (message.collapseId) {
+      apsPayload['apns-collapse-id'] = message.collapseId;
+    } else {
+      apsPayload['thread-id'] = message.groupId || notification.message.bucketId
+    }
+
 
     let priority = 10;
     // Configure delivery type based on notification.deliveryType
@@ -191,9 +236,23 @@ export class IOSPushService {
       }
     }
 
+    const topic = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
+    const notification_apn = new apn.Notification();
+    notification_apn.rawPayload = payload;
+    notification_apn.priority = priority;
+    notification_apn.topic = topic
+
+    // Privatize sensitive fields in the final payload that will be sent (notification_apn.rawPayload)
+    // Create a deep copy to avoid modifying the original payload that will be sent
+    const finalPayload = notification_apn.rawPayload;
+    const privatizedPayload = this.privatizePayload(JSON.parse(JSON.stringify(finalPayload)));
+
     return {
-      priority,
       payload,
+      priority,
+      topic,
+      privatizedPayload,
+      notification_apn,
     };
   }
 
@@ -323,24 +382,12 @@ export class IOSPushService {
         try {
           const device = devices.find((d) => d.deviceToken === token);
           const {
-            priority,
-            payload,
+            notification_apn
           } = await this.buildAPNsPayload(
             notification,
             userSettings,
             device || undefined, // Pass the found device or undefined if not found
           );
-          const message = notification.message;
-
-          const notification_apn = new apn.Notification();
-          notification_apn.rawPayload = payload;
-          notification_apn.priority = priority;
-          notification_apn.topic =
-            (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
-          notification_apn.threadId = message.groupId || notification.message.bucketId;
-          if (message.collapseId) {
-            notification_apn.collapseId = message.collapseId;
-          }
 
           const result = await this.provider.send(notification_apn, token);
 
@@ -384,21 +431,15 @@ export class IOSPushService {
                   resultEntry.retriedWithoutEncryption = true;
 
                   // Rebuild payload WITHOUT encryption by omitting device when building
-                  const retryBuild = await this.buildAPNsPayload(
+                  const { notification_apn } = await this.buildAPNsPayload(
                     notification,
                     userSettings,
                     undefined,
                   );
 
-                  // Ensure actions and attachments are present in retry raw payload
-                  const retryNotification = new apn.Notification();
-                  retryNotification.rawPayload = retryBuild.payload;
-                  retryNotification.priority = retryBuild.priority;
-                  retryNotification.topic =
-                    (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
 
                   const retryResult = await this.provider!.send(
-                    retryNotification,
+                    notification_apn,
                     token,
                   );
 
@@ -505,26 +546,24 @@ export class IOSPushService {
    * payload: { rawPayload, customPayload } | rawPayload
    */
   async sendPrebuilt(
-    deviceData: { token: string },
-    payload: any,
+    body: any,
   ): Promise<SendResult> {
     await this.ensureInitialized();
+    const { deviceData: { token }, payload: { payload, priority, topic } } = body;
 
     if (!this.provider) {
       this.logger.error('APNs provider not initialized');
       throw new Error('APNs provider not initialized');
     }
 
-    const token = deviceData?.token;
-
     // Reconstruct apn.Notification from components
     const notification_apn = new apn.Notification();
-    notification_apn.rawPayload = payload.rawPayload;
-    notification_apn.payload = payload.customPayload;
-    notification_apn.priority = payload.priority;
-    notification_apn.topic = payload.topic;
+    notification_apn.payload = payload;
+    notification_apn.priority = priority;
+    notification_apn.topic = topic;
 
-    this.logger.log(`Sending APN notification to token: ${token}`);
+    this.logger.log(`Payload: ${JSON.stringify(payload)}`);
+    this.logger.log(`Sending APN notification to token: ${token} and topic ${topic} with priority ${priority}`);
     const result = await this.provider.send(notification_apn, token);
 
     this.logger.log(
