@@ -51,7 +51,7 @@ export class MagicCodeGuard implements CanActivate {
         // Replace the magic code with the actual bucket ID in the request
         this.replaceBucketIdInRequest(context, userBucket.bucket.id);
 
-        this.logger.log(`Magic code '${bucketId}' resolved to user ${userBucket.userId} and bucket ${userBucket.bucket.id}`);
+        // this.logger.log(`Magic code '${bucketId}' resolved to user ${userBucket.userId} and bucket ${userBucket.bucket.id}`);
         return true;
       } catch (error) {
         if (error instanceof NotFoundException) {
