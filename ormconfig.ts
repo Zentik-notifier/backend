@@ -35,6 +35,7 @@ import { MakePasswordNullable1731839520000 } from './database/migrations/1731839
 import { AddNoPushDeliveryType1731847000000 } from './database/migrations/1731847000000-AddNoPushDeliveryType';
 import { AddAdditionalInfoToEventsAndNotificationExecution1732021200000 } from './database/migrations/1732021200000-AddAdditionalInfoToEventsAndNotificationExecution';
 import { AddCustomNameToUserBucket1732050933000 } from './database/migrations/1732050933000-AddCustomNameToUserBucket';
+import { AddUniqueConstraintNotificationAck1732716000000 } from './database/migrations/1732716000000-AddUniqueConstraintNotificationAck';
 
 config({ path: '.env' });
 
@@ -91,6 +92,7 @@ const dataSource = new DataSource({
     AddNoPushDeliveryType1731847000000,
     AddAdditionalInfoToEventsAndNotificationExecution1732021200000,
     AddCustomNameToUserBucket1732050933000,
+    AddUniqueConstraintNotificationAck1732716000000,
   ],
   migrationsTableName: 'migrations',
 });

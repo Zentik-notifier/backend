@@ -461,9 +461,16 @@ export class NotificationsService implements OnModuleInit {
         );
 
       if (eventsToCreate.length > 0) {
-        await this.eventsRepository.save(eventsToCreate);
+        // Use upsert to handle race conditions - ignore conflicts on unique index
+        await this.eventsRepository
+          .createQueryBuilder()
+          .insert()
+          .into('events')
+          .values(eventsToCreate)
+          .orIgnore() // Ignore duplicates based on unique index
+          .execute();
         this.logger.log(
-          `Created ${eventsToCreate.length} NOTIFICATION_ACK events in batch for user ${userId}`,
+          `Created up to ${eventsToCreate.length} NOTIFICATION_ACK events in batch for user ${userId}`,
         );
       }
     }
@@ -501,9 +508,11 @@ export class NotificationsService implements OnModuleInit {
       relations: ['message', 'message.bucket', 'userDevice'],
     });
 
-    this.logger.log(
-      `Batch marked ${updatedCount} notifications as read for user ${userId}`,
-    );
+    if (updatedCount) {
+      this.logger.log(
+        `Batch marked ${updatedCount} notifications as read for user ${userId}`,
+      );
+    }
 
     return {
       notifications: updatedNotifications,
