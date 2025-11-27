@@ -43,7 +43,9 @@ export class LogStorageService implements OnModuleInit {
       const retentionDays = await this.getLogRetentionDays();
 
       // Initialize Winston with daily rotate file transport
+      // Set level to 'silly' to capture all log levels including debug
       this.winstonLogger = winston.createLogger({
+        level: 'silly',
         format: winston.format.combine(
           winston.format.timestamp(),
           winston.format.json(),
@@ -69,6 +71,7 @@ export class LogStorageService implements OnModuleInit {
 
       // Fallback Winston logger with default 30 days retention
       this.winstonLogger = winston.createLogger({
+        level: 'silly',
         format: winston.format.combine(
           winston.format.timestamp(),
           winston.format.json(),
@@ -170,9 +173,9 @@ export class LogStorageService implements OnModuleInit {
       const logFiles = files
         .filter((file) => {
           // Only include YYYY-MM-DD.json files, exclude audit and hidden files
-          return file.endsWith('.json') && 
-                 !file.startsWith('.') && 
-                 /^\d{4}-\d{2}-\d{2}\.json$/.test(file);
+          return file.endsWith('.json') &&
+            !file.startsWith('.') &&
+            /^\d{4}-\d{2}-\d{2}\.json$/.test(file);
         })
         .sort()
         .reverse(); // Newest first
@@ -205,13 +208,13 @@ export class LogStorageService implements OnModuleInit {
                 metadata: logEntry.message?.metadata || logEntry.metadata,
                 timestamp: new Date(
                   logEntry.message?.timestamp ||
-                    logEntry.timestamp ||
-                    new Date(),
+                  logEntry.timestamp ||
+                  new Date(),
                 ),
                 createdAt: new Date(
                   logEntry.message?.createdAt ||
-                    logEntry.createdAt ||
-                    new Date(),
+                  logEntry.createdAt ||
+                  new Date(),
                 ),
               };
 
@@ -346,9 +349,9 @@ export class LogStorageService implements OnModuleInit {
       const files = await fs.promises.readdir(this.logsDirectory);
       const logFiles = files.filter((file) => {
         // Only include YYYY-MM-DD.json files, exclude audit and hidden files
-        return file.endsWith('.json') && 
-               !file.startsWith('.') && 
-               /^\d{4}-\d{2}-\d{2}\.json$/.test(file);
+        return file.endsWith('.json') &&
+          !file.startsWith('.') &&
+          /^\d{4}-\d{2}-\d{2}\.json$/.test(file);
       });
 
       const cutoffDate = new Date();

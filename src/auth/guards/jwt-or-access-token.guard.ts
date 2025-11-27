@@ -85,7 +85,7 @@ export class JwtOrAccessTokenGuard implements CanActivate {
       request.accessTokenScopes = result.scopes;
       return true;
     } catch (error) {
-      console.error(
+      this.logger.error(
         '❌ [JwtOrAccessTokenGuard] Access token validation failed:',
         error.message,
       );

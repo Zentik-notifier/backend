@@ -62,24 +62,6 @@ export class DatabaseLoggerService implements LoggerService {
     }
   }
 
-  /**
-   * Check if a log level should be saved based on current configuration
-   */
-  private shouldSaveLevel(level: LogLevel): boolean {
-    const levelPriority: Record<string, number> = {
-      error: 0,
-      warn: 1,
-      info: 2,
-      debug: 3,
-      verbose: 4,
-    };
-
-    const currentPriority = levelPriority[this.currentLogLevel] ?? 2;
-    const messagePriority = levelPriority[level] ?? 2;
-
-    return messagePriority <= currentPriority;
-  }
-
   setContext(context: string) {
     this.context = context;
     this.nestLogger.setContext(context);
@@ -126,11 +108,6 @@ export class DatabaseLoggerService implements LoggerService {
     context?: string,
     trace?: any,
   ): void {
-    // Skip if level is not enabled
-    if (!this.shouldSaveLevel(level)) {
-      return;
-    }
-
     // Extract message string and metadata from object if needed
     let messageStr: string;
     let metadata: any;
