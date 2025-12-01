@@ -234,6 +234,13 @@ export class NotificationsService implements OnModuleInit {
 
     // Mark the specific notification as read
     notification.readAt = readAt;
+
+    // If the notification already belongs to a device but was never marked as received,
+    // mark it as received as well (client-side read implies it was shown on the device)
+    if (notification.userDeviceId && !notification.receivedAt) {
+      notification.receivedAt = readAt;
+    }
+
     await this.notificationsRepository.save(notification);
 
     // Track NOTIFICATION_ACK event if it doesn't exist for this device/notification
@@ -259,12 +266,27 @@ export class NotificationsService implements OnModuleInit {
     });
 
     if (relatedNotifications.length > 0) {
+      const relatedIds = relatedNotifications.map((n) => n.id);
+
+      // Mark related notifications as read
       await this.notificationsRepository.update(
-        { id: In(relatedNotifications.map((n) => n.id)) },
+        { id: In(relatedIds) },
         { readAt },
       );
+
+      // For related notifications that already have a device assigned but no receivedAt,
+      // mark them as received as well
+      await this.notificationsRepository
+        .createQueryBuilder()
+        .update(Notification)
+        .set({ receivedAt: readAt })
+        .where('id IN (:...ids)', { ids: relatedIds })
+        .andWhere('"userDeviceId" IS NOT NULL')
+        .andWhere('"receivedAt" IS NULL')
+        .execute();
+
       this.logger.log(
-        `Marked ${relatedNotifications.length} related notifications as read for user ${userId}`,
+        `Marked ${relatedNotifications.length} related notifications as read (and received when applicable) for user ${userId}`,
       );
     }
 
@@ -400,9 +422,11 @@ export class NotificationsService implements OnModuleInit {
       notifications.map((n) => n.message?.id).filter(Boolean),
     );
 
+    const notificationIds = notifications.map((n) => n.id);
+
     // Mark the specified notifications as read
     const updateResult = await this.notificationsRepository.update(
-      { id: In(notifications.map((n) => n.id)), userId, readAt: IsNull() },
+      { id: In(notificationIds), userId, readAt: IsNull() },
       { readAt },
     );
 
@@ -419,20 +443,49 @@ export class NotificationsService implements OnModuleInit {
     });
 
     // Filter out notifications that are already in the original list
-    const originalNotificationIds = new Set(notifications.map((n) => n.id));
+    const originalNotificationIds = new Set(notificationIds);
     const newRelatedNotifications = relatedNotifications.filter(
       (n) => !originalNotificationIds.has(n.id),
     );
 
     if (newRelatedNotifications.length > 0) {
+      const relatedIds = newRelatedNotifications.map((n) => n.id);
       const relatedUpdateResult = await this.notificationsRepository.update(
-        { id: In(newRelatedNotifications.map((n) => n.id)) },
+        { id: In(relatedIds) },
         { readAt },
       );
       updatedCount += relatedUpdateResult.affected || 0;
       this.logger.log(
         `Marked ${newRelatedNotifications.length} related notifications as read for user ${userId}`,
       );
+    }
+
+    // After marking notifications as read, also mark them as received where appropriate:
+    // any notification (original or related) that has a userDeviceId but no receivedAt yet.
+    const allIdsForReceivedUpdate = Array.from(messageIds).length
+      ? await this.notificationsRepository
+          .createQueryBuilder('n')
+          .select('n.id')
+          .where('n.userId = :userId', { userId })
+          .andWhere('n.messageId IN (:...messageIds)', {
+            messageIds: Array.from(messageIds),
+          })
+          .getMany()
+      : [];
+
+    const idsWithDeviceToMarkReceived = allIdsForReceivedUpdate
+      .map((n) => n.id)
+      .filter(Boolean);
+
+    if (idsWithDeviceToMarkReceived.length > 0) {
+      await this.notificationsRepository
+        .createQueryBuilder()
+        .update(Notification)
+        .set({ receivedAt: readAt })
+        .where('id IN (:...ids)', { ids: idsWithDeviceToMarkReceived })
+        .andWhere('"userDeviceId" IS NOT NULL')
+        .andWhere('"receivedAt" IS NULL')
+        .execute();
     }
 
     // Track NOTIFICATION_ACK events for device notifications in batch
