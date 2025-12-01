@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { Notification } from '../entities/notification.entity';
 import { ServerSettingType } from '../entities/server-setting.entity';
@@ -276,14 +276,14 @@ export class NotificationsService implements OnModuleInit {
 
       // For related notifications that already have a device assigned but no receivedAt,
       // mark them as received as well
-      await this.notificationsRepository
-        .createQueryBuilder()
-        .update(Notification)
-        .set({ receivedAt: readAt })
-        .where('id IN (:...ids)', { ids: relatedIds })
-        .andWhere('"userDeviceId" IS NOT NULL')
-        .andWhere('"receivedAt" IS NULL')
-        .execute();
+      await this.notificationsRepository.update(
+        {
+          id: In(relatedIds),
+          userDeviceId: Not(IsNull()),
+          receivedAt: IsNull(),
+        } as any,
+        { receivedAt: readAt },
+      );
 
       this.logger.log(
         `Marked ${relatedNotifications.length} related notifications as read (and received when applicable) for user ${userId}`,
