@@ -626,6 +626,13 @@ export class NotificationsService implements OnModuleInit {
     userId: string,
     deviceToken: string,
   ): Promise<{ updatedCount: number }> {
+    this.logger.log(
+      `updateReceivedUpTo called for user=${userId} with targetId=${id} and deviceToken=${deviceToken?.slice(
+        0,
+        8,
+      )}...`,
+    );
+
     const target = await this.findOne(id, userId);
     const device = await this.usersService.findDeviceByUserToken(
       userId,
@@ -633,7 +640,10 @@ export class NotificationsService implements OnModuleInit {
     );
     if (!device) {
       this.logger.warn(
-        `updateReceivedUpTo: device not found for user=${userId} token=${deviceToken?.slice(0, 8) ?? 'undefined'}...`,
+        `updateReceivedUpTo: device not found for user=${userId} token=${deviceToken?.slice(
+          0,
+          8,
+        ) ?? 'undefined'}...`,
       );
       return { updatedCount: 0 };
     }
@@ -654,11 +664,10 @@ export class NotificationsService implements OnModuleInit {
 
     const result = await qb.execute();
     const updatedCount = result.affected || 0;
-    if (updatedCount) {
-      this.logger.log(
-        `Updated receivedAt for ${updatedCount} notifications on device=${deviceId} (up to ${target.id}) for user ${userId}`,
-      );
-    }
+
+    this.logger.log(
+      `updateReceivedUpTo: set receivedAt for ${updatedCount} notification(s) on device=${deviceId} (up to notification=${target.id}) for user=${userId}`,
+    );
 
     // Track NOTIFICATION_ACK event for the target notification if it doesn't exist
     const hasAckEvent = await this.hasNotificationAckEvent(target.id, deviceId);
