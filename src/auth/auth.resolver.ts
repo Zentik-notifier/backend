@@ -102,7 +102,7 @@ export class AuthResolver {
   async appleLoginMobile(
     @Args('input') input: MobileAppleAuthDto,
   ): Promise<LoginResponse> {
-    this.logger.debug(`appleLoginMobile invoked: identityTokenPresent=${!!input?.identityToken}`);
+    // this.logger.debug(`appleLoginMobile invoked: identityTokenPresent=${!!input?.identityToken}`);
     const payload = (input.payload ? JSON.parse(input.payload) : undefined);
     // Map deviceInfo into session context
     return this.authService.mobileAppleLogin(
@@ -137,11 +137,7 @@ export class AuthResolver {
   ): Promise<string> {
     try {
       if (tokenId) {
-        const revoked =
-          await this.sessionService.revokeSessionByRefreshToken(tokenId);
-        this.logger.log(
-          `Logout: revoked session for user=${userId} token=${tokenId.substring(0, 8)}... revoked=${revoked}`,
-        );
+        await this.sessionService.revokeSessionByRefreshToken(tokenId);
       } else {
         this.logger.log(`Logout: no tokenId available for user=${userId}`);
       }
@@ -149,7 +145,6 @@ export class AuthResolver {
       // Track logout event
       try {
         await this.eventTrackingService.trackLogout(userId);
-        this.logger.debug(`Logout event tracked for user: ${userId}`);
       } catch (trackingError) {
         this.logger.warn(
           `Failed to track logout event for user ${userId}: ${trackingError.message}`,
@@ -202,7 +197,7 @@ export class AuthResolver {
     try {
       return await this.authService.refreshToken(refreshToken, {});
     } catch (error) {
-      this.logger.error(`Token refresh failed: ${error.message}`);
+      // this.logger.error(`Token refresh failed: ${error.message}`);
       throw error;
     }
   }

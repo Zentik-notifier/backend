@@ -59,7 +59,7 @@ export class SessionService {
         where: { id: deviceInfo.sessionId },
       });
       if (updated) {
-        this.logger.log(
+        this.logger.debug(
           `Session updated successfully: ${updated.id} for user: ${userId}`,
         );
         return updated;
@@ -130,9 +130,9 @@ export class SessionService {
 
     const revoked = (result.affected ?? 0) > 0;
     if (revoked) {
-      this.logger.log(
-        `Session revoked successfully: ${sessionId} for user: ${userId}`,
-      );
+      // this.logger.debug(
+      //   `Session revoked successfully: ${sessionId} for user: ${userId}`,
+      // );
     } else {
       this.logger.warn(
         `Failed to revoke session: ${sessionId} for user: ${userId} - session not found or already inactive`,
@@ -204,9 +204,9 @@ export class SessionService {
   }
 
   async revokeSessionByRefreshToken(tokenId: string): Promise<boolean> {
-    this.logger.debug(
-      `Revoking session by tokenId: ${tokenId.substring(0, 8)}...`,
-    );
+    // this.logger.debug(
+    //   `Revoking session by tokenId: ${tokenId.substring(0, 8)}...`,
+    // );
 
     const result = await this.sessionRepository.update(
       { tokenId, isActive: true },
@@ -215,7 +215,7 @@ export class SessionService {
 
     const revoked = (result.affected ?? 0) > 0;
     if (revoked) {
-      this.logger.log(`Session revoked successfully by tokenId`);
+      this.logger.debug(`Session revoked successfully by tokenId`);
     } else {
       this.logger.warn(
         `Failed to revoke session - tokenId not found or already inactive`,

@@ -318,7 +318,13 @@ export class AuthService {
 
   async mobileAppleLogin(
     body: any,
-    context: { ipAddress?: string; userAgent?: string; deviceName?: string; operatingSystem?: string; browser?: string },
+    context: {
+      ipAddress?: string;
+      userAgent?: string;
+      deviceName?: string;
+      operatingSystem?: string;
+      browser?: string;
+    },
   ): Promise<LoginResponse> {
     const { identityToken, payload } = body || {};
 
@@ -339,7 +345,7 @@ export class AuthService {
         // Prefer email from payload if present, fallback to token claims
         appleEmail = (payload && payload.email) ? payload.email : decodedClaims?.email;
       }
-      this.logger.debug(`Apple identityToken decoded: sub=${appleSub || 'n/a'} email=${appleEmail || 'n/a'}`);
+      // this.logger.debug(`Apple identityToken decoded: sub=${appleSub || 'n/a'} email=${appleEmail || 'n/a'}`);
     } catch (e: any) {
       this.logger.warn(`Failed to decode Apple identityToken: ${e.message}`);
     }
@@ -355,6 +361,7 @@ export class AuthService {
     });
 
     let authUser: User | null = (identity?.user as any) ?? null;
+    let isNewUser = false;
 
     if (!authUser) {
       if (appleEmail) {
@@ -367,6 +374,7 @@ export class AuthService {
           isEmailConfirmed: !!appleEmail,
         } as any);
         authUser = (await this.usersRepository.save(created as any)) as any;
+        isNewUser = true;
       }
 
       const newIdentity = this.identitiesRepository.create({
@@ -388,16 +396,45 @@ export class AuthService {
 
     const { accessToken, refreshToken, tokenId } = await this.generateTokens(authUser as any);
     const expiresAt = await this.calculateRefreshTokenExpiration();
-    await this.sessionService.createSession((authUser as any).id, tokenId, expiresAt, {
-      loginProvider: OAuthProviderType.APPLE_SIGNIN,
-      ipAddress: context.ipAddress,
-      userAgent: context.userAgent,
-      deviceName: context.deviceName,
-      operatingSystem: context.operatingSystem,
-      browser: context.browser,
-    } as any);
+    const session = await this.sessionService.createSession(
+      (authUser as any).id,
+      tokenId,
+      expiresAt,
+      {
+        loginProvider: OAuthProviderType.APPLE_SIGNIN,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        deviceName: context.deviceName,
+        operatingSystem: context.operatingSystem,
+        browser: context.browser,
+      } as any,
+    );
 
-    // Provider metadata now stored on user identity
+    // Track OAuth login event (Apple Sign-In)
+    try {
+      await this.eventTrackingService.trackLoginOauth((authUser as any).id);
+      this.logger.debug(
+        `Apple mobile login: OAuth login event tracked for user ${(authUser as any).id}`,
+      );
+    } catch (error: any) {
+      this.logger.warn(
+        `Apple mobile login: failed to track OAuth login event for user ${(authUser as any).id}: ${error?.message}`,
+      );
+    }
+
+    // Track registration event only when a brand new user account is created via Apple Sign-In
+    if (isNewUser && (authUser as any)?.id) {
+      try {
+        await this.eventTrackingService.trackRegister((authUser as any).id);
+        this.logger.debug(
+          `Apple mobile login: registration event tracked for new user ${(authUser as any).id}`,
+        );
+      } catch (error: any) {
+        this.logger.warn(
+          `Apple mobile login: failed to track registration event for user ${(authUser as any).id}: ${error?.message}`,
+        );
+      }
+    }
 
     // Ensure the GraphQL type non-null user is returned
     // Reload a fresh user entity with minimal fields if needed
@@ -735,16 +772,10 @@ export class AuthService {
         payload.jti,
       );
       if (!existingSession) {
-        this.logger.warn(
-          `Token refresh failed - session not found or expired: tokenId=${payload.jti.substring(0, 8)}...`,
-        );
         throw new UnauthorizedException('Invalid refresh token');
       }
       // Extra safety: ensure the session belongs to the same user in the token
       if (payload.sub !== existingSession.userId) {
-        this.logger.warn(
-          `Token refresh failed - token user mismatch: tokenUserId=${payload.sub}, sessionUserId=${existingSession.userId}`,
-        );
         await this.sessionService.revokeSession(
           existingSession.userId,
           existingSession.id,
@@ -752,16 +783,11 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      this.logger.debug(`Token refresh: userId=${payload.sub}, deviceId=${existingSession.id}`);
-
       const user = await this.usersRepository.findOne({
         where: { id: payload.sub },
       });
 
       if (!user) {
-        this.logger.warn(
-          `Token refresh failed - user not found: userId=${payload.sub}, deviceId=${existingSession.id}`,
-        );
         throw new UnauthorizedException('User not found');
       }
 
@@ -783,10 +809,7 @@ export class AuthService {
       );
 
       this.logger.log(
-        `Token refreshed successfully: userId=${user.id}, email=${user.email}, deviceId=${existingSession.id}`,
-      );
-      this.logger.debug(
-        `Session updated with new token: userId=${user.id}, deviceId=${existingSession.id}, tokenId=${tokens.tokenId.substring(0, 8)}...`,
+        `Token refresh result: success, userId=${user.id}, deviceId=${existingSession.id}`,
       );
 
       return {
@@ -795,7 +818,9 @@ export class AuthService {
         message: 'Token refreshed successfully',
       };
     } catch (error) {
-      this.logger.warn(`Token refresh failed: userId=${payload?.sub || 'unknown'}, error=${error.message}`);
+      this.logger.warn(
+        `Token refresh result: failed, userId=${payload?.sub || 'unknown'}, reason=${error.message}`,
+      );
       throw new UnauthorizedException('Invalid refresh token');
     }
   }

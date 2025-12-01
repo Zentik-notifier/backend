@@ -185,7 +185,7 @@ export class UsersService {
     const saved = await this.userDevicesRepository.save(device);
 
     this.logger.log(
-      `Registered new device ${saved.platform} ${saved.id} for user=${userId} with token ${saved.deviceToken}`,
+      `Registered new device ${saved.platform} ${saved.id} for user=${user.email} with token ${saved.deviceToken}`,
     );
 
     // Track device registration event

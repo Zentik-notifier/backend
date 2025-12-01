@@ -60,9 +60,9 @@ export class AdminNotificationsService implements OnModuleInit {
 
     if (adminBucket) {
       this.adminBucketId = adminBucket.id;
-      this.logger.log(`Found admin bucket: ${adminBucket.name} (${adminBucket.id})`);
+      // this.logger.log(`Found admin bucket: ${adminBucket.name} (${adminBucket.id})`);
     } else {
-      this.logger.warn('No admin bucket found (isAdmin = true)');
+      // this.logger.warn('No admin bucket found (isAdmin = true)');
     }
 
     return adminBucket;
@@ -87,7 +87,7 @@ export class AdminNotificationsService implements OnModuleInit {
         return;
       }
 
-      this.logger.log(
+      this.logger.debug(
         `Sending notification to ${adminUserIds.length} admins for event ${event.type}`,
       );
 
