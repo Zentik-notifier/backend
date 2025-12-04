@@ -382,6 +382,14 @@ input GetResourcePermissionsInput {
   resourceType: ResourceType!
 }
 
+input GetUserLogsInput {
+  limit: Int = 50
+  page: Int = 1
+  search: String
+  type: UserLogType
+  userId: String
+}
+
 input GrantEntityPermissionInput {
   expiresAt: String
   permissions: [Permission!]!
@@ -807,6 +815,14 @@ type PaginatedLogs {
   totalPages: Int!
 }
 
+type PaginatedUserLogs {
+  limit: Int!
+  logs: [UserLogEntry!]!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
 type PasswordResetResponseDto {
   message: String!
   success: Boolean!
@@ -929,6 +945,9 @@ type Query {
   userAttachments(userId: ID!): [Attachment!]!
   userDevice: UserDevice
   userDevices: [UserDevice!]!
+
+  """Get user logs with pagination and filtering"""
+  userLogs(input: GetUserLogsInput!): PaginatedUserLogs!
   userNotificationStats(userId: String): UserNotificationStats!
   userSettings(deviceId: String): [UserSetting!]!
   userWebhooks: [UserWebhook!]!
@@ -1381,6 +1400,14 @@ type UserIdentity {
 type UserLog {
   createdAt: DateTime!
   id: String!
+  payload: JSON!
+  type: UserLogType!
+  userId: String
+}
+
+type UserLogEntry {
+  createdAt: DateTime!
+  id: ID!
   payload: JSON!
   type: UserLogType!
   userId: String
