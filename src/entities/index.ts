@@ -24,3 +24,4 @@ export { HttpMethod, UserWebhook } from './user-webhook.entity';
 export { User } from './user.entity';
 export { UserSetting } from './user-setting.entity';
 export { UserSettingType } from './user-setting.types';
+export { UserLog, UserLogType } from './user-log.entity';

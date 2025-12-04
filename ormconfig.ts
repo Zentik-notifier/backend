@@ -21,6 +21,7 @@ import {
   UserWebhook,
   UserSetting,
   MessageReminder,
+  UserLog,
 } from './src/entities';
 import { ServerSetting } from './src/entities/server-setting.entity';
 import { SystemAccessToken } from './src/system-access-token/system-access-token.entity';
@@ -36,6 +37,7 @@ import { AddNoPushDeliveryType1731847000000 } from './database/migrations/173184
 import { AddAdditionalInfoToEventsAndNotificationExecution1732021200000 } from './database/migrations/1732021200000-AddAdditionalInfoToEventsAndNotificationExecution';
 import { AddCustomNameToUserBucket1732050933000 } from './database/migrations/1732050933000-AddCustomNameToUserBucket';
 import { AddUniqueConstraintNotificationAck1732716000000 } from './database/migrations/1732716000000-AddUniqueConstraintNotificationAck';
+import { AddUserLogsAndFeedbackEvent1763200000000 } from './database/migrations/1763200000000-AddUserLogsAndFeedbackEvent';
 
 config({ path: '.env' });
 
@@ -80,6 +82,7 @@ const dataSource = new DataSource({
     ServerSetting,
     AdminSubscription,
     MessageReminder,
+    UserLog,
   ],
   migrations: [
     InitialSchema1762016264000,
@@ -93,6 +96,7 @@ const dataSource = new DataSource({
     AddAdditionalInfoToEventsAndNotificationExecution1732021200000,
     AddCustomNameToUserBucket1732050933000,
     AddUniqueConstraintNotificationAck1732716000000,
+    AddUserLogsAndFeedbackEvent1763200000000,
   ],
   migrationsTableName: 'migrations',
 });

@@ -22,6 +22,7 @@ import { BucketsResolver } from 'src/buckets/buckets.resolver';
 import { EntityExecutionsResolver } from 'src/entity-execution/entity-executions.resolver';
 import { EntityPermissionsResolver } from 'src/entity-permission/entity-permissions.resolver';
 import { EventsResolver } from 'src/events/events.resolver';
+import { UserLogsResolver } from 'src/events/user-logs.resolver';
 import { UsersResolver } from 'src/users/users.resolver';
 
 const GRAPHQL_PATH = `/api/v1/graphql`;
@@ -79,6 +80,7 @@ const GRAPHQL_PATH = `/api/v1/graphql`;
     EntityExecutionsResolver,
     EntityPermissionsResolver,
     EventsResolver,
+    UserLogsResolver,
     PayloadMapperResolver,
     UsersResolver,
   ],
