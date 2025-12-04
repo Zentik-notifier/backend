@@ -260,11 +260,15 @@ export class LogStorageService implements OnModuleInit {
 
       if (search) {
         const searchLower = search.toLowerCase();
+        const containsSearch = (value: unknown): boolean =>
+          typeof value === 'string' &&
+          value.toLowerCase().includes(searchLower);
+
         filteredLogs = filteredLogs.filter(
           (log) =>
-            log.message?.toLowerCase().includes(searchLower) ||
-            log.context?.toLowerCase().includes(searchLower) ||
-            log.trace?.toLowerCase().includes(searchLower),
+            containsSearch(log.message) ||
+            containsSearch(log.context) ||
+            containsSearch(log.trace),
         );
       }
 
