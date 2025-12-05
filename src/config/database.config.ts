@@ -46,7 +46,12 @@ export const databaseConfig: TypeOrmModuleOptions = {
       database: process.env.DB_NAME || 'zentik',
       ssl:
         process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      retryAttempts: 20
+      retryAttempts: 20,
+      extra: {
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+      },
     }),
   entities: [
     SystemAccessToken,

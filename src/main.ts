@@ -9,6 +9,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
+import { EventEmitter } from 'events';
 import { createAdminUsers } from './seeds/admin-users.seed';
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { DatabaseLoggerService } from './server-manager/database-logger.service';
@@ -150,6 +151,12 @@ async function runMigrations() {
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+
+  // Increase max listeners to prevent warnings with database connection pool
+  // TypeORM connection pool creates "wakeup" listeners for each connection
+  // With multiple concurrent requests, this can exceed the default limit of 10
+  EventEmitter.defaultMaxListeners = 50;
+  logger.log(`🔧 Set EventEmitter defaultMaxListeners to ${EventEmitter.defaultMaxListeners}`);
 
   // Log very first step before any initialization
   logger.log('🏁 Zentik Backend initialization started');
