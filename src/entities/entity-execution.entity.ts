@@ -14,6 +14,7 @@ export enum ExecutionType {
   WEBHOOK = 'WEBHOOK',
   PAYLOAD_MAPPER = 'PAYLOAD_MAPPER',
   NOTIFICATION = 'NOTIFICATION',
+  MESSAGE_TEMPLATE = 'MESSAGE_TEMPLATE',
 }
 
 registerEnumType(ExecutionType, {

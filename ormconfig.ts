@@ -22,6 +22,7 @@ import {
   UserSetting,
   MessageReminder,
   UserLog,
+  UserTemplate,
 } from './src/entities';
 import { ServerSetting } from './src/entities/server-setting.entity';
 import { SystemAccessToken } from './src/system-access-token/system-access-token.entity';
@@ -38,6 +39,7 @@ import { AddAdditionalInfoToEventsAndNotificationExecution1732021200000 } from '
 import { AddCustomNameToUserBucket1732050933000 } from './database/migrations/1732050933000-AddCustomNameToUserBucket';
 import { AddUniqueConstraintNotificationAck1732716000000 } from './database/migrations/1732716000000-AddUniqueConstraintNotificationAck';
 import { AddUserLogsAndFeedbackEvent1763200000000 } from './database/migrations/1763200000000-AddUserLogsAndFeedbackEvent';
+import { CreateUserTemplatesTable1765194473000 } from './database/migrations/1765194473000-CreateUserTemplatesTable';
 
 config({ path: '.env' });
 
@@ -83,6 +85,7 @@ const dataSource = new DataSource({
     AdminSubscription,
     MessageReminder,
     UserLog,
+    UserTemplate,
   ],
   migrations: [
     InitialSchema1762016264000,
@@ -97,6 +100,7 @@ const dataSource = new DataSource({
     AddCustomNameToUserBucket1732050933000,
     AddUniqueConstraintNotificationAck1732716000000,
     AddUserLogsAndFeedbackEvent1763200000000,
+    CreateUserTemplatesTable1765194473000,
   ],
   migrationsTableName: 'migrations',
 });

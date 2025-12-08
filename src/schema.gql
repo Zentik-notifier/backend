@@ -217,6 +217,14 @@ input CreateUserLogInput {
   userId: String
 }
 
+input CreateUserTemplateDto {
+  body: String!
+  description: String
+  name: String!
+  subtitle: String
+  title: String
+}
+
 input CreateWebhookDto {
   body: JSON
   headers: [WebhookHeaderDto!]!
@@ -350,6 +358,7 @@ enum ExecutionStatus {
 
 """Types of executions that are tracked"""
 enum ExecutionType {
+  MESSAGE_TEMPLATE
   NOTIFICATION
   PAYLOAD_MAPPER
   WEBHOOK
@@ -593,6 +602,9 @@ type Mutation {
   createSystemAccessTokenRequest(input: CreateSystemAccessTokenRequestDto!): SystemAccessTokenRequest!
   createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String, scopes: [String!]): SystemAccessTokenDto!
   createUserLog(input: CreateUserLogInput!): UserLog!
+
+  """Create a new user template"""
+  createUserTemplate(input: CreateUserTemplateDto!): UserTemplate!
   createWebhook(input: CreateWebhookDto!): UserWebhook!
   declineSystemAccessTokenRequest(id: String!, input: DeclineSystemAccessTokenRequestDto): SystemAccessTokenRequest!
   deleteAccount: Boolean!
@@ -609,6 +621,9 @@ type Mutation {
   deleteOAuthProvider(id: String!): Boolean!
   deletePayloadMapper(id: String!): Boolean!
   deleteServerFile(name: String!, path: String): Boolean!
+
+  """Delete user template by ID"""
+  deleteUserTemplate(id: ID!): Boolean!
   deleteWebhook(id: ID!): Boolean!
   deviceReportNotificationReceived(id: String!): Notification!
   executeWebhook(id: ID!): Boolean!
@@ -674,6 +689,9 @@ type Mutation {
   updateUserBucketCustomName(bucketId: String!, customName: String): UserBucket!
   updateUserDevice(input: UpdateUserDeviceInput!): UserDevice!
   updateUserRole(input: UpdateUserRoleInput!): User!
+
+  """Update user template by ID"""
+  updateUserTemplate(id: ID!, input: UpdateUserTemplateDto!): UserTemplate!
   updateWebhook(id: ID!, input: UpdateWebhookDto!): UserWebhook!
   upsertMyAdminSubscription(eventTypes: [String!]!): [String!]!
   upsertUserSetting(input: UpsertUserSettingInput!): UserSetting!
@@ -950,6 +968,12 @@ type Query {
   userLogs(input: GetUserLogsInput!): PaginatedUserLogs!
   userNotificationStats(userId: String): UserNotificationStats!
   userSettings(deviceId: String): [UserSetting!]!
+
+  """Get user template by ID"""
+  userTemplate(id: ID!): UserTemplate!
+
+  """Get all user templates for the authenticated user"""
+  userTemplates: [UserTemplate!]!
   userWebhooks: [UserWebhook!]!
   users: [User!]!
   webhook(id: ID!): UserWebhook!
@@ -1299,6 +1323,14 @@ input UpdateUserRoleInput {
   userId: String!
 }
 
+input UpdateUserTemplateDto {
+  body: String
+  description: String
+  name: String
+  subtitle: String
+  title: String
+}
+
 input UpdateWebhookDto {
   body: JSON
   headers: [WebhookHeaderDto!]
@@ -1333,6 +1365,7 @@ type User {
   resetTokenRequestedAt: DateTime
   role: UserRole!
   sessions: [UserSession!]
+  templates: [UserTemplate!]
   updatedAt: DateTime!
   userBuckets: [UserBucket!]
   username: String!
@@ -1492,6 +1525,21 @@ enum UserSettingType {
   ServerStableIdentifier
   Timezone
   UnencryptOnBigPayload
+}
+
+type UserTemplate {
+  body: String!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  input: String
+  name: String!
+  output: String
+  subtitle: String
+  title: String
+  updatedAt: DateTime!
+  user: User!
+  userId: String!
 }
 
 type UserWebhook {

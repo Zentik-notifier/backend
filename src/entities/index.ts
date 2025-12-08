@@ -25,3 +25,4 @@ export { User } from './user.entity';
 export { UserSetting } from './user-setting.entity';
 export { UserSettingType } from './user-setting.types';
 export { UserLog, UserLogType } from './user-log.entity';
+export { UserTemplate } from './user-template.entity';

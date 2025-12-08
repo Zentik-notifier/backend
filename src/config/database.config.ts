@@ -22,6 +22,7 @@ import {
   UserSetting,
   MessageReminder,
   UserLog,
+  UserTemplate,
 } from '../entities';
 import { ServerSetting } from '../entities/server-setting.entity';
 import { SystemAccessToken } from '../system-access-token/system-access-token.entity';
@@ -79,6 +80,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     AdminSubscription,
     MessageReminder,
     UserLog,
+    UserTemplate,
   ],
   // NOTE: Migrations are run automatically during app bootstrap (see main.ts)
   // For manual migration management, use: npm run migration:run/revert/show

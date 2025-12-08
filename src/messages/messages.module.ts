@@ -10,6 +10,7 @@ import { Notification } from '../entities/notification.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { User } from '../entities/user.entity';
+import { UserTemplate } from '../entities/user-template.entity';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
 import { EventsModule } from '../events/events.module';
 import { GraphQLSharedModule } from '../graphql/graphql-shared.module';
@@ -21,12 +22,15 @@ import { MessageReminderScheduler } from './message-reminder.scheduler';
 import { MessageReminderService } from './message-reminder.service';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
+import { UserTemplatesController } from './user-templates.controller';
+import { UserTemplatesResolver } from './user-templates.resolver';
+import { UserTemplatesService } from './user-templates.service';
 import { UsersModule } from '../users/users.module';
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Message, MessageReminder, Notification, UserDevice, Bucket, User, UserBucket]),
+    TypeOrmModule.forFeature([Message, MessageReminder, Notification, UserDevice, Bucket, User, UserBucket, UserTemplate]),
     AuthModule,
     forwardRef(() => NotificationsModule),
     AttachmentsModule,
@@ -38,14 +42,16 @@ import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
     UsersModule,
     ServerManagerModule,
   ],
-  controllers: [MessagesController],
+  controllers: [MessagesController, UserTemplatesController],
   providers: [
     MessagesService,
     MessageReminderService,
     MessagesCleanupScheduler,
     MessageReminderScheduler,
     MessagesResolver,
+    UserTemplatesService,
+    UserTemplatesResolver,
   ],
-  exports: [MessagesService, MessageReminderService, MessagesResolver],
+  exports: [MessagesService, MessageReminderService, MessagesResolver, UserTemplatesService],
 })
 export class MessagesModule {}

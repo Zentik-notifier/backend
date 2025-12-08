@@ -15,6 +15,7 @@ import { UserBucket } from './user-bucket.entity';
 import { UserDevice } from './user-device.entity';
 import { UserIdentity } from './user-identity.entity';
 import { UserSession } from './user-session.entity';
+import { UserTemplate } from './user-template.entity';
 import { UserWebhook } from './user-webhook.entity';
 
 @ObjectType()
@@ -136,4 +137,8 @@ export class User {
   @Field(() => [UserIdentity], { nullable: true })
   @OneToMany(() => UserIdentity, (identity) => identity.user, { cascade: true })
   identities: UserIdentity[];
+
+  @Field(() => [UserTemplate], { nullable: true })
+  @OneToMany(() => UserTemplate, (template) => template.user, { cascade: true })
+  templates: UserTemplate[];
 }
