@@ -25,6 +25,9 @@ import { MessagesService } from './messages.service';
 import { NotificationPostponeService } from '../notifications/notification-postpone.service';
 import { MessageReminderService } from './message-reminder.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
+import { UserTemplatesService } from './user-templates.service';
+import { UserTemplate } from '../entities/user-template.entity';
+import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 
 describe('MessagesService', () => {
   let service: MessagesService;
@@ -37,6 +40,7 @@ describe('MessagesService', () => {
   let configService: ConfigService;
   let entityPermissionService: EntityPermissionService;
   let payloadMapperService: PayloadMapperService;
+  let module: TestingModule;
 
   const mockMessage: Partial<Message> = {
     id: 'msg-1',
@@ -91,7 +95,7 @@ describe('MessagesService', () => {
   } as any;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         MessagesService,
         {
@@ -237,6 +241,22 @@ describe('MessagesService', () => {
           useValue: {
             createReminder: jest.fn().mockResolvedValue(undefined),
             cancelRemindersByMessage: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: UserTemplatesService,
+          useValue: {
+            findByUserIdAndNameOrId: jest.fn(),
+          },
+        },
+        {
+          provide: EntityExecutionService,
+          useValue: {
+            create: jest.fn().mockResolvedValue({
+              id: 'execution-1',
+              type: 'MESSAGE_TEMPLATE',
+              status: 'SUCCESS',
+            }),
           },
         },
         {
@@ -1338,6 +1358,463 @@ describe('MessagesService', () => {
 
       const result = await service.create(createMessageDto, 'user-1');
       expect(result).toEqual(mockMessage);
+    });
+  });
+
+  describe('Template application', () => {
+    let userTemplatesService: UserTemplatesService;
+    let entityExecutionService: EntityExecutionService;
+
+    beforeEach(() => {
+      userTemplatesService = module.get<UserTemplatesService>(
+        UserTemplatesService,
+      );
+      entityExecutionService = module.get<EntityExecutionService>(
+        EntityExecutionService,
+      );
+    });
+
+    const mockTemplate: UserTemplate = {
+      id: 'template-uuid-123',
+      name: 'Test Template',
+      description: 'Test Description',
+      title: 'Hello {{user.name}}!',
+      subtitle: 'Status: {{status}}',
+      body: 'Items:\n{{#each items}}\n- {{name}}: {{price}}\n{{/each}}',
+      userId: 'user-1',
+      user: mockUser as User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should apply template when template name is provided', async () => {
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original Title',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'Test Template',
+        templateData: {
+          user: { name: 'John Doe' },
+          status: 'active',
+          items: [
+            { name: 'Item 1', price: 10 },
+            { name: 'Item 2', price: 20 },
+          ],
+        },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(mockTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(userTemplatesService.findByUserIdAndNameOrId).toHaveBeenCalledWith(
+        'user-1',
+        'Test Template',
+      );
+      expect(createMessageDto.title).toBe('Hello John Doe!');
+      expect(createMessageDto.subtitle).toBe('Status: active');
+      expect(createMessageDto.body).toBe(
+        'Items:\n- Item 1: 10\n- Item 2: 20\n',
+      );
+    });
+
+    it('should apply template when template UUID is provided', async () => {
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original Title',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'template-uuid-123',
+        templateData: {
+          user: { name: 'Jane Doe' },
+        },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(mockTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(userTemplatesService.findByUserIdAndNameOrId).toHaveBeenCalledWith(
+        'user-1',
+        'template-uuid-123',
+      );
+      expect(createMessageDto.title).toBe('Hello Jane Doe!');
+    });
+
+    it('should handle template with complex nested objects', async () => {
+      const complexTemplate: UserTemplate = {
+        ...mockTemplate,
+        title: '{{metadata.source}} - {{metadata.timestamp}}',
+        subtitle: 'User: {{user.profile.name}} ({{user.profile.email}})',
+        body: 'Tags: {{#each tags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}',
+      };
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'complex-template',
+        templateData: {
+          metadata: {
+            source: 'webhook',
+            timestamp: '2024-01-01T00:00:00Z',
+          },
+          user: {
+            profile: {
+              name: 'John Doe',
+              email: 'john@example.com',
+            },
+          },
+          tags: ['urgent', 'important', 'notification'],
+        },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(complexTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(createMessageDto.title).toBe('webhook - 2024-01-01T00:00:00Z');
+      expect(createMessageDto.subtitle).toBe(
+        'User: John Doe (john@example.com)',
+      );
+      expect(createMessageDto.body).toBe('Tags: urgent, important, notification');
+    });
+
+    it('should handle template with arrays and conditionals', async () => {
+      const conditionalTemplate: UserTemplate = {
+        ...mockTemplate,
+        title: '{{#if user}}Hello {{user}}!{{else}}Hello Guest!{{/if}}',
+        body: '{{#if items}}Items ({{items.length}}):\n{{#each items}}\n- {{name}}\n{{/each}}{{else}}No items{{/if}}',
+      };
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'conditional-template',
+        templateData: {
+          user: 'John Doe',
+          items: [
+            { name: 'Item 1' },
+            { name: 'Item 2' },
+            { name: 'Item 3' },
+          ],
+        },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(conditionalTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(createMessageDto.title).toBe('Hello John Doe!');
+      expect(createMessageDto.body).toContain('Items (3):');
+      expect(createMessageDto.body).toContain('- Item 1');
+      expect(createMessageDto.body).toContain('- Item 2');
+      expect(createMessageDto.body).toContain('- Item 3');
+    });
+
+    it('should handle template with empty templateData', async () => {
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'Test Template',
+        templateData: {},
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(mockTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(createMessageDto.title).toBe('Hello !');
+      expect(createMessageDto.subtitle).toBe('Status: ');
+    });
+
+    it('should throw NotFoundException when template is not found', async () => {
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'NonExistentTemplate',
+        templateData: { user: 'John' },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(null);
+
+      await expect(
+        service.create(createMessageDto, 'user-1'),
+      ).rejects.toThrow('Template "NonExistentTemplate" not found');
+    });
+
+    it('should handle template with only title template', async () => {
+      const titleOnlyTemplate: UserTemplate = {
+        ...mockTemplate,
+        title: 'Title: {{title}}',
+        subtitle: undefined,
+        body: 'Default body',
+      };
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'title-only',
+        templateData: { title: 'Custom Title' },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(titleOnlyTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(createMessageDto.title).toBe('Title: Custom Title');
+      expect(createMessageDto.subtitle).toBeUndefined();
+      expect(createMessageDto.body).toBe('Default body');
+    });
+
+    it('should not apply template when template field is not provided', async () => {
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original Title',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        templateData: { user: 'John' },
+      };
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(userTemplatesService.findByUserIdAndNameOrId).not.toHaveBeenCalled();
+      expect(createMessageDto.title).toBe('Original Title');
+    });
+
+    it('should handle template rendering errors gracefully', async () => {
+      const invalidTemplate: UserTemplate = {
+        ...mockTemplate,
+        body: '{{#invalid syntax}}',
+      };
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'invalid-template',
+        templateData: { user: 'John' },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(invalidTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      await expect(
+        service.create(createMessageDto, 'user-1'),
+      ).rejects.toThrow('Error compiling body template');
+    });
+
+    it('should track template execution in EntityExecution', async () => {
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original Title',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'Test Template',
+        templateData: {
+          user: { name: 'John Doe' },
+          status: 'active',
+        },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(mockTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      jest
+        .spyOn(messagesRepository, 'create')
+        .mockReturnValue(mockMessage as any);
+      jest
+        .spyOn(messagesRepository, 'save')
+        .mockResolvedValue(mockMessage as Message);
+
+      await service.create(createMessageDto, 'user-1');
+
+      expect(entityExecutionService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'MESSAGE_TEMPLATE',
+          status: 'SUCCESS',
+          entityName: 'Test Template',
+          entityId: 'template-uuid-123',
+          userId: 'user-1',
+          input: expect.stringMatching(/.*"template":"Test Template".*"titleTemplate":"Hello \{\{user\.name\}\}!".*"subtitleTemplate":"Status: \{\{status\}\}".*"bodyTemplate":"Items:\\n\{\{#each items\}\}\\n- \{\{name\}\}: \{\{price\}\}\\n\{\{\/each\}\}".*/s),
+          output: expect.stringContaining('"title":"Hello John Doe!"'),
+          errors: undefined,
+          durationMs: expect.any(Number),
+        }),
+      );
+    });
+
+    it('should track template execution errors in EntityExecution', async () => {
+      const invalidTemplate: UserTemplate = {
+        ...mockTemplate,
+        body: '{{#invalid syntax}}',
+      };
+
+      const createMessageDto: CreateMessageDto = {
+        bucketId: 'bucket-1',
+        title: 'Original',
+        deliveryType: NotificationDeliveryType.NORMAL,
+        template: 'invalid-template',
+        templateData: { user: 'John' },
+      };
+
+      jest
+        .spyOn(userTemplatesService, 'findByUserIdAndNameOrId')
+        .mockResolvedValue(invalidTemplate);
+
+      jest.spyOn(bucketsRepository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockBucket),
+      } as any);
+
+      await expect(
+        service.create(createMessageDto, 'user-1'),
+      ).rejects.toThrow('Error compiling body template');
+
+      expect(entityExecutionService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'MESSAGE_TEMPLATE',
+          status: 'ERROR',
+          entityName: 'invalid-template',
+          entityId: undefined,
+          userId: 'user-1',
+          input: expect.stringMatching(/.*"template":"invalid-template".*"bodyTemplate":"\{\{#invalid syntax\}\}".*/s),
+          output: undefined,
+          errors: expect.stringContaining('Error compiling body template'),
+          durationMs: expect.any(Number),
+        }),
+      );
     });
   });
 });

@@ -176,6 +176,8 @@ input CreateMessageDto {
   subtitle: String
   tapAction: NotificationActionDto
   tapUrl: String
+  template: String
+  templateData: JSON
   title: String!
   userIds: [String!]
   videoUrl: String

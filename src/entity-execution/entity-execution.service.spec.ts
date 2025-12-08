@@ -37,6 +37,7 @@ describe('EntityExecutionService', () => {
     accessTokens: [],
     identities: [],
     webhooks: [],
+    templates: [],
   };
 
   const mockEntityExecutionRepository = {

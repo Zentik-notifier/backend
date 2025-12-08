@@ -43,6 +43,70 @@ export const CombineMessageSources = createParamDecorator(
       });
     }
 
+    // Collect template-* parameters from headers and query params
+    const templateDataParams: Record<string, any> = {};
+    
+    // Helper function to parse JSON strings
+    const parseIfJson = (value: any): any => {
+      if (typeof value === 'string' && (value.trim().startsWith('{') || value.trim().startsWith('['))) {
+        try {
+          return JSON.parse(value);
+        } catch (e) {
+          return value;
+        }
+      }
+      return value;
+    };
+    
+    // Collect from query params
+    if (query) {
+      Object.keys(query).forEach((key) => {
+        if (
+          key.startsWith('template-') &&
+          query[key] !== undefined &&
+          query[key] !== null
+        ) {
+          const cleanKey = key.replace('template-', '');
+          templateDataParams[cleanKey] = parseIfJson(query[key]);
+        }
+      });
+    }
+
+    // Collect from headers (headers take precedence over query)
+    if (headers) {
+      Object.keys(headers).forEach((key) => {
+        if (
+          key.startsWith('template-') &&
+          headers[key] !== undefined &&
+          headers[key] !== null
+        ) {
+          const cleanKey = key.replace('template-', '');
+          templateDataParams[cleanKey] = parseIfJson(headers[key]);
+        }
+      });
+    }
+
+    // Handle templateData if it's a string (JSON)
+    if (messageData.templateData && typeof messageData.templateData === 'string') {
+      try {
+        messageData.templateData = JSON.parse(messageData.templateData);
+      } catch (e) {
+        // Keep as string if parsing fails
+      }
+    }
+
+    // Merge template-* parameters into templateData
+    if (Object.keys(templateDataParams).length > 0) {
+      if (!messageData.templateData) {
+        messageData.templateData = {};
+      }
+      // Merge templateDataParams into existing templateData
+      messageData.templateData = {
+        ...messageData.templateData,
+        ...templateDataParams,
+      };
+    }
+
     // Handle special transformations for specific fields
     if (messageData.snoozes && typeof messageData.snoozes === 'string') {
       messageData.snoozes = messageData.snoozes

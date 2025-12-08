@@ -27,6 +27,7 @@ import { UserTemplatesResolver } from './user-templates.resolver';
 import { UserTemplatesService } from './user-templates.service';
 import { UsersModule } from '../users/users.module';
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
+import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
     PayloadMapperModule,
     UsersModule,
     ServerManagerModule,
+    EntityExecutionModule,
   ],
   controllers: [MessagesController, UserTemplatesController],
   providers: [

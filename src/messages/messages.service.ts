@@ -34,6 +34,10 @@ import {
   CreateMessageWithAttachmentDto,
   NotificationAttachmentDto,
 } from './dto';
+import { UserTemplatesService } from './user-templates.service';
+import * as Handlebars from 'handlebars';
+import { EntityExecutionService } from '../entity-execution/entity-execution.service';
+import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.entity';
 
 @Injectable()
 export class MessagesService {
@@ -59,6 +63,8 @@ export class MessagesService {
     private readonly postponeService: NotificationPostponeService,
     private readonly reminderService: MessageReminderService,
     private readonly urlBuilderService: UrlBuilderService,
+    private readonly userTemplatesService: UserTemplatesService,
+    private readonly entityExecutionService: EntityExecutionService,
   ) {}
 
 
@@ -168,6 +174,154 @@ export class MessagesService {
     return users;
   }
 
+  private async applyTemplate(
+    createMessageDto: CreateMessageDto,
+    userId: string,
+  ): Promise<void> {
+    if (!createMessageDto.template) {
+      return;
+    }
+
+    const startTime = Date.now();
+    let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
+    let executionErrors: string | undefined;
+    const templateData = createMessageDto.templateData || {};
+
+    try {
+      // Find template by name or UUID
+      const template = await this.userTemplatesService.findByUserIdAndNameOrId(
+        userId,
+        createMessageDto.template,
+      );
+
+      if (!template) {
+        executionStatus = ExecutionStatus.ERROR;
+        executionErrors = `Template "${createMessageDto.template}" not found`;
+        throw new NotFoundException(executionErrors);
+      }
+
+      // Apply title template if present
+      if (template.title) {
+        try {
+          const compiledTitle = Handlebars.compile(template.title);
+          createMessageDto.title = compiledTitle(templateData);
+        } catch (error: any) {
+          throw new BadRequestException(
+            `Error compiling title template: ${error.message}`,
+          );
+        }
+      }
+
+      // Apply subtitle template if present
+      if (template.subtitle) {
+        try {
+          const compiledSubtitle = Handlebars.compile(template.subtitle);
+          createMessageDto.subtitle = compiledSubtitle(templateData);
+        } catch (error: any) {
+          throw new BadRequestException(
+            `Error compiling subtitle template: ${error.message}`,
+          );
+        }
+      }
+
+      // Apply body template (required)
+      if (template.body) {
+        try {
+          const compiledBody = Handlebars.compile(template.body);
+          createMessageDto.body = compiledBody(templateData);
+        } catch (error: any) {
+          throw new BadRequestException(
+            `Error compiling body template: ${error.message}`,
+          );
+        }
+      }
+
+      const durationMs = Date.now() - startTime;
+      const output = JSON.stringify({
+        title: createMessageDto.title,
+        subtitle: createMessageDto.subtitle,
+        body: createMessageDto.body,
+      });
+
+      // Track the execution
+      try {
+        await this.entityExecutionService.create({
+          type: ExecutionType.MESSAGE_TEMPLATE,
+          status: executionStatus,
+          entityName: template.name,
+          entityId: template.id,
+          userId,
+          input: JSON.stringify({
+            template: createMessageDto.template,
+            templateData,
+            titleTemplate: template.title,
+            subtitleTemplate: template.subtitle,
+            bodyTemplate: template.body,
+          }),
+          output,
+          errors: executionErrors,
+          durationMs,
+        });
+      } catch (trackingError) {
+        // Log but don't throw - tracking shouldn't break the main flow
+        this.logger.error(
+          `Failed to track template execution: ${trackingError}`,
+        );
+      }
+    } catch (error: any) {
+      const durationMs = Date.now() - startTime;
+      executionStatus = ExecutionStatus.ERROR;
+      executionErrors = error.message;
+
+      // Track the failed execution
+      try {
+        // Try to get template info if available (might fail if template not found)
+        let titleTemplate: string | undefined;
+        let subtitleTemplate: string | undefined;
+        let bodyTemplate: string | undefined;
+        
+        try {
+          const template = await this.userTemplatesService.findByUserIdAndNameOrId(
+            userId,
+            createMessageDto.template,
+          );
+          if (template) {
+            titleTemplate = template.title;
+            subtitleTemplate = template.subtitle;
+            bodyTemplate = template.body;
+          }
+        } catch (e) {
+          // Template not found or other error, templates will be undefined
+        }
+
+        await this.entityExecutionService.create({
+          type: ExecutionType.MESSAGE_TEMPLATE,
+          status: executionStatus,
+          entityName: createMessageDto.template,
+          entityId: undefined,
+          userId,
+          input: JSON.stringify({
+            template: createMessageDto.template,
+            templateData,
+            titleTemplate,
+            subtitleTemplate,
+            bodyTemplate,
+          }),
+          output: undefined,
+          errors: executionErrors,
+          durationMs,
+        });
+      } catch (trackingError) {
+        // Log but don't throw - tracking shouldn't break the main flow
+        this.logger.error(
+          `Failed to track template execution error: ${trackingError}`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
   async create(
     createMessageDto: CreateMessageDto,
     requesterId: string | undefined,
@@ -185,6 +339,11 @@ export class MessagesService {
 
     if (!requesterId) {
       throw new UnauthorizedException('Unable to determine user ID for message creation');
+    }
+
+    // Apply template if provided
+    if (createMessageDto.template) {
+      await this.applyTemplate(createMessageDto, requesterId);
     }
 
     // If locale missing, fallback from user settings
@@ -793,5 +952,49 @@ export class MessagesService {
 
     // Create the message using the transformed payload and execution ID
     return this.create(messageDto, userId, false, executionId);
+  }
+
+  async templateAndCreate(
+    template: string,
+    templateData: Record<string, any>,
+    userId: string,
+    bucketId: string,
+    headers?: Record<string, string>,
+  ): Promise<Message> {
+    // Extract template-* parameters from headers and merge with templateData
+    const mergedTemplateData = { ...templateData };
+    
+    if (headers) {
+      Object.keys(headers).forEach((key) => {
+        if (key.startsWith('template-')) {
+          const cleanKey = key.replace('template-', '');
+          let value = headers[key];
+          
+          // Try to parse JSON if it looks like JSON
+          if (typeof value === 'string' && (value.trim().startsWith('{') || value.trim().startsWith('['))) {
+            try {
+              value = JSON.parse(value);
+            } catch (e) {
+              // Keep as string if parsing fails
+            }
+          }
+          
+          mergedTemplateData[cleanKey] = value;
+        }
+      });
+    }
+
+    // Create message DTO with template and templateData
+    // Title will be generated by the template, so we use a placeholder
+    const createMessageDto: CreateMessageDto = {
+      bucketId,
+      title: '', // Placeholder, will be replaced by template
+      template,
+      templateData: mergedTemplateData,
+      deliveryType: 'NORMAL' as any,
+    };
+
+    // Create the message (applyTemplate will be called automatically)
+    return this.create(createMessageDto, userId);
   }
 }

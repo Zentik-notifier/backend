@@ -12,6 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { transformMultipartBoolean } from '../../common/utils/transformers';
+import { GraphQLJSON } from '../../common/types/json.type';
 import {
   MediaType,
   NotificationActionType,
@@ -381,4 +382,33 @@ export class CreateMessageDto {
   @IsOptional()
   @IsString()
   executionId?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description:
+      'Template name or UUID to use for generating title, subtitle, and body. If provided, templateData will be used to render the template.',
+  })
+  @IsOptional()
+  @IsString()
+  template?: string;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description:
+      'Data object to use for rendering the template. Keys starting with "template-" from headers/query params will be merged into this object.',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (_) {
+        return value;
+      }
+    }
+    return value;
+  })
+  templateData?: Record<string, any>;
 }

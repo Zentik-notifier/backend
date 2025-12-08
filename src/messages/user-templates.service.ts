@@ -119,4 +119,32 @@ export class UserTemplatesService {
     await this.userTemplateRepository.remove(template);
     return true;
   }
+
+  async findByUserIdAndNameOrId(
+    userId: string,
+    nameOrId: string,
+  ): Promise<UserTemplate | null> {
+    // Try to find by ID first (if it's a valid UUID format)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      nameOrId,
+    );
+
+    if (isUuid) {
+      const template = await this.userTemplateRepository.findOne({
+        where: { id: nameOrId, user: { id: userId } },
+        relations: ['user'],
+      });
+      if (template) {
+        return template;
+      }
+    }
+
+    // Try to find by name
+    const template = await this.userTemplateRepository.findOne({
+      where: { name: nameOrId, user: { id: userId } },
+      relations: ['user'],
+    });
+
+    return template;
+  }
 }

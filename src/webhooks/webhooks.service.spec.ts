@@ -97,6 +97,7 @@ describe('WebhooksService', () => {
       accessTokens: [],
       identities: [],
       webhooks: [],
+      templates: [],
     };
 
     const mockWebhook: UserWebhook = {
