@@ -78,7 +78,7 @@ jobs:
           NODE_ENV: test
           PORT: 3000
         run: |
-          npm run start:dev > server.log 2>&1 &
+          npm start > server.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "Started server with PID: $SERVER_PID"
