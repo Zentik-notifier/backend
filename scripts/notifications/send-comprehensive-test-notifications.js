@@ -456,7 +456,7 @@ async function sendNotification(config, index, total) {
 
 // Main function
 async function main() {
-  console.log('🚀 Starting comprehensive notification test...\n');
+  console.log('🚀 Starting comprehensive notification test...');
   console.log('━'.repeat(80));
   
   // Step 1: Use default bucket ID if specified, otherwise fetch buckets
@@ -494,16 +494,16 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ Successfully loaded ${buckets.length} bucket(s)`);
+  console.log(`✅ Successfully loaded ${buckets.length} bucket(s)`);
   buckets.forEach((bucket, i) => {
     console.log(`   ${i + 1}. ${bucket.name} (ID: ${bucket.id})`);
   });
 
   // Step 2: Generate notifications
-  console.log('\n━'.repeat(80));
-  console.log('\n📋 STEP 2: Generating test notifications...');
+  console.log('━'.repeat(80));
+  console.log('📋 STEP 2: Generating test notifications...');
   const notifications = generateNotifications(buckets);
-  console.log(`\n✅ Generated ${notifications.length} test notifications`);
+  console.log(`✅ Generated ${notifications.length} test notifications`);
   
   // Statistics
   const stats = {
@@ -528,8 +528,8 @@ async function main() {
   console.log(`   ⭕ No actions: ${stats.noActions}`);
 
   // Step 3: Send notifications
-  console.log('\n━'.repeat(80));
-  console.log('\n📤 STEP 3: Sending notifications...\n');
+  console.log('━'.repeat(80));
+  console.log('📤 STEP 3: Sending notifications...');
 
   let successCount = 0;
   let failCount = 0;
@@ -550,8 +550,8 @@ async function main() {
   }
 
   // Final summary
-  console.log('\n━'.repeat(80));
-  console.log('\n📊 FINAL SUMMARY:');
+  console.log('━'.repeat(80));
+  console.log('📊 FINAL SUMMARY:');
   console.log(`   ✅ Successfully sent: ${successCount}`);
   console.log(`   ❌ Failed: ${failCount}`);
   console.log(`   📱 Total notifications: ${notifications.length}`);
@@ -559,9 +559,8 @@ async function main() {
   
   const successRate = ((successCount / notifications.length) * 100).toFixed(1);
   console.log(`   📈 Success rate: ${successRate}%`);
-  
-  console.log('\n━'.repeat(80));
-  console.log('\n✨ Test completed! Check your device for notifications.\n');
+  console.log('━'.repeat(80));
+  console.log('✨ Test completed! Check your device for notifications.');
 }
 
 // Run the script
