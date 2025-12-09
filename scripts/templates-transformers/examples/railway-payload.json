@@ -1,0 +1,16 @@
+{
+  "type": "deployment",
+  "project": {
+    "name": "my-awesome-project",
+    "id": "project-123"
+  },
+  "service": {
+    "name": "api-service",
+    "id": "service-456"
+  },
+  "status": "success",
+  "deployment": {
+    "id": "deployment-789",
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}

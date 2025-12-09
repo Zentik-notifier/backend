@@ -28,6 +28,7 @@ import { PayloadMapperService } from '../payload-mapper/payload-mapper.service';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { UsersService } from '../users/users.service';
 import { isUuid } from '../common/utils/validation.utils';
+import { isMagicCode } from '../common/utils/code-generation.utils';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import {
   CreateMessageDto,
@@ -72,6 +73,22 @@ export class MessagesService {
     bucketIdOrName: string,
     userId: string,
   ): Promise<Bucket> {
+    // Check if it's a magic code first
+    if (isMagicCode(bucketIdOrName)) {
+      const userBucket = await this.userBucketRepository.findOne({
+        where: { magicCode: bucketIdOrName },
+        relations: ['bucket'],
+      });
+
+      if (!userBucket || !userBucket.bucket) {
+        throw new NotFoundException(
+          `Magic code '${bucketIdOrName}' not found`,
+        );
+      }
+
+      return userBucket.bucket;
+    }
+
     // Try to find by ID (if it's a valid UUID format)
     const isValidUuid = isUuid(bucketIdOrName);
 

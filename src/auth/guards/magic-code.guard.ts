@@ -101,13 +101,21 @@ export class MagicCodeGuard implements CanActivate {
         args.bucketId = resolvedBucketId;
       }
     } else {
-      // For REST, replace in body
+      // For REST, replace in body and query
       const request = context.switchToHttp().getRequest();
       if (request.body?.magicCode) {
         request.body.bucketId = resolvedBucketId;
         delete request.body.magicCode;
       } else if (request.body?.bucketId) {
         request.body.bucketId = resolvedBucketId;
+      }
+      
+      // Also replace in query parameters
+      if (request.query?.magicCode) {
+        request.query.bucketId = resolvedBucketId;
+        delete request.query.magicCode;
+      } else if (request.query?.bucketId && isMagicCode(request.query.bucketId)) {
+        request.query.bucketId = resolvedBucketId;
       }
     }
   }

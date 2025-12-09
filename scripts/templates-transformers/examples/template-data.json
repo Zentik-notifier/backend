@@ -1,0 +1,8 @@
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "message": "Custom template data example",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "value": 100,
+  "status": "completed"
+}

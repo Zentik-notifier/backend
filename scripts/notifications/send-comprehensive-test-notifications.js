@@ -3,8 +3,55 @@
  * Usage: node scripts/send-comprehensive-test-notifications.js
  */
 
-const TOKEN = 'zat_fb43d111e46a2e10bbb1af12f0f7c89685840558b0e21e1791433161b802990c';
-const BASE_URL = 'http://192.168.1.193:3000/api/v1';
+const TOKEN = 'zat_ded1db02b4fc91e33ad9ff8aa3f0102c4eddbec1da9b33e51af70dd6d6ff1610';
+const BASE_URL = 'http://localhost:3000/api/v1';
+const DEFAULT_BUCKET_ID = '2dd0e29d-51c9-45d6-93b9-668b26c659e5';
+
+/**
+ * Make an HTTP request with better error handling
+ */
+async function fetch(url, options = {}) {
+  const https = require('https');
+  const http = require('http');
+  const { URL } = require('url');
+  
+  const urlObj = new URL(url);
+  const client = urlObj.protocol === 'https:' ? https : http;
+  
+  return new Promise((resolve, reject) => {
+    const req = client.request(url, options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        res.data = data;
+        res.ok = res.statusCode >= 200 && res.statusCode < 300;
+        res.status = res.statusCode;
+        res.statusText = res.statusMessage;
+        res.json = async () => {
+          try {
+            return JSON.parse(data);
+          } catch (e) {
+            throw new Error('Invalid JSON response');
+          }
+        };
+        res.text = async () => data;
+        resolve(res);
+      });
+    });
+    req.on('error', reject);
+    
+    if (options.headers) {
+      Object.keys(options.headers).forEach(key => {
+        req.setHeader(key, options.headers[key]);
+      });
+    }
+    
+    if (options.body) {
+      req.write(typeof options.body === 'string' ? options.body : JSON.stringify(options.body));
+    }
+    req.end();
+  });
+}
 
 // Pool di media URLs casuali
 const MEDIA_URLS = {
@@ -45,6 +92,39 @@ function getRandomMedia(type) {
   return getRandomItem(MEDIA_URLS[type]);
 }
 
+// Funzione per creare un bucket
+async function createBucket(name = 'Test Bucket') {
+  try {
+    console.log(`\n📦 Creating bucket: ${name}...`);
+    const response = await fetch(`${BASE_URL}/buckets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${TOKEN}`
+      },
+      body: JSON.stringify({
+        name: name,
+        description: 'Bucket created automatically for testing',
+        generateIconWithInitials: true,
+        generateMagicCode: true
+      })
+    });
+
+    if (response.statusCode >= 400) {
+      const errorText = response.data || response.statusMessage;
+      console.error('❌ Error creating bucket:', response.statusCode, response.statusMessage, errorText);
+      return null;
+    }
+
+    const bucket = JSON.parse(response.data);
+    console.log(`✅ Bucket created successfully: ${bucket.name} (${bucket.id})`);
+    return bucket;
+  } catch (error) {
+    console.error('❌ Failed to create bucket:', error.message);
+    return null;
+  }
+}
+
 // Funzione per fetchare i bucket disponibili
 async function fetchBuckets() {
   try {
@@ -55,12 +135,12 @@ async function fetchBuckets() {
       }
     });
 
-    if (!response.ok) {
-      console.error('❌ Error fetching buckets:', response.statusText);
+    if (response.statusCode >= 400) {
+      console.error('❌ Error fetching buckets:', response.statusCode, response.statusMessage);
       return [];
     }
 
-    const buckets = await response.json();
+    const buckets = JSON.parse(response.data);
     console.log(`✅ Found ${buckets.length} buckets:`, buckets.map(b => `${b.name} (${b.id})`).join(', '));
     return buckets || [];
   } catch (error) {
@@ -352,13 +432,13 @@ async function sendNotification(config, index, total) {
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Error sending notification ${index + 1}/${total}:`, response.statusText, errorText);
+    if (response.statusCode >= 400) {
+      const errorText = response.data || response.statusMessage;
+      console.error(`❌ Error sending notification ${index + 1}/${total}:`, response.statusCode, response.statusMessage, errorText);
       return false;
     }
 
-    const result = await response.json();
+    const result = JSON.parse(response.data);
     const attachmentInfo = config.attachments.length > 0 
       ? ` [${config.attachments.map(a => a.mediaType).join(', ')}]` 
       : '';
@@ -379,14 +459,39 @@ async function main() {
   console.log('🚀 Starting comprehensive notification test...\n');
   console.log('━'.repeat(80));
   
-  // Step 1: Fetch buckets
-  console.log('\n📦 STEP 1: Fetching available buckets...');
-  const buckets = await fetchBuckets();
+  // Step 1: Use default bucket ID if specified, otherwise fetch buckets
+  let buckets = [];
+  
+  if (DEFAULT_BUCKET_ID) {
+    console.log(`\n📦 STEP 1: Using specified bucket ID: ${DEFAULT_BUCKET_ID}`);
+    // Try to fetch bucket info, but use default ID even if fetch fails
+    const allBuckets = await fetchBuckets();
+    const foundBucket = allBuckets.find(b => b.id === DEFAULT_BUCKET_ID);
+    if (foundBucket) {
+      buckets = [foundBucket];
+      console.log(`✅ Found bucket: ${foundBucket.name} (${foundBucket.id})`);
+    } else {
+      buckets = [{ id: DEFAULT_BUCKET_ID, name: 'Specified Test Bucket' }];
+      console.log(`⚠️  Bucket not found in list, but will use ID: ${DEFAULT_BUCKET_ID}`);
+    }
+  } else {
+    console.log('\n📦 STEP 1: Fetching available buckets...');
+    buckets = await fetchBuckets();
 
-  if (buckets.length === 0) {
-    console.error('\n❌ No buckets found! Please create at least one bucket first.');
-    console.log('💡 You can create buckets via the API or admin interface.');
-    process.exit(1);
+    // If no buckets found, create one automatically
+    if (buckets.length === 0) {
+      console.log('\n⚠️  No buckets found. Creating a test bucket...');
+      const newBucket = await createBucket('Test Notifications');
+      
+      if (newBucket) {
+        buckets = [newBucket];
+        console.log('✅ Using newly created bucket for testing');
+      } else {
+        console.error('\n❌ Failed to create bucket. Please create at least one bucket manually.');
+        console.log('💡 You can create buckets via the API or admin interface.');
+        process.exit(1);
+      }
+    }
   }
 
   console.log(`\n✅ Successfully loaded ${buckets.length} bucket(s)`);

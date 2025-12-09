@@ -1,0 +1,7 @@
+{
+  "name": "welcome-message",
+  "description": "Template di benvenuto per nuovi utenti",
+  "title": "Benvenuto {{name}}!",
+  "subtitle": "Il tuo account è stato creato con successo",
+  "body": "Ciao {{name}},\n\nBenvenuto nella nostra piattaforma! Il tuo account è stato creato il {{date}}.\n\nSe hai domande, non esitare a contattarci.\n\nCordiali saluti,\nIl Team"
+}

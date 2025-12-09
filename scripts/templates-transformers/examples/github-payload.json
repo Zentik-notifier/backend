@@ -1,0 +1,19 @@
+{
+  "repository": {
+    "name": "test-repo",
+    "full_name": "testuser/test-repo",
+    "html_url": "https://github.com/testuser/test-repo"
+  },
+  "sender": {
+    "login": "testuser",
+    "avatar_url": "https://github.com/testuser.png"
+  },
+  "action": "opened",
+  "pull_request": {
+    "title": "Add new feature",
+    "number": 123,
+    "html_url": "https://github.com/testuser/test-repo/pull/123",
+    "body": "This PR adds a new feature",
+    "state": "open"
+  }
+}

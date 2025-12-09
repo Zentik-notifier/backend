@@ -1,0 +1,34 @@
+{
+  "magicCode": "YOUR_MAGIC_CODE_HERE",
+  "baseUrl": "http://localhost:3000/api/v1",
+  "templates": [
+    {
+      "name": "my-template",
+      "data": {
+        "name": "Test User",
+        "message": "This is a test message",
+        "value": 42,
+        "status": "success"
+      }
+    },
+    {
+      "name": "another-template",
+      "dataFile": "./template-data.json"
+    }
+  ],
+  "parsers": [
+    {
+      "name": "authentik",
+      "payload": {
+        "body": "loginSuccess: {\"user\": \"testuser\", \"ip\": \"192.168.1.1\"}",
+        "severity": "info",
+        "user_email": "test@example.com",
+        "user_username": "testuser"
+      }
+    },
+    {
+      "name": "github",
+      "payloadFile": "./github-payload.json"
+    }
+  ]
+}

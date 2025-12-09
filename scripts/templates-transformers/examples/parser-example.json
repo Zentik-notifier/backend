@@ -1,0 +1,5 @@
+{
+  "name": "custom-webhook",
+  "jsEvalFn": "function transform(payload, bucketId, userId, headers) {\n  // Extract relevant data from payload\n  const eventType = payload.eventType || payload.type || 'unknown';\n  const message = payload.message || payload.body || JSON.stringify(payload);\n  const timestamp = payload.timestamp || new Date().toISOString();\n  \n  // Determine delivery type based on severity\n  let deliveryType = 'NORMAL';\n  if (payload.severity === 'critical' || payload.severity === 'error') {\n    deliveryType = 'HIGH_PRIORITY';\n  } else if (payload.severity === 'warning') {\n    deliveryType = 'NORMAL';\n  } else {\n    deliveryType = 'SILENT';\n  }\n  \n  // Build message\n  return {\n    title: `Webhook: ${eventType}`,\n    subtitle: `Received at ${new Date(timestamp).toLocaleString()}`,\n    body: message,\n    deliveryType: deliveryType\n  };\n}",
+  "requiredUserSettings": []
+}

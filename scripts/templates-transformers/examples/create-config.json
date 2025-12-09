@@ -1,0 +1,32 @@
+{
+  "token": "YOUR_JWT_OR_ACCESS_TOKEN_HERE",
+  "baseUrl": "http://localhost:3000/api/v1",
+  "templates": [
+    {
+      "name": "welcome-message",
+      "description": "Template di benvenuto per nuovi utenti",
+      "title": "Benvenuto {{name}}!",
+      "subtitle": "Il tuo account è stato creato con successo",
+      "body": "Ciao {{name}},\n\nBenvenuto nella nostra piattaforma! Il tuo account è stato creato il {{date}}.\n\nSe hai domande, non esitare a contattarci.\n\nCordiali saluti,\nIl Team"
+    },
+    {
+      "name": "alert-notification",
+      "description": "Template per notifiche di alert",
+      "title": "🚨 Alert: {{alertType}}",
+      "subtitle": "Severità: {{severity}}",
+      "body": "Un alert di tipo {{alertType}} è stato generato.\n\nDettagli:\n- Messaggio: {{message}}\n- Timestamp: {{timestamp}}\n- Severità: {{severity}}\n\n{{#if url}}Maggiori informazioni: {{url}}{{/if}}"
+    }
+  ],
+  "parsers": [
+    {
+      "name": "custom-webhook",
+      "jsEvalFn": "function transform(payload, bucketId, userId, headers) {\n  const eventType = payload.eventType || payload.type || 'unknown';\n  const message = payload.message || payload.body || JSON.stringify(payload);\n  const timestamp = payload.timestamp || new Date().toISOString();\n  \n  let deliveryType = 'NORMAL';\n  if (payload.severity === 'critical' || payload.severity === 'error') {\n    deliveryType = 'HIGH_PRIORITY';\n  } else if (payload.severity === 'warning') {\n    deliveryType = 'NORMAL';\n  } else {\n    deliveryType = 'SILENT';\n  }\n  \n  return {\n    title: `Webhook: ${eventType}`,\n    subtitle: `Received at ${new Date(timestamp).toLocaleString()}`,\n    body: message,\n    deliveryType: deliveryType\n  };\n}",
+      "requiredUserSettings": []
+    },
+    {
+      "name": "json-log-parser",
+      "jsEvalFn": "function transform(payload, bucketId, userId, headers) {\n  let logData = payload;\n  \n  if (typeof payload === 'string') {\n    try {\n      logData = JSON.parse(payload);\n    } catch (e) {\n      return {\n        title: 'Log Entry',\n        body: payload,\n        deliveryType: 'NORMAL'\n      };\n    }\n  }\n  \n  const level = logData.level || logData.severity || 'INFO';\n  const message = logData.message || logData.msg || JSON.stringify(logData);\n  const timestamp = logData.timestamp || logData.time || new Date().toISOString();\n  \n  let deliveryType = 'NORMAL';\n  if (level === 'ERROR' || level === 'FATAL' || level === 'CRITICAL') {\n    deliveryType = 'HIGH_PRIORITY';\n  } else if (level === 'WARN' || level === 'WARNING') {\n    deliveryType = 'NORMAL';\n  } else {\n    deliveryType = 'SILENT';\n  }\n  \n  return {\n    title: `[${level}] Log Entry`,\n    subtitle: new Date(timestamp).toLocaleString(),\n    body: message,\n    deliveryType: deliveryType\n  };\n}",
+      "requiredUserSettings": []
+    }
+  ]
+}

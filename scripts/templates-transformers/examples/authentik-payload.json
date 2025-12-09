@@ -1,0 +1,7 @@
+{
+  "body": "loginSuccess: {\"user\": \"testuser\", \"ip\": \"192.168.1.1\", \"timestamp\": \"2024-01-15T10:30:00Z\"}",
+  "severity": "info",
+  "user_email": "test@example.com",
+  "user_username": "testuser",
+  "source_ip": "192.168.1.1"
+}

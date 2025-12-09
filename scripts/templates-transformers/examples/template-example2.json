@@ -1,0 +1,7 @@
+{
+  "name": "alert-notification",
+  "description": "Template per notifiche di alert",
+  "title": "🚨 Alert: {{alertType}}",
+  "subtitle": "Severità: {{severity}}",
+  "body": "Un alert di tipo {{alertType}} è stato generato.\n\nDettagli:\n- Messaggio: {{message}}\n- Timestamp: {{timestamp}}\n- Severità: {{severity}}\n\n{{#if url}}Maggiori informazioni: {{url}}{{/if}}"
+}
