@@ -51,25 +51,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run database migrations
-        env:
-          DB_TYPE: postgres
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: zentik_test
-          DB_USERNAME: zentik_user
-          DB_PASSWORD: zentik_password
-          DB_SSL: 'false'
-          DB_SYNCHRONIZE: 'false'
-          DB_DROP_SCHEMA: 'false'
-          ADMIN_USERS: admin
-          ADMIN_DEFAULT_PASSWORD: admin
-          JWT_SECRET: test_jwt_secret_for_ci_$(openssl rand -hex 16)
-          JWT_EXPIRES_IN: 7d
-          PUBLIC_BACKEND_URL: http://localhost:3000
-          PUBLIC_UI_URL: http://localhost:3000
-        run: npm run migration:run
-
       - name: Generate JWT secret
         id: jwt_secret
         run: |
@@ -86,7 +67,7 @@ jobs:
           DB_USERNAME: zentik_user
           DB_PASSWORD: zentik_password
           DB_SSL: 'false'
-          DB_SYNCHRONIZE: 'false'
+          DB_SYNCHRONIZE: 'true'
           DB_DROP_SCHEMA: 'false'
           ADMIN_USERS: admin
           ADMIN_DEFAULT_PASSWORD: admin
