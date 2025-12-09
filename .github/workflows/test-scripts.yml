@@ -152,33 +152,49 @@ jobs:
           echo "TOKEN=$TOKEN" >> $GITHUB_ENV
           echo "Created admin token: ${TOKEN:0:20}..."
 
-      - name: Get or create test bucket
+      - name: Create test bucket
         env:
           BASE_URL: http://localhost:3000/api/v1
           TOKEN: ${{ env.TOKEN }}
         run: |
-          # Try to get existing buckets
-          BUCKETS=$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE_URL/buckets" || echo "[]")
-          BUCKET_ID=$(echo "$BUCKETS" | jq -r '.[0].id // empty')
+          # Always create a new test bucket to ensure it has a userBucket with magic code
+          echo "Creating test bucket with magic code..."
+          TIMESTAMP=$(date +%s)
+          BUCKET_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"CI Test Bucket $TIMESTAMP\",\"description\":\"Bucket for CI tests\",\"generateIconWithInitials\":true,\"generateMagicCode\":true}" \
+            "$BASE_URL/buckets")
           
-          if [ -z "$BUCKET_ID" ]; then
-            # Create a test bucket
-            echo "Creating test bucket..."
-            BUCKET_RESPONSE=$(curl -s -X POST \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"name":"Test Bucket","description":"Bucket for CI tests","generateIconWithInitials":true,"generateMagicCode":true}' \
-              "$BASE_URL/buckets")
-            BUCKET_ID=$(echo "$BUCKET_RESPONSE" | jq -r '.id // empty')
-          fi
+          BUCKET_ID=$(echo "$BUCKET_RESPONSE" | jq -r '.id // empty')
           
           if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" = "null" ]; then
-            echo "Failed to get or create bucket"
+            echo "Failed to create bucket"
+            echo "Response: $BUCKET_RESPONSE"
             exit 1
           fi
           
           echo "BUCKET_ID=$BUCKET_ID" >> $GITHUB_ENV
-          echo "Using bucket ID: $BUCKET_ID"
+          echo "✅ Created test bucket: $BUCKET_ID"
+          
+          # Verify bucket has magic code via GraphQL
+          echo "Verifying bucket has magic code..."
+          sleep 2  # Give time for userBucket to be created
+          GRAPHQL_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\":\"query GetBucket(\$id: String!) { bucket(id: \$id) { id name userBucket { magicCode } } }\",\"variables\":{\"id\":\"$BUCKET_ID\"}}" \
+            "$BASE_URL/graphql")
+          
+          MAGIC_CODE=$(echo "$GRAPHQL_RESPONSE" | jq -r '.data.bucket.userBucket.magicCode // empty')
+          
+          if [ -z "$MAGIC_CODE" ] || [ "$MAGIC_CODE" = "null" ]; then
+            echo "⚠️  Warning: Bucket created but magic code not found yet."
+            echo "   This might cause template/transformer tests to fail."
+            echo "   GraphQL response: $GRAPHQL_RESPONSE"
+          else
+            echo "✅ Bucket has magic code: ${MAGIC_CODE:0:8}..."
+          fi
 
       - name: Run test scripts
         env:

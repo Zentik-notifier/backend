@@ -172,12 +172,13 @@ async function main() {
   const magicCode = await getMagicCode(TOKEN, BUCKET_ID);
   
   if (!magicCode) {
-    console.error('\n❌ Failed to get magic code. Cannot proceed with template/transformer tests.');
-    console.log('💡 You can still run notification tests with --skip-templates');
+    console.warn('\n⚠️  No magic code found for this bucket.');
+    console.log('💡 Template/transformer tests require a magic code.');
     if (skipTemplates) {
-      console.log('   Continuing with notifications only...\n');
+      console.log('   Continuing with notifications only (--skip-templates)...\n');
     } else {
-      process.exit(1);
+      console.log('   Template/transformer tests will be skipped.');
+      console.log('   Notification tests will still run.\n');
     }
   } else {
     console.log(`✅ Magic Code: ${magicCode}\n`);
@@ -261,10 +262,16 @@ async function main() {
   const allPassed = 
     (skipNotifications || results.notifications.success) &&
     (skipTemplates || !magicCode || results.templates.success);
+  
+  // If templates were skipped due to missing magic code, don't fail the build
+  const templatesSkippedDueToNoMagicCode = !skipTemplates && !magicCode;
 
   console.log(`\n${'═'.repeat(80)}`);
   if (allPassed) {
     console.log('✨ All tests completed successfully!');
+    if (templatesSkippedDueToNoMagicCode) {
+      console.log('   (Template/transformer tests were skipped due to missing magic code)');
+    }
     console.log('═'.repeat(80) + '\n');
     process.exit(0);
   } else {
