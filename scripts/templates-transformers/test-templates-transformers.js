@@ -156,7 +156,7 @@ async function testTemplate(magicCode, templateName) {
   try {
     console.log(`\n📝 Testing template: ${templateName}`);
     
-    const url = `${BASE_URL}/messages/template?template=${encodeURIComponent(templateName)}&magicCode=${encodeURIComponent(magicCode)}`;
+    const url = `${BASE_URL}/messages/template?template=${encodeURIComponent(templateName)}&magicCode=${encodeURIComponent(magicCode)}&deliveryType=CRITICAL&imageUrl=https://picsum.photos/200/300`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {

@@ -191,29 +191,30 @@ export class MessagesService {
     return users;
   }
 
-  private async applyTemplate(
+  public async applyTemplate(
     createMessageDto: CreateMessageDto,
     userId: string,
+    templateName: string,
+    templateData: Record<string, any> = {},
   ): Promise<void> {
-    if (!createMessageDto.template) {
+    if (!templateName) {
       return;
     }
 
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
     let executionErrors: string | undefined;
-    const templateData = createMessageDto.templateData || {};
 
     try {
       // Find template by name or UUID
       const template = await this.userTemplatesService.findByUserIdAndNameOrId(
         userId,
-        createMessageDto.template,
+        templateName,
       );
 
       if (!template) {
         executionStatus = ExecutionStatus.ERROR;
-        executionErrors = `Template "${createMessageDto.template}" not found`;
+        executionErrors = `Template "${templateName}" not found`;
         throw new NotFoundException(executionErrors);
       }
 
@@ -269,7 +270,7 @@ export class MessagesService {
           entityId: template.id,
           userId,
           input: JSON.stringify({
-            template: createMessageDto.template,
+            template: templateName,
             templateData,
             titleTemplate: template.title,
             subtitleTemplate: template.subtitle,
@@ -300,25 +301,23 @@ export class MessagesService {
         try {
           const template = await this.userTemplatesService.findByUserIdAndNameOrId(
             userId,
-            createMessageDto.template,
+            templateName,
           );
           if (template) {
             titleTemplate = template.title;
             subtitleTemplate = template.subtitle;
             bodyTemplate = template.body;
           }
-        } catch (e) {
-          // Template not found or other error, templates will be undefined
-        }
+        } catch (_) {}
 
         await this.entityExecutionService.create({
           type: ExecutionType.MESSAGE_TEMPLATE,
           status: executionStatus,
-          entityName: createMessageDto.template,
-          entityId: undefined,
+          entityName: templateName,
+          entityId: undefined, // Might not be available if template not found
           userId,
           input: JSON.stringify({
-            template: createMessageDto.template,
+            template: templateName,
             templateData,
             titleTemplate,
             subtitleTemplate,
@@ -329,9 +328,8 @@ export class MessagesService {
           durationMs,
         });
       } catch (trackingError) {
-        // Log but don't throw - tracking shouldn't break the main flow
         this.logger.error(
-          `Failed to track template execution error: ${trackingError}`,
+          `Failed to track failed template execution: ${trackingError}`,
         );
       }
 
@@ -356,11 +354,6 @@ export class MessagesService {
 
     if (!requesterId) {
       throw new UnauthorizedException('Unable to determine user ID for message creation');
-    }
-
-    // Apply template if provided
-    if (createMessageDto.template) {
-      await this.applyTemplate(createMessageDto, requesterId);
     }
 
     // If locale missing, fallback from user settings

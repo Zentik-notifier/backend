@@ -296,12 +296,13 @@ export class MessagesController {
       throw new BadRequestException('Parameter "bucketId" or "magicCode" is required');
     }
 
-    // Build CreateMessageDto starting with template and bucketId
+    // Initialize template data
+    const finalTemplateData = { ...templateData };
+
+    // Build CreateMessageDto starting with bucketId
     // MagicCodeGuard has already resolved magicCode to bucketId if it was provided
     const createMessageDto: Partial<CreateMessageDto> = {
-      template,
       bucketId: resolvedBucketId,
-      templateData,
       title: '', // Placeholder, will be replaced by template
       deliveryType: 'NORMAL' as any,
     };
@@ -357,16 +358,20 @@ export class MessagesController {
           headers[key] !== null
         ) {
           const cleanKey = key.replace('template-', '');
-          if (!createMessageDto.templateData) {
-            createMessageDto.templateData = {};
-          }
-          createMessageDto.templateData[cleanKey] = parseIfJson(headers[key]);
+          finalTemplateData[cleanKey] = parseIfJson(headers[key]);
         }
       });
     }
 
+    // Apply template explicitly
+    await this.messagesService.applyTemplate(
+      createMessageDto as CreateMessageDto,
+      userId,
+      template,
+      finalTemplateData,
+    );
+
     // Create the message using the standard create method
-    // It will automatically apply the template via applyTemplate
     const result = await this.messagesService.create(
       createMessageDto as CreateMessageDto,
       userId,
