@@ -41,12 +41,23 @@ export async function createAdminUsers(dataSource: DataSource) {
       });
 
       if (existingUser) {
+        let updated = false;
         // Update existing user to admin role if not already admin
         if (existingUser.role !== UserRole.ADMIN) {
           existingUser.role = UserRole.ADMIN;
           existingUser.emailConfirmed = true;
-          await userRepo.save(existingUser);
+          updated = true;
           logger.log(`✅ Updated existing user to admin: ${identifier}`);
+        }
+        // Update password if missing or empty
+        if (!existingUser.password || existingUser.password.trim() === '') {
+          const hashedPassword = await bcrypt.hash(adminDefaultPassword, 12);
+          existingUser.password = hashedPassword;
+          updated = true;
+          logger.log(`✅ Set password for existing admin user: ${identifier}`);
+        }
+        if (updated) {
+          await userRepo.save(existingUser);
         } else {
           logger.log(`✅ User already has admin role: ${identifier}`);
         }
