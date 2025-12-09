@@ -93,10 +93,23 @@ jobs:
 
       - name: Wait for server to be fully ready
         run: |
-          sleep 3
+          sleep 5
           # Additional check to ensure server is fully ready
           curl -f http://localhost:3000/health || curl -f http://localhost:3000/api/v1/health || exit 1
           echo "Server is fully ready"
+          # Give extra time for seeds to complete
+          sleep 5
+          echo "Checking server logs for seed completion..."
+          tail -100 server.log | grep -i "admin\|seed\|initialization" || echo "No seed-related logs found"
+
+      - name: Check seed execution
+        run: |
+          echo "=== Checking seed execution ==="
+          echo "Looking for admin user seed logs:"
+          tail -200 server.log | grep -i "admin users\|admin-users\|createAdminUsers" || echo "No admin users seed logs found"
+          echo ""
+          echo "Looking for errors:"
+          tail -200 server.log | grep -i "error.*admin\|fail.*admin" || echo "No admin-related errors found"
 
       - name: Create admin token for tests
         env:
@@ -124,6 +137,8 @@ jobs:
             echo "Failed to create admin token"
             echo "Full output:"
             echo "$TOKEN_OUTPUT"
+            echo "Checking server logs for errors:"
+            tail -100 server.log | grep -i "error\|fail\|admin" || true
             exit 1
           fi
           

@@ -6,12 +6,14 @@ import { UserRole } from '../users/users.types';
 
 export async function createAdminUsers(dataSource: DataSource) {
   const logger = new Logger('AdminUsersSeed');
+  logger.log('🔄 AdminUsersSeed: Starting seed execution...');
 
   const adminUsersEnv = process.env.ADMIN_USERS;
   if (!adminUsersEnv || adminUsersEnv.trim() === '') {
     logger.log('No admin users defined in ADMIN_USERS environment variable');
     return;
   }
+  logger.log(`📋 ADMIN_USERS: ${adminUsersEnv}`);
 
   const adminDefaultPassword = process.env.ADMIN_DEFAULT_PASSWORD;
   if (!adminDefaultPassword || adminDefaultPassword.trim() === '') {
@@ -20,6 +22,7 @@ export async function createAdminUsers(dataSource: DataSource) {
     );
     return;
   }
+  logger.log('✅ ADMIN_DEFAULT_PASSWORD is set');
 
   const userRepo = dataSource.getRepository(User);
   const adminIdentifiers = adminUsersEnv

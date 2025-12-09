@@ -332,20 +332,24 @@ async function bootstrap() {
 
   // Always create admin users at startup
   try {
+    logger.log('🔄 Starting admin users seed...');
     const dataSource = app.get(DataSource);
     await createAdminUsers(dataSource);
     logger.log('✅ Admin users initialization completed.');
   } catch (err) {
     logger.error('❌ Error during admin users initialization:', err);
+    logger.error('Error stack:', err.stack);
   }
 
   // Initialize admin bucket at startup (after admin users)
   try {
+    logger.log('🔄 Starting admin bucket seed...');
     const dataSource = app.get(DataSource);
     await ensureAdminBucket(dataSource);
     logger.log('✅ Admin bucket initialization completed.');
   } catch (err) {
     logger.error('❌ Error during admin bucket initialization:', err);
+    logger.error('Error stack:', err.stack);
   }
 
   // Initialize public bucket at startup (after admin bucket)
