@@ -178,7 +178,13 @@ async function bootstrap() {
 
   logger.log('✅ NestJS application created successfully');
 
-  app.setGlobalPrefix(API_PREFIX);
+  app.setGlobalPrefix(API_PREFIX, {
+    exclude: [
+      'message',
+      'template',
+      'transform',
+    ],
+  });
   // Enable urlencoded parsing for providers like Apple that POST form data to callback
   app.use(bodyParser.urlencoded({ extended: true }));
   app.useGlobalPipes(

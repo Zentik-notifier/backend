@@ -10,7 +10,7 @@
  *   node scripts/test-templates-transformers.js abc12345 authentic github
  */
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 // Test results tracking
 const results = {
@@ -156,7 +156,7 @@ async function testTemplate(magicCode, templateName) {
   try {
     console.log(`\n📝 Testing template: ${templateName}`);
     
-    const url = `${BASE_URL}/messages/template?template=${encodeURIComponent(templateName)}&magicCode=${encodeURIComponent(magicCode)}&deliveryType=CRITICAL&imageUrl=https://picsum.photos/200/300`;
+    const url = `${BASE_URL}/template?template=${encodeURIComponent(templateName)}&magicCode=${encodeURIComponent(magicCode)}&deliveryType=CRITICAL&imageUrl=https://picsum.photos/200/300`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -215,7 +215,7 @@ async function testTransformer(magicCode, parserName) {
     console.log(`\n🔄 Testing transformer: ${parserName}`);
     console.log(`   Payload: ${JSON.stringify(payload).substring(0, 100)}...`);
     
-    const url = `${BASE_URL}/messages/transform?parser=${encodeURIComponent(parserName)}&magicCode=${encodeURIComponent(magicCode)}`;
+    const url = `${BASE_URL}/transform?parser=${encodeURIComponent(parserName)}&magicCode=${encodeURIComponent(magicCode)}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {

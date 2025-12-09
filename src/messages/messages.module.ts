@@ -21,6 +21,7 @@ import { MessagesCleanupScheduler } from './messages.cleanup.scheduler';
 import { MessageReminderScheduler } from './message-reminder.scheduler';
 import { MessageReminderService } from './message-reminder.service';
 import { MessagesController } from './messages.controller';
+import { MessagesRootController } from './messages.root.controller';
 import { MessagesService } from './messages.service';
 import { UserTemplatesController } from './user-templates.controller';
 import { UserTemplatesResolver } from './user-templates.resolver';
@@ -44,7 +45,7 @@ import { EntityExecutionModule } from '../entity-execution/entity-execution.modu
     ServerManagerModule,
     EntityExecutionModule,
   ],
-  controllers: [MessagesController, UserTemplatesController],
+  controllers: [MessagesController, MessagesRootController, UserTemplatesController],
   providers: [
     MessagesService,
     MessageReminderService,

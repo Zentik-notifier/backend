@@ -22,6 +22,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const args = process.argv.slice(2);
 const skipNotifications = args.includes('--skip-notifications');
 const skipTemplates = args.includes('--skip-templates');
+const skipMessages = args.includes('--skip-messages');
 
 /**
  * Make an HTTP request
@@ -186,7 +187,8 @@ async function main() {
 
   const results = {
     notifications: { success: false, error: null },
-    templates: { success: false, error: null }
+    templates: { success: false, error: null },
+    messages: { success: false, error: null }
   };
 
   // Step 2: Run notification tests
@@ -283,6 +285,25 @@ async function main() {
     console.log('\n⏭️  Skipping template/transformer tests (--skip-templates)');
   }
 
+  // Step 5: Run messages endpoint tests
+  if (!skipMessages) {
+    try {
+      const messagesScript = path.join(__dirname, 'messages', 'test-messages-endpoint.js');
+      await runScript(messagesScript, [], {
+        TOKEN,
+        BASE_URL,
+        BUCKET_ID
+      });
+      results.messages.success = true;
+    } catch (error) {
+      results.messages.success = false;
+      results.messages.error = error.message;
+      console.error(`\n❌ Messages endpoint tests failed: ${error.message}`);
+    }
+  } else {
+    console.log('\n⏭️  Skipping messages endpoint tests (--skip-messages)');
+  }
+
   // Final summary
   console.log('\n' + '═'.repeat(80));
   console.log('📊 FINAL SUMMARY');
@@ -306,10 +327,20 @@ async function main() {
     }
   }
 
+  if (!skipMessages) {
+    console.log(`\n📨 Messages Endpoint:`);
+    if (results.messages.success) {
+      console.log(`   ✅ PASSED`);
+    } else {
+      console.log(`   ❌ FAILED: ${results.messages.error || 'Unknown error'}`);
+    }
+  }
+
   // Determine if all tests passed
   const notificationsPassed = skipNotifications || results.notifications.success;
   const templatesPassed = skipTemplates || !magicCode || results.templates.success;
-  const allPassed = notificationsPassed && templatesPassed;
+  const messagesPassed = skipMessages || results.messages.success;
+  const allPassed = notificationsPassed && templatesPassed && messagesPassed;
   
   // If templates were skipped due to missing magic code, don't fail the build
   const templatesSkippedDueToNoMagicCode = !skipTemplates && !magicCode;
@@ -329,6 +360,9 @@ async function main() {
     }
     if (!templatesPassed && !templatesSkippedDueToNoMagicCode) {
       console.log(`   - Templates & Transformers: FAILED`);
+    }
+    if (!messagesPassed) {
+      console.log(`   - Messages Endpoint: FAILED`);
     }
     console.log('═'.repeat(80) + '\n');
     process.exit(1);
