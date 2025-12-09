@@ -335,7 +335,7 @@ describe('GitHubParser', () => {
           config: {
             content_type: 'json',
             insecure_ssl: '0',
-            url: 'https://notifier-api.zentik.app/api/v1/messages/transform',
+            url: 'https://notifier-api.zentik.app/transform',
           },
         },
         organization: {
