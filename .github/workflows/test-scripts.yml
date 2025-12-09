@@ -98,9 +98,12 @@ jobs:
           curl -f http://localhost:3000/health || curl -f http://localhost:3000/api/v1/health || exit 1
           echo "Server is fully ready"
           # Give extra time for seeds to complete
-          sleep 5
+          sleep 10
           echo "Checking server logs for seed completion..."
-          tail -100 server.log | grep -i "admin\|seed\|initialization" || echo "No seed-related logs found"
+          tail -200 server.log | grep -i "admin\|seed\|initialization" || echo "No seed-related logs found"
+          echo ""
+          echo "Verifying admin user was created with password..."
+          tail -200 server.log | grep -i "Created new admin user\|Set password for existing admin user" || echo "No admin user creation logs found"
 
       - name: Check seed execution
         run: |

@@ -55,12 +55,15 @@ export async function createAdminUsers(dataSource: DataSource) {
         // Update password if missing or empty
         if (!existingUser.password || existingUser.password.trim() === '') {
           const hashedPassword = await bcrypt.hash(adminDefaultPassword, 12);
+          logger.log(`🔐 Hashed password for existing user ${identifier} (length: ${hashedPassword.length})`);
           existingUser.password = hashedPassword;
+          existingUser.hasPassword = true;
           updated = true;
           logger.log(`✅ Set password for existing admin user: ${identifier}`);
         }
         if (updated) {
-          await userRepo.save(existingUser);
+          const savedUser = await userRepo.save(existingUser);
+          logger.log(`🔐 Password saved: ${savedUser.password ? 'YES' : 'NO'} (length: ${savedUser.password?.length || 0})`);
         } else {
           logger.log(`✅ User already has admin role: ${identifier}`);
         }
@@ -98,21 +101,24 @@ export async function createAdminUsers(dataSource: DataSource) {
         }
 
         const hashedPassword = await bcrypt.hash(adminDefaultPassword, 12);
+        logger.log(`🔐 Hashed password for ${identifier} (length: ${hashedPassword.length})`);
 
         const newAdminUser = userRepo.create({
           email,
           username,
           password: hashedPassword,
+          hasPassword: true,
           firstName: 'Admin',
           lastName: 'User',
           role: UserRole.ADMIN,
           emailConfirmed: true,
         });
 
-        await userRepo.save(newAdminUser);
+        const savedUser = await userRepo.save(newAdminUser);
         logger.log(
-          `✅ Created new admin user: ${email} (username: ${username})`,
+          `✅ Created new admin user: ${email} (username: ${username}, id: ${savedUser.id})`,
         );
+        logger.log(`🔐 Password saved: ${savedUser.password ? 'YES' : 'NO'} (length: ${savedUser.password?.length || 0})`);
         logger.warn(
           `🔑 Password for ${identifier} is set from ADMIN_DEFAULT_PASSWORD - Please change it on first login!`,
         );
