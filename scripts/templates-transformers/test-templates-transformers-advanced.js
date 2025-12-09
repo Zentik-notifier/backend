@@ -1,13 +1,13 @@
 /**
- * Script avanzato per testare template e transformers con magicCode
- * Supporta payload personalizzati e configurazioni più complesse
+ * Advanced script to test templates and transformers with magicCode
+ * Supports custom payloads and more complex configurations
  * 
  * Usage: 
  *   node scripts/test-templates-transformers-advanced.js <magicCode> --config <configFile>
  *   node scripts/test-templates-transformers-advanced.js <magicCode> --template <name> --data <jsonFile>
  *   node scripts/test-templates-transformers-advanced.js <magicCode> --parser <name> --payload <jsonFile>
  * 
- * Esempi:
+ * Examples:
  *   node scripts/test-templates-transformers-advanced.js abc12345 --template my-template --data ./test-data.json
  *   node scripts/test-templates-transformers-advanced.js abc12345 --parser authentic --payload ./authentik-payload.json
  *   node scripts/test-templates-transformers-advanced.js abc12345 --config ./test-config.json

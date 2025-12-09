@@ -1,10 +1,10 @@
 /**
- * Script per testare tutte le combinazioni di creazione messaggi con:
- * - token + bucketId (autenticato)
- * - magicCode (non autenticato)
+ * Script to test all message creation combinations with:
+ * - token + bucketId (authenticated)
+ * - magicCode (unauthenticated)
  * 
- * I test si estendono a bucket a cui si ha accesso e su cui non si ha accesso.
- * Fetcha i bucket e i permessi relativi e sceglie i bucket adatti per i test.
+ * Tests extend to buckets with access and without access.
+ * Fetches buckets and related permissions and chooses appropriate buckets for testing.
  * 
  * Usage: node scripts/test-magic-code-and-token.js
  */

@@ -1,5 +1,5 @@
 /**
- * Script per ottenere il magicCode di un bucket
+ * Script to get the magicCode of a bucket
  * Usage: node get-magic-code.js <token> <bucketId>
  */
 

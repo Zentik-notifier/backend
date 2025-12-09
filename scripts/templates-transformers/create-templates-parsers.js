@@ -1,12 +1,12 @@
 /**
- * Script per creare template e parsers
+ * Script to create templates and parsers
  * 
  * Usage: 
  *   node scripts/create-templates-parsers.js <token> --template <templateFile>
  *   node scripts/create-templates-parsers.js <token> --parser <parserFile>
  *   node scripts/create-templates-parsers.js <token> --config <configFile>
  * 
- * Esempi:
+ * Examples:
  *   node scripts/create-templates-parsers.js <token> --template ./examples/template-example.json
  *   node scripts/create-templates-parsers.js <token> --parser ./examples/parser-example.json
  *   node scripts/create-templates-parsers.js <token> --config ./examples/create-config.json

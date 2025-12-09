@@ -1,11 +1,11 @@
 /**
- * Script completo per inviare notifiche di test con tutte le combinazioni di allegati e azioni
+ * Complete script to send test notifications with all combinations of attachments and actions
  * Usage: node scripts/send-comprehensive-test-notifications.js
  */
 
-const TOKEN = 'zat_ded1db02b4fc91e33ad9ff8aa3f0102c4eddbec1da9b33e51af70dd6d6ff1610';
-const BASE_URL = 'http://localhost:3000/api/v1';
-const DEFAULT_BUCKET_ID = '2dd0e29d-51c9-45d6-93b9-668b26c659e5';
+const TOKEN = process.env.TOKEN || 'zat_ded1db02b4fc91e33ad9ff8aa3f0102c4eddbec1da9b33e51af70dd6d6ff1610';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
+const DEFAULT_BUCKET_ID = process.env.DEFAULT_BUCKET_ID || '2dd0e29d-51c9-45d6-93b9-668b26c659e5';
 
 /**
  * Make an HTTP request with better error handling
@@ -53,7 +53,7 @@ async function fetch(url, options = {}) {
   });
 }
 
-// Pool di media URLs casuali
+// Pool of random media URLs
 const MEDIA_URLS = {
   images: [
     'https://picsum.photos/800/600?random=1',
@@ -83,7 +83,7 @@ const MEDIA_URLS = {
   ]
 };
 
-// Funzioni helper
+// Helper functions
 function getRandomItem(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
@@ -92,7 +92,7 @@ function getRandomMedia(type) {
   return getRandomItem(MEDIA_URLS[type]);
 }
 
-// Funzione per creare un bucket
+// Function to create a bucket
 async function createBucket(name = 'Test Bucket') {
   try {
     console.log(`\n📦 Creating bucket: ${name}...`);
@@ -125,7 +125,7 @@ async function createBucket(name = 'Test Bucket') {
   }
 }
 
-// Funzione per fetchare i bucket disponibili
+// Function to fetch available buckets
 async function fetchBuckets() {
   try {
     const response = await fetch(`${BASE_URL}/buckets`, {
@@ -149,7 +149,7 @@ async function fetchBuckets() {
   }
 }
 
-// Template di azioni comuni
+// Common action templates
 const ACTION_TEMPLATES = {
   markAsRead: {
     type: 'MARK_AS_READ',
@@ -221,10 +221,10 @@ function generateNotifications(buckets) {
   const notifications = [];
   let counter = 1;
 
-  // Per ogni bucket, creiamo notifiche con diverse combinazioni
+  // For each bucket, create notifications with different combinations
   buckets.forEach((bucket, bucketIndex) => {
     
-    // 1. Immagine singola + varie azioni
+    // 1. Single image + various actions
     notifications.push({
       title: `${counter++}. 📷 Single Image - Mark as Read`,
       body: `Testing single image attachment in ${bucket.name}`,
@@ -256,7 +256,7 @@ function generateNotifications(buckets) {
       actions: [ACTION_TEMPLATES.markAsRead, ACTION_TEMPLATES.snooze15, ACTION_TEMPLATES.delete]
     });
 
-    // 2. GIF + azioni
+    // 2. GIF + actions
     notifications.push({
       title: `${counter++}. 🎬 Animated GIF - Navigate`,
       body: `Funny GIF with navigation action in ${bucket.name}`,
@@ -278,7 +278,7 @@ function generateNotifications(buckets) {
       actions: [ACTION_TEMPLATES.delete]
     });
 
-    // 3. Video + azioni
+    // 3. Video + actions
     notifications.push({
       title: `${counter++}. 🎥 Video Content - Snooze`,
       body: `Watch this video later from ${bucket.name}`,
@@ -300,7 +300,7 @@ function generateNotifications(buckets) {
       actions: [ACTION_TEMPLATES.openNotification, ACTION_TEMPLATES.delete]
     });
 
-    // 4. Audio + azioni
+    // 4. Audio + actions
     notifications.push({
       title: `${counter++}. 🎵 Audio Message - Listen`,
       body: `New audio message in ${bucket.name}`,
@@ -312,7 +312,7 @@ function generateNotifications(buckets) {
       actions: [ACTION_TEMPLATES.markAsRead, ACTION_TEMPLATES.delete]
     });
 
-    // 5. Multiple attachments (immagini)
+    // 5. Multiple attachments (images)
     notifications.push({
       title: `${counter++}. 📷📷 Multiple Images - Gallery`,
       body: `Photo album from ${bucket.name}`,
@@ -326,7 +326,7 @@ function generateNotifications(buckets) {
       actions: [ACTION_TEMPLATES.markAsRead, ACTION_TEMPLATES.delete]
     });
 
-    // 6. Mixed media (immagine + GIF)
+    // 6. Mixed media (image + GIF)
     notifications.push({
       title: `${counter++}. 📷🎬 Mixed Media - Image & GIF`,
       body: `Mixed content from ${bucket.name}`,
@@ -338,7 +338,7 @@ function generateNotifications(buckets) {
       actions: [ACTION_TEMPLATES.snooze15, ACTION_TEMPLATES.markAsRead, ACTION_TEMPLATES.delete]
     });
 
-    // 7. No attachments - Solo testo con varie azioni
+    // 7. No attachments - Text only with various actions
     notifications.push({
       title: `${counter++}. 📝 Text Only - Full Actions`,
       body: `Important text message in ${bucket.name} without any media attachments`,
@@ -356,7 +356,7 @@ function generateNotifications(buckets) {
       actions: []
     });
 
-    // 8. Notification critica senza azioni (solo per alcuni bucket)
+    // 8. Critical notification without actions (only for some buckets)
     if (bucketIndex % 2 === 0) {
       notifications.push({
         title: `${counter++}. ⚠️ Critical Alert - No Dismiss`,
@@ -383,7 +383,7 @@ function generateNotifications(buckets) {
       });
     }
 
-    // 10. Rich content con molte azioni
+    // 10. Rich content with many actions
     notifications.push({
       title: `${counter++}. 🎯 Rich Content - All Options`,
       body: `Complete notification from ${bucket.name} with all features`,
@@ -406,7 +406,7 @@ function generateNotifications(buckets) {
   return notifications;
 }
 
-// Funzione per inviare una notifica
+// Function to send a notification
 async function sendNotification(config, index, total) {
   const payload = {
     title: config.title,

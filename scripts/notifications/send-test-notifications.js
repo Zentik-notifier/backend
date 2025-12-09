@@ -1,12 +1,12 @@
 /**
- * Script per inviare 10 notifiche di test con diverse combinazioni di azioni
+ * Script to send 10 test notifications with different action combinations
  * Usage: node scripts/send-test-notifications.js
  */
 
 const TOKEN = 'zat_0a8606faa990b38bf30a6b99720a9173331da64dfce3976c2c4c85b75be35d97';
 const BASE_URL = 'http://192.168.1.193:3000/api/v1';
 
-// Funzione per fetchare i bucket disponibili
+// Function to fetch available buckets
 async function fetchBuckets() {
     try {
         const response = await fetch(`${BASE_URL}/buckets`, {
@@ -29,13 +29,13 @@ async function fetchBuckets() {
     }
 }
 
-// Funzione per scegliere un bucket casuale
+// Function to choose a random bucket
 function getRandomBucket(buckets) {
     if (!buckets || buckets.length === 0) return null;
     return buckets[Math.floor(Math.random() * buckets.length)];
 }
 
-// Configurazioni delle 10 notifiche con diverse combinazioni di azioni
+// Configurations for 10 notifications with different action combinations
 const notifications = [
     {
         title: '1. Mark as Read',

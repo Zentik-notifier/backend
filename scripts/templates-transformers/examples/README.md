@@ -1,105 +1,105 @@
-# Script di Test e Creazione per Template e Transformers
+# Test and Creation Scripts for Templates and Transformers
 
-Questi script permettono di:
-- **Testare** localmente vari template e transformers usando un magicCode
-- **Creare** template e parsers usando un token JWT o access token
+These scripts allow you to:
+- **Test** templates and transformers locally using a magicCode
+- **Create** templates and parsers using a JWT or access token
 
-## Script Disponibili
+## Available Scripts
 
-### 1. `test-templates-transformers.js` (Semplice)
+### 1. `test-templates-transformers.js` (Simple)
 
-Script semplice per testare rapidamente template e transformers.
+Simple script to quickly test templates and transformers.
 
 **Usage:**
 ```bash
 node templates-transformers/test-templates-transformers.js <magicCode> <template1> [template2] ... [parser1] [parser2] ...
 ```
 
-**Esempi:**
+**Examples:**
 ```bash
-# Test un template
+# Test a template
 node templates-transformers/test-templates-transformers.js abc12345 my-template
 
-# Test un parser
+# Test a parser
 node templates-transformers/test-templates-transformers.js abc12345 authentic
 
-# Test multiple template e parser
+# Test multiple templates and parsers
 node templates-transformers/test-templates-transformers.js abc12345 my-template authentic railway github
 ```
 
-**Parser Builtin Supportati:**
+**Supported Builtin Parsers:**
 - `authentik` - Authentik events
 - `servarr` - Radarr/Sonarr/Prowlarr events
 - `railway` - Railway.com webhook events
 - `github` - GitHub webhook events
 - `expo` - Expo Application Services events
-- `status-io` o `statusio` - Status.io incidents
+- `status-io` or `statusio` - Status.io incidents
 - `instatus` - Instatus incidents
 - `atlas-statuspage` - Atlassian Statuspage incidents
 
-### 2. `test-templates-transformers-advanced.js` (Avanzato)
+### 2. `test-templates-transformers-advanced.js` (Advanced)
 
-Script avanzato che supporta payload personalizzati e configurazioni complesse.
+Advanced script that supports custom payloads and complex configurations.
 
 **Usage:**
 ```bash
-# Test template con dati personalizzati
+# Test template with custom data
 node templates-transformers/test-templates-transformers-advanced.js <magicCode> --template <name> --data <jsonFile>
 
-# Test parser con payload personalizzato
+# Test parser with custom payload
 node templates-transformers/test-templates-transformers-advanced.js <magicCode> --parser <name> --payload <jsonFile>
 
-# Usa file di configurazione
+# Use configuration file
 node templates-transformers/test-templates-transformers-advanced.js <magicCode> --config <configFile>
 ```
 
-**Esempi:**
+**Examples:**
 ```bash
-# Test template con dati di default
+# Test template with default data
 node templates-transformers/test-templates-transformers-advanced.js abc12345 --template my-template
 
-# Test template con dati personalizzati
+# Test template with custom data
 node templates-transformers/test-templates-transformers-advanced.js abc12345 --template my-template --data examples/template-data.json
 
-# Test parser con payload personalizzato
+# Test parser with custom payload
 node templates-transformers/test-templates-transformers-advanced.js abc12345 --parser authentic --payload examples/authentik-payload.json
 
-# Test multipli
+# Multiple tests
 node templates-transformers/test-templates-transformers-advanced.js abc12345 \
   --template my-template --data examples/template-data.json \
   --template another-template \
   --parser authentic --payload examples/authentik-payload.json \
   --parser github --payload examples/github-payload.json
 
-# Usa file di configurazione
+# Use configuration file
 node templates-transformers/test-templates-transformers-advanced.js abc12345 --config examples/test-config.json
 ```
 
-## Script di Creazione
+## Creation Script
 
 ### `create-templates-parsers.js`
 
-Script per creare template e parsers (richiede autenticazione con token JWT o access token).
+Script to create templates and parsers (requires authentication with JWT or access token).
 
 **Usage:**
 ```bash
-# Crea un template
+# Create a template
 node templates-transformers/create-templates-parsers.js <token> --template examples/template-example.json
 
-# Crea un parser
+# Create a parser
 node templates-transformers/create-templates-parsers.js <token> --parser examples/parser-example.json
 
-# Crea multipli template e parser
+# Create multiple templates and parsers
 node templates-transformers/create-templates-parsers.js <token> \\
   --template examples/template-example.json \\
   --template examples/template-example2.json \\
   --parser examples/parser-example.json
 
-# Usa file di configurazione
+# Use configuration file
 node templates-transformers/create-templates-parsers.js <token> --config examples/create-config.json
 ```
 
-**Formato Template (JSON):**
+**Template Format (JSON):**
 ```json
 {
   "name": "my-template",
@@ -110,7 +110,7 @@ node templates-transformers/create-templates-parsers.js <token> --config example
 }
 ```
 
-**Formato Parser (JSON):**
+**Parser Format (JSON):**
 ```json
 {
   "name": "my-parser",
@@ -119,25 +119,25 @@ node templates-transformers/create-templates-parsers.js <token> --config example
 }
 ```
 
-## File di Esempio
+## Example Files
 
-Nella cartella `examples/` trovi:
+In the `examples/` folder you'll find:
 
-### Per i test:
-- `test-config.json` - Esempio di file di configurazione completo per i test
-- `template-data.json` - Dati di esempio per template
-- `github-payload.json` - Payload di esempio per GitHub parser
-- `authentik-payload.json` - Payload di esempio per Authentik parser
-- `railway-payload.json` - Payload di esempio per Railway parser
+### For testing:
+- `test-config.json` - Complete configuration file example for testing
+- `template-data.json` - Example data for templates
+- `github-payload.json` - Example payload for GitHub parser
+- `authentik-payload.json` - Example payload for Authentik parser
+- `railway-payload.json` - Example payload for Railway parser
 
-### Per la creazione:
-- `create-config.json` - Esempio di file di configurazione per creare template e parsers
-- `template-example.json` - Esempio di template da creare
-- `template-example2.json` - Altro esempio di template
-- `parser-example.json` - Esempio di parser da creare
-- `parser-example2.json` - Altro esempio di parser
+### For creation:
+- `create-config.json` - Configuration file example to create templates and parsers
+- `template-example.json` - Template example to create
+- `template-example2.json` - Another template example
+- `parser-example.json` - Parser example to create
+- `parser-example2.json` - Another parser example
 
-## Formato File di Configurazione
+## Configuration File Format
 
 ```json
 {
@@ -166,21 +166,21 @@ Nella cartella `examples/` trovi:
 }
 ```
 
-## Variabili d'Ambiente
+## Environment Variables
 
-- `BASE_URL` - URL base dell'API (default: `http://localhost:3000/api/v1`)
+- `BASE_URL` - API base URL (default: `http://localhost:3000/api/v1`)
 
-## Note
+## Notes
 
-### Script di Test:
-- Gli script di test usano il magicCode per l'autenticazione, quindi non è necessario un token JWT
-- I payload di esempio per i parser builtin sono forniti automaticamente se non specificati
-- Gli script includono un piccolo delay tra le richieste per evitare rate limiting
-- I risultati vengono mostrati in modo dettagliato con un riepilogo finale
+### Test Scripts:
+- Test scripts use magicCode for authentication, so no JWT token is needed
+- Example payloads for builtin parsers are automatically provided if not specified
+- Scripts include a small delay between requests to avoid rate limiting
+- Results are shown in detail with a final summary
 
-### Script di Creazione:
-- Gli script di creazione richiedono un token JWT o access token (non magicCode)
-- I template usano Handlebars per il rendering (es. `{{name}}`, `{{#if condition}}...{{/if}}`)
-- I parser sono funzioni JavaScript che trasformano payload in CreateMessageDto
-- La funzione `transform` riceve: `payload`, `bucketId`, `userId`, `headers`
-- La funzione deve restituire un oggetto con: `title`, `subtitle` (opzionale), `body`, `deliveryType`
+### Creation Scripts:
+- Creation scripts require a JWT or access token (not magicCode)
+- Templates use Handlebars for rendering (e.g. `{{name}}`, `{{#if condition}}...{{/if}}`)
+- Parsers are JavaScript functions that transform payloads into CreateMessageDto
+- The `transform` function receives: `payload`, `bucketId`, `userId`, `headers`
+- The function must return an object with: `title`, `subtitle` (optional), `body`, `deliveryType`

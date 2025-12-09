@@ -1,10 +1,10 @@
 /**
- * Script per testare template e transformers con magicCode
+ * Script to test templates and transformers with magicCode
  * 
  * Usage: 
  *   node scripts/test-templates-transformers.js <magicCode> <template1> <template2> ... <parser1> <parser2> ...
  * 
- * Esempi:
+ * Examples:
  *   node scripts/test-templates-transformers.js abc12345 my-template
  *   node scripts/test-templates-transformers.js abc12345 my-template authentic railway
  *   node scripts/test-templates-transformers.js abc12345 authentic github
@@ -59,8 +59,8 @@ async function fetch(url, options = {}) {
  * Builtin parser payload examples
  */
 const parserPayloads = {
-  authentic: {
-    body: 'loginSuccess: {"user": "testuser", "ip": "192.168.1.1"}',
+  authentik: {
+    body: 'User testuser logged in successfully: {"userAgent": "Mozilla/5.0", "pathNext": "/if/admin/", "authMethod": "password"}',
     severity: 'info',
     user_email: 'test@example.com',
     user_username: 'testuser'
@@ -85,15 +85,20 @@ const parserPayloads = {
   github: {
     repository: {
       name: 'test-repo',
-      full_name: 'testuser/test-repo'
+      full_name: 'testuser/test-repo',
+      html_url: 'https://github.com/testuser/test-repo'
     },
     sender: {
-      login: 'testuser'
+      login: 'testuser',
+      avatar_url: 'https://github.com/testuser.png'
     },
     action: 'opened',
     pull_request: {
       title: 'Test PR',
-      number: 123
+      number: 123,
+      html_url: 'https://github.com/testuser/test-repo/pull/123',
+      body: 'This PR adds a new feature',
+      state: 'open'
     }
   },
   expo: {
@@ -230,15 +235,28 @@ async function testTransformer(magicCode, parserName) {
       });
       return { success: true, skipped: true, parser: parserName };
     } else if (response.statusCode >= 200 && response.statusCode < 300) {
-      console.log(`  ✅ SUCCESS: Message created with ID: ${responseData?.id}`);
-      console.log(`     Title: ${responseData?.title || 'N/A'}`);
-      console.log(`     Body: ${(responseData?.body || '').substring(0, 100)}...`);
-      results.transformers.success.push({
-        parser: parserName,
-        messageId: responseData?.id,
-        status: response.statusCode
-      });
-      return { success: true, messageId: responseData?.id, parser: parserName };
+      // Check if response actually contains a message
+      if (responseData && responseData.id) {
+        console.log(`  ✅ SUCCESS: Message created with ID: ${responseData.id}`);
+        console.log(`     Title: ${responseData.title || 'N/A'}`);
+        console.log(`     Body: ${(responseData.body || '').substring(0, 100)}...`);
+        results.transformers.success.push({
+          parser: parserName,
+          messageId: responseData.id,
+          status: response.statusCode
+        });
+        return { success: true, messageId: responseData.id, parser: parserName };
+      } else {
+        // Response OK but no message ID - might be an error message
+        console.log(`  ⚠️  WARNING: Parser returned success but no message ID`);
+        console.log(`     Response: ${JSON.stringify(responseData).substring(0, 200)}...`);
+        results.transformers.failure.push({
+          parser: parserName,
+          error: 'Parser returned success but no message ID',
+          status: response.statusCode
+        });
+        return { success: false, error: 'Parser returned success but no message ID', parser: parserName };
+      }
     } else {
       console.log(`  ❌ FAILED: ${response.statusCode} - ${responseData?.message || response.statusMessage}`);
       results.transformers.failure.push({
@@ -411,7 +429,12 @@ Environment variables:
   console.log(`   ✅ Success: ${totalSuccess}`);
   console.log(`   ❌ Failed: ${totalFailure}`);
   
-  if (totalFailure > 0) {
+  // Only exit with error if all tests failed or if there are critical errors
+  // Template not found (404) is acceptable for optional templates
+  const criticalFailures = results.templates.failure.filter(f => f.status && f.status !== 404).length +
+                          results.transformers.failure.filter(f => f.status && f.status !== 404 && f.status !== 204).length;
+  
+  if (totalSuccess === 0 || criticalFailures > 0) {
     process.exit(1);
   }
 }

@@ -1,94 +1,94 @@
-# Script per Template e Transformers
+# Template and Transformer Scripts
 
-Questa cartella contiene script per testare e creare template e transformers/parsers.
+This folder contains scripts to test and create templates and transformers/parsers.
 
-## Struttura
+## Structure
 
 ```
 templates-transformers/
-├── README.md                          # Questo file
-├── test-templates-transformers.js     # Script semplice per testare template e parsers
-├── test-templates-transformers-advanced.js  # Script avanzato per testare con payload personalizzati
-├── create-templates-parsers.js        # Script per creare template e parsers
-└── examples/                          # File di esempio e configurazione
-    ├── README.md                      # Documentazione dettagliata
-    ├── template-example.json           # Esempio di template
-    ├── template-example2.json         # Altro esempio di template
-    ├── parser-example.json            # Esempio di parser
-    ├── parser-example2.json           # Altro esempio di parser
-    ├── create-config.json             # Configurazione per creare template/parsers
-    ├── test-config.json               # Configurazione per testare
-    ├── template-data.json             # Dati di esempio per template
-    ├── github-payload.json            # Payload di esempio per GitHub
-    ├── authentik-payload.json         # Payload di esempio per Authentik
-    └── railway-payload.json           # Payload di esempio per Railway
+├── README.md                          # This file
+├── test-templates-transformers.js     # Simple script to test templates and parsers
+├── test-templates-transformers-advanced.js  # Advanced script to test with custom payloads
+├── create-templates-parsers.js        # Script to create templates and parsers
+└── examples/                          # Example and configuration files
+    ├── README.md                      # Detailed documentation
+    ├── template-example.json           # Template example
+    ├── template-example2.json         # Another template example
+    ├── parser-example.json            # Parser example
+    ├── parser-example2.json           # Another parser example
+    ├── create-config.json             # Configuration to create templates/parsers
+    ├── test-config.json               # Configuration to test
+    ├── template-data.json             # Example data for templates
+    ├── github-payload.json            # Example payload for GitHub
+    ├── authentik-payload.json         # Example payload for Authentik
+    └── railway-payload.json           # Example payload for Railway
 ```
 
-## Script Disponibili
+## Available Scripts
 
-### 1. Test Template e Transformers (Semplice)
+### 1. Test Templates and Transformers (Simple)
 
 ```bash
 node templates-transformers/test-templates-transformers.js <magicCode> <template1> [template2] ... [parser1] [parser2] ...
 ```
 
-**Esempio:**
+**Example:**
 ```bash
 node templates-transformers/test-templates-transformers.js abc12345 my-template authentic railway
 ```
 
-### 2. Test Template e Transformers (Avanzato)
+### 2. Test Templates and Transformers (Advanced)
 
 ```bash
 node templates-transformers/test-templates-transformers-advanced.js <magicCode> [options]
 ```
 
-**Esempi:**
+**Examples:**
 ```bash
-# Test con dati personalizzati
+# Test with custom data
 node templates-transformers/test-templates-transformers-advanced.js abc12345 --template my-template --data examples/template-data.json
 
-# Test con payload personalizzato
+# Test with custom payload
 node templates-transformers/test-templates-transformers-advanced.js abc12345 --parser authentic --payload examples/authentik-payload.json
 
-# Usa configurazione
+# Use configuration
 node templates-transformers/test-templates-transformers-advanced.js abc12345 --config examples/test-config.json
 ```
 
-### 3. Crea Template e Parsers
+### 3. Create Templates and Parsers
 
 ```bash
 node templates-transformers/create-templates-parsers.js <token> [options]
 ```
 
-**Esempi:**
+**Examples:**
 ```bash
-# Crea un template
+# Create a template
 node templates-transformers/create-templates-parsers.js <token> --template examples/template-example.json
 
-# Crea un parser
+# Create a parser
 node templates-transformers/create-templates-parsers.js <token> --parser examples/parser-example.json
 
-# Usa configurazione
+# Use configuration
 node templates-transformers/create-templates-parsers.js <token> --config examples/create-config.json
 ```
 
-## Note Importanti
+## Important Notes
 
-### Script di Test:
-- Usano **magicCode** per l'autenticazione (non serve token)
-- Testano template e parsers **esistenti**
-- Supportano payload personalizzati
+### Test Scripts:
+- Use **magicCode** for authentication (no token needed)
+- Test **existing** templates and parsers
+- Support custom payloads
 
-### Script di Creazione:
-- Richiedono **token JWT o access token** (non magicCode)
-- Creano **nuovi** template e parsers
-- Supportano configurazioni complesse
+### Creation Scripts:
+- Require **JWT or access token** (not magicCode)
+- Create **new** templates and parsers
+- Support complex configurations
 
-## Documentazione Dettagliata
+## Detailed Documentation
 
-Per maggiori dettagli, consulta il file `examples/README.md`.
+For more details, see the `examples/README.md` file.
 
-## Variabili d'Ambiente
+## Environment Variables
 
-- `BASE_URL` - URL base dell'API (default: `http://localhost:3000/api/v1`)
+- `BASE_URL` - API base URL (default: `http://localhost:3000/api/v1`)

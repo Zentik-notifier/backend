@@ -1,5 +1,5 @@
 /**
- * Script per creare un access token usando l'account admin definito nell'env
+ * Script to create an access token using the admin account defined in env
  * Usage: node scripts/notifications/create-admin-token.js
  */
 
