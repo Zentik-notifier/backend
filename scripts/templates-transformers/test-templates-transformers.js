@@ -429,12 +429,20 @@ Environment variables:
   console.log(`   ✅ Success: ${totalSuccess}`);
   console.log(`   ❌ Failed: ${totalFailure}`);
   
-  // Only exit with error if all tests failed or if there are critical errors
-  // Template not found (404) is acceptable for optional templates
-  const criticalFailures = results.templates.failure.filter(f => f.status && f.status !== 404).length +
-                          results.transformers.failure.filter(f => f.status && f.status !== 404 && f.status !== 204).length;
+  // Exit with error if there are any failures
+  // 204 is acceptable (parser skipped because no content)
+  // 404 for templates is a failure (templates should exist)
+  // 404 for parsers might be acceptable if it's a custom parser
+  const templateFailures = results.templates.failure.length;
+  const parserFailures = results.transformers.failure.filter(f => f.status !== 204).length;
   
-  if (totalSuccess === 0 || criticalFailures > 0) {
+  if (templateFailures > 0 || parserFailures > 0) {
+    console.log(`\n❌ Tests failed: ${templateFailures} template(s) and ${parserFailures} parser(s) failed.`);
+    process.exit(1);
+  }
+  
+  if (totalSuccess === 0) {
+    console.log(`\n❌ No tests succeeded.`);
     process.exit(1);
   }
 }

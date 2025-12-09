@@ -208,7 +208,54 @@ async function main() {
     console.log('\n⏭️  Skipping notification tests (--skip-notifications)');
   }
 
-  // Step 3: Run template/transformer tests
+  // Step 3: Create required templates before testing
+  if (!skipTemplates && magicCode) {
+    try {
+      console.log(`\n${'─'.repeat(80)}`);
+      console.log('📦 STEP 3: Creating required templates...');
+      
+      const createScript = path.join(__dirname, 'templates-transformers', 'create-templates-parsers.js');
+      const examplesDir = path.join(__dirname, 'templates-transformers', 'examples');
+      const fs = require('fs');
+      
+      // Create welcome-message template
+      const welcomeTemplate = path.join(examplesDir, 'template-example.json');
+      if (fs.existsSync(welcomeTemplate)) {
+        try {
+          console.log('   Creating welcome-message template...');
+          await runScript(createScript, [TOKEN, '--template', welcomeTemplate], {
+            BASE_URL
+          });
+        } catch (error) {
+          // Template might already exist, continue
+          console.log(`   ⚠️  Could not create welcome-message template: ${error.message}`);
+          console.log('   (This is OK if the template already exists)');
+        }
+      }
+      
+      // Create alert-notification template
+      const alertTemplate = path.join(examplesDir, 'template-example2.json');
+      if (fs.existsSync(alertTemplate)) {
+        try {
+          console.log('   Creating alert-notification template...');
+          await runScript(createScript, [TOKEN, '--template', alertTemplate], {
+            BASE_URL
+          });
+        } catch (error) {
+          // Template might already exist, continue
+          console.log(`   ⚠️  Could not create alert-notification template: ${error.message}`);
+          console.log('   (This is OK if the template already exists)');
+        }
+      }
+      
+      console.log('✅ Template creation completed\n');
+    } catch (error) {
+      console.warn(`⚠️  Warning: Could not create templates: ${error.message}`);
+      console.log('   Continuing with tests anyway...\n');
+    }
+  }
+
+  // Step 4: Run template/transformer tests
   if (!skipTemplates && magicCode) {
     try {
       const templatesScript = path.join(__dirname, 'templates-transformers', 'test-templates-transformers.js');
@@ -259,9 +306,10 @@ async function main() {
     }
   }
 
-  const allPassed = 
-    (skipNotifications || results.notifications.success) &&
-    (skipTemplates || !magicCode || results.templates.success);
+  // Determine if all tests passed
+  const notificationsPassed = skipNotifications || results.notifications.success;
+  const templatesPassed = skipTemplates || !magicCode || results.templates.success;
+  const allPassed = notificationsPassed && templatesPassed;
   
   // If templates were skipped due to missing magic code, don't fail the build
   const templatesSkippedDueToNoMagicCode = !skipTemplates && !magicCode;
@@ -276,6 +324,12 @@ async function main() {
     process.exit(0);
   } else {
     console.log('❌ Some tests failed. See details above.');
+    if (!notificationsPassed) {
+      console.log(`   - Notifications: FAILED`);
+    }
+    if (!templatesPassed && !templatesSkippedDueToNoMagicCode) {
+      console.log(`   - Templates & Transformers: FAILED`);
+    }
     console.log('═'.repeat(80) + '\n');
     process.exit(1);
   }
