@@ -1,0 +1,213 @@
+name: Test Scripts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test-scripts.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test-scripts.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-scripts:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zentik_test
+          POSTGRES_USER: zentik_user
+          POSTGRES_PASSWORD: zentik_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run database migrations
+        env:
+          DB_TYPE: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: zentik_test
+          DB_USERNAME: zentik_user
+          DB_PASSWORD: zentik_password
+          DB_SSL: 'false'
+          DB_SYNCHRONIZE: 'false'
+          DB_DROP_SCHEMA: 'false'
+          ADMIN_USERS: admin
+          ADMIN_DEFAULT_PASSWORD: admin
+          JWT_SECRET: test_jwt_secret_for_ci_$(openssl rand -hex 16)
+          JWT_EXPIRES_IN: 7d
+          PUBLIC_BACKEND_URL: http://localhost:3000
+          PUBLIC_UI_URL: http://localhost:3000
+        run: npm run migration:run
+
+      - name: Generate JWT secret
+        id: jwt_secret
+        run: |
+          SECRET=$(openssl rand -hex 32)
+          echo "JWT_SECRET=$SECRET" >> $GITHUB_ENV
+          echo "Generated JWT secret"
+
+      - name: Start backend server
+        env:
+          DB_TYPE: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: zentik_test
+          DB_USERNAME: zentik_user
+          DB_PASSWORD: zentik_password
+          DB_SSL: 'false'
+          DB_SYNCHRONIZE: 'false'
+          DB_DROP_SCHEMA: 'false'
+          ADMIN_USERS: admin
+          ADMIN_DEFAULT_PASSWORD: admin
+          JWT_SECRET: ${{ env.JWT_SECRET }}
+          JWT_EXPIRES_IN: 7d
+          PUBLIC_BACKEND_URL: http://localhost:3000
+          PUBLIC_UI_URL: http://localhost:3000
+          NODE_ENV: test
+          PORT: 3000
+        run: |
+          npm run start:dev > server.log 2>&1 &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "Started server with PID: $SERVER_PID"
+          
+          # Wait for server to be ready
+          echo "Waiting for server to start..."
+          for i in {1..90}; do
+            if curl -f http://localhost:3000/health 2>/dev/null || curl -f http://localhost:3000/api/v1/health 2>/dev/null; then
+              echo "Server is ready!"
+              break
+            fi
+            if [ $i -eq 90 ]; then
+              echo "Server failed to start after 90 seconds"
+              echo "Server logs:"
+              tail -100 server.log || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Wait for server to be fully ready
+        run: |
+          sleep 3
+          # Additional check to ensure server is fully ready
+          curl -f http://localhost:3000/health || curl -f http://localhost:3000/api/v1/health || exit 1
+          echo "Server is fully ready"
+
+      - name: Create admin token for tests
+        env:
+          DB_TYPE: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: zentik_test
+          DB_USERNAME: zentik_user
+          DB_PASSWORD: zentik_password
+          DB_SSL: 'false'
+          ADMIN_USERS: admin
+          ADMIN_DEFAULT_PASSWORD: admin
+          JWT_SECRET: ${{ env.JWT_SECRET }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: |
+          # Create admin token using the script
+          echo "Creating admin token..."
+          TOKEN_OUTPUT=$(node scripts/notifications/create-admin-token.js 2>&1)
+          echo "$TOKEN_OUTPUT"
+          
+          # Extract token from output (look for line with "Access Token:")
+          TOKEN=$(echo "$TOKEN_OUTPUT" | grep -A 1 "Access Token:" | tail -1 | tr -d ' ' || echo "$TOKEN_OUTPUT" | grep -o 'zat_[a-f0-9]*' | head -1)
+          
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to create admin token"
+            echo "Full output:"
+            echo "$TOKEN_OUTPUT"
+            exit 1
+          fi
+          
+          echo "TOKEN=$TOKEN" >> $GITHUB_ENV
+          echo "Created admin token: ${TOKEN:0:20}..."
+
+      - name: Get or create test bucket
+        env:
+          BASE_URL: http://localhost:3000/api/v1
+          TOKEN: ${{ env.TOKEN }}
+        run: |
+          # Try to get existing buckets
+          BUCKETS=$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE_URL/buckets" || echo "[]")
+          BUCKET_ID=$(echo "$BUCKETS" | jq -r '.[0].id // empty')
+          
+          if [ -z "$BUCKET_ID" ]; then
+            # Create a test bucket
+            echo "Creating test bucket..."
+            BUCKET_RESPONSE=$(curl -s -X POST \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Test Bucket","description":"Bucket for CI tests","generateIconWithInitials":true,"generateMagicCode":true}' \
+              "$BASE_URL/buckets")
+            BUCKET_ID=$(echo "$BUCKET_RESPONSE" | jq -r '.id // empty')
+          fi
+          
+          if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" = "null" ]; then
+            echo "Failed to get or create bucket"
+            exit 1
+          fi
+          
+          echo "BUCKET_ID=$BUCKET_ID" >> $GITHUB_ENV
+          echo "Using bucket ID: $BUCKET_ID"
+
+      - name: Run test scripts
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BUCKET_ID: ${{ env.BUCKET_ID }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: |
+          node scripts/run-all-tests.js
+
+      - name: Show server logs on failure
+        if: failure()
+        run: |
+          echo "=== Server logs ==="
+          tail -200 server.log 2>/dev/null || echo "No server.log found"
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ ! -z "$SERVER_PID" ]; then
+            echo "Stopping server with PID: $SERVER_PID"
+            kill $SERVER_PID 2>/dev/null || true
+            sleep 2
+            kill -9 $SERVER_PID 2>/dev/null || true
+          fi
+          # Also try to kill any node processes on port 3000
+          lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+          echo "Server stopped"
