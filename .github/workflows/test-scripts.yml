@@ -3,17 +3,9 @@ name: Test Scripts
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - 'scripts/**'
-      - '.github/workflows/test-scripts.yml'
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
-    paths:
-      - 'scripts/**'
-      - '.github/workflows/test-scripts.yml'
+    branches: [ main ]
 
 permissions:
   contents: read
