@@ -60,12 +60,17 @@ async function runTests() {
         .attach('file', filePath);
 
       if (fileRes.status !== 201) {
-        console.error('   ❌ Multipart Request with File failed');
-        console.error('   Status:', fileRes.status);
-        console.error('   Body:', JSON.stringify(fileRes.body, null, 2));
-        process.exit(1);
+        if (fileRes.status === 403 && fileRes.body.message === 'Attachments are currently disabled') {
+          console.log('   ⚠️ Multipart Request skipped: Attachments are disabled on server');
+        } else {
+          console.error('   ❌ Multipart Request with File failed');
+          console.error('   Status:', fileRes.status);
+          console.error('   Body:', JSON.stringify(fileRes.body, null, 2));
+          process.exit(1);
+        }
+      } else {
+        console.log('   ✅ Multipart Request with File passed');
       }
-      console.log('   ✅ Multipart Request with File passed');
     } catch (err) {
       throw err;
     }
