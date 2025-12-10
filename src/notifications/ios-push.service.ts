@@ -622,8 +622,39 @@ export class IOSPushService {
           !r.error,
       ).length;
 
+      // Derive a human-readable error message when there are failures
+      let topError: string | undefined;
+      if (successCount === 0 && results.length > 0) {
+        const firstProblem = results.find(
+          (r) =>
+            r.error ||
+            (r.result && r.result.failed && r.result.failed.length > 0),
+        );
+
+        if (firstProblem) {
+          if (firstProblem.error) {
+            topError = firstProblem.error;
+          } else if (
+            firstProblem.result &&
+            firstProblem.result.failed &&
+            firstProblem.result.failed.length > 0
+          ) {
+            const f = firstProblem.result.failed[0];
+            const reason = f?.response?.reason;
+            if (reason) {
+              topError = `APNs error: ${reason}`;
+            } else if (f?.status) {
+              topError = `APNs error status ${f.status}`;
+            } else {
+              topError = 'APNs send failed';
+            }
+          }
+        }
+      }
+
       return {
         success: successCount > 0,
+        error: topError,
         results,
         payloadTooLargeDetected,
         retryAttempted,
