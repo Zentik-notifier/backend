@@ -195,18 +195,6 @@ export class PushNotificationOrchestratorService {
       targetDevices.map((d) => [d.id, d]),
     );
 
-    // Track notification events for each device (skip if this is from admin notification to prevent infinite loop)
-    if (!skipNotificationTracking) {
-      for (const device of targetDevices) {
-        const deviceNotification = processedNotifications.find((n) => n.userDeviceId === device.id);
-        await this.eventTrackingService.trackNotification(
-          device.userId,
-          device.id,
-          deviceNotification?.id,
-        );
-      }
-    }
-
     let successCount = 0;
     let errorCount = 0;
     let snoozedCount = 0;
@@ -256,7 +244,7 @@ export class PushNotificationOrchestratorService {
       // Extract bucket name for tracking
       const bucketName = notif.message?.bucket?.name;
 
-      const result = await this.dispatchPush(notif, device, deviceSettings);
+      const result = await this.dispatchPush(notif, device, deviceSettings, skipNotificationTracking);
       try {
         if (result.success) {
           successCount++;
@@ -503,6 +491,7 @@ export class PushNotificationOrchestratorService {
     notification: Notification,
     userDevice: UserDevice,
     userSettings?: AutoActionSettings,
+    skipTracking = false,
   ): Promise<{ success: boolean; error?: string }> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
@@ -612,12 +601,14 @@ export class PushNotificationOrchestratorService {
       });
 
       // Track event with platform info
-      await this.eventTrackingService.trackNotification(
-        userDevice.userId,
-        userDevice.id,
-        notification.id,
-        userDevice.platform,
-      );
+      if (!skipTracking) {
+        await this.eventTrackingService.trackNotification(
+          userDevice.userId,
+          userDevice.id,
+          notification.id,
+          userDevice.platform,
+        );
+      }
 
       return result;
     } catch (error: any) {
@@ -692,6 +683,7 @@ export class PushNotificationOrchestratorService {
     notification: Notification,
     userDevice: UserDevice,
     userSettings?: AutoActionSettings,
+    skipTracking = false,
   ): Promise<{ success: boolean; error?: string }> {
 
 
@@ -710,7 +702,7 @@ export class PushNotificationOrchestratorService {
 
     // Onboard - use local onboard push services (APN, Firebase, WebPush)
     if (mode === 'Onboard') {
-      return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings);
+      return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings, skipTracking);
     }
 
     // Passthrough - use passthrough server
@@ -728,7 +720,7 @@ export class PushNotificationOrchestratorService {
         return { success: false, error };
       }
 
-      return this.sendViaPassthrough(server, token, notification, userDevice);
+      return this.sendViaPassthrough(server, token, notification, userDevice, skipTracking);
     }
 
     // Should never reach here due to validation in getPushMode
@@ -743,6 +735,7 @@ export class PushNotificationOrchestratorService {
     token: string,
     notification: Notification,
     userDevice: UserDevice,
+    skipTracking = false,
   ): Promise<{ success: boolean; error?: string }> {
     const startTime = Date.now();
     let executionStatus: ExecutionStatus = ExecutionStatus.SUCCESS;
@@ -875,12 +868,14 @@ export class PushNotificationOrchestratorService {
         });
 
         // Track event with platform info
-        await this.eventTrackingService.trackNotification(
-          userDevice.userId,
-          userDevice.id,
-          notification.id,
-          userDevice.platform,
-        );
+        if (!skipTracking) {
+          await this.eventTrackingService.trackNotification(
+            userDevice.userId,
+            userDevice.id,
+            notification.id,
+            userDevice.platform,
+          );
+        }
 
         return { success: true };
       }
