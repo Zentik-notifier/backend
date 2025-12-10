@@ -16,6 +16,26 @@ import {
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
 
+const DeliveryTypeMap = {
+  [NotificationDeliveryType.NORMAL]: 0,
+  [NotificationDeliveryType.SILENT]: 1,
+  [NotificationDeliveryType.CRITICAL]: 2,
+  [NotificationDeliveryType.NO_PUSH]: 3,
+};
+
+const ActionTypeMap = {
+  [NotificationActionType.DELETE]: 1,
+  [NotificationActionType.MARK_AS_READ]: 2,
+  [NotificationActionType.OPEN_NOTIFICATION]: 3,
+  [NotificationActionType.NAVIGATE]: 4,
+  [NotificationActionType.BACKGROUND_CALL]: 5,
+  [NotificationActionType.SNOOZE]: 6,
+  [NotificationActionType.POSTPONE]: 7,
+  [NotificationActionType.WEBHOOK]: 8,
+};
+
+const stripDashes = (uuid: string) => uuid.replace(/-/g, '');
+
 export interface NotificationResult {
   token: string;
   result?: any;
@@ -67,9 +87,9 @@ export class IOSPushService {
   private privatizePayload(payload: any, sensitive: any): any {
     const privatized = { ...payload };
 
-    // Privatize encrypted blob if present
-    if (privatized.enc) {
-      privatized.enc = `${String(privatized.enc).substring(0, 20)}...`;
+    // Privatize encrypted blob if present (e)
+    if (privatized.e) {
+      privatized.e = `${String(privatized.e).substring(0, 20)}...`;
 
       // If there's an encrypted blob, add privatized sensitive fields to root as "sensitive"
       if (sensitive) {
@@ -90,18 +110,18 @@ export class IOSPushService {
             ? [`${sensitive.att[0]?.substring(0, 10) || ''}...`]
             : `${String(sensitive.att).substring(0, 10)}...`;
         }
-        if (sensitive.tap) {
-          privatizedSensitive.tap = {
-            ...sensitive.tap,
-            value: sensitive.tap.value ? `${String(sensitive.tap.value).substring(0, 8)}...` : sensitive.tap.value,
+        if (sensitive.tp) {
+          privatizedSensitive.tp = {
+            ...sensitive.tp,
+            v: sensitive.tp.v ? `${String(sensitive.tp.v).substring(0, 8)}...` : sensitive.tp.v,
           };
         }
 
-        // Privatize sensitive actions if present
-        if (sensitive.act && Array.isArray(sensitive.act)) {
-          privatizedSensitive.act = sensitive.act.map((action: any) => ({
+        // Privatize sensitive actions if present (a)
+        if (sensitive.a && Array.isArray(sensitive.a)) {
+          privatizedSensitive.a = sensitive.a.map((action: any) => ({
             ...action,
-            value: action.value ? `${String(action.value).substring(0, 8)}...` : action.value,
+            v: action.v ? `${String(action.v).substring(0, 8)}...` : action.v,
             title: action.title ? `${String(action.title).substring(0, 5)}...` : action.title,
           }));
         }
@@ -125,14 +145,14 @@ export class IOSPushService {
         ? [`${privatized.att[0]?.substring(0, 10) || ''}...`]
         : `${String(privatized.att).substring(0, 10)}...`;
     }
-    if (privatized.tap) {
-      privatized.tap = {
-        ...privatized.tap,
-        value: privatized.tap.value ? `${String(privatized.tap.value).substring(0, 8)}...` : privatized.tap.value,
+    if (privatized.tp) {
+      privatized.tp = {
+        ...privatized.tp,
+        v: privatized.tp.v ? `${String(privatized.tp.v).substring(0, 8)}...` : privatized.tp.v,
       };
     }
 
-    // Keep aps, nid, bid, mid, dty, act (public actions) unchanged
+    // Keep aps, n, b, m, y, a (public actions) unchanged
     return privatized;
   }
 
@@ -198,7 +218,22 @@ export class IOSPushService {
     const allActions = [
       ...automaticActions,
       ...(message.actions || []),
-    ];
+    ].map((action) => {
+      const optimized: any = {
+        ...action,
+        t: ActionTypeMap[action.type] || 0,
+        v: action.value,
+      };
+
+      // Optimization: remove value for OPEN_NOTIFICATION if it matches notification.id
+      if (action.type === NotificationActionType.OPEN_NOTIFICATION && action.value === notification.id) {
+        delete optimized.v;
+      }
+
+      delete optimized.type;
+      delete optimized.value;
+      return optimized;
+    });
 
     // Determine effective tapAction: use provided one or default to OPEN_NOTIFICATION with notification.id
     const effectiveTapAction: NotificationAction = message.tapAction
@@ -207,33 +242,53 @@ export class IOSPushService {
         type: NotificationActionType.OPEN_NOTIFICATION,
         value: notification.id,
       };
+    
+    const optimizedTapAction = {
+      ...effectiveTapAction,
+      t: ActionTypeMap[effectiveTapAction.type] || 0,
+      v: effectiveTapAction.value,
+    };
+
+    // Optimization: remove value for OPEN_NOTIFICATION if it matches notification.id
+    if (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION && effectiveTapAction.value === notification.id) {
+      delete (optimizedTapAction as any).v;
+    }
+
+    delete (optimizedTapAction as any).type;
+    delete (optimizedTapAction as any).value;
 
     // Separate actions: NAVIGATE/BACKGROUND_CALL go in encrypted blob, others outside
+    // We check the original type from the map (reverse lookup would be needed or check the mapped value)
+    // NAVIGATE is 4, BACKGROUND_CALL is 5
     const sensitiveActions = allActions.filter(
       (action) =>
-        action.type === NotificationActionType.NAVIGATE ||
-        action.type === NotificationActionType.BACKGROUND_CALL,
+        action.t === ActionTypeMap[NotificationActionType.NAVIGATE] ||
+        action.t === ActionTypeMap[NotificationActionType.BACKGROUND_CALL],
     );
     const publicActions = allActions.filter(
       (action) =>
-        action.type !== NotificationActionType.NAVIGATE &&
-        action.type !== NotificationActionType.BACKGROUND_CALL,
+        action.t !== ActionTypeMap[NotificationActionType.NAVIGATE] &&
+        action.t !== ActionTypeMap[NotificationActionType.BACKGROUND_CALL],
     ) || [];
 
     let payload: any = {
       aps: apsPayload,
-      nid: notification.id,
-      bid: message.bucketId,
-      mid: message.id,
-      dty: message.deliveryType,
+      n: stripDashes(notification.id),
+      b: stripDashes(message.bucketId),
+      m: stripDashes(message.id),
+      y: DeliveryTypeMap[message.deliveryType] ?? 0,
     };
+
+    if (message.bucket?.iconUrl) {
+      payload.bi = message.bucket.iconUrl;
+    }
 
     const sensitivePayload = {
       tit: message.title,
       bdy: message.body,
       stl: message.subtitle,
       att: this.formatAttachments(message.attachments || []),
-      tap: effectiveTapAction,
+      tp: optimizedTapAction,
     };
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
@@ -244,17 +299,17 @@ export class IOSPushService {
       };
 
       if (!!sensitiveActions.length) {
-        sensitive.act = sensitiveActions;
+        sensitive.a = sensitiveActions;
       }
       if (!!publicActions.length) {
-        payload.act = publicActions;
+        payload.a = publicActions;
       }
 
       const enc = await encryptWithPublicKey(
         JSON.stringify(sensitive),
         device.publicKey,
       );
-      payload.enc = enc;
+      payload.e = enc;
       payload.aps.alert = {
         title: 'Encrypted Notification',
       };
@@ -264,7 +319,7 @@ export class IOSPushService {
         ...sensitivePayload,
       }
       if (!!allActions.length) {
-        payload.act = allActions; // actions
+        payload.a = allActions; // actions
       }
       if (!!message.attachments?.length) {
         payload.att = this.formatAttachments(message.attachments || []); // attachmentData as string array
