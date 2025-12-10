@@ -327,29 +327,29 @@ describe('IOSPushService', () => {
           sound: 'default',
           'mutable-content': 1,
         },
-        enc: expect.any(String),
-        nid: 'notification-1', // notificationId abbreviated (public field)
-        bid: 'bucket-1', // bucketId abbreviated (public field)
-        mid: 'message-1', // messageId abbreviated (public field)
-        dty: expect.any(String), // deliveryType abbreviated (public field)
+        e: expect.any(String),
+        n: expect.any(String), // notificationId abbreviated (public field)
+        b: expect.any(String), // bucketId abbreviated (public field)
+        m: expect.any(String), // messageId abbreviated (public field)
+        y: expect.any(Number), // deliveryType abbreviated (public field)
       });
 
       // Verify that bucket fields are NOT in payload (only bucketId in root, not encrypted)
-      expect(result.payload.enc).toBeDefined();
-      expect(result.payload.bid).toBe('bucket-1'); // bid is in payload root (public field)
+      expect(result.payload.e).toBeDefined();
+      expect(result.payload.b).toBeDefined(); // bucket id is in payload root (public field)
       expect(result.payload.bucketName).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketIconUrl).toBeUndefined(); // Removed from payload
       expect(result.payload.bucketColor).toBeUndefined(); // Removed from payload
 
       // Verify privatizedPayload includes sensitive field with privatized data
       expect(result.privatizedPayload).toBeDefined();
-      expect(result.privatizedPayload.enc).toMatch(/^.{17,20}\.\.\.$/); // Privatized encrypted blob (mock-encrypted-data is 19 chars)
+      expect(result.privatizedPayload.e).toMatch(/^.{17,20}\.\.\.$/); // Privatized encrypted blob (mock-encrypted-data is 19 chars)
       expect(result.privatizedPayload.sensitive).toBeDefined();
       expect(result.privatizedPayload.sensitive.tit).toMatch(/^.{5}\.\.\.$/); // Privatized title
       expect(result.privatizedPayload.sensitive.bdy).toMatch(/^.{5}\.\.\.$/); // Privatized body
       expect(result.privatizedPayload.sensitive.stl).toMatch(/^.{5}\.\.\.$/); // Privatized subtitle
       expect(result.privatizedPayload.sensitive.att).toBeDefined(); // Privatized attachments
-      expect(result.privatizedPayload.sensitive.tap).toBeDefined(); // Privatized tap action
+      expect(result.privatizedPayload.sensitive.tp).toBeDefined(); // Privatized tap action
     });
 
     it('should build APNs payload with bucket fields for non-encrypted device', async () => {
@@ -371,10 +371,10 @@ describe('IOSPushService', () => {
           sound: 'default',
           'mutable-content': 1,
         },
-        nid: 'notification-1', // notificationId abbreviated (public field)
-        bid: 'bucket-1', // bucketId abbreviated (public field)
-        mid: 'message-1', // messageId abbreviated (public field)
-        dty: expect.any(String), // deliveryType abbreviated (public field)
+        n: expect.any(String), // notificationId abbreviated (public field)
+        b: expect.any(String), // bucketId abbreviated (public field)
+        m: expect.any(String), // messageId abbreviated (public field)
+        y: expect.any(Number), // deliveryType abbreviated (public field)
         tit: 'Test Message', // title abbreviated (sensitive field in root for non-encrypted)
         bdy: 'Test Body', // body abbreviated (sensitive field in root for non-encrypted)
         stl: 'Test Subtitle', // subtitle abbreviated (sensitive field in root for non-encrypted)
@@ -386,7 +386,7 @@ describe('IOSPushService', () => {
       expect(result.payload.bucketColor).toBeUndefined(); // Removed from payload
 
       // Verify no encryption blob for non-encrypted device
-      expect(result.payload.enc).toBeUndefined();
+      expect(result.payload.e).toBeUndefined();
 
       // Verify privatizedPayload for non-encrypted device (no sensitive field)
       expect(result.privatizedPayload).toBeDefined();
@@ -479,10 +479,10 @@ describe('IOSPushService', () => {
             // subtitle is NOT in aps.alert, it's in payload root as 'stl'
           },
         },
-        nid: 'notification-1', // notificationId abbreviated (public field)
-        bid: 'bucket-1', // bucketId abbreviated (public field)
-        mid: 'message-1', // messageId abbreviated (public field)
-        dty: expect.any(String), // deliveryType abbreviated (public field)
+        n: expect.any(String), // notificationId abbreviated (public field)
+        b: expect.any(String), // bucketId abbreviated (public field)
+        m: expect.any(String), // messageId abbreviated (public field)
+        y: expect.any(Number), // deliveryType abbreviated (public field)
         tit: 'Test Message', // title abbreviated (sensitive field in root for non-encrypted)
         bdy: 'Test Body', // body abbreviated (sensitive field in root for non-encrypted)
         stl: 'Test Subtitle', // subtitle abbreviated (sensitive field in root for non-encrypted)
@@ -502,11 +502,11 @@ describe('IOSPushService', () => {
       );
 
       // Actions should include automatic actions generated from userSettings
-      // Actions use abbreviated key "act"
-      expect(result.payload.act).toBeDefined();
-      expect(Array.isArray(result.payload.act)).toBe(true);
+      // Actions use abbreviated key "a"
+      expect(result.payload.a).toBeDefined();
+      expect(Array.isArray(result.payload.a)).toBe(true);
       // Should include automatic actions based on userSettings
-      expect(result.payload.act.length).toBeGreaterThan(0);
+      expect(result.payload.a.length).toBeGreaterThan(0);
 
       // Old key should not be present
       expect(result.payload.actions).toBeUndefined();
@@ -559,19 +559,19 @@ describe('IOSPushService', () => {
       );
 
       // NAVIGATE and BACKGROUND_CALL should be in encrypted blob (enc)
-      expect(result.payload.enc).toBeDefined();
+      expect(result.payload.e).toBeDefined();
 
       // Other actions (MARK_AS_READ, DELETE) should be outside encrypted blob
-      expect(result.payload.act).toBeDefined();
-      expect(Array.isArray(result.payload.act)).toBe(true);
+      expect(result.payload.a).toBeDefined();
+      expect(Array.isArray(result.payload.a)).toBe(true);
 
       // Verify that public actions don't include NAVIGATE or BACKGROUND_CALL
-      const publicActions = result.payload.act || [];
+      const publicActions = result.payload.a || [];
       const hasNavigate = publicActions.some(
-        (action: any) => action.type === NotificationActionType.NAVIGATE,
+        (action: any) => action.t === 4,
       );
       const hasBackgroundCall = publicActions.some(
-        (action: any) => action.type === NotificationActionType.BACKGROUND_CALL,
+        (action: any) => action.t === 5,
       );
 
       expect(hasNavigate).toBe(false);
@@ -579,15 +579,15 @@ describe('IOSPushService', () => {
 
       // Verify privatizedPayload includes sensitive actions in sensitive field
       expect(result.privatizedPayload.sensitive).toBeDefined();
-      expect(result.privatizedPayload.sensitive.act).toBeDefined();
-      expect(Array.isArray(result.privatizedPayload.sensitive.act)).toBe(true);
+      expect(result.privatizedPayload.sensitive.a).toBeDefined();
+      expect(Array.isArray(result.privatizedPayload.sensitive.a)).toBe(true);
       // Verify sensitive actions are privatized
-      result.privatizedPayload.sensitive.act.forEach((action: any) => {
-        if (action.value) {
+      result.privatizedPayload.sensitive.a.forEach((action: any) => {
+        if (action.v) {
           // Value is substring(0, 8) + "...", so "/test" (5 chars) becomes "/test..." (8 chars total)
           // Pattern should accept any length before "..."
-          expect(String(action.value)).toMatch(/\.\.\.$/); // Must end with ...
-          expect(String(action.value).length).toBeGreaterThanOrEqual(3); // At least "..."
+          expect(String(action.v)).toMatch(/\.\.\.$/); // Must end with ...
+          expect(String(action.v).length).toBeGreaterThanOrEqual(3); // At least "..."
         }
         if (action.title) {
           expect(action.title).toMatch(/^.{5}\.\.\.$/);
@@ -623,9 +623,9 @@ describe('IOSPushService', () => {
       );
 
       // For non-encrypted devices, all actions should be in payload
-      expect(result.payload.act).toBeDefined();
-      expect(Array.isArray(result.payload.act)).toBe(true);
-      expect(result.payload.act.length).toBeGreaterThan(0);
+      expect(result.payload.a).toBeDefined();
+      expect(Array.isArray(result.payload.a)).toBe(true);
+      expect(result.payload.a.length).toBeGreaterThan(0);
     });
   });
 });
