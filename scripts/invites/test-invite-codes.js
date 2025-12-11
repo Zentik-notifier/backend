@@ -94,8 +94,11 @@ async function graphqlRequest(query, variables, authToken = TOKEN) {
 }
 
 async function registerAndLoginUser(prefix) {
-  const timestamp = Date.now();
-  const username = `${prefix}-${timestamp}`;
+  // Username must be <= 30 characters (backend validation).
+  // Use a short random suffix to keep it unique but compact.
+  const suffix = Date.now().toString(36).slice(-6);
+  const base = `${prefix}-${suffix}`;
+  const username = base.slice(0, 30);
   const email = `${username}@example.com`;
   const password = 'E2eInviteUser1!';
 
