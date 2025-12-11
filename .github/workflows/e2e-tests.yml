@@ -85,6 +85,18 @@ jobs:
           BASE_URL: http://localhost:3000/api/v1
         run: node scripts/invites/test-invite-codes.js
 
+      - name: Role-based access tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/auth/test-role-based-access.js
+
+      - name: Bucket permission scope tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/buckets/test-bucket-permissions.js
+
       - name: Templates & Parsers tests
         env:
           TOKEN: ${{ env.TOKEN }}
