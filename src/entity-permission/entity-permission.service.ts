@@ -88,6 +88,11 @@ export class EntityPermissionService {
       return false;
     }
 
+    // If user has ADMIN permission on the resource, treat it as full access
+    if (permission.permissions.includes(Permission.ADMIN)) {
+      return true;
+    }
+
     return requiredPermissions.every((reqPerm) =>
       permission.permissions.includes(reqPerm),
     );

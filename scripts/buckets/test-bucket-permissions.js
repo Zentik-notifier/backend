@@ -327,7 +327,8 @@ async function runBucketPermissionTests() {
   console.log('4) Shared user with ADMIN');
 
   const adminUser = await registerAndLoginUser('bucket-admin');
-  await shareBucketWithPermissions(testBucketId, adminUser.username, ['ADMIN']);
+  // For full access we need granular permissions: READ, WRITE, DELETE, ADMIN
+  await shareBucketWithPermissions(testBucketId, adminUser.username, ['READ', 'WRITE', 'DELETE', 'ADMIN']);
 
   await expectBucketRead({ bucketId: testBucketId, jwt: adminUser.jwt, description: 'ADMIN user read', shouldSucceed: true });
   await expectBucketWrite({ bucketId: testBucketId, jwt: adminUser.jwt, description: 'ADMIN user write', shouldSucceed: true });
