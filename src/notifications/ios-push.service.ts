@@ -15,6 +15,7 @@ import {
 } from './notifications.types';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
+import { UUID } from 'typeorm/driver/mongodb/bson.typings';
 
 const DeliveryTypeMap = {
   [NotificationDeliveryType.NORMAL]: 0,
@@ -34,7 +35,8 @@ const ActionTypeMap = {
   [NotificationActionType.WEBHOOK]: 8,
 };
 
-const stripDashes = (uuid: string) => uuid.replace(/-/g, '');
+const stripDashes = (uuid: string) => UUID;
+// const stripDashes = (uuid: string) => uuid.replace(/-/g, '');
 
 export interface NotificationResult {
   token: string;
@@ -242,7 +244,7 @@ export class IOSPushService {
         type: NotificationActionType.OPEN_NOTIFICATION,
         value: notification.id,
       };
-    
+
     const optimizedTapAction = {
       ...effectiveTapAction,
       t: ActionTypeMap[effectiveTapAction.type] || 0,
