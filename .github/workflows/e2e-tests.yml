@@ -14,6 +14,12 @@ jobs:
   test-scripts:
     runs-on: ubuntu-latest
 
+    env:
+      # Rate limiting configuration (applied at server startup via ServerSettings)
+      RATE_LIMIT_TTL_MS: 10000
+      RATE_LIMIT_LIMIT: 5
+      RATE_LIMIT_BLOCK_MS: 10000
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -58,12 +64,35 @@ jobs:
           NODE_ENV: test
         run: npm run e2e:init-environment
 
-      - name: Run test scripts
+      - name: Notifications & Messages tests
         env:
           TOKEN: ${{ env.TOKEN }}
           BUCKET_ID: ${{ env.BUCKET_ID }}
           BASE_URL: http://localhost:3000/api/v1
-        run: node scripts/run-all-tests.js
+          DEFAULT_BUCKET_ID: ${{ env.BUCKET_ID }}
+        run: |
+          node scripts/notifications/send-comprehensive-test-notifications.js
+          node scripts/messages/test-messages-endpoint.js
+          node scripts/messages/test-messages-rate-limit.js
+
+      - name: Templates & Parsers tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BUCKET_ID: ${{ env.BUCKET_ID }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/templates-transformers/run-templates-parsers-tests.js
+
+      - name: Passthrough System Access Tokens tests
+        env:
+          BASE_URL_B: http://localhost:4000/api/v1
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: zentik_user
+          DB_PASSWORD: zentik_password
+          DB_NAME_B: zentik_test_b
+          ADMIN_USERS: admin
+          ADMIN_DEFAULT_PASSWORD: admin
+        run: node scripts/passthrough/test-system-access-tokens.js
 
       - name: Show server logs on failure
         if: failure()
