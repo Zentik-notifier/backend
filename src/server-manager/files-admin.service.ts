@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
@@ -30,7 +30,17 @@ export class FilesAdminService {
 
   async ensureBaseDir(): Promise<string> {
     const baseDir = await this.getBaseDir();
-    await fsp.mkdir(baseDir, { recursive: true });
+    try {
+      await fsp.mkdir(baseDir, { recursive: true });
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to ensure server files directory "${baseDir}": ${error?.message || error}`,
+      );
+      // Surface a clear, actionable error instead of a generic 500
+      throw new InternalServerErrorException(
+        'Server files directory is not configured or not writable. Please configure the "ServerFilesDirectory" setting and ensure the path is writable by the backend process.',
+      );
+    }
     return baseDir;
   }
 

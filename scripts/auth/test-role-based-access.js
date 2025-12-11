@@ -93,6 +93,39 @@ async function graphqlRequest(query, variables, authToken) {
   return { httpStatus: res.status, payload };
 }
 
+async function configureServerFilesDirectory(adminJwt) {
+  const targetDir = process.env.SERVER_FILES_DIR || './server-files-e2e';
+
+  console.log(`\n🛠  Configuring ServerFilesDirectory to "${targetDir}"...`);
+
+  const mutation = `
+    mutation ConfigureFilesDir($settings: [BatchUpdateSettingInput!]!) {
+      batchUpdateServerSettings(settings: $settings) {
+        configType
+        valueText
+      }
+    }
+  `;
+
+  const variables = {
+    settings: [
+      {
+        configType: 'ServerFilesDirectory',
+        valueText: targetDir,
+      },
+    ],
+  };
+
+  const result = await graphqlRequest(mutation, variables, adminJwt);
+
+  if (result.httpStatus < 200 || result.httpStatus >= 300 || result.payload.errors) {
+    console.error('   ❌ Failed to configure ServerFilesDirectory:', JSON.stringify(result, null, 2));
+    process.exit(1);
+  }
+
+  console.log('   ✅ ServerFilesDirectory configured for FilesAdminController tests');
+}
+
 async function registerAndLoginUser(prefix) {
   const suffix = Date.now().toString(36).slice(-6);
   const base = `${prefix}-${suffix}`;
@@ -225,6 +258,10 @@ async function runRoleBasedAccessTests() {
 
   // Login once as admin to get a JWT valid for all admin-only endpoints
   const adminJwt = await loginAdmin();
+
+    // Ensure FilesAdminController has a writable base directory, otherwise it would
+    // fail with 500 even for valid admin requests due to filesystem permissions.
+    await configureServerFilesDirectory(adminJwt);
 
   // REST admin-only examples
   console.log('\n' + '─'.repeat(80));
