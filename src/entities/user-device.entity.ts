@@ -94,6 +94,15 @@ export class UserDevice {
   @Column({ nullable: true, type: 'jsonb' })
   subscriptionFields?: WebPushSubscriptionFields | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Optional JSON-serialized metadata for the device (app versions, build info, etc.)',
+  })
+  @ApiProperty({ required: false, description: 'Serialized metadata JSON for this device' })
+  @Column({ type: 'text', nullable: true })
+  metadata?: string | null;
+
   @Field()
   @ApiProperty({
     description: 'Whether this device should only receive local notifications',

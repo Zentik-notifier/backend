@@ -40,6 +40,7 @@ import { AddCustomNameToUserBucket1732050933000 } from './database/migrations/17
 import { AddUniqueConstraintNotificationAck1732716000000 } from './database/migrations/1732716000000-AddUniqueConstraintNotificationAck';
 import { AddUserLogsAndFeedbackEvent1763200000000 } from './database/migrations/1763200000000-AddUserLogsAndFeedbackEvent';
 import { CreateUserTemplatesTable1765194473000 } from './database/migrations/1765194473000-CreateUserTemplatesTable';
+import { AddMetadataToUserDevices1766000000000 } from './database/migrations/1766000000000-AddMetadataToUserDevices';
 
 config({ path: '.env' });
 
@@ -101,6 +102,7 @@ const dataSource = new DataSource({
     AddUniqueConstraintNotificationAck1732716000000,
     AddUserLogsAndFeedbackEvent1763200000000,
     CreateUserTemplatesTable1765194473000,
+    AddMetadataToUserDevices1766000000000,
   ],
   migrationsTableName: 'migrations',
 });

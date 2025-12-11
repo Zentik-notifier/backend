@@ -38,4 +38,10 @@ export class UpdateUserDeviceDto {
   @ApiProperty({ required: false })
   @IsOptional()
   subscriptionFields?: WebPushSubscriptionFieldsInput;
+
+  @Field({ nullable: true, description: 'Optional JSON-serialized metadata for the device (app versions, build info, etc.)' })
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  metadata?: string;
 }

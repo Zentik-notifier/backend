@@ -318,14 +318,13 @@ export class UsersService {
     if (input.deviceToken !== undefined) {
       device.deviceToken = input.deviceToken;
     }
+    if (input.metadata !== undefined) {
+      device.metadata = input.metadata;
+    }
 
-    const newDevice = {
-      ...device,
-      ...input,
-      lastUsed: new Date(),
-    };
+    device.lastUsed = new Date();
 
-    const saved = await this.userDevicesRepository.save(newDevice);
+    const saved = await this.userDevicesRepository.save(device);
     this.logger.log(`Updated device ${saved.id} for user=${userId}`);
     return saved;
   }
