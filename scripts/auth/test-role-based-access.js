@@ -8,17 +8,12 @@
  * - Verify that the same endpoints are NOT accessible with non-admin credentials (USER role).
  *
  * Environment variables:
- * - BASE_URL  (e.g. http://localhost:3000/api/v1)
- * - TOKEN     (admin access token zat_... with ADMIN role)
+ * - BASE_URL        (e.g. http://localhost:3000/api/v1)
+ * - ADMIN_USERNAME  (optional, default: "admin")
+ * - ADMIN_PASSWORD  (optional, default: "admin")
  */
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
-const TOKEN = process.env.TOKEN;
-
-if (!TOKEN) {
-  console.error('❌ TOKEN environment variable is required');
-  process.exit(1);
-}
 
 async function fetchHttp(url, options = {}) {
   const https = require('https');
@@ -52,6 +47,36 @@ async function fetchHttp(url, options = {}) {
 
     req.end();
   });
+}
+
+async function loginAdmin() {
+  const username = process.env.ADMIN_USERNAME || 'admin';
+  const password = process.env.ADMIN_PASSWORD || 'admin';
+
+  console.log(`\n🔐 Logging in admin user ${username}...`);
+  const res = await fetchHttp(`${BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (res.status < 200 || res.status >= 300) {
+    console.error('   ❌ Failed to login admin user:', res.status, res.data);
+    console.error(
+      '      Make sure ADMIN_USERNAME/ADMIN_PASSWORD are correct and the user has ADMIN role.',
+    );
+    process.exit(1);
+  }
+
+  const payload = JSON.parse(res.data || '{}');
+  const adminJwt = payload.accessToken;
+  if (!adminJwt) {
+    console.error('   ❌ Admin login response missing accessToken');
+    process.exit(1);
+  }
+
+  console.log('   ✅ Admin JWT obtained');
+  return adminJwt;
 }
 
 async function graphqlRequest(query, variables, authToken) {
@@ -112,7 +137,7 @@ async function registerAndLoginUser(prefix) {
   return { username, email, jwt: userJwt };
 }
 
-async function expectAdminOnlyRest({ method, path, description }) {
+async function expectAdminOnlyRest({ method, path, description }, adminJwt) {
   console.log(`\n[REST] ${description} (${method} ${path})`);
 
   // Call as admin (TOKEN should be an access token with ADMIN role)
@@ -120,7 +145,7 @@ async function expectAdminOnlyRest({ method, path, description }) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${adminJwt}`,
     },
   });
 
@@ -157,7 +182,8 @@ async function expectAdminOnlyGraphql({ description, query, variables }) {
   console.log(`\n[GraphQL] ${description}`);
 
   // Call as admin
-  const adminResult = await graphqlRequest(query, variables, TOKEN);
+  const adminJwt = await loginAdmin();
+  const adminResult = await graphqlRequest(query, variables, adminJwt);
   console.log(
     `   👑 Admin GraphQL httpStatus=${adminResult.httpStatus}, errors=${
       adminResult.payload.errors ? 'yes' : 'no'
@@ -193,7 +219,12 @@ async function runRoleBasedAccessTests() {
   console.log('═'.repeat(80));
   console.log(`\n📋 Configuration:`);
   console.log(`   Base URL: ${BASE_URL}`);
-  console.log(`   Admin token: ${TOKEN.substring(0, 20)}...`);
+  console.log('   Admin credentials:');
+  console.log(`     username: ${process.env.ADMIN_USERNAME || 'admin'}`);
+  console.log(`     password: ${process.env.ADMIN_PASSWORD ? '********' : 'admin (default)'}`);
+
+  // Login once as admin to get a JWT valid for all admin-only endpoints
+  const adminJwt = await loginAdmin();
 
   // REST admin-only examples
   console.log('\n' + '─'.repeat(80));
@@ -203,43 +234,43 @@ async function runRoleBasedAccessTests() {
     method: 'GET',
     path: '/users',
     description: 'Get all users (UsersController.getAllUsers)',
-  });
+  }, adminJwt);
 
   await expectAdminOnlyRest({
     method: 'GET',
     path: '/server-manager/settings',
     description: 'Get all server settings (ServerManagerController.getAllSettings)',
-  });
+  }, adminJwt);
 
   await expectAdminOnlyRest({
     method: 'GET',
     path: '/server-manager/logs',
     description: 'Get logs (ServerManagerController.getLogs)',
-  });
+  }, adminJwt);
 
   await expectAdminOnlyRest({
     method: 'GET',
     path: '/server-manager/files',
     description: 'List server files (FilesAdminController.list)',
-  });
+  }, adminJwt);
 
   await expectAdminOnlyRest({
     method: 'GET',
     path: '/system-access-tokens',
     description: 'List system access tokens (SystemAccessTokenController.list)',
-  });
+  }, adminJwt);
 
   await expectAdminOnlyRest({
     method: 'GET',
     path: '/system-access-token-requests',
     description: 'List SAT requests (SystemAccessTokenRequestController.findAll)',
-  });
+  }, adminJwt);
 
   await expectAdminOnlyRest({
     method: 'GET',
     path: '/oauth-providers',
     description: 'Get all OAuth providers (OAuthProvidersController.findAll)',
-  });
+  }, adminJwt);
 
   // GraphQL admin-only example: server manager resolver (settings)
   console.log('\n' + '─'.repeat(80));
