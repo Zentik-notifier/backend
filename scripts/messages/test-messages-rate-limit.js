@@ -37,15 +37,19 @@ async function runRateLimitTests() {
 
   const agent = request(BASE_URL);
 
-  const expectedLimit = RATE_LIMIT_LIMIT > 0 ? RATE_LIMIT_LIMIT : 20; // fallback se env mancante
-  const totalRequests = expectedLimit + 10; // un po' oltre il limite per essere sicuri
+  const approxLimit = RATE_LIMIT_LIMIT > 0 ? RATE_LIMIT_LIMIT : 0;
+  const maxRequests = RATE_LIMIT_LIMIT > 0 ? RATE_LIMIT_LIMIT + 20 : 200; // limite massimo di tentativi
 
-  console.log(`   Expected limit (approx): ${expectedLimit} requests/window`);
+  if (approxLimit > 0) {
+    console.log(`   Expected limit (from env): ~${approxLimit} requests/window`);
+  } else {
+    console.log(`   Expected limit: unknown (using generic upper bound of ${maxRequests} requests)`);
+  }
 
   let successCount = 0;
   let rateLimitedCount = 0;
 
-  for (let i = 1; i <= totalRequests; i++) {
+  for (let i = 1; i <= maxRequests; i++) {
     console.log(`\n➡️  Request #${i}`);
 
     try {
