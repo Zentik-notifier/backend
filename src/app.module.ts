@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -49,6 +49,9 @@ import { ServerSettingType } from './entities/server-setting.entity';
       imports: [ServerManagerModule],
       inject: [ServerSettingsService],
       useFactory: async (serverSettingsService: ServerSettingsService) => {
+        // Ensure server settings (including rate limit) are initialized from env/defaults
+        await serverSettingsService.initializeFromEnv();
+
         const ttlMsSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitTtlMs);
         const limitSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitLimit);
         const blockMsSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitBlockMs);
@@ -56,6 +59,9 @@ import { ServerSettingType } from './entities/server-setting.entity';
         const ttlMs = ttlMsSetting?.valueNumber ?? 60_000;
         const limit = limitSetting?.valueNumber ?? 100;
         const blockMs = blockMsSetting?.valueNumber;
+
+        const logger = new Logger('ThrottlerConfig');
+        logger.log(`Rate limit configuration: ttlMs=${ttlMs}, limit=${limit}, blockMs=${blockMs ?? 'none'}`);
 
         const common = blockMs ? { blockDuration: blockMs } : {};
 
