@@ -13,9 +13,6 @@ permissions:
 jobs:
   test-scripts:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     services:
       postgres:
@@ -41,6 +38,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -48,7 +46,7 @@ jobs:
       - name: Initialize E2E environment (DBs, servers, tokens, passthrough)
         env:
           DB_TYPE: postgres
-          DB_HOST: postgres
+          DB_HOST: localhost
           DB_PORT: 5432
           DB_USERNAME: zentik_user
           DB_PASSWORD: zentik_password
