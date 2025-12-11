@@ -16,9 +16,12 @@ jobs:
 
     env:
       # Rate limiting configuration (applied at server startup via ServerSettings)
-      RATE_LIMIT_TTL_MS: 10000
-      RATE_LIMIT_LIMIT: 5
-      RATE_LIMIT_BLOCK_MS: 10000
+      # TTL più ampio e limite più alto così i test notifiche/messages
+      # non vengono bloccati, ma il test di rate limit può comunque
+      # superare la soglia inviando abbastanza richieste.
+      RATE_LIMIT_TTL_MS: 60000   # 60s finestra
+      RATE_LIMIT_LIMIT: 40       # 40 richieste per finestra per utente/IP
+      RATE_LIMIT_BLOCK_MS: 10000 # 10s di blocco dopo superamento soglia
 
     services:
       postgres:

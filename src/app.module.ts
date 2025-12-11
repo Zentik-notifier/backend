@@ -49,24 +49,13 @@ import { ServerSettingType } from './entities/server-setting.entity';
       imports: [ServerManagerModule],
       inject: [ServerSettingsService],
       useFactory: async (serverSettingsService: ServerSettingsService) => {
-        // Prefer persisted server settings when available, otherwise fall back to env, then defaults.
         const ttlMsSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitTtlMs);
         const limitSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitLimit);
         const blockMsSetting = await serverSettingsService.getSettingByType(ServerSettingType.RateLimitBlockMs);
 
-        const envTtlMs = process.env.RATE_LIMIT_TTL_MS
-          ? parseInt(process.env.RATE_LIMIT_TTL_MS, 10)
-          : undefined;
-        const envLimit = process.env.RATE_LIMIT_LIMIT
-          ? parseInt(process.env.RATE_LIMIT_LIMIT, 10)
-          : undefined;
-        const envBlockMs = process.env.RATE_LIMIT_BLOCK_MS
-          ? parseInt(process.env.RATE_LIMIT_BLOCK_MS, 10)
-          : undefined;
-
-        const ttlMs = ttlMsSetting?.valueNumber ?? envTtlMs ?? 60_000;
-        const limit = limitSetting?.valueNumber ?? envLimit ?? 100;
-        const blockMs = blockMsSetting?.valueNumber ?? envBlockMs;
+        const ttlMs = ttlMsSetting?.valueNumber ?? 60_000;
+        const limit = limitSetting?.valueNumber ?? 100;
+        const blockMs = blockMsSetting?.valueNumber;
 
         const common = blockMs ? { blockDuration: blockMs } : {};
 

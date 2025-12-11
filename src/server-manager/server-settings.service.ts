@@ -252,19 +252,54 @@ export class ServerSettingsService {
         }
       }
 
-      // Always upsert: creates if missing, updates only structure (possibleValues) if exists
+      // Always upsert: creates if missing, updates structure and fills missing values when appropriate
       const existing = await this.getSettingByType(mapping.configType);
       if (!existing) {
         // Create new setting with env/default value
         await this.upsertSetting(dto);
         createdSettings.push(`${mapping.configType}=${valueToUse}`);
       } else {
-        // Update only possibleValues to keep it in sync, preserve user-modified values
+        let valuesUpdated = false;
+        // If the setting exists but its value is still null and an env var is provided,
+        // use the env value as initial value (without overriding user-modified settings).
+        if (envValue !== undefined) {
+          switch (mapping.type) {
+            case 'string':
+              if (existing.valueText == null && dto.valueText != null) {
+                existing.valueText = dto.valueText;
+                valuesUpdated = true;
+              }
+              break;
+            case 'boolean':
+              if (existing.valueBool == null && dto.valueBool != null) {
+                existing.valueBool = dto.valueBool;
+                valuesUpdated = true;
+              }
+              break;
+            case 'number':
+              if (existing.valueNumber == null && dto.valueNumber != null) {
+                existing.valueNumber = dto.valueNumber;
+                valuesUpdated = true;
+              }
+              break;
+          }
+        }
+
+        let possibleValuesUpdated = false;
+        // Keep possibleValues in sync with code defaults
         if (mapping.possibleValues &&
           JSON.stringify(existing.possibleValues) !== JSON.stringify(mapping.possibleValues)) {
           existing.possibleValues = mapping.possibleValues;
+          possibleValuesUpdated = true;
+        }
+
+        if (valuesUpdated || possibleValuesUpdated) {
           await this.serverSettingsRepository.save(existing);
-          updatedSettings.push(`${mapping.configType} (possibleValues)`);
+          if (valuesUpdated) {
+            updatedSettings.push(`${mapping.configType} (values from env)`);
+          } else if (possibleValuesUpdated) {
+            updatedSettings.push(`${mapping.configType} (possibleValues)`);
+          }
         }
       }
     }
