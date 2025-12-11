@@ -288,7 +288,9 @@ async function runBucketCombinationTests() {
   const shareInput = {
     resourceType: 'BUCKET',
     resourceId: privateBucket.id,
-    userEmail: sharedEmail,
+    // Use username because backend's UsersService.findByIdentifier expects "username" or "email",
+    // and the GraphQL GrantEntityPermissionInput maps "username" correctly.
+    username: sharedUsername,
     permissions: ['READ', 'WRITE'],
   };
 
