@@ -13,7 +13,10 @@ permissions:
 jobs:
   test-scripts:
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: backend
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -38,24 +41,16 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate JWT secret
-        id: jwt_secret
-        run: |
-          SECRET=$(openssl rand -hex 32)
-          echo "JWT_SECRET=$SECRET" >> $GITHUB_ENV
-          echo "Generated JWT secret"
-
-      - name: Start backend server
+      - name: Initialize E2E environment (DBs, servers, tokens, passthrough)
         env:
           DB_TYPE: postgres
-          DB_HOST: localhost
+          DB_HOST: postgres
           DB_PORT: 5432
-          DB_NAME: zentik_test
           DB_USERNAME: zentik_user
           DB_PASSWORD: zentik_password
           DB_SSL: 'false'
@@ -63,162 +58,40 @@ jobs:
           DB_DROP_SCHEMA: 'false'
           ADMIN_USERS: admin
           ADMIN_DEFAULT_PASSWORD: admin
-          JWT_SECRET: ${{ env.JWT_SECRET }}
-          JWT_EXPIRES_IN: 7d
-          PUBLIC_BACKEND_URL: http://localhost:3000
-          PUBLIC_UI_URL: http://localhost:3000
           NODE_ENV: test
-          PORT: 3000
-        run: |
-          npm start > server.log 2>&1 &
-          SERVER_PID=$!
-          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started server with PID: $SERVER_PID"
-          
-          # Wait for server to be ready
-          echo "Waiting for server to start..."
-          for i in {1..90}; do
-            if curl -f http://localhost:3000/health 2>/dev/null || curl -f http://localhost:3000/api/v1/health 2>/dev/null; then
-              echo "Server is ready!"
-              break
-            fi
-            if [ $i -eq 90 ]; then
-              echo "Server failed to start after 90 seconds"
-              echo "Server logs:"
-              tail -100 server.log || true
-              exit 1
-            fi
-            sleep 1
-          done
-
-      - name: Wait for server to be fully ready
-        run: |
-          sleep 5
-          # Additional check to ensure server is fully ready
-          curl -f http://localhost:3000/health || curl -f http://localhost:3000/api/v1/health || exit 1
-          echo "Server is fully ready"
-          # Give extra time for seeds to complete
-          sleep 10
-          echo "Checking server logs for seed completion..."
-          tail -200 server.log | grep -i "admin\|seed\|initialization" || echo "No seed-related logs found"
-          echo ""
-          echo "Verifying admin user was created with password..."
-          tail -200 server.log | grep -i "Created new admin user\|Set password for existing admin user" || echo "No admin user creation logs found"
-
-      - name: Check seed execution
-        run: |
-          echo "=== Checking seed execution ==="
-          echo "Looking for admin user seed logs:"
-          tail -200 server.log | grep -i "admin users\|admin-users\|createAdminUsers\|Zentik Backend starting" || echo "No admin users seed logs found"
-          echo ""
-          echo "Looking for errors:"
-          tail -200 server.log | grep -i "error.*admin\|fail.*admin" || echo "No admin-related errors found"
-          echo ""
-          echo "Full startup section:"
-          tail -500 server.log | head -100 || echo "Could not read startup section"
-
-
-      - name: Create admin token for tests
-        env:
-          DB_TYPE: postgres
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: zentik_test
-          DB_USERNAME: zentik_user
-          DB_PASSWORD: zentik_password
-          DB_SSL: 'false'
-          ADMIN_USERS: admin
-          ADMIN_DEFAULT_PASSWORD: admin
-          JWT_SECRET: ${{ env.JWT_SECRET }}
-          BASE_URL: http://localhost:3000/api/v1
-        run: |
-          # Create admin token using the script
-          echo "Creating admin token..."
-          TOKEN_OUTPUT=$(node scripts/notifications/create-admin-token.js 2>&1)
-          echo "$TOKEN_OUTPUT"
-          
-          # Extract token from output (look for line with "Access Token:")
-          TOKEN=$(echo "$TOKEN_OUTPUT" | grep -A 1 "Access Token:" | tail -1 | tr -d ' ' || echo "$TOKEN_OUTPUT" | grep -o 'zat_[a-f0-9]*' | head -1)
-          
-          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-            echo "Failed to create admin token"
-            echo "Full output:"
-            echo "$TOKEN_OUTPUT"
-            echo "Checking server logs for errors:"
-            tail -100 server.log | grep -i "error\|fail\|admin" || true
-            exit 1
-          fi
-          
-          echo "TOKEN=$TOKEN" >> $GITHUB_ENV
-          echo "Created admin token: ${TOKEN:0:20}..."
-
-      - name: Create test bucket
-        env:
-          BASE_URL: http://localhost:3000/api/v1
-          TOKEN: ${{ env.TOKEN }}
-        run: |
-          # Always create a new test bucket to ensure it has a userBucket with magic code
-          echo "Creating test bucket with magic code..."
-          TIMESTAMP=$(date +%s)
-          BUCKET_RESPONSE=$(curl -s -X POST \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"name\":\"CI Test Bucket $TIMESTAMP\",\"description\":\"Bucket for CI tests\",\"generateIconWithInitials\":true,\"generateMagicCode\":true}" \
-            "$BASE_URL/buckets")
-          
-          BUCKET_ID=$(echo "$BUCKET_RESPONSE" | jq -r '.id // empty')
-          
-          if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" = "null" ]; then
-            echo "Failed to create bucket"
-            echo "Response: $BUCKET_RESPONSE"
-            exit 1
-          fi
-          
-          echo "BUCKET_ID=$BUCKET_ID" >> $GITHUB_ENV
-          echo "✅ Created test bucket: $BUCKET_ID"
-          
-          # Verify bucket has magic code via GraphQL
-          echo "Verifying bucket has magic code..."
-          sleep 2  # Give time for userBucket to be created
-          GRAPHQL_RESPONSE=$(curl -s -X POST \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"query\":\"query GetBucket(\$id: String!) { bucket(id: \$id) { id name userBucket { magicCode } } }\",\"variables\":{\"id\":\"$BUCKET_ID\"}}" \
-            "$BASE_URL/graphql")
-          
-          MAGIC_CODE=$(echo "$GRAPHQL_RESPONSE" | jq -r '.data.bucket.userBucket.magicCode // empty')
-          
-          if [ -z "$MAGIC_CODE" ] || [ "$MAGIC_CODE" = "null" ]; then
-            echo "⚠️  Warning: Bucket created but magic code not found yet."
-            echo "   This might cause template/transformer tests to fail."
-            echo "   GraphQL response: $GRAPHQL_RESPONSE"
-          else
-            echo "✅ Bucket has magic code: ${MAGIC_CODE:0:8}..."
-          fi
+        run: npm run e2e:init-environment
 
       - name: Run test scripts
         env:
           TOKEN: ${{ env.TOKEN }}
           BUCKET_ID: ${{ env.BUCKET_ID }}
           BASE_URL: http://localhost:3000/api/v1
-        run: |
-          node scripts/run-all-tests.js
+        run: node scripts/run-all-tests.js
 
       - name: Show server logs on failure
         if: failure()
         run: |
-          echo "=== Server logs ==="
-          tail -200 server.log 2>/dev/null || echo "No server.log found"
+          echo "=== Server A logs ==="
+          tail -200 server-a.log 2>/dev/null || echo "No server-a.log found"
+          echo "=== Server B logs ==="
+          tail -200 server-b.log 2>/dev/null || echo "No server-b.log found"
 
-      - name: Stop server
+      - name: Stop servers
         if: always()
         run: |
-          if [ ! -z "$SERVER_PID" ]; then
-            echo "Stopping server with PID: $SERVER_PID"
-            kill $SERVER_PID 2>/dev/null || true
+          if [ ! -z "$SERVER_A_PID" ]; then
+            echo "Stopping Server A (PID: $SERVER_A_PID)"
+            kill $SERVER_A_PID 2>/dev/null || true
             sleep 2
-            kill -9 $SERVER_PID 2>/dev/null || true
+            kill -9 $SERVER_A_PID 2>/dev/null || true
           fi
-          # Also try to kill any node processes on port 3000
+          if [ ! -z "$SERVER_B_PID" ]; then
+            echo "Stopping Server B (PID: $SERVER_B_PID)"
+            kill $SERVER_B_PID 2>/dev/null || true
+            sleep 2
+            kill -9 $SERVER_B_PID 2>/dev/null || true
+          fi
+          # Also try to kill any node processes on ports 3000 and 4000
           lsof -ti:3000 | xargs kill -9 2>/dev/null || true
-          echo "Server stopped"
+          lsof -ti:4000 | xargs kill -9 2>/dev/null || true
+          echo "Servers stopped"

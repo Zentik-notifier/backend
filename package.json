@@ -23,7 +23,12 @@
     "typecheck": "tsc --noEmit",
     "deploy:patch": "node scripts/deploy.js patch",
     "deploy:minor": "node scripts/deploy.js minor",
-    "deploy:major": "node scripts/deploy.js major"
+    "deploy:major": "node scripts/deploy.js major",
+    "e2e:init-environment": "node scripts/passthrough/init-e2e-environment.js",
+    "e2e:start-two-servers": "node scripts/passthrough/start-two-backend-servers.js",
+    "e2e:create-passthrough-token": "node scripts/passthrough/create-system-passthrough-token.js",
+    "e2e:configure-passthrough": "node scripts/passthrough/configure-passthrough-settings.js",
+    "e2e:test-passthrough-flow": "node scripts/passthrough/test-passthrough-flow.js"
   },
   "dependencies": {
     "@apollo/server": "4.12.2",
