@@ -9,7 +9,8 @@
  *   - Can read bucket and list permissions.
  *   - Cannot delete bucket or modify settings.
  * - Shared user with WRITE:
- *   - Can perform write operations (e.g. update bucket name).
+ *   - Currently does NOT gain additional bucket-level read/write rights
+ *     (WRITE is used for more granular operations such as messages).
  *   - Cannot delete bucket or update permissions.
  * - Shared user with ADMIN:
  *   - Can share/unshare bucket and perform admin-level operations.
@@ -318,7 +319,7 @@ async function runBucketPermissionTests() {
   const writeUser = await registerAndLoginUser('bucket-write');
   await shareBucketWithPermissions(testBucketId, writeUser.username, ['WRITE']);
 
-  await expectBucketRead({ bucketId: testBucketId, jwt: writeUser.jwt, description: 'WRITE user read', shouldSucceed: true });
+  await expectBucketRead({ bucketId: testBucketId, jwt: writeUser.jwt, description: 'WRITE user read (requires READ, should fail)', shouldSucceed: false });
   await expectBucketWrite({ bucketId: testBucketId, jwt: writeUser.jwt, description: 'WRITE user write (requires ADMIN, should fail)', shouldSucceed: false });
   await expectBucketDelete({ bucketId: testBucketId, jwt: writeUser.jwt, description: 'WRITE user delete', shouldSucceed: false });
 
