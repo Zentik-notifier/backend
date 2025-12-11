@@ -5,7 +5,9 @@ import { LocaleService } from '../common/services/locale.service';
 import { encryptWithPublicKey } from '../common/utils/cryptoUtils';
 import { NotificationAction } from '../entities/message.entity';
 import { Notification } from '../entities/notification.entity';
+import { ServerSettingType } from '../entities/server-setting.entity';
 import { UserDevice } from '../entities/user-device.entity';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { DevicePlatform } from '../users/dto';
 import { AutoActionSettings, generateAutomaticActions } from './notification-actions.util';
 import {
@@ -13,9 +15,6 @@ import {
   NotificationActionType,
   NotificationDeliveryType,
 } from './notifications.types';
-import { ServerSettingsService } from '../server-manager/server-settings.service';
-import { ServerSettingType } from '../entities/server-setting.entity';
-import { UUID } from 'typeorm/driver/mongodb/bson.typings';
 
 const DeliveryTypeMap = {
   [NotificationDeliveryType.NORMAL]: 0,
@@ -35,7 +34,7 @@ const ActionTypeMap = {
   [NotificationActionType.WEBHOOK]: 8,
 };
 
-const stripDashes = (uuid: string) => UUID;
+const stripDashes = (uuid: string) => uuid;
 // const stripDashes = (uuid: string) => uuid.replace(/-/g, '');
 
 export interface NotificationResult {
