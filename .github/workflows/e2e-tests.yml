@@ -78,6 +78,13 @@ jobs:
           node scripts/messages/test-messages-bucket-combinations.js
           node scripts/messages/test-messages-rate-limit.js
 
+      - name: Invite Codes tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BUCKET_ID: ${{ env.BUCKET_ID }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/invites/test-invite-codes.js
+
       - name: Templates & Parsers tests
         env:
           TOKEN: ${{ env.TOKEN }}
