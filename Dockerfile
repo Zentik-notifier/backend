@@ -3,7 +3,7 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci || npm install
+RUN npm install
 
 FROM node:22-alpine AS builder
 WORKDIR /app
@@ -19,7 +19,7 @@ RUN apk add --no-cache postgresql-client ca-certificates tzdata fontconfig ttf-d
   && update-ca-certificates
 # Install only production deps
 COPY package*.json ./
-RUN npm ci --omit=dev || npm install --omit=dev
+RUN npm install --omit=dev
 # Copy built dist
 COPY --from=builder /app/dist ./dist
 # Copy public directory (needed by ServeStaticModule)
