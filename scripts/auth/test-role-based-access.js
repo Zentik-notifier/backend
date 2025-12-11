@@ -237,9 +237,10 @@ async function expectAdminOnlyGraphql({ description, query, variables }) {
     }`,
   );
 
-  // For GraphQL, admin-only guard should surface as an error (e.g., Unauthorized/Forbidden)
-  if (!userResult.payload.errors || userResult.httpStatus === 200) {
-    console.error('   ❌ Expected non-admin GraphQL call to be rejected, got:', userResult);
+  // For GraphQL, admin-only guard should surface as an error in the payload
+  // (HTTP status commonly remains 200 even on authorization errors).
+  if (!userResult.payload.errors) {
+    console.error('   ❌ Expected non-admin GraphQL call to be rejected with errors, got:', userResult);
     process.exit(1);
   }
 
