@@ -86,7 +86,7 @@ async function main() {
   const serverAEnv = {
     ...commonEnv,
     DB_NAME: process.env.DB_NAME_A || 'zentik_test_a',
-    PORT: process.env.PORT_A || '3000',
+    BACKEND_PORT: process.env.PORT_A || '3000',
     PUBLIC_BACKEND_URL: process.env.PUBLIC_BACKEND_URL_A || 'http://localhost:3000',
     PUBLIC_UI_URL: process.env.PUBLIC_UI_URL_A || 'http://localhost:3000',
   };
@@ -94,7 +94,7 @@ async function main() {
   const serverBEnv = {
     ...commonEnv,
     DB_NAME: process.env.DB_NAME_B || 'zentik_test_b',
-    PORT: process.env.PORT_B || '4000',
+    BACKEND_PORT: process.env.PORT_B || '4000',
     PUBLIC_BACKEND_URL: process.env.PUBLIC_BACKEND_URL_B || 'http://localhost:4000',
     PUBLIC_UI_URL: process.env.PUBLIC_UI_URL_B || 'http://localhost:4000',
   };
@@ -114,8 +114,9 @@ async function main() {
 
   console.log('Waiting for servers health...');
 
-  const aOk = await waitForHealth('http://localhost:3000/health');
-  const bOk = await waitForHealth('http://localhost:4000/health');
+  // Health endpoint is exposed under the global API prefix (/api/v1/health)
+  const aOk = await waitForHealth('http://localhost:3000/api/v1/health');
+  const bOk = await waitForHealth('http://localhost:4000/api/v1/health');
 
   if (!aOk || !bOk) {
     console.error('One or both servers failed to become healthy in time.');
