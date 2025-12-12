@@ -111,6 +111,26 @@ input ChangePasswordInput {
   newPassword: String!
 }
 
+type Changelog {
+  """Android app version"""
+  androidVersion: String!
+
+  """Backend/server version"""
+  backendVersion: String!
+  createdAt: DateTime!
+
+  """Combined changelog description"""
+  description: String!
+  id: ID!
+
+  """iOS app version"""
+  iosVersion: String!
+
+  """Web/UI version"""
+  uiVersion: String!
+  updatedAt: DateTime!
+}
+
 input ConfirmEmailDto {
   code: String!
   locale: String
@@ -132,6 +152,14 @@ input CreateBucketDto {
   isProtected: Boolean
   isPublic: Boolean
   name: String!
+}
+
+input CreateChangelogInput {
+  androidVersion: String
+  backendVersion: String
+  description: String!
+  iosVersion: String
+  uiVersion: String
 }
 
 input CreateInviteCodeInput {
@@ -590,6 +618,9 @@ type Mutation {
   createAccessTokenForBucket(bucketId: String!, name: String!): AccessTokenResponseDto!
   createBucket(input: CreateBucketDto!): Bucket!
 
+  """Create a new changelog (admin only)"""
+  createChangelog(input: CreateChangelogInput!): Changelog!
+
   """Create a new invite code for a resource"""
   createInviteCode(input: CreateInviteCodeInput!): InviteCode!
 
@@ -613,6 +644,9 @@ type Mutation {
   """Delete a specific backup file"""
   deleteBackup(filename: String!): Boolean!
   deleteBucket(id: String!): Boolean!
+
+  """Delete a changelog (admin only)"""
+  deleteChangelog(id: ID!): Boolean!
 
   """Delete an invite code"""
   deleteInviteCode(id: String!): Boolean!
@@ -674,6 +708,9 @@ type Mutation {
   updateAccessToken(input: UpdateAccessTokenDto!, tokenId: String!): AccessTokenListDto!
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
+
+  """Update an existing changelog (admin only)"""
+  updateChangelog(input: UpdateChangelogInput!): Changelog!
   updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
 
   """Update an invite code"""
@@ -907,6 +944,12 @@ type Query {
   bucket(id: String!): Bucket!
   bucketPermissions(bucketId: String!): [EntityPermission!]!
   buckets: [Bucket!]!
+
+  """Get a specific changelog by id (public)"""
+  changelog(id: ID!): Changelog!
+
+  """List all changelogs (public)"""
+  changelogs: [Changelog!]!
   checkEmailStatus(email: String!): EmailStatusResponseDto!
   enabledOAuthProviders: [OAuthProviderPublicDto!]!
   entityExecution(id: String!): EntityExecution
@@ -1247,6 +1290,15 @@ input UpdateBucketDto {
   isProtected: Boolean
   isPublic: Boolean
   name: String
+}
+
+input UpdateChangelogInput {
+  androidVersion: String
+  backendVersion: String
+  description: String
+  id: ID!
+  iosVersion: String
+  uiVersion: String
 }
 
 input UpdateDeviceTokenDto {

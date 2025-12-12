@@ -15,6 +15,7 @@ export { Notification } from './notification.entity';
 export { NotificationPostpone } from './notification-postpone.entity';
 export { OAuthProvider, OAuthProviderType } from './oauth-provider.entity';
 export { PayloadMapper } from './payload-mapper.entity';
+export { Changelog } from './changelog.entity';
 export { UserAccessToken } from './user-access-token.entity';
 export { UserBucket } from './user-bucket.entity';
 export { UserDevice } from './user-device.entity';

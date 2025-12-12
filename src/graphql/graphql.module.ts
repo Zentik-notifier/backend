@@ -24,6 +24,8 @@ import { EntityPermissionsResolver } from 'src/entity-permission/entity-permissi
 import { EventsResolver } from 'src/events/events.resolver';
 import { UserLogsResolver } from 'src/events/user-logs.resolver';
 import { UsersResolver } from 'src/users/users.resolver';
+import { ChangelogModule } from 'src/changelog/changelog.module';
+import { ChangelogResolver } from 'src/changelog/changelog.resolver';
 
 const GRAPHQL_PATH = `/api/v1/graphql`;
 
@@ -73,6 +75,7 @@ const GRAPHQL_PATH = `/api/v1/graphql`;
     PayloadMapperModule,
     AttachmentsModule,
     ServerManagerModule,
+    ChangelogModule,
   ],
   providers: [
     AuthResolver,
@@ -83,6 +86,7 @@ const GRAPHQL_PATH = `/api/v1/graphql`;
     UserLogsResolver,
     PayloadMapperResolver,
     UsersResolver,
+    ChangelogResolver,
   ],
   exports: [],
 })

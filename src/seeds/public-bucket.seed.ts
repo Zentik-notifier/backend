@@ -50,7 +50,7 @@ export async function ensurePublicBucket(dataSource: DataSource) {
                 name: PUBLIC_BUCKET_NAME,
                 description: PUBLIC_BUCKET_DESCRIPTION,
                 color: PUBLIC_BUCKET_COLOR,
-                icon: "https://github.com/Zentik-notifier/backend/blob/main/assets/zentik.png?raw=true",
+                icon: 'https://raw.githubusercontent.com/Zentik-notifier/backend/refs/heads/main/assets/Zentik.png',
                 isProtected: true, // Protected from deletion
                 isPublic: true, // Mark as public - accessible to everyone
                 isAdmin: false,
