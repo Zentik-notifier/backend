@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsObject,
-  IsString
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 
 export enum ExternalPlatform {
   IOS = 'IOS',
@@ -105,4 +101,14 @@ export class ExternalNotifyRequestDto {
     | ExternalDeviceDataIosDto
     | ExternalDeviceDataFcmDto
     | ExternalDeviceDataWebDto;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'If true, the originating server allows retry without encryption when APNs returns PayloadTooLarge (mirrors UnencryptOnBigPayload setting).',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  retryWithoutEncEnabled?: boolean;
 }

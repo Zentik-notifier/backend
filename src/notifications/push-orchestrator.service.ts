@@ -854,6 +854,17 @@ export class PushNotificationOrchestratorService {
         `Passthrough send | notifId=${notification.id} platform=${payload.platform} url=${url} hasToken=${!!token}`,
       );
 
+      // For iOS, compute and attach the retry flag so the passthrough server
+      // knows whether retry without encryption is allowed for this user/device.
+      let retryWithoutEncEnabled = false;
+      if (userDevice.platform === DevicePlatform.IOS) {
+        retryWithoutEncEnabled = await this.isRetryWithoutEncryptionEnabled(
+          userDevice.userId,
+          userDevice.id,
+        );
+        (rest as any).retryWithoutEncEnabled = retryWithoutEncEnabled;
+      }
+
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -892,11 +903,6 @@ export class PushNotificationOrchestratorService {
           }
         | undefined;
       if (userDevice.platform === DevicePlatform.IOS && privatizedPayload) {
-        const retryWithoutEncEnabled = await this.isRetryWithoutEncryptionEnabled(
-          userDevice.userId,
-          userDevice.id,
-        );
-
         passthroughDeliveryMeta = this.buildIosDeliveryMetadata(
           privatizedPayload,
           retryWithoutEncEnabled,
