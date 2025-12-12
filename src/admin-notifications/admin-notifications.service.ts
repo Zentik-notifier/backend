@@ -169,7 +169,8 @@ export class AdminNotificationsService implements OnModuleInit {
       (event.type === EventType.DEVICE_REGISTER ||
         event.type === EventType.DEVICE_UNREGISTER ||
         event.type === EventType.NOTIFICATION ||
-        event.type === EventType.NOTIFICATION_ACK)
+        event.type === EventType.NOTIFICATION_ACK ||
+        event.type === EventType.NOTIFICATION_FAILED)
     ) {
       const device = await this.userDeviceRepository.findOne({
         where: { id: event.targetId },
@@ -208,6 +209,7 @@ export class AdminNotificationsService implements OnModuleInit {
       [EventType.MESSAGE]: '💬 New Message',
       [EventType.NOTIFICATION]: '🔔 Notification Sent',
       [EventType.NOTIFICATION_ACK]: '✅ Notification Acknowledged',
+      [EventType.NOTIFICATION_FAILED]: '❌ Notification Failed',
       [EventType.BUCKET_CREATION]: '🪣 Bucket Created',
       [EventType.BUCKET_SHARING]: '🔗 Bucket Shared',
       [EventType.BUCKET_UNSHARING]: '🔓 Bucket Unshared',

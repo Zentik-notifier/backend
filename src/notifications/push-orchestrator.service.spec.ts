@@ -178,6 +178,7 @@ describe('PushNotificationOrchestratorService', () => {
           provide: EventTrackingService,
           useValue: {
             trackNotification: jest.fn(),
+            trackNotificationFailed: jest.fn(),
             trackPushPassthrough: jest.fn(),
           },
         },

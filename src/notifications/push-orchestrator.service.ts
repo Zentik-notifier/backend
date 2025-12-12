@@ -687,6 +687,17 @@ export class PushNotificationOrchestratorService {
           userDevice.platform,
           iosMeta,
         );
+
+        if (!result.success) {
+          await this.eventTrackingService.trackNotificationFailed(
+            userDevice.userId,
+            userDevice.id,
+            notification.id,
+            userDevice.platform,
+            executionError || result.error,
+            iosMeta,
+          );
+        }
       }
 
       return result;
@@ -712,6 +723,16 @@ export class PushNotificationOrchestratorService {
         errors: executionError,
         durationMs,
       });
+
+      if (!skipTracking) {
+        await this.eventTrackingService.trackNotificationFailed(
+          userDevice.userId,
+          userDevice.id,
+          notification.id,
+          userDevice.platform,
+          executionError,
+        );
+      }
 
       return { success: false, error: error.message };
     }
@@ -987,16 +1008,16 @@ export class PushNotificationOrchestratorService {
           durationMs,
         });
 
-        // Track event with platform info
-        if (!skipTracking) {
-          await this.eventTrackingService.trackNotification(
-            userDevice.userId,
-            userDevice.id,
-            notification.id,
-            userDevice.platform,
-            passthroughDeliveryMeta,
-          );
-        }
+          // Track event with platform info
+          if (!skipTracking) {
+            await this.eventTrackingService.trackNotification(
+              userDevice.userId,
+              userDevice.id,
+              notification.id,
+              userDevice.platform,
+              passthroughDeliveryMeta,
+            );
+          }
 
         return { success: true };
       }
@@ -1058,6 +1079,17 @@ export class PushNotificationOrchestratorService {
         durationMs,
       });
 
+      if (!skipTracking) {
+        await this.eventTrackingService.trackNotificationFailed(
+          userDevice.userId,
+          userDevice.id,
+          notification.id,
+          userDevice.platform,
+          error,
+          passthroughDeliveryMeta,
+        );
+      }
+
       return { success: false, error };
     } catch (error: any) {
       this.logger.error(`Passthrough done | notifId=${notification.id} status=exception error=${error?.message || 'unknown'}`);
@@ -1094,6 +1126,16 @@ export class PushNotificationOrchestratorService {
         errors: executionError,
         durationMs,
       });
+
+      if (!skipTracking) {
+        await this.eventTrackingService.trackNotificationFailed(
+          userDevice.userId,
+          userDevice.id,
+          notification.id,
+          userDevice.platform,
+          executionError,
+        );
+      }
 
       return { success: false, error: error?.message || 'Passthrough error' };
     }

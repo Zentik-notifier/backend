@@ -69,6 +69,30 @@ export class EventTrackingService {
     });
   }
 
+  async trackNotificationFailed(
+    userId: string,
+    deviceId: string,
+    notificationId?: string,
+    platform?: string,
+    reason?: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    const additionalInfo = {
+      ...(platform ? { platform } : {}),
+      ...(reason ? { error: reason } : {}),
+      ...(metadata || {}),
+    };
+
+    await this.eventsService.createEvent({
+      type: EventType.NOTIFICATION_FAILED,
+      userId,
+      objectId: notificationId,
+      targetId: deviceId,
+      additionalInfo:
+        Object.keys(additionalInfo).length > 0 ? additionalInfo : undefined,
+    });
+  }
+
   async trackNotificationAck(
     userId: string, 
     deviceId: string, 
