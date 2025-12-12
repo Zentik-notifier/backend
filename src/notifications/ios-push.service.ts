@@ -167,7 +167,9 @@ export class IOSPushService {
     notification: Notification,
     userSettings?: AutoActionSettings,
     device?: UserDevice,
+    options?: { selfDownload?: boolean },
   ) {
+    const isSelfDownload = options?.selfDownload === true;
     const message = notification.message;
 
     const automaticActions = generateAutomaticActions(
@@ -294,7 +296,11 @@ export class IOSPushService {
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
     let sensitive: any = null;
-    if (device && device.publicKey) {
+    if (isSelfDownload) {
+      // Minimal payload: no encrypted blob and no sensitive fields in the root
+      // Add explicit selfDownload flag for clients to fetch content from the server
+      (payload as any).selfDownload = true;
+    } else if (device && device.publicKey) {
       sensitive = {
         ...sensitivePayload,
       };
@@ -336,9 +342,20 @@ export class IOSPushService {
     // Privatize sensitive fields in the final payload that will be sent (notification_apn.rawPayload)
     // Create a deep copy to avoid modifying the original payload that will be sent
     const finalPayload = notification_apn.rawPayload;
-    // Pass the full sensitive object (including act if present) for encryption case, or just sensitivePayload for non-encrypted
-    const sensitiveForPrivatization = sensitive || sensitivePayload;
-    const privatizedPayload = this.privatizePayload(JSON.parse(JSON.stringify(finalPayload)), sensitiveForPrivatization);
+    let privatizedPayload: any;
+    if (isSelfDownload) {
+      // In selfDownload mode, we intentionally avoid including sensitive fields,
+      // so we can return the payload as-is (deep-copied for safety)
+      privatizedPayload = JSON.parse(JSON.stringify(finalPayload));
+    } else {
+      // Pass the full sensitive object (including act if present) for encryption case,
+      // or just sensitivePayload for non-encrypted
+      const sensitiveForPrivatization = sensitive || sensitivePayload;
+      privatizedPayload = this.privatizePayload(
+        JSON.parse(JSON.stringify(finalPayload)),
+        sensitiveForPrivatization,
+      );
+    }
 
     return {
       payload,
@@ -520,6 +537,7 @@ export class IOSPushService {
                 // Mark flags
                 resultEntry.payloadTooLarge = true;
                 payloadTooLargeDetected = true;
+                let needSelfDownloadFallback = false;
                 if (options?.allowUnencryptedRetryOnPayloadTooLarge) {
                   this.logger.warn(
                     `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption (allowed by settings)...`,
@@ -544,6 +562,7 @@ export class IOSPushService {
                     const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
                     resultEntry.retrySuccess = retrySuccess;
                     resultEntry.result = retryResult; // Update with retry result
+                    needSelfDownloadFallback = !retrySuccess;
 
                     results.push({
                       token,
@@ -575,6 +594,7 @@ export class IOSPushService {
                       )}...: ${retryError?.message}`,
                     );
                     resultEntry.retrySuccess = false;
+                    needSelfDownloadFallback = true;
                     results.push({
                       token,
                       error: retryError?.message,
@@ -587,6 +607,71 @@ export class IOSPushService {
                   this.logger.warn(
                     `📦 PayloadTooLarge detected (status ${statusCode}). Retry without encryption NOT allowed by settings, skipping automatic retry.`,
                   );
+                    needSelfDownloadFallback = true;
+                  }
+
+                  // Third strategy for PayloadTooLarge: build a minimal selfDownload payload
+                  if (needSelfDownloadFallback) {
+                    this.logger.warn(
+                      `📦 PayloadTooLarge persists or unencrypted retry disabled. Sending minimal selfDownload payload...`,
+                    );
+                    try {
+                      retryAttempted = true;
+
+                      const { notification_apn: selfDownloadNotification, privatizedPayload: selfDownloadPrivatized } =
+                        await this.buildAPNsPayload(
+                          notification,
+                          userSettings,
+                          undefined,
+                          { selfDownload: true },
+                        );
+
+                      privatizedPayload.push(selfDownloadPrivatized);
+
+                      const selfDownloadResult = await this.provider!.send(
+                        selfDownloadNotification,
+                        token,
+                      );
+
+                      const selfDownloadSuccess = !selfDownloadResult.failed || selfDownloadResult.failed.length === 0;
+                      resultEntry.retrySuccess = selfDownloadSuccess;
+                      resultEntry.result = selfDownloadResult;
+
+                      results.push({
+                        token,
+                        result: selfDownloadResult,
+                        payloadTooLarge: true,
+                        retriedWithoutEncryption: false,
+                        retrySuccess: selfDownloadSuccess,
+                      });
+
+                      if (selfDownloadResult.failed && selfDownloadResult.failed.length > 0) {
+                        this.logger.error(
+                          `❌ SelfDownload fallback failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
+                            selfDownloadResult.failed,
+                          )}`,
+                        );
+                      } else {
+                        this.logger.log(
+                          `✅ SelfDownload fallback succeeded for ${token.substring(0, 8)}...`,
+                        );
+                      }
+                    } catch (selfDownloadError: any) {
+                      this.logger.error(
+                        `❌ SelfDownload fallback crashed for ${token.substring(
+                          0,
+                          8,
+                        )}...: ${selfDownloadError?.message}`,
+                      );
+                      resultEntry.retrySuccess = false;
+                      results.push({
+                        token,
+                        error: selfDownloadError?.message,
+                        payloadTooLarge: true,
+                        retriedWithoutEncryption: false,
+                        retrySuccess: false,
+                      });
+                    }
                 }
               }
 
