@@ -147,11 +147,18 @@ async function resolveIosDevice() {
     }
   `;
 
-    const data = await graphqlRequest(query, {});
-    const devices = data.userDevices || [];
+    let data = await graphqlRequest(query, {});
+    let devices = data.userDevices || [];
 
     if (!devices.length) {
-        console.error('❌ No devices found for current user.');
+        console.warn('⚠️  No devices found for current user. Registering a test iOS device...');
+        await registerTestIosDevice();
+        data = await graphqlRequest(query, {});
+        devices = data.userDevices || [];
+    }
+
+    if (!devices.length) {
+        console.error('❌ Still no devices found after registering a test device.');
         process.exit(1);
     }
 
@@ -171,13 +178,54 @@ async function resolveIosDevice() {
     }
 
     if (!iosDevice) {
-        console.error('❌ No IOS device found for current user.');
+        console.warn('⚠️  No IOS device found, creating one explicitly...');
+        await registerTestIosDevice();
+        data = await graphqlRequest(query, {});
+        devices = data.userDevices || [];
+        iosDevice = devices.find((d) => d.platform === 'IOS');
+    }
+
+    if (!iosDevice) {
+        console.error('❌ No IOS device available for current user even after registration.');
         console.log('   Devices:', devices.map((d) => `${d.id} (${d.platform})`).join(', '));
         process.exit(1);
     }
 
     console.log(`📱 Using iOS device: ${iosDevice.deviceName || iosDevice.id} (${iosDevice.id})`);
     return iosDevice;
+}
+
+async function registerTestIosDevice() {
+    const mutation = `
+    mutation RegisterTestDevice($input: RegisterDeviceDto!) {
+      registerDevice(input: $input) {
+        id
+        deviceName
+        platform
+      }
+    }
+  `;
+
+    const variables = {
+        input: {
+            deviceName: 'CI iOS Device',
+            deviceModel: 'iPhone Simulator',
+            osVersion: '17.0',
+            platform: 'IOS',
+            deviceToken: 'ci-ios-mock-token',
+        },
+    };
+
+    try {
+        console.log('   ➕ Registering CI test iOS device via GraphQL...');
+        const data = await graphqlRequest(mutation, variables);
+        const device = data.registerDevice;
+        console.log(`   ✅ Registered test device: ${device.id} (${device.platform})`);
+        return device;
+    } catch (e) {
+        console.error('❌ Failed to register CI test iOS device:', e.message);
+        throw e;
+    }
 }
 
 async function setUnencryptOnBigPayload(deviceId, enabled) {

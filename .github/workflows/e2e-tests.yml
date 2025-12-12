@@ -33,9 +33,6 @@ jobs:
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
-              strategy:
-                matrix:
-                  apnMockMode: [success, payloadtoolarge]
           --health-retries 5
         ports:
           - 5432:5432
@@ -78,7 +75,6 @@ jobs:
           DEFAULT_BUCKET_ID: ${{ env.BUCKET_ID }}
         run: |
           node scripts/notifications/send-comprehensive-test-notifications.js
-          IOS_APN_MOCK_MODE: ${{ matrix.apnMockMode }}
           node scripts/messages/test-messages-bucket-combinations.js
           node scripts/messages/test-messages-rate-limit.js
 
@@ -86,7 +82,6 @@ jobs:
         env:
           TOKEN: ${{ env.TOKEN }}
           BUCKET_ID: ${{ env.BUCKET_ID }}
-          IOS_APN_MOCK_MODE: ${{ matrix.apnMockMode }}
           BASE_URL: http://localhost:3000/api/v1
         run: node scripts/invites/test-invite-codes.js
 
@@ -152,6 +147,10 @@ jobs:
   ios-apns-e2e:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        apnMockMode: [success, payloadtoolarge]
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -194,6 +193,7 @@ jobs:
           ADMIN_USERS: admin
           ADMIN_DEFAULT_PASSWORD: admin
           NODE_ENV: test
+          IOS_APN_MOCK_MODE: ${{ matrix.apnMockMode }}
         run: npm run e2e:init-environment
 
       - name: iOS APNs E2E scenarios
@@ -201,6 +201,7 @@ jobs:
           TOKEN: ${{ env.TOKEN }}
           BUCKET_ID: ${{ env.BUCKET_ID }}
           BASE_URL: http://localhost:3000/api/v1
+          IOS_APN_MOCK_MODE: ${{ matrix.apnMockMode }}
         run: |
           node scripts/notifications/test-ios-apns-scenarios.js
 
