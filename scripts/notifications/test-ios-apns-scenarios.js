@@ -79,12 +79,15 @@ async function fetchHttp(url, options = {}) {
     });
 }
 
-async function graphqlRequest(query, variables, authToken = TOKEN) {
+async function graphqlRequest(query, variables, authToken = TOKEN, deviceTokenHeader) {
     const res = await fetchHttp(`${BASE_URL}/graphql`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authToken}`,
+            ...(deviceTokenHeader
+                ? { devicetoken: deviceTokenHeader }
+                : {}),
         },
         body: JSON.stringify({ query, variables }),
     });
@@ -143,6 +146,7 @@ async function resolveIosDevice() {
         id
         deviceName
         platform
+                deviceToken
       }
     }
   `;
@@ -281,7 +285,7 @@ async function createMessage(bucketId, scenarioName, bodySize) {
     return message;
 }
 
-async function waitForNotificationForMessage(messageId, deviceId, timeoutMs = 30000) {
+async function waitForNotificationForMessage(messageId, deviceId, deviceToken, timeoutMs = 30000) {
     const started = Date.now();
     const pollInterval = 1000;
 
@@ -307,7 +311,7 @@ async function waitForNotificationForMessage(messageId, deviceId, timeoutMs = 30
   `;
 
     while (Date.now() - started < timeoutMs) {
-        const data = await graphqlRequest(query, {});
+        const data = await graphqlRequest(query, {}, TOKEN, deviceToken);
         const notifications = data.notifications || [];
 
         const match = notifications.find(
@@ -457,7 +461,7 @@ async function runScenarioNormal(bucketId, device) {
     await setUnencryptOnBigPayload(device.id, false);
 
     const message = await createMessage(bucketId, IOS_SCENARIOS.NORMAL, 512);
-    const notification = await waitForNotificationForMessage(message.id, device.id);
+    const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
         summarizeScenario('Scenario 1 - NORMAL', null, [], []);
@@ -478,7 +482,7 @@ async function runScenarioPayloadTooLargeRetrySuccess(bucketId, device) {
     // Medium-large body to try to trigger PayloadTooLarge when encrypted,
     // but potentially succeed when retried without encryption (depends on APNs / mock).
     const message = await createMessage(bucketId, IOS_SCENARIOS.RETRY_SUCCESS, 4096);
-    const notification = await waitForNotificationForMessage(message.id, device.id);
+    const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
         summarizeScenario('Scenario 2 - RETRY_SUCCESS', null, [], []);
@@ -499,7 +503,7 @@ async function runScenarioPayloadTooLargeRetrySelfDownload(bucketId, device) {
     // Larger body to increase probability that both encrypted and unencrypted
     // payloads exceed APNs limit, forcing selfDownload fallback.
     const message = await createMessage(bucketId, IOS_SCENARIOS.RETRY_SELF_DOWNLOAD, 16384);
-    const notification = await waitForNotificationForMessage(message.id, device.id);
+    const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
         summarizeScenario('Scenario 3 - RETRY_SELF_DOWNLOAD', null, [], []);
@@ -518,7 +522,7 @@ async function runScenarioPayloadTooLargeNoRetrySelfDownload(bucketId, device) {
     await setUnencryptOnBigPayload(device.id, false);
 
     const message = await createMessage(bucketId, IOS_SCENARIOS.NO_RETRY_SELF_DOWNLOAD, 8192);
-    const notification = await waitForNotificationForMessage(message.id, device.id);
+    const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
         summarizeScenario('Scenario 4 - NO_RETRY_SELF_DOWNLOAD', null, [], []);
