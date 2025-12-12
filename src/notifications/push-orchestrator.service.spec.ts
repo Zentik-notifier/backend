@@ -296,6 +296,7 @@ describe('PushNotificationOrchestratorService', () => {
           defaultSnoozes: undefined,
           defaultPostpones: undefined,
         },
+        { allowUnencryptedRetryOnPayloadTooLarge: false },
       );
     });
 
@@ -326,6 +327,7 @@ describe('PushNotificationOrchestratorService', () => {
         mockNotification,
         [mockUserDevice],
         userSettings,
+        { allowUnencryptedRetryOnPayloadTooLarge: true },
       );
     });
 
@@ -365,6 +367,7 @@ describe('PushNotificationOrchestratorService', () => {
           autoAddMarkAsReadAction: true,
           autoAddOpenNotificationAction: false,
         },
+        { allowUnencryptedRetryOnPayloadTooLarge: false },
       );
     });
 
@@ -469,6 +472,7 @@ describe('PushNotificationOrchestratorService', () => {
         mockNotification,
         [mockUserDevice],
         userSettings,
+        { allowUnencryptedRetryOnPayloadTooLarge: true },
       );
     });
 

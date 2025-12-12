@@ -439,6 +439,7 @@ export class IOSPushService {
     notification: Notification,
     devices: UserDevice[],
     userSettings?: AutoActionSettings,
+    options?: { allowUnencryptedRetryOnPayloadTooLarge?: boolean },
   ): Promise<SendResult> {
     await this.ensureInitialized();
 
@@ -509,7 +510,7 @@ export class IOSPushService {
                 `  Response: ${JSON.stringify(failedResult.response)}`,
               );
 
-              // Retry strategy for PayloadTooLarge: resend without encryption (guarded by user setting)
+              // Retry strategy for PayloadTooLarge: resend without encryption (guarded by caller option)
               const statusCode = Number(failedResult.status);
               const reason = (failedResult)?.response?.reason;
               if (
@@ -519,69 +520,73 @@ export class IOSPushService {
                 // Mark flags
                 resultEntry.payloadTooLarge = true;
                 payloadTooLargeDetected = true;
-
-                // NOTE: the decision to retry will be checked upstream by orchestrator per user setting
-                this.logger.warn(
-                  `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption...`,
-                );
-                try {
-                  retryAttempted = true;
-                  resultEntry.retriedWithoutEncryption = true;
-
-                  // Rebuild payload WITHOUT encryption by omitting device when building
-                  const { notification_apn } = await this.buildAPNsPayload(
-                    notification,
-                    userSettings,
-                    undefined,
+                if (options?.allowUnencryptedRetryOnPayloadTooLarge) {
+                  this.logger.warn(
+                    `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption (allowed by settings)...`,
                   );
+                  try {
+                    retryAttempted = true;
+                    resultEntry.retriedWithoutEncryption = true;
 
-
-                  const retryResult = await this.provider!.send(
-                    notification_apn,
-                    token,
-                  );
-
-                  const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
-                  resultEntry.retrySuccess = retrySuccess;
-                  resultEntry.result = retryResult; // Update with retry result
-
-                  results.push({
-                    token,
-                    result: retryResult,
-                    payloadTooLarge: true,
-                    retriedWithoutEncryption: true,
-                    retrySuccess,
-                  });
-
-                  if (retryResult.failed && retryResult.failed.length > 0) {
-                    this.logger.error(
-                      `❌ Retry failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
-                        retryResult.failed,
-                      )}`,
+                    // Rebuild payload WITHOUT encryption by omitting device when building
+                    const { notification_apn } = await this.buildAPNsPayload(
+                      notification,
+                      userSettings,
+                      undefined,
                     );
-                  } else {
-                    this.logger.log(
-                      `✅ Retry without encryption succeeded for ${token.substring(
+
+
+                    const retryResult = await this.provider!.send(
+                      notification_apn,
+                      token,
+                    );
+
+                    const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
+                    resultEntry.retrySuccess = retrySuccess;
+                    resultEntry.result = retryResult; // Update with retry result
+
+                    results.push({
+                      token,
+                      result: retryResult,
+                      payloadTooLarge: true,
+                      retriedWithoutEncryption: true,
+                      retrySuccess,
+                    });
+
+                    if (retryResult.failed && retryResult.failed.length > 0) {
+                      this.logger.error(
+                        `❌ Retry failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
+                          retryResult.failed,
+                        )}`,
+                      );
+                    } else {
+                      this.logger.log(
+                        `✅ Retry without encryption succeeded for ${token.substring(
+                          0,
+                          8,
+                        )}...`,
+                      );
+                    }
+                  } catch (retryError: any) {
+                    this.logger.error(
+                      `❌ Retry without encryption crashed for ${token.substring(
                         0,
                         8,
-                      )}...`,
+                      )}...: ${retryError?.message}`,
                     );
+                    resultEntry.retrySuccess = false;
+                    results.push({
+                      token,
+                      error: retryError?.message,
+                      payloadTooLarge: true,
+                      retriedWithoutEncryption: true,
+                      retrySuccess: false,
+                    });
                   }
-                } catch (retryError: any) {
-                  this.logger.error(
-                    `❌ Retry without encryption crashed for ${token.substring(
-                      0,
-                      8,
-                    )}...: ${retryError?.message}`,
+                } else {
+                  this.logger.warn(
+                    `📦 PayloadTooLarge detected (status ${statusCode}). Retry without encryption NOT allowed by settings, skipping automatic retry.`,
                   );
-                  resultEntry.retrySuccess = false;
-                  results.push({
-                    token,
-                    error: retryError?.message,
-                    payloadTooLarge: true,
-                    retriedWithoutEncryption: true,
-                    retrySuccess: false,
-                  });
                 }
               }
 

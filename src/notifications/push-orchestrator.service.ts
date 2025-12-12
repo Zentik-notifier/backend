@@ -241,9 +241,6 @@ export class PushNotificationOrchestratorService {
       // Get device-specific settings
       const deviceSettings = deviceSettingsMap.get(device.id);
 
-      // Extract bucket name for tracking
-      const bucketName = notif.message?.bucket?.name;
-
       const result = await this.dispatchPush(notif, device, deviceSettings, skipNotificationTracking);
       try {
         if (result.success) {
@@ -260,40 +257,6 @@ export class PushNotificationOrchestratorService {
           await this.notificationsRepository.update(notif.id, {
             error: result.error,
           });
-          // Conditional retry for APNs PayloadTooLarge if user setting allows
-          if (
-            typeof result.error === 'string' &&
-            result.error.includes('PayloadTooLarge')
-          ) {
-            try {
-              const setting = await this.usersService.getUserSetting(
-                notif.userId,
-                UserSettingType.UnencryptOnBigPayload,
-                device.id,
-              );
-              const allowRetry = setting?.valueBool === true;
-              if (allowRetry) {
-                this.logger.warn(
-                  `Retrying push without encryption for notification ${notif.id} (user setting enabled)`,
-                );
-                const retry = await this.sendPushToSingleDeviceStateless(
-                  notif,
-                  { ...device, onlyLocal: device.onlyLocal } as any,
-                );
-                if (retry.success) {
-                  successCount++;
-                  errorCount--;
-                  errors.pop(); // Remove the last error
-                  await this.notificationsRepository.update(notif.id, {
-                    sentAt: new Date(),
-                    error: null as any,
-                  });
-                }
-              }
-            } catch (e) {
-              this.logger.warn('Retry check failed, skipping retry');
-            }
-          }
         }
       } catch (updateError) {
         this.logger.error(
@@ -518,6 +481,19 @@ export class PushNotificationOrchestratorService {
         settings = this.buildAutoActionSettings(userSettingsMap);
       }
 
+      // Check per-user setting that controls retry on big payloads
+      let allowUnencryptedRetryOnPayloadTooLarge = false;
+      try {
+        const retrySetting = await this.usersService.getUserSetting(
+          userDevice.userId,
+          UserSettingType.UnencryptOnBigPayload,
+          userDevice.id,
+        );
+        allowUnencryptedRetryOnPayloadTooLarge = retrySetting?.valueBool === true;
+      } catch {
+        this.logger.warn('Failed to load UnencryptOnBigPayload setting, skipping automatic retry on big payloads');
+      }
+
       let result: { success: boolean; error?: string };
       let providerResponse: any;
       let privatizedInput: any;
@@ -525,7 +501,7 @@ export class PushNotificationOrchestratorService {
       if (userDevice.platform === DevicePlatform.IOS) {
         const { privatizedPayload, ...iosResult } = await this.iosPushService.send(notification, [
           userDevice,
-        ], settings);
+        ], settings, { allowUnencryptedRetryOnPayloadTooLarge });
         providerResponse = iosResult;
         result = { success: !!iosResult.success, error: iosResult.error };
 
