@@ -461,6 +461,7 @@ export class PushNotificationOrchestratorService {
     let executionError: string | undefined;
     let executionOutput: string | undefined;
     let privatizedInput: string = JSON.stringify({ platform: userDevice.platform, notificationId: notification.id });
+    let payloadStats: { averagePayloadSizeKB?: number; maxPayloadSizeKB?: number } | undefined;
 
     try {
       // If userSettings not provided, fetch from database
@@ -504,6 +505,13 @@ export class PushNotificationOrchestratorService {
         ], settings, { allowUnencryptedRetryOnPayloadTooLarge });
         providerResponse = iosResult;
         result = { success: !!iosResult.success, error: iosResult.error };
+
+        if (iosResult.averagePayloadSizeKB || iosResult.maxPayloadSizeKB) {
+          payloadStats = {
+            averagePayloadSizeKB: iosResult.averagePayloadSizeKB,
+            maxPayloadSizeKB: iosResult.maxPayloadSizeKB,
+          };
+        }
 
         if (privatizedPayload) {
           privatizedInput = JSON.stringify(privatizedPayload);
@@ -550,17 +558,23 @@ export class PushNotificationOrchestratorService {
         privatizedInput = JSON.stringify({ platform: userDevice.platform, notificationId: notification.id, error: 'Unsupported platform' });
       }
 
+      const baseOutput: any = {
+        deviceId: userDevice.id,
+        platform: userDevice.platform,
+        sentAt: new Date().toISOString(),
+        providerResponse,
+      };
+
+      if (payloadStats) {
+        baseOutput.payloadStats = payloadStats;
+      }
+
       if (!result.success && result.error) {
         executionStatus = ExecutionStatus.ERROR;
         executionError = result.error;
-      } else {
-        executionOutput = JSON.stringify({
-          deviceId: userDevice.id,
-          platform: userDevice.platform,
-          sentAt: new Date().toISOString(),
-          providerResponse,
-        });
       }
+
+      executionOutput = JSON.stringify(baseOutput);
 
       // Track execution in entity_executions
       const durationMs = Date.now() - startTime;

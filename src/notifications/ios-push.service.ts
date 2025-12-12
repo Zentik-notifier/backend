@@ -44,6 +44,7 @@ export interface NotificationResult {
   payloadTooLarge?: boolean;
   retriedWithoutEncryption?: boolean;
   retrySuccess?: boolean;
+  payloadSizeKB?: number;
 }
 
 export interface SendResult {
@@ -53,6 +54,8 @@ export interface SendResult {
   payloadTooLargeDetected?: boolean;
   retryAttempted?: boolean;
   privatizedPayload?: any;
+  averagePayloadSizeKB?: number;
+  maxPayloadSizeKB?: number;
 }
 
 @Injectable()
@@ -228,8 +231,28 @@ export class IOSPushService {
         v: action.value,
       };
 
-      // Optimization: remove value for OPEN_NOTIFICATION if it matches notification.id
-      if (action.type === NotificationActionType.OPEN_NOTIFICATION && action.value === notification.id) {
+      // Optimization: remove icon for well-known actions (client maps icon 1:1)
+      if (
+        action.type === NotificationActionType.DELETE ||
+        action.type === NotificationActionType.MARK_AS_READ ||
+        action.type === NotificationActionType.OPEN_NOTIFICATION ||
+        action.type === NotificationActionType.SNOOZE ||
+        action.type === NotificationActionType.POSTPONE
+      ) {
+        delete optimized.icon;
+      }
+
+      // Optimization: remove explicit destructive=false to save bytes
+      if (optimized.destructive === false) {
+        delete optimized.destructive;
+      }
+
+      // Optimization: remove value for known fixed-value actions
+      if (
+        (action.type === NotificationActionType.DELETE) ||
+        (action.type === NotificationActionType.MARK_AS_READ) ||
+        (action.type === NotificationActionType.OPEN_NOTIFICATION)
+      ) {
         delete optimized.v;
       }
 
@@ -246,19 +269,39 @@ export class IOSPushService {
         value: notification.id,
       };
 
-    const optimizedTapAction = {
+    const optimizedTapAction: any = {
       ...effectiveTapAction,
       t: ActionTypeMap[effectiveTapAction.type] || 0,
       v: effectiveTapAction.value,
     };
 
-    // Optimization: remove value for OPEN_NOTIFICATION if it matches notification.id
-    if (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION && effectiveTapAction.value === notification.id) {
-      delete (optimizedTapAction as any).v;
+    // Optimization: remove icon for well-known tap actions
+    if (
+      effectiveTapAction.type === NotificationActionType.DELETE ||
+      effectiveTapAction.type === NotificationActionType.MARK_AS_READ ||
+      effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION ||
+      effectiveTapAction.type === NotificationActionType.SNOOZE ||
+      effectiveTapAction.type === NotificationActionType.POSTPONE
+    ) {
+      delete optimizedTapAction.icon;
     }
 
-    delete (optimizedTapAction as any).type;
-    delete (optimizedTapAction as any).value;
+    // Optimization: remove explicit destructive=false
+    if (optimizedTapAction.destructive === false) {
+      delete optimizedTapAction.destructive;
+    }
+
+    // Optimization: remove value for known fixed-value tap actions
+    if (
+      (effectiveTapAction.type === NotificationActionType.DELETE && effectiveTapAction.value === 'delete_notification') ||
+      (effectiveTapAction.type === NotificationActionType.MARK_AS_READ && effectiveTapAction.value === 'mark_as_read_notification') ||
+      (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION && effectiveTapAction.value === notification.id)
+    ) {
+      delete optimizedTapAction.v;
+    }
+
+    delete optimizedTapAction.type;
+    delete optimizedTapAction.value;
 
     // Separate actions: NAVIGATE/BACKGROUND_CALL go in encrypted blob, others outside
     // We check the original type from the map (reverse lookup would be needed or check the mapped value)
@@ -342,6 +385,14 @@ export class IOSPushService {
     // Privatize sensitive fields in the final payload that will be sent (notification_apn.rawPayload)
     // Create a deep copy to avoid modifying the original payload that will be sent
     const finalPayload = notification_apn.rawPayload;
+
+    // Approximate payload size (in KB) as it will be sent to APNs
+    // We serialize the raw payload to JSON and measure its UTF-8 byte length.
+    const payloadSizeBytes = Buffer.byteLength(
+      JSON.stringify(finalPayload),
+      'utf8',
+    );
+    const payloadSizeKB = Number((payloadSizeBytes / 1024).toFixed(2));
     let privatizedPayload: any;
     if (isSelfDownload) {
       // In selfDownload mode, we intentionally avoid including sensitive fields,
@@ -363,6 +414,8 @@ export class IOSPushService {
       topic,
       privatizedPayload,
       notification_apn,
+      payloadSizeBytes,
+      payloadSizeKB,
     };
   }
 
@@ -497,6 +550,7 @@ export class IOSPushService {
           const {
             notification_apn,
             privatizedPayload: privatizedPayloadForToken,
+            payloadSizeKB,
           } = await this.buildAPNsPayload(
             notification,
             userSettings,
@@ -513,6 +567,7 @@ export class IOSPushService {
             payloadTooLarge: false,
             retriedWithoutEncryption: false,
             retrySuccess: false,
+            payloadSizeKB,
           };
           results.push(resultEntry);
 
@@ -547,7 +602,7 @@ export class IOSPushService {
                     resultEntry.retriedWithoutEncryption = true;
 
                     // Rebuild payload WITHOUT encryption by omitting device when building
-                    const { notification_apn } = await this.buildAPNsPayload(
+                    const { notification_apn, payloadSizeKB: retryPayloadSizeKB } = await this.buildAPNsPayload(
                       notification,
                       userSettings,
                       undefined,
@@ -562,6 +617,7 @@ export class IOSPushService {
                     const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
                     resultEntry.retrySuccess = retrySuccess;
                     resultEntry.result = retryResult; // Update with retry result
+                    resultEntry.payloadSizeKB = retryPayloadSizeKB;
                     needSelfDownloadFallback = !retrySuccess;
 
                     results.push({
@@ -570,6 +626,7 @@ export class IOSPushService {
                       payloadTooLarge: true,
                       retriedWithoutEncryption: true,
                       retrySuccess,
+                      payloadSizeKB: retryPayloadSizeKB,
                     });
 
                     if (retryResult.failed && retryResult.failed.length > 0) {
@@ -607,71 +664,73 @@ export class IOSPushService {
                   this.logger.warn(
                     `📦 PayloadTooLarge detected (status ${statusCode}). Retry without encryption NOT allowed by settings, skipping automatic retry.`,
                   );
-                    needSelfDownloadFallback = true;
-                  }
+                  needSelfDownloadFallback = true;
+                }
 
-                  // Third strategy for PayloadTooLarge: build a minimal selfDownload payload
-                  if (needSelfDownloadFallback) {
-                    this.logger.warn(
-                      `📦 PayloadTooLarge persists or unencrypted retry disabled. Sending minimal selfDownload payload...`,
+                // Third strategy for PayloadTooLarge: build a minimal selfDownload payload
+                if (needSelfDownloadFallback) {
+                  this.logger.warn(
+                    `📦 PayloadTooLarge persists or unencrypted retry disabled. Sending minimal selfDownload payload...`,
+                  );
+                  try {
+                    retryAttempted = true;
+
+                    const { notification_apn: selfDownloadNotification, privatizedPayload: selfDownloadPrivatized, payloadSizeKB: selfDownloadPayloadSizeKB } =
+                      await this.buildAPNsPayload(
+                        notification,
+                        userSettings,
+                        undefined,
+                        { selfDownload: true },
+                      );
+
+                    privatizedPayload.push(selfDownloadPrivatized);
+
+                    const selfDownloadResult = await this.provider!.send(
+                      selfDownloadNotification,
+                      token,
                     );
-                    try {
-                      retryAttempted = true;
 
-                      const { notification_apn: selfDownloadNotification, privatizedPayload: selfDownloadPrivatized } =
-                        await this.buildAPNsPayload(
-                          notification,
-                          userSettings,
-                          undefined,
-                          { selfDownload: true },
-                        );
+                    const selfDownloadSuccess = !selfDownloadResult.failed || selfDownloadResult.failed.length === 0;
+                    resultEntry.retrySuccess = selfDownloadSuccess;
+                    resultEntry.result = selfDownloadResult;
+                    resultEntry.payloadSizeKB = selfDownloadPayloadSizeKB;
 
-                      privatizedPayload.push(selfDownloadPrivatized);
+                    results.push({
+                      token,
+                      result: selfDownloadResult,
+                      payloadTooLarge: true,
+                      retriedWithoutEncryption: false,
+                      retrySuccess: selfDownloadSuccess,
+                      payloadSizeKB: selfDownloadPayloadSizeKB,
+                    });
 
-                      const selfDownloadResult = await this.provider!.send(
-                        selfDownloadNotification,
-                        token,
-                      );
-
-                      const selfDownloadSuccess = !selfDownloadResult.failed || selfDownloadResult.failed.length === 0;
-                      resultEntry.retrySuccess = selfDownloadSuccess;
-                      resultEntry.result = selfDownloadResult;
-
-                      results.push({
-                        token,
-                        result: selfDownloadResult,
-                        payloadTooLarge: true,
-                        retriedWithoutEncryption: false,
-                        retrySuccess: selfDownloadSuccess,
-                      });
-
-                      if (selfDownloadResult.failed && selfDownloadResult.failed.length > 0) {
-                        this.logger.error(
-                          `❌ SelfDownload fallback failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
-                            selfDownloadResult.failed,
-                          )}`,
-                        );
-                      } else {
-                        this.logger.log(
-                          `✅ SelfDownload fallback succeeded for ${token.substring(0, 8)}...`,
-                        );
-                      }
-                    } catch (selfDownloadError: any) {
+                    if (selfDownloadResult.failed && selfDownloadResult.failed.length > 0) {
                       this.logger.error(
-                        `❌ SelfDownload fallback crashed for ${token.substring(
-                          0,
-                          8,
-                        )}...: ${selfDownloadError?.message}`,
+                        `❌ SelfDownload fallback failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
+                          selfDownloadResult.failed,
+                        )}`,
                       );
-                      resultEntry.retrySuccess = false;
-                      results.push({
-                        token,
-                        error: selfDownloadError?.message,
-                        payloadTooLarge: true,
-                        retriedWithoutEncryption: false,
-                        retrySuccess: false,
-                      });
+                    } else {
+                      this.logger.log(
+                        `✅ SelfDownload fallback succeeded for ${token.substring(0, 8)}...`,
+                      );
                     }
+                  } catch (selfDownloadError: any) {
+                    this.logger.error(
+                      `❌ SelfDownload fallback crashed for ${token.substring(
+                        0,
+                        8,
+                      )}...: ${selfDownloadError?.message}`,
+                    );
+                    resultEntry.retrySuccess = false;
+                    results.push({
+                      token,
+                      error: selfDownloadError?.message,
+                      payloadTooLarge: true,
+                      retriedWithoutEncryption: false,
+                      retrySuccess: false,
+                    });
+                  }
                 }
               }
 
@@ -695,8 +754,12 @@ export class IOSPushService {
               }
             }
           } else {
+            // const sizeInfo =
+            //   typeof resultEntry.payloadSizeKB === 'number'
+            //     ? ` (~${resultEntry.payloadSizeKB} KB)`
+            //     : '';
             // this.logger.log(
-            //   `✅ Successfully sent notification to ${token.substring(0, 8)}...`,
+            //   `✅ Successfully sent notification to ${token.substring(0, 8)}...${sizeInfo}`,
             // );
           }
         } catch (error: any) {
@@ -712,6 +775,23 @@ export class IOSPushService {
           (!r.result.failed || r.result.failed.length === 0) &&
           !r.error,
       ).length;
+
+      // Aggregate payload size statistics across all attempts
+      const payloadSizes = results
+        .map((r) => r.payloadSizeKB)
+        .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
+
+      let averagePayloadSizeKB: number | undefined;
+      let maxPayloadSizeKB: number | undefined;
+      if (payloadSizes.length > 0) {
+        const sum = payloadSizes.reduce((acc, v) => acc + v, 0);
+        averagePayloadSizeKB = Number(
+          (sum / payloadSizes.length).toFixed(2),
+        );
+        maxPayloadSizeKB = Number(
+          Math.max(...payloadSizes).toFixed(2),
+        );
+      }
 
       // Derive a human-readable error message when there are failures
       let topError: string | undefined;
@@ -750,6 +830,8 @@ export class IOSPushService {
         payloadTooLargeDetected,
         retryAttempted,
         privatizedPayload,
+        averagePayloadSizeKB,
+        maxPayloadSizeKB,
       };
     } catch (error) {
       this.logger.error('Error sending via APNs:', error);

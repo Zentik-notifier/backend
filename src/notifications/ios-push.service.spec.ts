@@ -334,6 +334,9 @@ describe('IOSPushService', () => {
         y: expect.any(Number), // deliveryType abbreviated (public field)
       });
 
+        expect(result.payloadSizeKB).toBeDefined();
+        expect(result.payloadSizeKB).toBeGreaterThan(0);
+
       // Verify that bucket fields are NOT in payload (only bucketId in root, not encrypted)
       expect(result.payload.e).toBeDefined();
       expect(result.payload.b).toBeDefined(); // bucket id is in payload root (public field)
@@ -379,6 +382,9 @@ describe('IOSPushService', () => {
         bdy: 'Test Body', // body abbreviated (sensitive field in root for non-encrypted)
         stl: 'Test Subtitle', // subtitle abbreviated (sensitive field in root for non-encrypted)
       });
+
+        expect(result.payloadSizeKB).toBeDefined();
+        expect(result.payloadSizeKB).toBeGreaterThan(0);
 
       // Verify bucket fields are NOT in payload (optimized - only bucketId)
       expect(result.payload.bucketName).toBeUndefined(); // Removed from payload
