@@ -422,6 +422,49 @@ export class IOSPushService {
 
   private async initializeProvider(): Promise<void> {
     try {
+      // Optional mock provider mode: keeps the full IOSPushService logic
+      // identical to production while avoiding real APNs calls.
+      // IOS_APN_MOCK_MODE can be:
+      //  - 'success'        -> always return a green response
+      //  - 'payloadTooLarge'-> always simulate a PayloadTooLarge failure
+      const mockMode = (process.env.IOS_APN_MOCK_MODE || '').toLowerCase();
+      if (mockMode === 'success' || mockMode === 'payloadtoolarge') {
+        this.logger.warn(
+          `IOS_APN_MOCK_MODE=${mockMode}: using mock APNs provider (no real APNs calls will be made)`,
+        );
+
+        const mockProvider: any = {
+          send: async (_notification: apn.Notification, deviceTokens: string | string[]) => {
+            const tokens = Array.isArray(deviceTokens)
+              ? deviceTokens
+              : [deviceTokens];
+
+            if (mockMode === 'success') {
+              return {
+                sent: tokens.map((t) => ({ device: t })),
+                failed: [],
+              };
+            }
+
+            // mockMode === 'payloadtoolarge'
+            return {
+              sent: [],
+              failed: tokens.map((t) => ({
+                device: t,
+                status: 413,
+                response: { reason: 'PayloadTooLarge' },
+              })),
+            };
+          },
+          shutdown: () => {
+            this.logger.log('Mock APNs provider shut down');
+          },
+        };
+
+        this.provider = mockProvider as unknown as apn.Provider;
+        return;
+      }
+
       const keyId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnKeyId))?.valueText;
       const teamId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnTeamId))?.valueText;
       const keyPath = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnPrivateKeyPath))?.valueText;
