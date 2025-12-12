@@ -15,6 +15,7 @@ import {
   NotificationActionType,
   NotificationDeliveryType,
 } from './notifications.types';
+import { s } from 'graphql-ws/dist/common-DY-PBNYy';
 
 const DeliveryTypeMap = {
   [NotificationDeliveryType.NORMAL]: 0,
@@ -528,10 +529,6 @@ export class IOSPushService {
       throw new Error('No valid device tokens found for notification');
     }
 
-    this.logger.debug(
-      `Sending notification "${notification.id}" to ${deviceTokens.length} device(s)`,
-    );
-
     if (!this.provider) {
       throw new Error('APNs provider not initialized');
     }
@@ -546,6 +543,7 @@ export class IOSPushService {
 
       for (const token of deviceTokens) {
         try {
+          const subToken = `${token.substring(0, 8)}...`;
           const device = devices.find((d) => d.deviceToken === token);
           const {
             notification_apn,
@@ -555,6 +553,10 @@ export class IOSPushService {
             notification,
             userSettings,
             device || undefined, // Pass the found device or undefined if not found
+          );
+
+          this.logger.debug(
+            `Sending notification "${notification.id}" to device ${subToken}. Size ${payloadSizeKB} KB`,
           );
 
           privatizedPayload.push(privatizedPayloadForToken);
@@ -575,11 +577,7 @@ export class IOSPushService {
             // Enhanced error logging for APN issues
             for (const failedResult of result.failed) {
               this.logger.error(
-                `❌ APN Error for token ${token.substring(0, 8)}...:`,
-              );
-              this.logger.error(`  Status: ${failedResult.status}`);
-              this.logger.error(
-                `  Response: ${JSON.stringify(failedResult.response)}`,
+                `❌ APN Error for token ${subToken}: ${JSON.stringify(failedResult)}`,
               );
 
               // Retry strategy for PayloadTooLarge: resend without encryption (guarded by caller option)
@@ -595,7 +593,7 @@ export class IOSPushService {
                 let needSelfDownloadFallback = false;
                 if (options?.allowUnencryptedRetryOnPayloadTooLarge) {
                   this.logger.warn(
-                    `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption (allowed by settings)...`,
+                    `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption...`,
                   );
                   try {
                     retryAttempted = true;
@@ -637,18 +635,12 @@ export class IOSPushService {
                       );
                     } else {
                       this.logger.log(
-                        `✅ Retry without encryption succeeded for ${token.substring(
-                          0,
-                          8,
-                        )}...`,
+                        `✅ Retry without encryption succeeded for ${subToken}`,
                       );
                     }
                   } catch (retryError: any) {
                     this.logger.error(
-                      `❌ Retry without encryption crashed for ${token.substring(
-                        0,
-                        8,
-                      )}...: ${retryError?.message}`,
+                      `❌ Retry without encryption crashed for ${subToken}: ${retryError?.message}`,
                     );
                     resultEntry.retrySuccess = false;
                     needSelfDownloadFallback = true;
@@ -661,16 +653,13 @@ export class IOSPushService {
                     });
                   }
                 } else {
-                  this.logger.warn(
-                    `📦 PayloadTooLarge detected (status ${statusCode}). Retry without encryption NOT allowed by settings, skipping automatic retry.`,
-                  );
                   needSelfDownloadFallback = true;
                 }
 
                 // Third strategy for PayloadTooLarge: build a minimal selfDownload payload
                 if (needSelfDownloadFallback) {
                   this.logger.warn(
-                    `📦 PayloadTooLarge persists or unencrypted retry disabled. Sending minimal selfDownload payload...`,
+                    `📦 PayloadTooLarge detected. Sending minimal selfDownload payload...`,
                   );
                   try {
                     retryAttempted = true;
@@ -717,10 +706,7 @@ export class IOSPushService {
                     }
                   } catch (selfDownloadError: any) {
                     this.logger.error(
-                      `❌ SelfDownload fallback crashed for ${token.substring(
-                        0,
-                        8,
-                      )}...: ${selfDownloadError?.message}`,
+                      `❌ SelfDownload fallback crashed for ${subToken}: ${selfDownloadError?.message}`,
                     );
                     resultEntry.retrySuccess = false;
                     results.push({
@@ -753,14 +739,6 @@ export class IOSPushService {
                 );
               }
             }
-          } else {
-            // const sizeInfo =
-            //   typeof resultEntry.payloadSizeKB === 'number'
-            //     ? ` (~${resultEntry.payloadSizeKB} KB)`
-            //     : '';
-            // this.logger.log(
-            //   `✅ Successfully sent notification to ${token.substring(0, 8)}...${sizeInfo}`,
-            // );
           }
         } catch (error: any) {
           this.logger.error(`Error sending notification to ${token}:`, error);

@@ -49,17 +49,23 @@ export class EventTrackingService {
   }
 
   async trackNotification(
-    userId: string, 
-    deviceId: string, 
+    userId: string,
+    deviceId: string,
     notificationId?: string,
     platform?: string,
+    metadata?: Record<string, any>,
   ): Promise<void> {
+    const additionalInfo = {
+      ...(platform ? { platform } : {}),
+      ...(metadata || {}),
+    };
+
     await this.eventsService.createEvent({
       type: EventType.NOTIFICATION,
       userId,
       objectId: notificationId,
       targetId: deviceId,
-      additionalInfo: platform ? { platform } : undefined,
+      additionalInfo: Object.keys(additionalInfo).length > 0 ? additionalInfo : undefined,
     });
   }
 

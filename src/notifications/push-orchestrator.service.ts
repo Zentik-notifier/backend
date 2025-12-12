@@ -98,6 +98,66 @@ export class PushNotificationOrchestratorService {
     };
   }
 
+  private buildIosDeliveryMetadata(
+    privatizedPayload: any,
+    retryWithoutEncEnabled: boolean,
+  ): {
+    sentWithEncryption: boolean;
+    sentWithoutEncryption: boolean;
+    sentWithSelfDownload: boolean;
+    retryWithoutEncEnabled: boolean;
+  } {
+    let sentWithEncryption = false;
+    let sentWithoutEncryption = false;
+    let sentWithSelfDownload = false;
+
+    const payloadArray = Array.isArray(privatizedPayload)
+      ? privatizedPayload
+      : privatizedPayload
+        ? [privatizedPayload]
+        : [];
+
+    for (const p of payloadArray) {
+      if (!p || typeof p !== 'object') continue;
+
+      if ((p as any).selfDownload) {
+        sentWithSelfDownload = true;
+      } else if ((p as any).e) {
+        // Encrypted payloads have the "e" field set
+        sentWithEncryption = true;
+      } else {
+        // Non-encrypted, full payload (either initial or retry without encryption)
+        sentWithoutEncryption = true;
+      }
+    }
+
+    return {
+      sentWithEncryption,
+      sentWithoutEncryption,
+      sentWithSelfDownload,
+      retryWithoutEncEnabled,
+    };
+  }
+
+  private async isRetryWithoutEncryptionEnabled(
+    userId: string,
+    deviceId: string,
+  ): Promise<boolean> {
+    try {
+      const retrySetting = await this.usersService.getUserSetting(
+        userId,
+        UserSettingType.UnencryptOnBigPayload,
+        deviceId,
+      );
+      return retrySetting?.valueBool === true;
+    } catch {
+      this.logger.warn(
+        'Failed to load UnencryptOnBigPayload setting, skipping automatic retry on big payloads',
+      );
+      return false;
+    }
+  }
+
   private async getDeviceSettingsForMultipleDevices(
     devices: Array<{ deviceId: string; userId: string }>,
   ): Promise<Map<string, AutoActionSettings>> {
@@ -483,27 +543,29 @@ export class PushNotificationOrchestratorService {
       }
 
       // Check per-user setting that controls retry on big payloads
-      let allowUnencryptedRetryOnPayloadTooLarge = false;
-      try {
-        const retrySetting = await this.usersService.getUserSetting(
+      const allowUnencryptedRetryOnPayloadTooLarge =
+        await this.isRetryWithoutEncryptionEnabled(
           userDevice.userId,
-          UserSettingType.UnencryptOnBigPayload,
           userDevice.id,
         );
-        allowUnencryptedRetryOnPayloadTooLarge = retrySetting?.valueBool === true;
-      } catch {
-        this.logger.warn('Failed to load UnencryptOnBigPayload setting, skipping automatic retry on big payloads');
-      }
 
       let result: { success: boolean; error?: string };
       let providerResponse: any;
       let privatizedInput: any;
+      let iosDeliveryMeta:
+        | {
+            sentWithEncryption: boolean;
+            sentWithoutEncryption: boolean;
+            sentWithSelfDownload: boolean;
+            retryWithoutEncEnabled: boolean;
+          }
+        | undefined;
 
       if (userDevice.platform === DevicePlatform.IOS) {
         const { privatizedPayload, ...iosResult } = await this.iosPushService.send(notification, [
           userDevice,
         ], settings, { allowUnencryptedRetryOnPayloadTooLarge });
-        providerResponse = iosResult;
+
         result = { success: !!iosResult.success, error: iosResult.error };
 
         if (iosResult.averagePayloadSizeKB || iosResult.maxPayloadSizeKB) {
@@ -517,13 +579,35 @@ export class PushNotificationOrchestratorService {
           privatizedInput = JSON.stringify(privatizedPayload);
         }
 
+        // Determine which delivery strategies were used based on the built payloads
+        iosDeliveryMeta = this.buildIosDeliveryMetadata(
+          privatizedPayload,
+          allowUnencryptedRetryOnPayloadTooLarge,
+        );
+
         if (iosResult.payloadTooLargeDetected) {
+          const firstResult = iosResult.results && iosResult.results.length > 0
+            ? iosResult.results[0]
+            : undefined;
+          const retrySucceeded = !!firstResult?.retrySuccess;
           const retryInfo = iosResult.retryAttempted
-            ? ` (retry ${iosResult.results?.[0]?.retrySuccess ? 'succeeded' : 'failed'})`
+            ? ` (retry ${retrySucceeded ? 'succeeded' : 'failed'})`
             : ' (retry not attempted)';
           executionError = `iOS PayloadTooLarge detected${retryInfo}`;
-          executionStatus = iosResult.results?.[0]?.retrySuccess ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
+          executionStatus = retrySucceeded ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
         }
+
+        // Build a trimmed providerResponse for EntityExecution output, enriched with delivery strategy flags
+        providerResponse = {
+          success: iosResult.success,
+          error: iosResult.error,
+          payloadTooLargeDetected: iosResult.payloadTooLargeDetected,
+          retryAttempted: iosResult.retryAttempted,
+          averagePayloadSizeKB: iosResult.averagePayloadSizeKB,
+          maxPayloadSizeKB: iosResult.maxPayloadSizeKB,
+          resultsCount: iosResult.results?.length ?? 0,
+          ...(iosDeliveryMeta || {}),
+        };
       } else if (userDevice.platform === DevicePlatform.ANDROID) {
         const { privatizedPayload, ...androidResult } = await this.firebasePushService.send(notification, [
           userDevice,
@@ -563,6 +647,7 @@ export class PushNotificationOrchestratorService {
         platform: userDevice.platform,
         sentAt: new Date().toISOString(),
         providerResponse,
+        retryWithoutEncEnabled: allowUnencryptedRetryOnPayloadTooLarge,
       };
 
       if (payloadStats) {
@@ -592,11 +677,15 @@ export class PushNotificationOrchestratorService {
 
       // Track event with platform info
       if (!skipTracking) {
+        const iosMeta =
+          userDevice.platform === DevicePlatform.IOS ? iosDeliveryMeta : undefined;
+
         await this.eventTrackingService.trackNotification(
           userDevice.userId,
           userDevice.id,
           notification.id,
           userDevice.platform,
+          iosMeta,
         );
       }
 
@@ -772,6 +861,27 @@ export class PushNotificationOrchestratorService {
         remaining = res.headers.get('x-token-remaining');
       } catch { }
 
+      // Compute iOS delivery metadata for passthrough based on the prebuilt payload
+      let passthroughDeliveryMeta:
+        | {
+            sentWithEncryption: boolean;
+            sentWithoutEncryption: boolean;
+            sentWithSelfDownload: boolean;
+            retryWithoutEncEnabled: boolean;
+          }
+        | undefined;
+      if (userDevice.platform === DevicePlatform.IOS && privatizedPayload) {
+        const retryWithoutEncEnabled = await this.isRetryWithoutEncryptionEnabled(
+          userDevice.userId,
+          userDevice.id,
+        );
+
+        passthroughDeliveryMeta = this.buildIosDeliveryMetadata(
+          privatizedPayload,
+          retryWithoutEncEnabled,
+        );
+      }
+
       // Parse body only if JSON
       let data: any = {};
       if (contentType.includes('application/json')) {
@@ -788,16 +898,36 @@ export class PushNotificationOrchestratorService {
           `Passthrough done | notifId=${notification.id} status=ok tokenId=${tokenId || 'n/a'} calls=${calls || 'n/a'}/${maxCalls || 'n/a'} total=${totalCalls || 'n/a'} remaining=${remaining ?? 'n/a'}`,
         );
 
-        executionOutput = JSON.stringify({
+        const providerResponse: any = {
+          status: res.status,
+          statusText: res.statusText,
+          data,
+        };
+
+        if (passthroughDeliveryMeta) {
+          providerResponse.sentWithEncryption =
+            passthroughDeliveryMeta.sentWithEncryption;
+          providerResponse.sentWithoutEncryption =
+            passthroughDeliveryMeta.sentWithoutEncryption;
+          providerResponse.sentWithSelfDownload =
+            passthroughDeliveryMeta.sentWithSelfDownload;
+          providerResponse.retryWithoutEncEnabled =
+            passthroughDeliveryMeta.retryWithoutEncEnabled;
+        }
+
+        const baseOutput: any = {
           deviceId: userDevice.id,
           platform: userDevice.platform,
           sentAt: new Date().toISOString(),
-          response: {
-            status: res.status,
-            statusText: res.statusText,
-            data,
-          },
-        });
+          providerResponse,
+        };
+
+        if (passthroughDeliveryMeta) {
+          baseOutput.retryWithoutEncEnabled =
+            passthroughDeliveryMeta.retryWithoutEncEnabled;
+        }
+
+        executionOutput = JSON.stringify(baseOutput);
 
         // Read token usage headers and update ServerSettings stats
         try {
@@ -864,6 +994,7 @@ export class PushNotificationOrchestratorService {
             userDevice.id,
             notification.id,
             userDevice.platform,
+            passthroughDeliveryMeta,
           );
         }
 
@@ -882,16 +1013,36 @@ export class PushNotificationOrchestratorService {
       const durationMs = Date.now() - startTime;
 
       // Include response details in output even for errors
-      const errorOutput = JSON.stringify({
+      const providerResponse: any = {
+        status: res.status,
+        statusText: res.statusText,
+        data,
+      };
+
+      if (passthroughDeliveryMeta) {
+        providerResponse.sentWithEncryption =
+          passthroughDeliveryMeta.sentWithEncryption;
+        providerResponse.sentWithoutEncryption =
+          passthroughDeliveryMeta.sentWithoutEncryption;
+        providerResponse.sentWithSelfDownload =
+          passthroughDeliveryMeta.sentWithSelfDownload;
+        providerResponse.retryWithoutEncEnabled =
+          passthroughDeliveryMeta.retryWithoutEncEnabled;
+      }
+
+      const errorBaseOutput: any = {
         deviceId: userDevice.id,
         platform: userDevice.platform,
         sentAt: new Date().toISOString(),
-        response: {
-          status: res.status,
-          statusText: res.statusText,
-          data,
-        },
-      });
+        providerResponse,
+      };
+
+      if (passthroughDeliveryMeta) {
+        errorBaseOutput.retryWithoutEncEnabled =
+          passthroughDeliveryMeta.retryWithoutEncEnabled;
+      }
+
+      const errorOutput = JSON.stringify(errorBaseOutput);
 
       // Payload is already privatized by buildExternalPayload
       const privatizedPassthroughInput = JSON.stringify(privatizedPayload);
