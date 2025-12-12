@@ -93,6 +93,41 @@ async function loginAdminB() {
   return payload.accessToken;
 }
 
+async function registerNonAdminUserB() {
+  const crypto = require('crypto');
+  const suffix = crypto.randomBytes(4).toString('hex');
+
+  const email = `sat-e2e-${suffix}@example.com`;
+  const username = `sat_e2e_${suffix}`;
+  const password = 'SatE2E!123';
+
+  log(`Registering non-admin user on Server B as ${email}/${username}...`);
+  const res = await fetchHttp(`${BASE_URL_B}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      username,
+      password,
+      firstName: 'SAT',
+      lastName: 'E2E',
+      locale: 'en',
+    }),
+  });
+
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`User registration failed on B: ${res.status} - ${res.data}`);
+  }
+
+  const payload = JSON.parse(res.data || '{}');
+  if (!payload.accessToken || !payload.user || !payload.user.id) {
+    throw new Error('Registration response missing accessToken or user.id');
+  }
+
+  log(`Registered non-admin user on B with id=${payload.user.id}`);
+  return { jwt: payload.accessToken, userId: payload.user.id };
+}
+
 async function graphqlRequestB(jwt, query, variables) {
   const res = await fetchHttp(`${BASE_URL_B}/graphql`, {
     method: 'POST',
@@ -332,6 +367,88 @@ async function testNonExistingToken() {
   log('✔ Non-existing token is rejected and no headers are returned.');
 }
 
+async function testNonAdminCannotUpdateTokenScopes(adminJwt) {
+  log('--- Test: only admin can update token scopes ---');
+
+  // Register a non-admin user on Server B
+  const { jwt: userJwt, userId } = await registerNonAdminUserB();
+
+  // Create a system token with requesterId bound to this user
+  const createMutation = `
+    mutation CreateSystemToken($maxCalls: Float!, $description: String, $requesterId: String, $scopes: [String!]) {
+      createSystemToken(maxCalls: $maxCalls, description: $description, requesterId: $requesterId, scopes: $scopes) {
+        id
+        scopes
+        requester { id }
+      }
+    }
+  `;
+
+  const createData = await graphqlRequestB(adminJwt, createMutation, {
+    maxCalls: 10,
+    description: 'E2E token bound to requester',
+    requesterId: userId,
+    scopes: ['passthrough'],
+  });
+
+  const created = createData && createData.createSystemToken;
+  expect(created && created.id, 'Admin must be able to create system token for requester');
+  expect(
+    created && created.requester && created.requester.id === userId,
+    'Created token requester must match the non-admin user',
+  );
+
+  // Attempt to update scopes as the requester (non-admin user)
+  const updateMutation = `
+    mutation UpdateSystemToken($id: String!, $scopes: [String!]) {
+      updateSystemToken(id: $id, scopes: $scopes) {
+        id
+        scopes
+      }
+    }
+  `;
+
+  let updateFailed = false;
+  try {
+    await graphqlRequestB(userJwt, updateMutation, {
+      id: created.id,
+      scopes: ['passthrough', 'extra-scope'],
+    });
+  } catch (err) {
+    updateFailed = true;
+    const msg = String(err && err.message ? err.message : err);
+    log(`Expected failure updating token scopes as non-admin: ${msg}`);
+    expect(
+      msg.toLowerCase().includes('forbidden') ||
+        msg.toLowerCase().includes('access denied') ||
+        msg.toLowerCase().includes('not authorized'),
+      'Non-admin scope update should fail with a forbidden/unauthorized error',
+    );
+  }
+
+  expect(updateFailed, 'Non-admin user should not be able to update system token scopes');
+
+  // Verify from admin that scopes did NOT change
+  const getQuery = `
+    query GetSystemToken($id: String!) {
+      getSystemToken(id: $id) {
+        id
+        scopes
+      }
+    }
+  `;
+
+  const after = await graphqlRequestB(adminJwt, getQuery, { id: created.id });
+  const token = after && after.getSystemToken;
+  expect(token && Array.isArray(token.scopes), 'Admin must be able to read token scopes');
+  expect(
+    token.scopes.length === 1 && token.scopes[0] === 'passthrough',
+    'Token scopes must remain unchanged when non-admin update is rejected',
+  );
+
+  log('✔ Only admins can update system token scopes; requester cannot.');
+}
+
 async function main() {
   log('Starting System Access Token E2E tests against Server B...');
 
@@ -341,6 +458,7 @@ async function main() {
   const limitedSat = await testLimitedTokenWithRemaining(jwt);
   await testTokenExhausted(jwt, limitedSat);
   await testNonExistingToken();
+  await testNonAdminCannotUpdateTokenScopes(jwt);
 
   log('All System Access Token E2E tests completed successfully.');
 }
