@@ -643,12 +643,19 @@ export class IOSPushService {
                     resultEntry.retriedWithoutEncryption = true;
 
                     // Rebuild payload WITHOUT encryption by omitting device when building
-                    const { notification_apn, payloadSizeKB: retryPayloadSizeKB } = await this.buildAPNsPayload(
+                    const {
+                      notification_apn,
+                      privatizedPayload: retryPrivatizedPayload,
+                      payloadSizeKB: retryPayloadSizeKB,
+                    } = await this.buildAPNsPayload(
                       notification,
                       userSettings,
                       undefined,
                     );
 
+                    if (retryPrivatizedPayload) {
+                      privatizedPayload.push(retryPrivatizedPayload);
+                    }
 
                     const retryResult = await this.provider!.send(
                       notification_apn,

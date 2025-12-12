@@ -393,10 +393,6 @@ async function testNonAdminCannotUpdateTokenScopes(adminJwt) {
 
   const created = createData && createData.createSystemToken;
   expect(created && created.id, 'Admin must be able to create system token for requester');
-  expect(
-    created && created.requester && created.requester.id === userId,
-    'Created token requester must match the non-admin user',
-  );
 
   // Attempt to update scopes as the requester (non-admin user)
   const updateMutation = `
@@ -434,6 +430,7 @@ async function testNonAdminCannotUpdateTokenScopes(adminJwt) {
       getSystemToken(id: $id) {
         id
         scopes
+        requester { id }
       }
     }
   `;
@@ -444,6 +441,11 @@ async function testNonAdminCannotUpdateTokenScopes(adminJwt) {
   expect(
     token.scopes.length === 1 && token.scopes[0] === 'passthrough',
     'Token scopes must remain unchanged when non-admin update is rejected',
+  );
+
+  expect(
+    token && token.requester && token.requester.id === userId,
+    'Token requester must remain bound to the non-admin user',
   );
 
   log('✔ Only admins can update system token scopes; requester cannot.');
