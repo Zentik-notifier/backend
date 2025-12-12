@@ -246,6 +246,120 @@ describe('PushNotificationOrchestratorService', () => {
     (global.fetch as jest.Mock).mockClear();
   });
 
+  describe('Passthrough retry behaviour', () => {
+    it('should forward retryWithoutEncEnabled=true to passthrough server and ios meta', async () => {
+      const iosDevice: UserDevice = {
+        ...(mockUserDevice as UserDevice),
+      };
+
+      const usersService = (service as any).usersService;
+      (usersService.getUserSetting as jest.Mock).mockResolvedValueOnce({
+        valueBool: true,
+      });
+
+      // Ensure external payload building succeeds for iOS passthrough
+      mockIOSPushService.buildAPNsPayload.mockResolvedValue({
+        payload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data',
+        },
+        priority: 10,
+        topic: 'com.apocaliss92.zentik',
+        privatizedPayload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data...',
+          sensitive: { tit: 'Test...', bdy: 'Test...' },
+        },
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: { get: jest.fn().mockReturnValue(null) },
+        json: jest.fn().mockResolvedValue({}),
+      });
+
+      const result = await (service as any).sendViaPassthrough(
+        'https://passthrough.test',
+        'sat-token',
+        mockNotification as Notification,
+        iosDevice,
+        false,
+      );
+
+      expect(result).toEqual({ success: true });
+
+      // Request body must contain retryWithoutEncEnabled=true
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const [, options] = (global.fetch as jest.Mock).mock.calls[0];
+      const body = JSON.parse(options.body);
+      expect(body.retryWithoutEncEnabled).toBe(true);
+
+      // iosMeta passed to event tracking should reflect the same flag
+      const eventTracking = (service as any).eventTrackingService;
+      const trackNotificationCalls =
+        (eventTracking.trackNotification as jest.Mock).mock.calls;
+      expect(trackNotificationCalls.length).toBeGreaterThan(0);
+      const iosMeta = trackNotificationCalls[0][4];
+      expect(iosMeta).toBeDefined();
+      expect(iosMeta.retryWithoutEncEnabled).toBe(true);
+    });
+
+    it('should forward retryWithoutEncEnabled=false when user setting is disabled', async () => {
+      const iosDevice: UserDevice = {
+        ...(mockUserDevice as UserDevice),
+      };
+
+      const usersService = (service as any).usersService;
+      (usersService.getUserSetting as jest.Mock).mockResolvedValueOnce({
+        valueBool: false,
+      });
+
+      // Ensure external payload building succeeds for iOS passthrough
+      mockIOSPushService.buildAPNsPayload.mockResolvedValue({
+        payload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data',
+        },
+        priority: 10,
+        topic: 'com.apocaliss92.zentik',
+        privatizedPayload: {
+          aps: { alert: { title: 'Test' } },
+          enc: 'encrypted_data...',
+          sensitive: { tit: 'Test...', bdy: 'Test...' },
+        },
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: { get: jest.fn().mockReturnValue(null) },
+        json: jest.fn().mockResolvedValue({}),
+      });
+
+      const result = await (service as any).sendViaPassthrough(
+        'https://passthrough.test',
+        'sat-token',
+        mockNotification as Notification,
+        iosDevice,
+        false,
+      );
+
+      expect(result).toEqual({ success: true });
+
+      const [, options] = (global.fetch as jest.Mock).mock.calls[0];
+      const body = JSON.parse(options.body);
+      expect(body.retryWithoutEncEnabled).toBe(false);
+
+      const eventTracking = (service as any).eventTrackingService;
+      const iosMeta = (eventTracking.trackNotification as jest.Mock).mock.calls[0][4];
+      expect(iosMeta).toBeDefined();
+      expect(iosMeta.retryWithoutEncEnabled).toBe(false);
+    });
+  });
+
   describe('User Settings Integration', () => {
     it('should pass user settings to iOS push service', async () => {
       const mockUsersService = {

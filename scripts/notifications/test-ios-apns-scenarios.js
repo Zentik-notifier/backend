@@ -398,14 +398,14 @@ function extractExecutionMeta(executions) {
     };
 }
 
-function summarizeScenario(name, notification, executions, events) {
+function summarizeScenario(scenarioKey, name, notification, executions, events) {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`📘 Scenario: ${name}`);
     console.log(`   Notification ID: ${notification ? notification.id : 'N/A'}`);
 
     if (!notification) {
         console.log('   ⚠️  No notification found for this scenario.');
-        return;
+        throw new Error(`Scenario ${scenarioKey}: expected a notification but none was found`);
     }
 
     const meta = extractExecutionMeta(executions);
@@ -452,6 +452,77 @@ function summarizeScenario(name, notification, executions, events) {
         console.log('   ℹ️  Last NOTIFICATION_FAILED.additionalInfo:');
         console.log(`      ${JSON.stringify(lastFailed.additionalInfo || {}, null, 2)}`);
     }
+
+    // Strict assertions on flags and events per scenario / mock mode
+    if (!meta) {
+        throw new Error(`Scenario ${scenarioKey}: missing execution metadata`);
+    }
+
+    const mode = (IOS_APN_MOCK_MODE || '').toLowerCase();
+
+    const isRetryScenario =
+        scenarioKey === 'SCENARIO_2_RETRY_SUCCESS' ||
+        scenarioKey === 'SCENARIO_3_RETRY_SELF_DOWNLOAD';
+
+    // retryWithoutEncEnabled must mirror user setting (UnencryptOnBigPayload)
+    if (meta.retryWithoutEncEnabled !== isRetryScenario) {
+        throw new Error(
+            `Scenario ${scenarioKey}: expected retryWithoutEncEnabled=${isRetryScenario} but got ${meta.retryWithoutEncEnabled}`,
+        );
+    }
+
+    if (mode === 'success') {
+        // In success mock mode no PayloadTooLarge / selfDownload should be observed
+        if (meta.flags.payloadTooLargeDetected) {
+            throw new Error(
+                `Scenario ${scenarioKey} [success]: expected payloadTooLargeDetected=false`,
+            );
+        }
+        if (meta.flags.sentWithSelfDownload) {
+            throw new Error(
+                `Scenario ${scenarioKey} [success]: expected sentWithSelfDownload=false`,
+            );
+        }
+        if (failedEvents.length > 0) {
+            throw new Error(
+                `Scenario ${scenarioKey} [success]: expected NOTIFICATION_FAILED=0 but got ${failedEvents.length}`,
+            );
+        }
+        if (notificationEvents.length === 0) {
+            throw new Error(
+                `Scenario ${scenarioKey} [success]: expected at least 1 NOTIFICATION event`,
+            );
+        }
+    } else if (mode === 'payloadtoolarge') {
+        // In payloadtoolarge mock mode we always simulate PayloadTooLarge
+        if (!meta.flags.payloadTooLargeDetected) {
+            throw new Error(
+                `Scenario ${scenarioKey} [payloadtoolarge]: expected payloadTooLargeDetected=true`,
+            );
+        }
+        if (!meta.flags.sentWithSelfDownload) {
+            throw new Error(
+                `Scenario ${scenarioKey} [payloadtoolarge]: expected sentWithSelfDownload=true`,
+            );
+        }
+        if (notificationEvents.length === 0) {
+            throw new Error(
+                `Scenario ${scenarioKey} [payloadtoolarge]: expected at least 1 NOTIFICATION event`,
+            );
+        }
+        if (failedEvents.length === 0) {
+            throw new Error(
+                `Scenario ${scenarioKey} [payloadtoolarge]: expected at least 1 NOTIFICATION_FAILED event`,
+            );
+        }
+
+        const expectedSentWithoutEnc = isRetryScenario;
+        if (meta.flags.sentWithoutEncryption !== expectedSentWithoutEnc) {
+            throw new Error(
+                `Scenario ${scenarioKey} [payloadtoolarge]: expected sentWithoutEncryption=${expectedSentWithoutEnc} but got ${meta.flags.sentWithoutEncryption}`,
+            );
+        }
+    }
 }
 
 async function runScenarioNormal(bucketId, device) {
@@ -464,14 +535,14 @@ async function runScenarioNormal(bucketId, device) {
     const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
-        summarizeScenario('Scenario 1 - NORMAL', null, [], []);
+        summarizeScenario('SCENARIO_1_NORMAL', 'Scenario 1 - NORMAL', null, [], []);
         return;
     }
 
     const executions = await fetchExecutionsForNotification(notification.id);
     const events = await fetchEventsForNotification(notification.id);
 
-    summarizeScenario('Scenario 1 - NORMAL', notification, executions, events);
+    summarizeScenario('SCENARIO_1_NORMAL', 'Scenario 1 - NORMAL', notification, executions, events);
 }
 
 async function runScenarioPayloadTooLargeRetrySuccess(bucketId, device) {
@@ -485,14 +556,14 @@ async function runScenarioPayloadTooLargeRetrySuccess(bucketId, device) {
     const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
-        summarizeScenario('Scenario 2 - RETRY_SUCCESS', null, [], []);
+        summarizeScenario('SCENARIO_2_RETRY_SUCCESS', 'Scenario 2 - RETRY_SUCCESS', null, [], []);
         return;
     }
 
     const executions = await fetchExecutionsForNotification(notification.id);
     const events = await fetchEventsForNotification(notification.id);
 
-    summarizeScenario('Scenario 2 - RETRY_SUCCESS', notification, executions, events);
+    summarizeScenario('SCENARIO_2_RETRY_SUCCESS', 'Scenario 2 - RETRY_SUCCESS', notification, executions, events);
 }
 
 async function runScenarioPayloadTooLargeRetrySelfDownload(bucketId, device) {
@@ -506,14 +577,14 @@ async function runScenarioPayloadTooLargeRetrySelfDownload(bucketId, device) {
     const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
-        summarizeScenario('Scenario 3 - RETRY_SELF_DOWNLOAD', null, [], []);
+        summarizeScenario('SCENARIO_3_RETRY_SELF_DOWNLOAD', 'Scenario 3 - RETRY_SELF_DOWNLOAD', null, [], []);
         return;
     }
 
     const executions = await fetchExecutionsForNotification(notification.id);
     const events = await fetchEventsForNotification(notification.id);
 
-    summarizeScenario('Scenario 3 - RETRY_SELF_DOWNLOAD', notification, executions, events);
+    summarizeScenario('SCENARIO_3_RETRY_SELF_DOWNLOAD', 'Scenario 3 - RETRY_SELF_DOWNLOAD', notification, executions, events);
 }
 
 async function runScenarioPayloadTooLargeNoRetrySelfDownload(bucketId, device) {
@@ -525,14 +596,14 @@ async function runScenarioPayloadTooLargeNoRetrySelfDownload(bucketId, device) {
     const notification = await waitForNotificationForMessage(message.id, device.id, device.deviceToken);
 
     if (!notification) {
-        summarizeScenario('Scenario 4 - NO_RETRY_SELF_DOWNLOAD', null, [], []);
+        summarizeScenario('SCENARIO_4_NO_RETRY_SELF_DOWNLOAD', 'Scenario 4 - NO_RETRY_SELF_DOWNLOAD', null, [], []);
         return;
     }
 
     const executions = await fetchExecutionsForNotification(notification.id);
     const events = await fetchEventsForNotification(notification.id);
 
-    summarizeScenario('Scenario 4 - NO_RETRY_SELF_DOWNLOAD', notification, executions, events);
+    summarizeScenario('SCENARIO_4_NO_RETRY_SELF_DOWNLOAD', 'Scenario 4 - NO_RETRY_SELF_DOWNLOAD', notification, executions, events);
 }
 
 async function main() {
