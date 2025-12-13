@@ -284,6 +284,8 @@ jobs:
           TOKEN: ${{ env.TOKEN }}
           BASE_URL: http://localhost:3000/api/v1
           EMAIL_MOCK_MODE: 'success'
+          ADMIN_USERS: admin
+          ADMIN_DEFAULT_PASSWORD: admin
         run: node scripts/emails/test-email-events.js
 
       - name: Show server logs on failure
