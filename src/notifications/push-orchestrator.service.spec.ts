@@ -303,7 +303,7 @@ describe('PushNotificationOrchestratorService', () => {
       const trackNotificationCalls =
         (eventTracking.trackNotification as jest.Mock).mock.calls;
       expect(trackNotificationCalls.length).toBeGreaterThan(0);
-      const metaArg = trackNotificationCalls[0][4];
+      const metaArg = trackNotificationCalls[0][3];
       expect(metaArg).toEqual(
         expect.objectContaining({ platform: iosDevice.platform }),
       );
@@ -359,7 +359,7 @@ describe('PushNotificationOrchestratorService', () => {
       expect(body.retryWithoutEncEnabled).toBe(false);
 
       const eventTracking = (service as any).eventTrackingService;
-      const metaArg = (eventTracking.trackNotification as jest.Mock).mock.calls[0][4];
+      const metaArg = (eventTracking.trackNotification as jest.Mock).mock.calls[0][3];
       expect(metaArg).toEqual(
         expect.objectContaining({ platform: iosDevice.platform }),
       );

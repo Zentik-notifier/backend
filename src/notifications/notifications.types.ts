@@ -1,6 +1,5 @@
 import { registerEnumType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
-import { IosDeliveryStrategy } from './dto/external-notify.dto';
 
 export enum NotificationDeliveryType {
   SILENT = 'SILENT',
@@ -71,12 +70,6 @@ registerEnumType(NotificationServiceType, {
 registerEnumType(NotificationServiceProvider, {
   name: 'NotificationServiceProvider',
   description: 'Provider of the notification service',
-});
-
-registerEnumType(IosDeliveryStrategy, {
-  name: 'IosDeliveryStrategy',
-  description:
-    'Delivery strategy used by the iOS APNs flow (ENCRYPTED, UNENCRYPTED, SELF_DOWNLOAD)',
 });
 
 registerEnumType(PushMode, {

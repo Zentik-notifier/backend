@@ -1,3 +1,4 @@
+import { registerEnumType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 
@@ -52,6 +53,12 @@ export enum IosDeliveryStrategy {
   UNENCRYPTED = 'UNENCRYPTED',
   SELF_DOWNLOAD = 'SELF_DOWNLOAD',
 }
+
+registerEnumType(IosDeliveryStrategy, {
+  name: 'IosDeliveryStrategy',
+  description:
+    'Delivery strategy used by the iOS APNs flow (ENCRYPTED, UNENCRYPTED, SELF_DOWNLOAD)',
+});
 
 export class ExternalDeviceDataIosDto {
   @ApiProperty({ description: 'APNs device token', example: '1a2b3c4d...' })
