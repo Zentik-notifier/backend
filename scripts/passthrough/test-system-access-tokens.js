@@ -424,18 +424,31 @@ async function testPayloadTooLargeDoesNotIncrementCalls(adminJwt) {
     log(`[sat-e2e] notify-external iOS response: ${JSON.stringify(body)}`);
   }
 
-  // Basic invariant: the call must be marked as failed at application level
   expect(body && body.success === false, 'notify-external iOS should report success=false when APNs send fails (e.g., PayloadTooLarge)');
 
   // The enriched response from notify-external should always include platform and sentAt
   expect(body && body.platform === 'IOS', 'notify-external iOS response must include platform=IOS');
   expect(body && typeof body.sentAt === 'string' && body.sentAt.length > 0, 'notify-external iOS response must include a non-empty sentAt timestamp');
 
-  // For this direct iOS notify-external call we are sending a single encrypted payload variant,
-  // so the backend will mark sentWithEncryption=true and the other dispatch flags as false.
-  expect(body && body.sentWithEncryption === true, 'notify-external iOS response must indicate sentWithEncryption=true for single-variant payloads');
-  expect(body && body.sentWithoutEncryption === false, 'notify-external iOS response must indicate sentWithoutEncryption=false when no unencrypted variant is provided');
-  expect(body && body.sentWithSelfDownload === false, 'notify-external iOS response must indicate sentWithSelfDownload=false when no selfDownload variant is provided');
+  // New iOS metadata shape: sentWith + availableMethods
+  if (body && body.sentWith != null) {
+    expect(
+      body.sentWith === 'Encrypted' ||
+        body.sentWith === 'Unencrypted' ||
+        body.sentWith === 'SelfDownload',
+      'notify-external iOS sentWith must be one of Encrypted|Unencrypted|SelfDownload when present',
+    );
+  }
+
+  if (body && body.availableMethods != null) {
+    expect(Array.isArray(body.availableMethods), 'availableMethods must be an array when present');
+    expect(
+      body.availableMethods.every((m) =>
+        m === 'Encrypted' || m === 'Unencrypted' || m === 'SelfDownload',
+      ),
+      'availableMethods must contain only Encrypted|Unencrypted|SelfDownload',
+    );
+  }
 
   const after = await getSystemToken(adminJwt, sat.id);
   expect(after && after.calls === before.calls, 'Token calls must not increase when passthrough APNs send fails');

@@ -20,8 +20,9 @@ import { UsersService } from '../users/users.service';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
 import { AutoActionSettings } from './notification-actions.util';
-import { NotificationDeliveryType } from './notifications.types';
+import { NotificationDeliveryType, PushMode } from './notifications.types';
 import { WebPushService } from './web-push.service';
+import { IosDeliveryStrategy } from './dto/external-notify.dto';
 
 export interface PushResult {
   success: boolean;
@@ -36,9 +37,11 @@ interface BuiltExternalPayload {
   privatizedPayload: any;
   payload: any;
   deviceData: any;
+  // Kept for request shaping towards notify-external; no longer
+  // duplicated in execution output now that the external API
+  // returns full iOS metadata in `providerResponse.data`.
   retryWithoutEncEnabled?: boolean;
 }
-
 @Injectable()
 export class PushNotificationOrchestratorService {
   private readonly logger = new Logger(
@@ -64,12 +67,6 @@ export class PushNotificationOrchestratorService {
     private readonly localeService: LocaleService,
   ) { }
 
-
-  /**
- * Get device-specific settings for multiple devices in one batch
- * Returns a map with key format: "deviceId" -> settings
- * Makes ONE query per device since settings are now device+user level
- */
   private parseListSetting(raw?: string | null): number[] | undefined {
     if (!raw) return undefined;
     try {
@@ -100,46 +97,46 @@ export class PushNotificationOrchestratorService {
     };
   }
 
-  private buildIosDeliveryMetadata(
-    privatizedPayload: any,
-    retryWithoutEncEnabled: boolean,
-  ): {
-    sentWithEncryption: boolean;
-    sentWithoutEncryption: boolean;
-    sentWithSelfDownload: boolean;
-    retryWithoutEncEnabled: boolean;
-  } {
-    let sentWithEncryption = false;
-    let sentWithoutEncryption = false;
-    let sentWithSelfDownload = false;
+  /**
+   * Build metadata object for NOTIFICATION / NOTIFICATION_FAILED events.
+   * For iOS passthrough, we propagate platform plus sentWith/availableMethods
+   * coming from notify-external; for other platforms we currently track only
+   * the platform.
+   */
+  private buildNotificationTrackingMetadata(
+    platform: DevicePlatform,
+    data?: any,
+  ): Record<string, any> | undefined {
+    if (!platform && !data) {
+      return undefined;
+    }
 
-    const payloadArray = Array.isArray(privatizedPayload)
-      ? privatizedPayload
-      : privatizedPayload
-        ? [privatizedPayload]
-        : [];
+    const meta: Record<string, any> = {};
 
-    for (const p of payloadArray) {
-      if (!p || typeof p !== 'object') continue;
+    if (platform) {
+      meta.platform = platform;
+    }
 
-      if ((p as any).selfDownload) {
-        sentWithSelfDownload = true;
-      } else if ((p as any).e) {
-        // Encrypted payloads have the "e" field set
-        sentWithEncryption = true;
-      } else {
-        // Non-encrypted, full payload (either initial or retry without encryption)
-        sentWithoutEncryption = true;
+    if (platform === DevicePlatform.IOS && data) {
+      const { sentWith, availableMethods } = data as {
+        sentWith?: IosDeliveryStrategy;
+        availableMethods?: IosDeliveryStrategy[];
+      };
+
+      if (sentWith) {
+        meta.sentWith = sentWith;
+      }
+      if (Array.isArray(availableMethods) && availableMethods.length > 0) {
+        meta.availableMethods = availableMethods;
       }
     }
 
-    return {
-      sentWithEncryption,
-      sentWithoutEncryption,
-      sentWithSelfDownload,
-      retryWithoutEncEnabled,
-    };
+    return Object.keys(meta).length > 0 ? meta : undefined;
   }
+
+  // iOS delivery metadata is now provided directly by the external
+  // notify-external API in `providerResponse.data`, so we no longer
+  // derive or store additional iosMeta fields here.
 
   private async getDeviceSettingsForMultipleDevices(
     devices: Array<{ deviceId: string; userId: string }>,
@@ -505,70 +502,44 @@ export class PushNotificationOrchestratorService {
     let executionError: string | undefined;
     let executionOutput: string | undefined;
     let privatizedInput: string = JSON.stringify({ platform: userDevice.platform, notificationId: notification.id });
-    let payloadStats: { averagePayloadSizeKB?: number; maxPayloadSizeKB?: number } | undefined;
 
     try {
       const allowUnencryptedRetryOnPayloadTooLarge = settings.unencryptOnBigPayload ?? false;
 
-      let result: { success: boolean; error?: string };
+      let result: { success: boolean; error?: string } = { success: false };
       let providerResponse: any;
-      let privatizedInput: any;
-      let iosDeliveryMeta:
-        | {
-          sentWithEncryption: boolean;
-          sentWithoutEncryption: boolean;
-          sentWithSelfDownload: boolean;
-          retryWithoutEncEnabled: boolean;
-        }
-        | undefined;
 
       if (userDevice.platform === DevicePlatform.IOS) {
-        const { privatizedPayload, ...iosResult } = await this.iosPushService.send(notification, [
-          userDevice,
-        ], settings, { allowUnencryptedRetryOnPayloadTooLarge });
+        const { privatizedPayload, ...iosResult } = await this.iosPushService.send(
+          notification,
+          [userDevice],
+          settings,
+          { allowUnencryptedRetryOnPayloadTooLarge },
+        );
 
         result = { success: !!iosResult.success, error: iosResult.error };
-
-        if (iosResult.averagePayloadSizeKB || iosResult.maxPayloadSizeKB) {
-          payloadStats = {
-            averagePayloadSizeKB: iosResult.averagePayloadSizeKB,
-            maxPayloadSizeKB: iosResult.maxPayloadSizeKB,
-          };
-        }
 
         if (privatizedPayload) {
           privatizedInput = JSON.stringify(privatizedPayload);
         }
 
-        // Determine which delivery strategies were used based on the built payloads
-        iosDeliveryMeta = this.buildIosDeliveryMetadata(
-          privatizedPayload,
-          allowUnencryptedRetryOnPayloadTooLarge,
-        );
+        const firstResult = iosResult.results?.[0];
 
-        if (iosResult.payloadTooLargeDetected) {
-          const firstResult = iosResult.results && iosResult.results.length > 0
-            ? iosResult.results[0]
-            : undefined;
+        if (firstResult && firstResult.payloadTooLarge) {
           const retrySucceeded = !!firstResult?.retrySuccess;
-          const retryInfo = iosResult.retryAttempted
+          const retryAttempted =
+            !!firstResult?.retriedWithoutEncryption || retrySucceeded;
+          const retryInfo = retryAttempted
             ? ` (retry ${retrySucceeded ? 'succeeded' : 'failed'})`
             : ' (retry not attempted)';
           executionError = `iOS PayloadTooLarge detected${retryInfo}`;
-          executionStatus = retrySucceeded ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
+          executionStatus = retrySucceeded
+            ? ExecutionStatus.SUCCESS
+            : ExecutionStatus.ERROR;
         }
 
-        // Build a trimmed providerResponse for EntityExecution output, enriched with delivery strategy flags
-        providerResponse = {
-          success: iosResult.success,
-          error: iosResult.error,
-          payloadTooLargeDetected: iosResult.payloadTooLargeDetected,
-          retryAttempted: iosResult.retryAttempted,
-          averagePayloadSizeKB: iosResult.averagePayloadSizeKB,
-          maxPayloadSizeKB: iosResult.maxPayloadSizeKB,
-          resultsCount: iosResult.results?.length ?? 0,
-          ...(iosDeliveryMeta || {}),
-        };
+        // Build a trimmed providerResponse for EntityExecution output
+        providerResponse = iosResult;
       } else if (userDevice.platform === DevicePlatform.ANDROID) {
         const { privatizedPayload, ...androidResult } = await this.firebasePushService.send(notification, [
           userDevice,
@@ -608,12 +579,7 @@ export class PushNotificationOrchestratorService {
         platform: userDevice.platform,
         sentAt: new Date().toISOString(),
         providerResponse,
-        retryWithoutEncEnabled: allowUnencryptedRetryOnPayloadTooLarge,
       };
-
-      if (payloadStats) {
-        baseOutput.payloadStats = payloadStats;
-      }
 
       if (!result.success && result.error) {
         executionStatus = ExecutionStatus.ERROR;
@@ -638,15 +604,13 @@ export class PushNotificationOrchestratorService {
 
       // Track event with platform info
       if (!skipTracking) {
-        const iosMeta =
-          userDevice.platform === DevicePlatform.IOS ? iosDeliveryMeta : undefined;
+        const metadata = { platform: userDevice.platform };
 
         await this.eventTrackingService.trackNotification(
           userDevice.userId,
           userDevice.id,
           notification.id,
-          userDevice.platform,
-          iosMeta,
+          metadata,
         );
 
         if (!result.success) {
@@ -654,9 +618,7 @@ export class PushNotificationOrchestratorService {
             userDevice.userId,
             userDevice.id,
             notification.id,
-            userDevice.platform,
-            executionError || result.error,
-            iosMeta,
+            metadata,
           );
         }
       }
@@ -690,8 +652,7 @@ export class PushNotificationOrchestratorService {
           userDevice.userId,
           userDevice.id,
           notification.id,
-          userDevice.platform,
-          executionError,
+          { platform: userDevice.platform },
         );
       }
 
@@ -704,7 +665,7 @@ export class PushNotificationOrchestratorService {
    */
   private async getPushMode(
     platform: DevicePlatform,
-  ): Promise<'Off' | 'Local' | 'Onboard' | 'Passthrough'> {
+  ): Promise<PushMode> {
     let settingType: ServerSettingType;
 
     switch (platform) {
@@ -718,23 +679,28 @@ export class PushNotificationOrchestratorService {
         settingType = ServerSettingType.WebPush;
         break;
       default:
-        return 'Off';
+        return PushMode.OFF;
     }
 
     const mode = await this.serverSettingsService.getStringValue(
       settingType,
-      'Off',
+      PushMode.OFF,
     );
 
     // Validate the mode value
-    if (mode === 'Off' || mode === 'Local' || mode === 'Onboard' || mode === 'Passthrough') {
-      return mode;
+    if (
+      mode === PushMode.OFF ||
+      mode === PushMode.LOCAL ||
+      mode === PushMode.ONBOARD ||
+      mode === PushMode.PASSTHROUGH
+    ) {
+      return mode as PushMode;
     }
 
     this.logger.warn(
       `Invalid push mode '${mode}' for ${platform}, defaulting to 'Off'`,
     );
-    return 'Off';
+    return PushMode.OFF;
   }
 
   /**
@@ -746,28 +712,26 @@ export class PushNotificationOrchestratorService {
     userSettings: AutoActionSettings,
     skipTracking = false,
   ): Promise<{ success: boolean; error?: string }> {
-
-
     // Get the push mode for this platform
     const mode = await this.getPushMode(userDevice.platform);
 
     // Off - don't send anything (no push, no local)
-    if (mode === 'Off') {
+    if (mode === PushMode.OFF) {
       return { success: false, error: 'Notifications completely disabled for this platform' };
     }
 
     // Local - device-only notifications (no server push)
-    if (mode === 'Local') {
+    if (mode === PushMode.LOCAL) {
       return { success: false, error: 'Local mode: notifications handled by device only' };
     }
 
     // Onboard - use local onboard push services (APN, Firebase, WebPush)
-    if (mode === 'Onboard') {
+    if (mode === PushMode.ONBOARD) {
       return this.sendPushToSingleDeviceStateless(notification, userDevice, userSettings, skipTracking);
     }
 
     // Passthrough - use passthrough server
-    if (mode === 'Passthrough') {
+    if (mode === PushMode.PASSTHROUGH) {
       const server = await this.serverSettingsService.getStringValue(
         ServerSettingType.PushNotificationsPassthroughServer,
       );
@@ -843,23 +807,6 @@ export class PushNotificationOrchestratorService {
         remaining = res.headers.get('x-token-remaining');
       } catch { }
 
-      let passthroughDeliveryMeta:
-        | {
-          sentWithEncryption: boolean;
-          sentWithoutEncryption: boolean;
-          sentWithSelfDownload: boolean;
-          retryWithoutEncEnabled: boolean;
-        }
-        | undefined;
-      if (userDevice.platform === DevicePlatform.IOS && privatizedPayload) {
-        const retryWithoutEncEnabled =
-          (payload as any).retryWithoutEncEnabled ?? false;
-
-        passthroughDeliveryMeta = this.buildIosDeliveryMetadata(
-          privatizedPayload,
-          retryWithoutEncEnabled,
-        );
-      }
 
       // Parse body only if JSON
       let data: any = {};
@@ -878,19 +825,9 @@ export class PushNotificationOrchestratorService {
         );
 
         const providerResponse: any = {
-          status: res.status,
-          statusText: res.statusText,
+          ...res,
           data,
         };
-
-        providerResponse.sentWithEncryption = data.sentWithEncryption;
-        providerResponse.sentWithoutEncryption = data.sentWithoutEncryption;
-        providerResponse.sentWithSelfDownload = data.sentWithSelfDownload;
-
-        if (passthroughDeliveryMeta) {
-          providerResponse.retryWithoutEncEnabled =
-            passthroughDeliveryMeta.retryWithoutEncEnabled;
-        }
 
         const baseOutput: any = {
           deviceId: userDevice.id,
@@ -898,11 +835,6 @@ export class PushNotificationOrchestratorService {
           sentAt: new Date().toISOString(),
           providerResponse,
         };
-
-        if (passthroughDeliveryMeta) {
-          baseOutput.retryWithoutEncEnabled =
-            passthroughDeliveryMeta.retryWithoutEncEnabled;
-        }
 
         executionOutput = JSON.stringify(baseOutput);
 
@@ -964,14 +896,16 @@ export class PushNotificationOrchestratorService {
           durationMs,
         });
 
-        // Track event with platform info
         if (!skipTracking) {
+          const meta = this.buildNotificationTrackingMetadata(
+            userDevice.platform,
+            data,
+          );
           await this.eventTrackingService.trackNotification(
             userDevice.userId,
             userDevice.id,
             notification.id,
-            userDevice.platform,
-            passthroughDeliveryMeta,
+            meta,
           );
         }
 
@@ -991,21 +925,9 @@ export class PushNotificationOrchestratorService {
 
       // Include response details in output even for errors
       const providerResponse: any = {
-        status: res.status,
-        statusText: res.statusText,
+        ...res,
         data,
       };
-
-      if (passthroughDeliveryMeta) {
-        providerResponse.sentWithEncryption =
-          passthroughDeliveryMeta.sentWithEncryption;
-        providerResponse.sentWithoutEncryption =
-          passthroughDeliveryMeta.sentWithoutEncryption;
-        providerResponse.sentWithSelfDownload =
-          passthroughDeliveryMeta.sentWithSelfDownload;
-        providerResponse.retryWithoutEncEnabled =
-          passthroughDeliveryMeta.retryWithoutEncEnabled;
-      }
 
       const errorBaseOutput: any = {
         deviceId: userDevice.id,
@@ -1013,11 +935,6 @@ export class PushNotificationOrchestratorService {
         sentAt: new Date().toISOString(),
         providerResponse,
       };
-
-      if (passthroughDeliveryMeta) {
-        errorBaseOutput.retryWithoutEncEnabled =
-          passthroughDeliveryMeta.retryWithoutEncEnabled;
-      }
 
       const errorOutput = JSON.stringify(errorBaseOutput);
 
@@ -1036,13 +953,15 @@ export class PushNotificationOrchestratorService {
       });
 
       if (!skipTracking) {
+        const meta = this.buildNotificationTrackingMetadata(
+          userDevice.platform,
+          data,
+        );
         await this.eventTrackingService.trackNotificationFailed(
           userDevice.userId,
           userDevice.id,
           notification.id,
-          userDevice.platform,
-          error,
-          passthroughDeliveryMeta,
+          meta,
         );
       }
 
@@ -1088,8 +1007,7 @@ export class PushNotificationOrchestratorService {
           userDevice.userId,
           userDevice.id,
           notification.id,
-          userDevice.platform,
-          executionError,
+          { platform: userDevice.platform },
         );
       }
 

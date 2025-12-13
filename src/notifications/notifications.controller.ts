@@ -40,7 +40,9 @@ import {
   UpdateReceivedUpToDto,
 } from './dto';
 import {
-  ExternalNotifyRequestDto
+  ExternalNotifyRequestDto,
+  ExternalNotifyResponseDto,
+  IosDeliveryStrategy,
 } from './dto/external-notify.dto';
 import { PostponeNotificationDto, PostponeResponseDto } from './dto/postpone-notification.dto';
 import { NotificationPostponeService } from './notification-postpone.service';
@@ -357,9 +359,21 @@ export class NotificationsController {
         message: { type: 'string' },
         platform: { type: 'string' },
         sentAt: { type: 'string', format: 'date-time' },
-        sentWithEncryption: { type: 'boolean' },
-        sentWithoutEncryption: { type: 'boolean' },
-        sentWithSelfDownload: { type: 'boolean' },
+        sentWith: {
+          type: 'string',
+          nullable: true,
+          description: 'For iOS, which delivery strategy was effectively used to talk to APNs',
+          enum: Object.values(IosDeliveryStrategy),
+        },
+        availableMethods: {
+          type: 'array',
+          nullable: true,
+          description: 'For iOS, which delivery strategies were made available by the caller payload',
+          items: {
+            type: 'string',
+            enum: Object.values(IosDeliveryStrategy),
+          },
+        },
       },
     },
   })
@@ -372,7 +386,7 @@ export class NotificationsController {
     body: ExternalNotifyRequestDto,
     @GetSystemAccessToken()
     sat?: { id: string },
-  ) {
+  ): Promise<ExternalNotifyResponseDto> {
     if (!body || !body.platform) {
       this.logger.warn('[notify-external] Missing platform in request body');
       throw new BadRequestException('Missing platform');

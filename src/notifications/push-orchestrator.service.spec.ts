@@ -247,7 +247,7 @@ describe('PushNotificationOrchestratorService', () => {
   });
 
   describe('Passthrough retry behaviour', () => {
-    it('should forward retryWithoutEncEnabled=true to passthrough server and ios meta', async () => {
+    it('should forward retryWithoutEncEnabled=true to passthrough server', async () => {
       const iosDevice: UserDevice = {
         ...(mockUserDevice as UserDevice),
       };
@@ -298,14 +298,15 @@ describe('PushNotificationOrchestratorService', () => {
       const body = JSON.parse(options.body);
       expect(body.retryWithoutEncEnabled).toBe(true);
 
-      // iosMeta passed to event tracking should reflect the same flag
+      // Metadata for tracking is now passed as a dedicated object
       const eventTracking = (service as any).eventTrackingService;
       const trackNotificationCalls =
         (eventTracking.trackNotification as jest.Mock).mock.calls;
       expect(trackNotificationCalls.length).toBeGreaterThan(0);
-      const iosMeta = trackNotificationCalls[0][4];
-      expect(iosMeta).toBeDefined();
-      expect(iosMeta.retryWithoutEncEnabled).toBe(true);
+      const metaArg = trackNotificationCalls[0][4];
+      expect(metaArg).toEqual(
+        expect.objectContaining({ platform: iosDevice.platform }),
+      );
     });
 
     it('should forward retryWithoutEncEnabled=false when user setting is disabled', async () => {
@@ -358,9 +359,10 @@ describe('PushNotificationOrchestratorService', () => {
       expect(body.retryWithoutEncEnabled).toBe(false);
 
       const eventTracking = (service as any).eventTrackingService;
-      const iosMeta = (eventTracking.trackNotification as jest.Mock).mock.calls[0][4];
-      expect(iosMeta).toBeDefined();
-      expect(iosMeta.retryWithoutEncEnabled).toBe(false);
+      const metaArg = (eventTracking.trackNotification as jest.Mock).mock.calls[0][4];
+      expect(metaArg).toEqual(
+        expect.objectContaining({ platform: iosDevice.platform }),
+      );
     });
   });
 

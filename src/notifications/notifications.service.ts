@@ -22,8 +22,11 @@ import {
   ExternalDeviceDataIosDto,
   ExternalDeviceDataWebDto,
   ExternalNotifyRequestDto,
-  ExternalPlatform,
   ExternalNotifyRequestIosDto,
+  ExternalNotifyRequestIosPayload,
+  ExternalNotifyResponseDto,
+  ExternalPlatform,
+  IosDeliveryStrategy,
 } from './dto/external-notify.dto';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
@@ -943,15 +946,7 @@ export class NotificationsService implements OnModuleInit {
    */
   async sendPrebuilt(
     body: ExternalNotifyRequestDto,
-  ): Promise<{
-    success: boolean;
-    message?: string;
-    platform: ExternalPlatform;
-    sentAt: string;
-    sentWithEncryption?: boolean;
-    sentWithoutEncryption?: boolean;
-    sentWithSelfDownload?: boolean;
-  }> {
+  ): Promise<ExternalNotifyResponseDto> {
     this.logger.log(
       `[passthrough] sendPrebuilt start | platform=${body.platform}`,
     );
@@ -963,26 +958,64 @@ export class NotificationsService implements OnModuleInit {
         const iosBody = body as ExternalNotifyRequestIosDto;
         const res = await this.iosPushService.sendPrebuilt(iosBody);
 
-        // Derive which dispatch strategies were made available by the caller
-        // based purely on the payload variants provided.
-        let sentWithEncryption = false;
-        let sentWithoutEncryption = false;
-        let sentWithSelfDownload = false;
+        // Derive which delivery methods were made available based on the
+        // payload variants provided by the caller.
+        const availableMethods: IosDeliveryStrategy[] = [];
+        const payloadField: ExternalNotifyRequestIosPayload = iosBody.payload;
 
-        const payloadField: any = iosBody.payload || {};
-        if (payloadField) {
-          if (
-            payloadField.encrypted ||
-            payloadField.unencrypted ||
-            payloadField.selfDownload
-          ) {
-            sentWithEncryption = !!payloadField.encrypted;
-            sentWithoutEncryption = !!payloadField.unencrypted;
-            sentWithSelfDownload = !!payloadField.selfDownload;
-          } else {
-            // Legacy single-variant format: treat it as encrypted variant.
-            sentWithEncryption = true;
+        // Multi-variant payload (encrypted/unencrypted/selfDownload)
+        if (
+          'encrypted' in payloadField ||
+          'unencrypted' in payloadField ||
+          'selfDownload' in payloadField
+        ) {
+          if (payloadField.encrypted) {
+            availableMethods.push(IosDeliveryStrategy.ENCRYPTED);
           }
+          if (payloadField.unencrypted) {
+            availableMethods.push(IosDeliveryStrategy.UNENCRYPTED);
+          }
+          if (payloadField.selfDownload) {
+            availableMethods.push(IosDeliveryStrategy.SELF_DOWNLOAD);
+          }
+        } else {
+          // Legacy single-variant format: treat it as encrypted-only.
+          availableMethods.push(IosDeliveryStrategy.ENCRYPTED);
+        }
+
+        // Determine which method was effectively used based on APNs results.
+        let sentWith: IosDeliveryStrategy | undefined;
+        let payloadSizeInKb: number | undefined;
+        if (res.success && Array.isArray(res.results) && res.results.length > 0) {
+          const results = res.results;
+          // 1) Prefer selfDownload if any successful selfDownload attempt exists
+          const selfDownloadSuccess = results.find(
+            (r) =>
+              r.payloadTooLarge &&
+              r.retriedWithoutEncryption === false &&
+              r.retrySuccess,
+          );
+          if (selfDownloadSuccess) {
+            sentWith = IosDeliveryStrategy.SELF_DOWNLOAD;
+            payloadSizeInKb = selfDownloadSuccess.payloadSizeInKb;
+          } else {
+            // 2) Then prefer unencrypted retry if it succeeded
+            const unencryptedSuccess = results.find(
+              (r) => r.retriedWithoutEncryption && r.retrySuccess,
+            );
+            if (unencryptedSuccess) {
+              sentWith = IosDeliveryStrategy.UNENCRYPTED;
+              payloadSizeInKb = unencryptedSuccess.payloadSizeInKb;
+            } else {
+              // 3) Fallback: encrypted (no successful fallback recorded)
+              sentWith = IosDeliveryStrategy.ENCRYPTED;
+              const encryptedAttempt = results[0];
+              payloadSizeInKb = encryptedAttempt?.payloadSizeInKb;
+            }
+          }
+        } else if (Array.isArray(res.results) && res.results.length > 0) {
+          const lastAttempt = res.results[res.results.length - 1];
+          payloadSizeInKb = lastAttempt.payloadSizeInKb;
         }
 
         if (!res.success) {
@@ -996,9 +1029,9 @@ export class NotificationsService implements OnModuleInit {
           message: res.error,
           platform: body.platform,
           sentAt,
-          sentWithEncryption,
-          sentWithoutEncryption,
-          sentWithSelfDownload,
+          sentWith,
+          availableMethods,
+          payloadSizeInKb,
         };
       } catch (error) {
         this.logger.error(
@@ -1022,10 +1055,15 @@ export class NotificationsService implements OnModuleInit {
           );
         }
 
+        const payloadSizeInKb = Number(
+          (Buffer.byteLength(JSON.stringify(body.payload), 'utf8') / 1024).toFixed(2),
+        );
+
         return {
           success: res.success,
           platform: body.platform,
           sentAt,
+          payloadSizeInKb,
         };
       } catch (error) {
         this.logger.error(
@@ -1049,10 +1087,15 @@ export class NotificationsService implements OnModuleInit {
           );
         }
 
+        const payloadSizeInKb = Number(
+          (Buffer.byteLength(JSON.stringify(body.payload), 'utf8') / 1024).toFixed(2),
+        );
+
         return {
           success: res.success,
           platform: body.platform,
           sentAt,
+          payloadSizeInKb,
         };
       } catch (error) {
         this.logger.error(
@@ -1072,9 +1115,9 @@ export class NotificationsService implements OnModuleInit {
       message,
       platform: body.platform,
       sentAt,
-      sentWithEncryption: false,
-      sentWithoutEncryption: false,
-      sentWithSelfDownload: false,
+      payloadSizeInKb: Number(
+        (Buffer.byteLength(JSON.stringify(body.payload), 'utf8') / 1024).toFixed(2),
+      ),
     };
   }
 }

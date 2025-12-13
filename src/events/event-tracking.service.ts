@@ -52,20 +52,18 @@ export class EventTrackingService {
     userId: string,
     deviceId: string,
     notificationId?: string,
-    platform?: string,
     metadata?: Record<string, any>,
   ): Promise<void> {
-    const additionalInfo = {
-      ...(platform ? { platform } : {}),
-      ...(metadata || {}),
-    };
-
     await this.eventsService.createEvent({
       type: EventType.NOTIFICATION,
       userId,
       objectId: notificationId,
       targetId: deviceId,
-      additionalInfo: Object.keys(additionalInfo).length > 0 ? additionalInfo : undefined,
+      // Notification tracking now relies entirely on the provided metadata
+      // object. Callers are responsible for building the meta payload
+      // (e.g. { platform, sentWith, availableMethods }).
+      additionalInfo:
+        metadata && Object.keys(metadata).length > 0 ? metadata : undefined,
     });
   }
 
@@ -73,23 +71,18 @@ export class EventTrackingService {
     userId: string,
     deviceId: string,
     notificationId?: string,
-    platform?: string,
-    reason?: string,
     metadata?: Record<string, any>,
   ): Promise<void> {
-    const additionalInfo = {
-      ...(platform ? { platform } : {}),
-      ...(reason ? { error: reason } : {}),
-      ...(metadata || {}),
-    };
-
     await this.eventsService.createEvent({
       type: EventType.NOTIFICATION_FAILED,
       userId,
       objectId: notificationId,
       targetId: deviceId,
+      // Failed notification tracking also uses only the externally provided
+      // metadata object so that callers have full control over what is
+      // persisted (e.g. platform, sentWith, availableMethods).
       additionalInfo:
-        Object.keys(additionalInfo).length > 0 ? additionalInfo : undefined,
+        metadata && Object.keys(metadata).length > 0 ? metadata : undefined,
     });
   }
 

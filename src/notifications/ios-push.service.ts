@@ -14,6 +14,7 @@ import {
   ExternalApnsPrebuiltVariantDto,
   ExternalApnsPrebuiltMultiPayloadDto,
   ExternalNotifyRequestIosDto,
+  IosDeliveryStrategy,
 } from './dto/external-notify.dto';
 import {
   MediaType,
@@ -50,18 +51,16 @@ export interface NotificationResult {
   payloadTooLarge?: boolean;
   retriedWithoutEncryption?: boolean;
   retrySuccess?: boolean;
-  payloadSizeKB?: number;
+  payloadSizeInKb?: number;
+  sentWith?: IosDeliveryStrategy;
+  availableMethods?: IosDeliveryStrategy[];
 }
 
 export interface SendResult {
   success: boolean;
   results?: NotificationResult[];
   error?: string;
-  payloadTooLargeDetected?: boolean;
-  retryAttempted?: boolean;
   privatizedPayload?: any;
-  averagePayloadSizeKB?: number;
-  maxPayloadSizeKB?: number;
 }
 
 @Injectable()
@@ -584,9 +583,6 @@ export class IOSPushService {
     try {
       // Send to all device tokens, encrypting per-device sensitive values in build
       const results: NotificationResult[] = [];
-      let payloadTooLargeDetected = false;
-      let retryAttempted = false;
-
       const privatizedPayload: any[] = [];
 
       for (const token of deviceTokens) {
@@ -617,7 +613,7 @@ export class IOSPushService {
             payloadTooLarge: false,
             retriedWithoutEncryption: false,
             retrySuccess: false,
-            payloadSizeKB,
+            payloadSizeInKb: payloadSizeKB,
           };
           results.push(resultEntry);
 
@@ -637,14 +633,12 @@ export class IOSPushService {
               ) {
                 // Mark flags
                 resultEntry.payloadTooLarge = true;
-                payloadTooLargeDetected = true;
                 let needSelfDownloadFallback = false;
                 if (options?.allowUnencryptedRetryOnPayloadTooLarge) {
                   this.logger.warn(
                     `📦 PayloadTooLarge detected (status ${statusCode}). Retrying without encryption...`,
                   );
                   try {
-                    retryAttempted = true;
                     resultEntry.retriedWithoutEncryption = true;
 
                     // Rebuild payload WITHOUT encryption by omitting device when building
@@ -667,10 +661,11 @@ export class IOSPushService {
                       token,
                     );
 
-                    const retrySuccess = !retryResult.failed || retryResult.failed.length === 0;
+                    const retrySuccess =
+                      !retryResult.failed || retryResult.failed.length === 0;
                     resultEntry.retrySuccess = retrySuccess;
                     resultEntry.result = retryResult; // Update with retry result
-                    resultEntry.payloadSizeKB = retryPayloadSizeKB;
+                    resultEntry.payloadSizeInKb = retryPayloadSizeKB;
                     needSelfDownloadFallback = !retrySuccess;
 
                     results.push({
@@ -679,7 +674,7 @@ export class IOSPushService {
                       payloadTooLarge: true,
                       retriedWithoutEncryption: true,
                       retrySuccess,
-                      payloadSizeKB: retryPayloadSizeKB,
+                      payloadSizeInKb: retryPayloadSizeKB,
                     });
 
                     if (retryResult.failed && retryResult.failed.length > 0) {
@@ -717,8 +712,6 @@ export class IOSPushService {
                     `📦 PayloadTooLarge detected. Sending minimal selfDownload payload...`,
                   );
                   try {
-                    retryAttempted = true;
-
                     const { notification_apn: selfDownloadNotification, privatizedPayload: selfDownloadPrivatized, payloadSizeKB: selfDownloadPayloadSizeKB } =
                       await this.buildAPNsPayload(
                         notification,
@@ -737,7 +730,7 @@ export class IOSPushService {
                     const selfDownloadSuccess = !selfDownloadResult.failed || selfDownloadResult.failed.length === 0;
                     resultEntry.retrySuccess = selfDownloadSuccess;
                     resultEntry.result = selfDownloadResult;
-                    resultEntry.payloadSizeKB = selfDownloadPayloadSizeKB;
+                    resultEntry.payloadSizeInKb = selfDownloadPayloadSizeKB;
 
                     results.push({
                       token,
@@ -745,7 +738,7 @@ export class IOSPushService {
                       payloadTooLarge: true,
                       retriedWithoutEncryption: false,
                       retrySuccess: selfDownloadSuccess,
-                      payloadSizeKB: selfDownloadPayloadSizeKB,
+                      payloadSizeInKb: selfDownloadPayloadSizeKB,
                     });
 
                     if (selfDownloadResult.failed && selfDownloadResult.failed.length > 0) {
@@ -809,23 +802,6 @@ export class IOSPushService {
           !r.error,
       ).length;
 
-      // Aggregate payload size statistics across all attempts
-      const payloadSizes = results
-        .map((r) => r.payloadSizeKB)
-        .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
-
-      let averagePayloadSizeKB: number | undefined;
-      let maxPayloadSizeKB: number | undefined;
-      if (payloadSizes.length > 0) {
-        const sum = payloadSizes.reduce((acc, v) => acc + v, 0);
-        averagePayloadSizeKB = Number(
-          (sum / payloadSizes.length).toFixed(2),
-        );
-        maxPayloadSizeKB = Number(
-          Math.max(...payloadSizes).toFixed(2),
-        );
-      }
-
       // Derive a human-readable error message when there are failures
       let topError: string | undefined;
       if (successCount === 0 && results.length > 0) {
@@ -860,11 +836,7 @@ export class IOSPushService {
         success: successCount > 0,
         error: topError,
         results,
-        payloadTooLargeDetected,
-        retryAttempted,
         privatizedPayload,
-        averagePayloadSizeKB,
-        maxPayloadSizeKB,
       };
     } catch (error) {
       this.logger.error('Error sending via APNs:', error);
@@ -930,21 +902,32 @@ export class IOSPushService {
     } =
       multi && (multi.encrypted || multi.unencrypted || multi.selfDownload)
         ? {
-            encrypted: multi.encrypted,
-            unencrypted: multi.unencrypted,
-            selfDownload: multi.selfDownload,
-          }
+          encrypted: multi.encrypted,
+          unencrypted: multi.unencrypted,
+          selfDownload: multi.selfDownload,
+        }
         : {
-            // backward compat: payloadField is directly { payload, priority, topic }
-            encrypted: payloadField as ExternalApnsPrebuiltVariantDto,
-          };
+          // backward compat: payloadField is directly { payload, priority, topic }
+          encrypted: payloadField as ExternalApnsPrebuiltVariantDto,
+        };
+
+    const availableMethods: IosDeliveryStrategy[] = [];
+    if (payloadVariants.encrypted) {
+      availableMethods.push(IosDeliveryStrategy.ENCRYPTED);
+    }
+    if (payloadVariants.unencrypted) {
+      availableMethods.push(IosDeliveryStrategy.UNENCRYPTED);
+    }
+    if (payloadVariants.selfDownload) {
+      availableMethods.push(IosDeliveryStrategy.SELF_DOWNLOAD);
+    }
 
     const results: NotificationResult[] = [];
     let payloadTooLargeDetected = false;
     let retryAttempted = false;
 
     const sendVariant = async (
-      label: 'encrypted' | 'unencrypted' | 'selfDownload',
+      deliveryStrategy: IosDeliveryStrategy,
       variant?: ExternalApnsPrebuiltVariantDto,
     ): Promise<{ ok: boolean; result?: any; payloadTooLarge?: boolean }> => {
       if (!variant || !variant.payload) {
@@ -967,8 +950,8 @@ export class IOSPushService {
       );
       const payloadSizeKB = Number((payloadSizeBytes / 1024).toFixed(2));
 
-      this.logger.log(
-        `Sending APN ${label} payload to device ${subToken} (size=${payloadSizeKB}KB)`,
+      this.logger.debug(
+        `Sending APN ${deliveryStrategy} payload to device ${subToken} (size=${payloadSizeKB}KB)`,
       );
 
       const apnResult = await this.provider!.send(notification_apn, token);
@@ -979,7 +962,9 @@ export class IOSPushService {
         payloadTooLarge: false,
         retriedWithoutEncryption: false,
         retrySuccess: false,
-        payloadSizeKB,
+        payloadSizeInKb: payloadSizeKB,
+        sentWith: deliveryStrategy,
+        availableMethods,
       };
       results.push(entry);
 
@@ -988,7 +973,7 @@ export class IOSPushService {
       if (!ok && apnResult.failed && apnResult.failed.length > 0) {
         for (const failed of apnResult.failed as any[]) {
           this.logger.error(
-            `❌ APN ${label} error for device ${subToken}: ${JSON.stringify(
+            `❌ APN ${deliveryStrategy} error for device ${subToken}: ${JSON.stringify(
               failed,
             )}`,
           );
@@ -1003,6 +988,10 @@ export class IOSPushService {
             payloadTooLargeDetected = true;
           }
         }
+      } else {
+        this.logger.log(
+          `✅ APN ${deliveryStrategy} send succeeded for device ${subToken} (size=${payloadSizeKB}KB)`,
+        );
       }
 
       return { ok, result: apnResult, payloadTooLarge: entry.payloadTooLarge };
@@ -1010,7 +999,7 @@ export class IOSPushService {
 
     try {
       // 1) First attempt: encrypted (when present)
-      let primaryResult = await sendVariant('encrypted', payloadVariants.encrypted);
+      let primaryResult = await sendVariant(IosDeliveryStrategy.ENCRYPTED, payloadVariants.encrypted);
 
       let needSelfDownloadFallback = false;
 
@@ -1025,7 +1014,7 @@ export class IOSPushService {
           `📦 PayloadTooLarge on encrypted, retrying with unencrypted for ${subToken}`,
         );
         const retryResult = await sendVariant(
-          'unencrypted',
+          IosDeliveryStrategy.UNENCRYPTED,
           payloadVariants.unencrypted,
         );
 
@@ -1050,7 +1039,7 @@ export class IOSPushService {
           `📦 Persistent PayloadTooLarge, using selfDownload fallback for ${subToken}`,
         );
         const selfResult = await sendVariant(
-          'selfDownload',
+          IosDeliveryStrategy.SELF_DOWNLOAD,
           payloadVariants.selfDownload,
         );
 
@@ -1064,14 +1053,14 @@ export class IOSPushService {
 
       // Case where we only have unencrypted/selfDownload but no encrypted variant
       if (!payloadVariants.encrypted && payloadVariants.unencrypted && results.length === 0) {
-        const unResult = await sendVariant('unencrypted', payloadVariants.unencrypted);
+        const unResult = await sendVariant(IosDeliveryStrategy.UNENCRYPTED, payloadVariants.unencrypted);
         if (unResult.payloadTooLarge && payloadVariants.selfDownload) {
           retryAttempted = true;
           this.logger.warn(
             `📦 PayloadTooLarge on unencrypted, using selfDownload fallback for ${subToken}`,
           );
           const selfResult = await sendVariant(
-            'selfDownload',
+            IosDeliveryStrategy.SELF_DOWNLOAD,
             payloadVariants.selfDownload,
           );
           const last = results[results.length - 1];
@@ -1089,21 +1078,6 @@ export class IOSPushService {
           (!r.result.failed || r.result.failed.length === 0) &&
           !r.error,
       ).length;
-
-      // Payload size statistics
-      const payloadSizes = results
-        .map((r) => r.payloadSizeKB)
-        .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
-
-      let averagePayloadSizeKB: number | undefined;
-      let maxPayloadSizeKB: number | undefined;
-      if (payloadSizes.length > 0) {
-        const sum = payloadSizes.reduce((acc, v) => acc + v, 0);
-        averagePayloadSizeKB = Number(
-          (sum / payloadSizes.length).toFixed(2),
-        );
-        maxPayloadSizeKB = Number(Math.max(...payloadSizes).toFixed(2));
-      }
 
       // Human-readable aggregated error
       let topError: string | undefined;
@@ -1139,12 +1113,7 @@ export class IOSPushService {
         success: successCount > 0,
         error: topError,
         results,
-        payloadTooLargeDetected,
-        retryAttempted,
-        // In this flow payloads are already pre-privatized by the external server
         privatizedPayload: undefined,
-        averagePayloadSizeKB,
-        maxPayloadSizeKB,
       };
     } catch (error) {
       this.logger.error('Error sending prebuilt via APNs:', error);

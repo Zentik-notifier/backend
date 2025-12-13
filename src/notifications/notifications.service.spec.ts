@@ -598,20 +598,30 @@ describe('NotificationsService', () => {
         },
       };
 
-      mockIOSPushService.sendPrebuilt.mockResolvedValue({ success: true });
+      mockIOSPushService.sendPrebuilt.mockResolvedValue({
+        success: true,
+        // Minimal shape to exercise sentWith derivation logic
+        results: [
+          {
+            payloadTooLarge: false,
+            retriedWithoutEncryption: false,
+            retrySuccess: true,
+          },
+        ],
+      } as any);
 
       const result = await service.sendPrebuilt(iosPayload);
+      const iosResult: any = result;
 
-      expect(result).toEqual(
+      expect(iosResult).toEqual(
         expect.objectContaining({
           success: true,
           platform: ExternalPlatform.IOS,
-          sentWithEncryption: true,
-          sentWithoutEncryption: false,
-          sentWithSelfDownload: false,
         }),
       );
-      expect(typeof result.sentAt).toBe('string');
+      expect(iosResult.availableMethods).toEqual(['ENCRYPTED']);
+      expect(iosResult.sentWith).toBe('ENCRYPTED');
+      expect(typeof iosResult.sentAt).toBe('string');
       expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(iosPayload);
     });
 
@@ -709,20 +719,20 @@ describe('NotificationsService', () => {
         },
       };
 
-      mockIOSPushService.sendPrebuilt.mockResolvedValue({ success: false });
+      mockIOSPushService.sendPrebuilt.mockResolvedValue({ success: false } as any);
 
       const result = await service.sendPrebuilt(iosPayload);
+      const iosResult: any = result;
 
-      expect(result).toEqual(
+      expect(iosResult).toEqual(
         expect.objectContaining({
           success: false,
           platform: ExternalPlatform.IOS,
-          sentWithEncryption: true,
-          sentWithoutEncryption: false,
-          sentWithSelfDownload: false,
         }),
       );
-      expect(typeof result.sentAt).toBe('string');
+      expect(iosResult.availableMethods).toEqual(['ENCRYPTED']);
+      expect(iosResult.sentWith).toBeUndefined();
+      expect(typeof iosResult.sentAt).toBe('string');
       expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(iosPayload);
     });
 
@@ -805,9 +815,6 @@ describe('NotificationsService', () => {
           success: false,
           message: 'Unsupported platform',
           platform: 'UNSUPPORTED',
-          sentWithEncryption: false,
-          sentWithoutEncryption: false,
-          sentWithSelfDownload: false,
         }),
       );
       expect(typeof result.sentAt).toBe('string');

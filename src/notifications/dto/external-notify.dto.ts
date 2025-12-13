@@ -40,6 +40,19 @@ export type ExternalNotifyRequestIosPayload =
   | ExternalApnsPrebuiltVariantDto
   | ExternalApnsPrebuiltMultiPayloadDto;
 
+/**
+ * Delivery strategies used by the iOS APNs flow.
+ *
+ * This enum backs the `sentWith` and `availableMethods` fields exposed
+ * by the notify-external endpoint and is also used internally in the
+ * orchestrator to reason about which strategy has been used.
+ */
+export enum IosDeliveryStrategy {
+  ENCRYPTED = 'ENCRYPTED',
+  UNENCRYPTED = 'UNENCRYPTED',
+  SELF_DOWNLOAD = 'SELF_DOWNLOAD',
+}
+
 export class ExternalDeviceDataIosDto {
   @ApiProperty({ description: 'APNs device token', example: '1a2b3c4d...' })
   @IsString()
@@ -166,6 +179,35 @@ export class ExternalNotifyRequestDto {
   @IsBoolean()
   retryWithoutEncEnabled?: boolean;
 }
+
+/**
+ * Base shape for notify-external responses across all platforms.
+ */
+export interface ExternalNotifyResponseBaseDto {
+  success: boolean;
+  message?: string;
+  platform: ExternalPlatform;
+  sentAt: string;
+  payloadSizeInKb?: number;
+}
+
+/**
+ * iOS-specific notify-external response, enriched with delivery metadata.
+ */
+export interface ExternalNotifyResponseIosDto extends ExternalNotifyResponseBaseDto {
+  platform: ExternalPlatform.IOS;
+  sentWith?: IosDeliveryStrategy;
+  availableMethods?: IosDeliveryStrategy[];
+}
+
+/**
+ * Discriminated union of all notify-external responses.
+ *
+ * For non-iOS platforms we currently only return the base fields.
+ */
+export type ExternalNotifyResponseDto =
+  | ExternalNotifyResponseIosDto
+  | ExternalNotifyResponseBaseDto;
 
 /**
  * Narrowed view of ExternalNotifyRequestDto for iOS requests.
