@@ -535,13 +535,13 @@ ${team}`;
   }
 
   async isEmailEnabled(): Promise<boolean> {
+    const mockMode = (process.env.EMAIL_MOCK_MODE || '').toLowerCase();
     const emailEnabled = await this.serverSettingsService.getBooleanValue(
       ServerSettingType.EmailEnabled,
       false,
     );
 
     if (!emailEnabled) {
-      const mockMode = (process.env.EMAIL_MOCK_MODE || '').toLowerCase();
       if (mockMode === 'success' || mockMode === 'fail') {
         this.logger.warn(
           'Email is disabled via settings but EMAIL_MOCK_MODE is set, treating email as enabled for mock.',
@@ -557,8 +557,20 @@ ${team}`;
 
     // Check if the initialized provider is available
     if (this.provider === EmailProvider.RESEND) {
+      if (!this.resend && (mockMode === 'success' || mockMode === 'fail')) {
+        this.logger.warn(
+          'Resend provider not configured but EMAIL_MOCK_MODE is set, treating email as enabled for mock.',
+        );
+        return true;
+      }
       return !!this.resend;
     } else {
+      if (!this.transporter && (mockMode === 'success' || mockMode === 'fail')) {
+        this.logger.warn(
+          'SMTP transporter not configured but EMAIL_MOCK_MODE is set, treating email as enabled for mock.',
+        );
+        return true;
+      }
       return !!this.transporter;
     }
   }
