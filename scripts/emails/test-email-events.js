@@ -190,6 +190,34 @@ async function registerTestUser(email) {
   return user;
 }
 
+async function loginUser(email, password) {
+  const res = await fetchHttp(`${BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: email,
+      password,
+    }),
+  });
+
+  if (res.statusCode >= 400) {
+    console.error(
+      `❌ Failed to login test user ${email}: ${res.statusCode} ${res.statusMessage}`,
+    );
+    console.error('Response:', res.data);
+    throw new Error('Failed to login test user');
+  }
+
+  const payload = JSON.parse(res.data || '{}');
+  const accessToken = payload.accessToken;
+  if (!accessToken) {
+    throw new Error('Login response missing accessToken');
+  }
+
+  console.log(`🔐 Logged in test user ${email}`);
+  return accessToken;
+}
+
 async function requestPasswordReset(email) {
   const mutation = `
     mutation RequestPasswordReset($input: RequestPasswordResetDto!) {
@@ -211,6 +239,133 @@ async function requestPasswordReset(email) {
   console.log(
     `🔁 requestPasswordReset for ${email}: success=${data.requestPasswordReset.success}, message="${data.requestPasswordReset.message}"`,
   );
+}
+
+async function createSystemTokenRequest(userAccessToken, description) {
+  const mutation = `
+    mutation CreateSatRequest($input: CreateSystemAccessTokenRequestDto!) {
+      createSystemAccessTokenRequest(input: $input) {
+        id
+        status
+      }
+    }
+  `;
+
+  const variables = {
+    input: {
+      maxRequests: 100,
+      description,
+    },
+  };
+
+  const res = await fetchHttp(`${BASE_URL}/graphql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userAccessToken}`,
+    },
+    body: JSON.stringify({ query: mutation, variables }),
+  });
+
+  if (res.statusCode >= 400) {
+    console.error(
+      `❌ Failed to create system access token request: ${res.statusCode} ${res.statusMessage}`,
+    );
+    console.error('Response:', res.data);
+    throw new Error('Failed to create system access token request');
+  }
+
+  const payload = JSON.parse(res.data || '{}');
+  if (payload.errors) {
+    console.error('❌ GraphQL errors while creating SAT request:', JSON.stringify(payload.errors, null, 2));
+    throw new Error('GraphQL returned errors while creating SAT request');
+  }
+
+  const req = payload.data?.createSystemAccessTokenRequest;
+  if (!req?.id) {
+    throw new Error('createSystemAccessTokenRequest did not return id');
+  }
+
+  console.log(`📝 Created System Access Token request: id=${req.id}, status=${req.status}`);
+  return req.id;
+}
+
+async function approveSystemTokenRequest(adminJwt, requestId) {
+  const mutation = `
+    mutation ApproveSatRequest($id: String!) {
+      approveSystemAccessTokenRequest(id: $id) {
+        id
+        status
+      }
+    }
+  `;
+
+  const variables = { id: requestId };
+
+  const res = await fetchHttp(`${BASE_URL}/graphql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${adminJwt}`,
+    },
+    body: JSON.stringify({ query: mutation, variables }),
+  });
+
+  if (res.statusCode >= 400) {
+    console.error(
+      `❌ Failed to approve system access token request ${requestId}: ${res.statusCode} ${res.statusMessage}`,
+    );
+    console.error('Response:', res.data);
+    throw new Error('Failed to approve SAT request');
+  }
+
+  const payload = JSON.parse(res.data || '{}');
+  if (payload.errors) {
+    console.error('❌ GraphQL errors while approving SAT request:', JSON.stringify(payload.errors, null, 2));
+    throw new Error('GraphQL returned errors while approving SAT request');
+  }
+
+  const req = payload.data?.approveSystemAccessTokenRequest;
+  console.log(`✅ Approved SAT request: id=${req?.id}, status=${req?.status}`);
+}
+
+async function declineSystemTokenRequest(adminJwt, requestId) {
+  const mutation = `
+    mutation DeclineSatRequest($id: String!) {
+      declineSystemAccessTokenRequest(id: $id, input: { reason: "E2E test decline" }) {
+        id
+        status
+      }
+    }
+  `;
+
+  const variables = { id: requestId };
+
+  const res = await fetchHttp(`${BASE_URL}/graphql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${adminJwt}`,
+    },
+    body: JSON.stringify({ query: mutation, variables }),
+  });
+
+  if (res.statusCode >= 400) {
+    console.error(
+      `❌ Failed to decline system access token request ${requestId}: ${res.statusCode} ${res.statusMessage}`,
+    );
+    console.error('Response:', res.data);
+    throw new Error('Failed to decline SAT request');
+  }
+
+  const payload = JSON.parse(res.data || '{}');
+  if (payload.errors) {
+    console.error('❌ GraphQL errors while declining SAT request:', JSON.stringify(payload.errors, null, 2));
+    throw new Error('GraphQL returned errors while declining SAT request');
+  }
+
+  const req = payload.data?.declineSystemAccessTokenRequest;
+  console.log(`✅ Declined SAT request: id=${req?.id}, status=${req?.status}`);
 }
 
 function countEventsForEmail(events, email) {
@@ -352,11 +507,33 @@ async function main() {
   const testEmail = `e2e-email-${Date.now()}@example.com`;
   console.log(`📧 Using test email: ${testEmail}`);
 
-  // 1) Register new user (triggers confirmation email if emailEnabled)
+  // 1) Register new user (triggers registration email if emailEnabled)
+  const password = 'E2eTestPassword123!';
   await registerTestUser(testEmail);
 
   // 2) Request password reset for that user (triggers reset email)
   await requestPasswordReset(testEmail);
+
+  // 3) Login as that user to create System Access Token requests
+  const userAccessToken = await loginUser(testEmail, password);
+
+  // 4) Create two System Access Token requests as the user
+  const satReqIdApproved = await createSystemTokenRequest(
+    userAccessToken,
+    'E2E test SAT request - approved',
+  );
+  const satReqIdDeclined = await createSystemTokenRequest(
+    userAccessToken,
+    'E2E test SAT request - declined',
+  );
+
+  // 5) Approve the first and decline the second as admin (triggers emails)
+  const adminJwtForSat = await getAdminJwt();
+  if (!adminJwtForSat) {
+    throw new Error('Unable to proceed with SAT tests: admin JWT not available');
+  }
+  await approveSystemTokenRequest(adminJwtForSat, satReqIdApproved);
+  await declineSystemTokenRequest(adminJwtForSat, satReqIdDeclined);
 
   // Small delay to ensure events are persisted
   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -382,9 +559,9 @@ async function main() {
   );
 
   if (EMAIL_MOCK_MODE === 'success') {
-    if (sentForEmail.length < 2) {
+    if (sentForEmail.length < 4) {
       console.error(
-        '❌ Expected at least 2 EMAIL_SENT events for test email (registration + password reset) in success mock mode',
+        '❌ Expected at least 4 EMAIL_SENT events for test email (registration + password reset + SAT approved + SAT declined) in success mock mode',
       );
       process.exit(1);
     }
