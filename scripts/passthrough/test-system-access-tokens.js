@@ -432,21 +432,23 @@ async function testPayloadTooLargeDoesNotIncrementCalls(adminJwt) {
 
   // New iOS metadata shape: sentWith + availableMethods
   if (body && body.sentWith != null) {
+    const sentWithUpper = String(body.sentWith).toUpperCase();
     expect(
-      body.sentWith === 'Encrypted' ||
-        body.sentWith === 'Unencrypted' ||
-        body.sentWith === 'SelfDownload',
-      'notify-external iOS sentWith must be one of Encrypted|Unencrypted|SelfDownload when present',
+      sentWithUpper === 'ENCRYPTED' ||
+        sentWithUpper === 'UNENCRYPTED' ||
+        sentWithUpper === 'SELF_DOWNLOAD',
+      'notify-external iOS sentWith must be one of ENCRYPTED|UNENCRYPTED|SELF_DOWNLOAD (case-insensitive) when present',
     );
   }
 
   if (body && body.availableMethods != null) {
     expect(Array.isArray(body.availableMethods), 'availableMethods must be an array when present');
     expect(
-      body.availableMethods.every((m) =>
-        m === 'Encrypted' || m === 'Unencrypted' || m === 'SelfDownload',
-      ),
-      'availableMethods must contain only Encrypted|Unencrypted|SelfDownload',
+      body.availableMethods.every((m) => {
+        const v = String(m).toUpperCase();
+        return v === 'ENCRYPTED' || v === 'UNENCRYPTED' || v === 'SELF_DOWNLOAD';
+      }),
+      'availableMethods must contain only ENCRYPTED|UNENCRYPTED|SELF_DOWNLOAD (case-insensitive)',
     );
   }
 

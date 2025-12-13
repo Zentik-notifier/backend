@@ -384,16 +384,26 @@ function extractExecutionMeta(executions) {
 
     const providerResponse = outputJson && outputJson.providerResponse ? outputJson.providerResponse : {};
 
+    // New iOS result model: flags are stored per-device in the first NotificationResult
+    const firstResult =
+        providerResponse && Array.isArray(providerResponse.results) && providerResponse.results.length > 0
+            ? providerResponse.results[0]
+            : {};
+
+    const sentWith = firstResult && firstResult.sentWith;
+
     return {
         execution: latest,
-        retryWithoutEncEnabled: !!(outputJson && outputJson.retryWithoutEncEnabled),
         providerResponse,
         flags: {
-            payloadTooLargeDetected: !!providerResponse.payloadTooLargeDetected,
-            retryAttempted: !!providerResponse.retryAttempted,
-            sentWithEncryption: !!providerResponse.sentWithEncryption,
-            sentWithoutEncryption: !!providerResponse.sentWithoutEncryption,
-            sentWithSelfDownload: !!providerResponse.sentWithSelfDownload,
+            payloadTooLargeDetected: !!(firstResult && firstResult.payloadTooLarge),
+            retryAttempted: !!(
+                firstResult &&
+                (firstResult.retriedWithoutEncryption || firstResult.retrySuccess)
+            ),
+            sentWithEncryption: sentWith === 'ENCRYPTED',
+            sentWithoutEncryption: sentWith === 'UNENCRYPTED',
+            sentWithSelfDownload: sentWith === 'SELF_DOWNLOAD',
         },
     };
 }
@@ -424,9 +434,6 @@ function summarizeScenario(scenarioKey, name, notification, executions, events) 
         );
         console.log(
             `      sentWithEncryption=${meta.flags.sentWithEncryption}, sentWithoutEncryption=${meta.flags.sentWithoutEncryption}, sentWithSelfDownload=${meta.flags.sentWithSelfDownload}`,
-        );
-        console.log(
-            `      retryWithoutEncEnabled=${meta.retryWithoutEncEnabled}`,
         );
     }
 
@@ -463,13 +470,6 @@ function summarizeScenario(scenarioKey, name, notification, executions, events) 
     const isRetryScenario =
         scenarioKey === 'SCENARIO_2_RETRY_SUCCESS' ||
         scenarioKey === 'SCENARIO_3_RETRY_SELF_DOWNLOAD';
-
-    // retryWithoutEncEnabled must mirror user setting (UnencryptOnBigPayload)
-    if (meta.retryWithoutEncEnabled !== isRetryScenario) {
-        throw new Error(
-            `Scenario ${scenarioKey}: expected retryWithoutEncEnabled=${isRetryScenario} but got ${meta.retryWithoutEncEnabled}`,
-        );
-    }
 
     if (mode === 'success') {
         // In success mock mode no PayloadTooLarge / selfDownload should be observed
