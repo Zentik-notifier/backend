@@ -14,7 +14,7 @@ export class ChangelogService {
     @InjectRepository(Changelog)
     private readonly changelogRepository: Repository<Changelog>,
     private readonly serverSettingsService: ServerSettingsService,
-  ) {}
+  ) { }
 
   async getLatest(): Promise<Changelog | null> {
     return this.changelogRepository.findOne({
