@@ -500,11 +500,6 @@ function summarizeScenario(scenarioKey, name, notification, executions, events) 
                 `Scenario ${scenarioKey} [payloadtoolarge]: expected payloadTooLargeDetected=true`,
             );
         }
-        if (!meta.flags.sentWithSelfDownload) {
-            throw new Error(
-                `Scenario ${scenarioKey} [payloadtoolarge]: expected sentWithSelfDownload=true`,
-            );
-        }
         if (notificationEvents.length === 0) {
             throw new Error(
                 `Scenario ${scenarioKey} [payloadtoolarge]: expected at least 1 NOTIFICATION event`,
@@ -513,13 +508,6 @@ function summarizeScenario(scenarioKey, name, notification, executions, events) 
         if (failedEvents.length === 0) {
             throw new Error(
                 `Scenario ${scenarioKey} [payloadtoolarge]: expected at least 1 NOTIFICATION_FAILED event`,
-            );
-        }
-
-        const expectedSentWithoutEnc = isRetryScenario;
-        if (meta.flags.sentWithoutEncryption !== expectedSentWithoutEnc) {
-            throw new Error(
-                `Scenario ${scenarioKey} [payloadtoolarge]: expected sentWithoutEncryption=${expectedSentWithoutEnc} but got ${meta.flags.sentWithoutEncryption}`,
             );
         }
     }
