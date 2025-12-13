@@ -107,7 +107,7 @@ async function fetchEventsByType(type) {
   const query = `
     query Events($query: EventsQueryDto!) {
       events(query: $query) {
-        items {
+        events {
           id
           type
           additionalInfo
@@ -149,8 +149,8 @@ async function fetchEventsByType(type) {
     throw new Error('GraphQL returned errors while fetching events');
   }
 
-  const items = payload.data?.events?.items;
-  return Array.isArray(items) ? items : [];
+  const events = payload.data?.events?.events;
+  return Array.isArray(events) ? events : [];
 }
 
 async function registerTestUser(email) {
