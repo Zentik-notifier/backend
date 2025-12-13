@@ -164,4 +164,44 @@ export class EventTrackingService {
       userId,
     });
   }
+
+  async trackEmailSent(
+    to: string,
+    subject?: string,
+    provider?: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    const additionalInfo: Record<string, any> = {
+      to,
+      ...(subject ? { subject } : {}),
+      ...(provider ? { provider } : {}),
+      ...(metadata || {}),
+    };
+
+    await this.eventsService.createEvent({
+      type: EventType.EMAIL_SENT,
+      additionalInfo,
+    });
+  }
+
+  async trackEmailFailed(
+    to: string,
+    subject?: string,
+    provider?: string,
+    error?: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    const additionalInfo: Record<string, any> = {
+      to,
+      ...(subject ? { subject } : {}),
+      ...(provider ? { provider } : {}),
+      ...(error ? { error } : {}),
+      ...(metadata || {}),
+    };
+
+    await this.eventsService.createEvent({
+      type: EventType.EMAIL_FAILED,
+      additionalInfo,
+    });
+  }
 }

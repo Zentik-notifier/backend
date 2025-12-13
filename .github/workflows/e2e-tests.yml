@@ -229,6 +229,91 @@ jobs:
           lsof -ti:4000 | xargs kill -9 2>/dev/null || true
           echo "Servers stopped"
 
+  email-events-e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zentik_test
+          POSTGRES_USER: zentik_user
+          POSTGRES_PASSWORD: zentik_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize E2E environment (DBs, servers, tokens, email mock)
+        env:
+          DB_TYPE: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: zentik_user
+          DB_PASSWORD: zentik_password
+          DB_SSL: 'false'
+          DB_SYNCHRONIZE: 'true'
+          DB_DROP_SCHEMA: 'false'
+          ADMIN_USERS: admin
+          ADMIN_DEFAULT_PASSWORD: admin
+          NODE_ENV: test
+          EMAIL_ENABLED: 'true'
+          EMAIL_TYPE: 'SMTP'
+          EMAIL_MOCK_MODE: 'success'
+        run: npm run e2e:init-environment
+
+      - name: Email events tests (EMAIL_SENT / EMAIL_FAILED)
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://localhost:3000/api/v1
+          EMAIL_MOCK_MODE: 'success'
+        run: node scripts/emails/test-email-events.js
+
+      - name: Show server logs on failure
+        if: failure()
+        run: |
+          echo "=== Server A logs ==="
+          tail -200 server-a.log 2>/dev/null || echo "No server-a.log found"
+          echo "=== Server B logs ==="
+          tail -200 server-b.log 2>/dev/null || echo "No server-b.log found"
+
+      - name: Stop servers
+        if: always()
+        run: |
+          if [ ! -z "$SERVER_A_PID" ]; then
+            echo "Stopping Server A (PID: $SERVER_A_PID)"
+            kill $SERVER_A_PID 2>/dev/null || true
+            sleep 2
+            kill -9 $SERVER_A_PID 2>/dev/null || true
+          fi
+          if [ ! -z "$SERVER_B_PID" ]; then
+            echo "Stopping Server B (PID: $SERVER_B_PID)"
+            kill $SERVER_B_PID 2>/dev/null || true
+            sleep 2
+            kill -9 $SERVER_B_PID 2>/dev/null || true
+          fi
+          # Also try to kill any node processes on ports 3000 and 4000
+          lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+          lsof -ti:4000 | xargs kill -9 2>/dev/null || true
+          echo "Servers stopped"
+
   sat-passthrough-apns-e2e:
     runs-on: ubuntu-latest
 

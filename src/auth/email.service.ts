@@ -6,6 +6,7 @@ import { LocaleService } from '../common/services/locale.service';
 import { Locale } from '../common/types/i18n';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { ServerSettingType } from '../entities/server-setting.entity';
+import { EventTrackingService } from '../events/event-tracking.service';
 
 export enum EmailProvider {
   SMTP = 'smtp',
@@ -39,6 +40,7 @@ export class EmailService {
     private configService: ConfigService,
     private localeService: LocaleService,
     private serverSettingsService: ServerSettingsService,
+    private eventTrackingService: EventTrackingService,
   ) {
     this.ensureInitialized().catch(error => {
       this.logger.error('Error initializing email service', error);
@@ -136,6 +138,27 @@ export class EmailService {
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
+    const mockMode = (process.env.EMAIL_MOCK_MODE || '').toLowerCase();
+    if (mockMode === 'success' || mockMode === 'fail') {
+      const success = mockMode === 'success';
+      this.logger.warn(
+        `EMAIL_MOCK_MODE=${mockMode}: mocking email send to ${options.to}`,
+      );
+
+      if (success) {
+        await this.safeTrackEmailSent(options, 'mock', { mockMode });
+      } else {
+        await this.safeTrackEmailFailed(
+          options,
+          'mock',
+          'Mocked email failure',
+          { mockMode },
+        );
+      }
+
+      return success;
+    }
+
     await this.ensureInitialized();
 
     if (this.provider === EmailProvider.RESEND) {
@@ -190,12 +213,22 @@ export class EmailService {
       this.logger.log(
         `Email sent successfully via Resend to ${options.to}, id: ${result.data?.id}`,
       );
+
+      await this.safeTrackEmailSent(options, 'resend', {
+        provider: 'Resend',
+        id: result.data?.id,
+      });
+
       return true;
     } catch (error) {
       this.logger.error(
         `Failed to send email via Resend to ${options.to}: ${error.message}`,
       );
       this.logger.error(`Resend error details: ${JSON.stringify(error)}`);
+
+       await this.safeTrackEmailFailed(options, 'resend', error.message, {
+         provider: 'Resend',
+       });
       return false;
     }
   }
@@ -233,6 +266,12 @@ export class EmailService {
       this.logger.log(
         `Email sent successfully via SMTP to ${options.to}, messageId: ${result.messageId || 'unknown'}`,
       );
+
+      await this.safeTrackEmailSent(options, 'smtp', {
+        provider: 'SMTP',
+        messageId: result.messageId || 'unknown',
+      });
+
       return true;
     } catch (error) {
       this.logger.error(
@@ -247,6 +286,13 @@ export class EmailService {
           stack: error.stack,
         })}`,
       );
+
+      await this.safeTrackEmailFailed(options, 'smtp', error.message, {
+        provider: 'SMTP',
+        code: error.code,
+        command: error.command,
+        responseCode: error.responseCode,
+      });
       return false;
     }
   }
@@ -495,6 +541,14 @@ ${team}`;
     );
 
     if (!emailEnabled) {
+      const mockMode = (process.env.EMAIL_MOCK_MODE || '').toLowerCase();
+      if (mockMode === 'success' || mockMode === 'fail') {
+        this.logger.warn(
+          'Email is disabled via settings but EMAIL_MOCK_MODE is set, treating email as enabled for mock.',
+        );
+        return true;
+      }
+
       return false;
     }
 
@@ -506,6 +560,54 @@ ${team}`;
       return !!this.resend;
     } else {
       return !!this.transporter;
+    }
+  }
+
+  private async safeTrackEmailSent(
+    options: EmailOptions,
+    provider: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    if (!this.eventTrackingService) {
+      return;
+    }
+
+    try {
+      await this.eventTrackingService.trackEmailSent(
+        options.to,
+        options.subject,
+        provider,
+        metadata,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to track EMAIL_SENT event for ${options.to}: ${err?.message}`,
+      );
+    }
+  }
+
+  private async safeTrackEmailFailed(
+    options: EmailOptions,
+    provider: string,
+    error: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    if (!this.eventTrackingService) {
+      return;
+    }
+
+    try {
+      await this.eventTrackingService.trackEmailFailed(
+        options.to,
+        options.subject,
+        provider,
+        error,
+        metadata,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to track EMAIL_FAILED event for ${options.to}: ${err?.message}`,
+      );
     }
   }
 

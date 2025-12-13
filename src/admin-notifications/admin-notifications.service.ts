@@ -220,6 +220,8 @@ export class AdminNotificationsService implements OnModuleInit {
       [EventType.SYSTEM_TOKEN_REQUEST_APPROVED]: '✅ System Token Request Approved',
       [EventType.SYSTEM_TOKEN_REQUEST_DECLINED]: '❌ System Token Request Declined',
       [EventType.USER_FEEDBACK]: '💬 User Feedback',
+      [EventType.EMAIL_SENT]: '📧 Email Sent',
+      [EventType.EMAIL_FAILED]: '📧 Email Failed',
     };
 
     return titles[eventType] || `Event: ${eventType}`;
