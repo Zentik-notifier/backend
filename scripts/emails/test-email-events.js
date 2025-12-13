@@ -509,13 +509,53 @@ async function main() {
 
   // 1) Register new user (triggers registration email if emailEnabled)
   const password = 'E2eTestPassword123!';
-  await registerTestUser(testEmail);
+  const user = await registerTestUser(testEmail);
 
   // 2) Request password reset for that user (triggers reset email)
   await requestPasswordReset(testEmail);
 
   // 3) Login as that user to create System Access Token requests
-  const userAccessToken = await loginUser(testEmail, password);
+  // If email confirmation is required, use the confirmation code from the user
+  let userAccessToken;
+  try {
+    userAccessToken = await loginUser(testEmail, password);
+  } catch (loginError) {
+    console.warn(
+      `⚠️ Initial login failed, trying to confirm email and login again for ${testEmail}...`,
+    );
+
+    const confirmationCode = user?.emailConfirmationToken;
+    if (!confirmationCode) {
+      console.error(
+        '❌ emailConfirmationToken not available from registration response; cannot auto-confirm email.',
+      );
+      throw loginError;
+    }
+
+    // Confirm email via GraphQL mutation using the confirmation code
+    const confirmMutation = `
+      mutation ConfirmEmail($input: ConfirmEmailDto!) {
+        confirmEmail(input: $input) {
+          success
+          message
+        }
+      }
+    `;
+
+    const confirmVariables = {
+      input: {
+        code: confirmationCode,
+      },
+    };
+
+    const confirmData = await graphqlRequest(confirmMutation, confirmVariables);
+    console.log(
+      `✅ confirmEmail for ${testEmail}: success=${confirmData.confirmEmail.success}, message="${confirmData.confirmEmail.message}"`,
+    );
+
+    // Retry login after email confirmation
+    userAccessToken = await loginUser(testEmail, password);
+  }
 
   // 4) Create two System Access Token requests as the user
   const satReqIdApproved = await createSystemTokenRequest(
