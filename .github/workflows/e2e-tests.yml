@@ -191,6 +191,7 @@ jobs:
           NODE_ENV: test
           IOS_APN_MOCK_MODE: payloadtoolarge
           ATTACHMENTS_ENABLED: 'true'
+          ATTACHMENTS_STORAGE_PATH: './storage/attachments-e2e'
           ICON_UPLOADER_ENABLED: 'true'
         run: npm run e2e:init-environment
 
