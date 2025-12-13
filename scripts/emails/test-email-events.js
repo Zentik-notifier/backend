@@ -99,39 +99,58 @@ async function fetchPublicAppConfig() {
 }
 
 async function fetchEventsByType(type) {
-  const url = `${BASE_URL}/events/by-type?type=${encodeURIComponent(
-    type,
-  )}&page=1&limit=100`;
-
   const adminJwt = await getAdminJwt();
   if (!adminJwt) {
     throw new Error('Unable to fetch events: admin JWT not available');
   }
 
-  const res = await fetchHttp(url, {
-    method: 'GET',
+  const query = `
+    query Events($query: EventsQueryDto!) {
+      events(query: $query) {
+        items {
+          id
+          type
+          additionalInfo
+          createdAt
+        }
+        total
+      }
+    }
+  `;
+
+  const variables = {
+    query: {
+      type,
+      page: 1,
+      limit: 100,
+    },
+  };
+
+  const res = await fetchHttp(`${BASE_URL}/graphql`, {
+    method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${adminJwt}`,
     },
+    body: JSON.stringify({ query, variables }),
   });
 
   if (res.statusCode >= 400) {
     console.error(
-      `❌ Failed to fetch events by type ${type}: ${res.statusCode} ${res.statusMessage}`,
+      `❌ Failed to fetch events by type ${type} via GraphQL: ${res.statusCode} ${res.statusMessage}`,
     );
     console.error('Response:', res.data);
     throw new Error(`Failed to fetch events of type ${type}`);
   }
 
-  const json = JSON.parse(res.data || '{}');
-  // Controller may return either an array or an object with { events, total, ... }
-  if (Array.isArray(json)) {
-    return json;
+  const payload = JSON.parse(res.data || '{}');
+  if (payload.errors) {
+    console.error('❌ GraphQL errors while fetching events:', JSON.stringify(payload.errors, null, 2));
+    throw new Error('GraphQL returned errors while fetching events');
   }
-  if (Array.isArray(json.events)) {
-    return json.events;
-  }
-  return [];
+
+  const items = payload.data?.events?.items;
+  return Array.isArray(items) ? items : [];
 }
 
 async function registerTestUser(email) {
