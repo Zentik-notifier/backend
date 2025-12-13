@@ -139,25 +139,6 @@ export class PushNotificationOrchestratorService {
     };
   }
 
-  private async isRetryWithoutEncryptionEnabled(
-    userId: string,
-    deviceId: string,
-  ): Promise<boolean> {
-    try {
-      const retrySetting = await this.usersService.getUserSetting(
-        userId,
-        UserSettingType.UnencryptOnBigPayload,
-        deviceId,
-      );
-      return retrySetting?.valueBool === true;
-    } catch {
-      this.logger.warn(
-        'Failed to load UnencryptOnBigPayload setting, skipping automatic retry on big payloads',
-      );
-      return false;
-    }
-  }
-
   private async getDeviceSettingsForMultipleDevices(
     devices: Array<{ deviceId: string; userId: string }>,
   ): Promise<Map<string, AutoActionSettings>> {
@@ -171,6 +152,7 @@ export class PushNotificationOrchestratorService {
       UserSettingType.AutoAddOpenNotificationAction,
       UserSettingType.DefaultSnoozes,
       UserSettingType.DefaultPostpones,
+      UserSettingType.UnencryptOnBigPayload,
     ];
 
     // Fetch settings once per device in parallel
@@ -299,7 +281,7 @@ export class PushNotificationOrchestratorService {
       }
 
       // Get device-specific settings
-      const deviceSettings = deviceSettingsMap.get(device.id);
+      const deviceSettings = deviceSettingsMap.get(device.id)!;
 
       const result = await this.dispatchPush(notif, device, deviceSettings, skipNotificationTracking);
       try {
@@ -513,7 +495,7 @@ export class PushNotificationOrchestratorService {
   public async sendPushToSingleDeviceStateless(
     notification: Notification,
     userDevice: UserDevice,
-    userSettings?: AutoActionSettings,
+    settings: AutoActionSettings,
     skipTracking = false,
   ): Promise<{ success: boolean; error?: string }> {
     const startTime = Date.now();
@@ -524,41 +506,18 @@ export class PushNotificationOrchestratorService {
     let payloadStats: { averagePayloadSizeKB?: number; maxPayloadSizeKB?: number } | undefined;
 
     try {
-      // If userSettings not provided, fetch from database
-      let settings = userSettings;
-      if (!settings) {
-        const userSettingsMap = await this.usersService.getMultipleUserSettings(
-          userDevice.userId,
-          [
-            UserSettingType.AutoAddDeleteAction,
-            UserSettingType.AutoAddMarkAsReadAction,
-            UserSettingType.AutoAddOpenNotificationAction,
-            UserSettingType.DefaultSnoozes,
-            UserSettingType.DefaultPostpones,
-          ],
-          userDevice.id,
-        );
-
-        settings = this.buildAutoActionSettings(userSettingsMap);
-      }
-
-      // Check per-user setting that controls retry on big payloads
-      const allowUnencryptedRetryOnPayloadTooLarge =
-        await this.isRetryWithoutEncryptionEnabled(
-          userDevice.userId,
-          userDevice.id,
-        );
+      const allowUnencryptedRetryOnPayloadTooLarge = settings.unencryptOnBigPayload ?? false;
 
       let result: { success: boolean; error?: string };
       let providerResponse: any;
       let privatizedInput: any;
       let iosDeliveryMeta:
         | {
-            sentWithEncryption: boolean;
-            sentWithoutEncryption: boolean;
-            sentWithSelfDownload: boolean;
-            retryWithoutEncEnabled: boolean;
-          }
+          sentWithEncryption: boolean;
+          sentWithoutEncryption: boolean;
+          sentWithSelfDownload: boolean;
+          retryWithoutEncEnabled: boolean;
+        }
         | undefined;
 
       if (userDevice.platform === DevicePlatform.IOS) {
@@ -782,7 +741,7 @@ export class PushNotificationOrchestratorService {
   private async dispatchPush(
     notification: Notification,
     userDevice: UserDevice,
-    userSettings?: AutoActionSettings,
+    userSettings: AutoActionSettings,
     skipTracking = false,
   ): Promise<{ success: boolean; error?: string }> {
 
@@ -854,17 +813,6 @@ export class PushNotificationOrchestratorService {
         `Passthrough send | notifId=${notification.id} platform=${payload.platform} url=${url} hasToken=${!!token}`,
       );
 
-      // For iOS, compute and attach the retry flag so the passthrough server
-      // knows whether retry without encryption is allowed for this user/device.
-      let retryWithoutEncEnabled = false;
-      if (userDevice.platform === DevicePlatform.IOS) {
-        retryWithoutEncEnabled = await this.isRetryWithoutEncryptionEnabled(
-          userDevice.userId,
-          userDevice.id,
-        );
-        (rest as any).retryWithoutEncEnabled = retryWithoutEncEnabled;
-      }
-
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -893,16 +841,31 @@ export class PushNotificationOrchestratorService {
         remaining = res.headers.get('x-token-remaining');
       } catch { }
 
-      // Compute iOS delivery metadata for passthrough based on the prebuilt payload
+      // Compute iOS delivery metadata for passthrough based on the
+      // prebuilt payload variants. Presence of a non-encrypted variant
+      // (no `e`, no `selfDownload`) implies that retry without encryption
+      // was allowed for this user/device.
       let passthroughDeliveryMeta:
         | {
-            sentWithEncryption: boolean;
-            sentWithoutEncryption: boolean;
-            sentWithSelfDownload: boolean;
-            retryWithoutEncEnabled: boolean;
-          }
+          sentWithEncryption: boolean;
+          sentWithoutEncryption: boolean;
+          sentWithSelfDownload: boolean;
+          retryWithoutEncEnabled: boolean;
+        }
         | undefined;
       if (userDevice.platform === DevicePlatform.IOS && privatizedPayload) {
+        const payloadArray = Array.isArray(privatizedPayload)
+          ? privatizedPayload
+          : [privatizedPayload];
+
+        const retryWithoutEncEnabled = payloadArray.some(
+          (p: any) =>
+            p &&
+            typeof p === 'object' &&
+            !p.selfDownload &&
+            !p.e,
+        );
+
         passthroughDeliveryMeta = this.buildIosDeliveryMetadata(
           privatizedPayload,
           retryWithoutEncEnabled,
@@ -1014,16 +977,16 @@ export class PushNotificationOrchestratorService {
           durationMs,
         });
 
-          // Track event with platform info
-          if (!skipTracking) {
-            await this.eventTrackingService.trackNotification(
-              userDevice.userId,
-              userDevice.id,
-              notification.id,
-              userDevice.platform,
-              passthroughDeliveryMeta,
-            );
-          }
+        // Track event with platform info
+        if (!skipTracking) {
+          await this.eventTrackingService.trackNotification(
+            userDevice.userId,
+            userDevice.id,
+            notification.id,
+            userDevice.platform,
+            passthroughDeliveryMeta,
+          );
+        }
 
         return { success: true };
       }
@@ -1158,6 +1121,7 @@ export class PushNotificationOrchestratorService {
       UserSettingType.AutoAddOpenNotificationAction,
       UserSettingType.DefaultSnoozes,
       UserSettingType.DefaultPostpones,
+      UserSettingType.UnencryptOnBigPayload,
     ];
 
     const settings = await this.usersService.getMultipleUserSettings(
@@ -1171,17 +1135,88 @@ export class PushNotificationOrchestratorService {
     let returnValue: BuiltExternalPayload | null = null;
 
     if (device.platform === DevicePlatform.IOS) {
-      const { payload, priority, topic, privatizedPayload } =
-        await this.iosPushService.buildAPNsPayload(notification, userSettings, device);
+      // 1) Encrypted variant (per-device, uses public key when available)
+      const {
+        payload: encryptedPayload,
+        priority: encryptedPriority,
+        topic: encryptedTopic,
+        privatizedPayload: encryptedPrivatized,
+      } = await this.iosPushService.buildAPNsPayload(
+        notification,
+        userSettings,
+        device,
+      );
 
-      // Payload is already privatized by ios-push.service
+      // 2) Unencrypted variant (only when user/device setting allows retry)
+      let unencryptedVariant:
+        | { payload: any; priority: number; topic: string | undefined; privatizedPayload: any }
+        | undefined;
+
+      const unencryptSetting = settings.get(UserSettingType.UnencryptOnBigPayload);
+      const allowUnencryptedRetryOnPayloadTooLarge = !!unencryptSetting?.valueBool;
+      if (allowUnencryptedRetryOnPayloadTooLarge) {
+        const {
+          payload: unencPayload,
+          priority: unencPriority,
+          topic: unencTopic,
+          privatizedPayload: unencPriv,
+        } = await this.iosPushService.buildAPNsPayload(
+          notification,
+          userSettings,
+          undefined, // no device -> no encryption
+        );
+        unencryptedVariant = {
+          payload: unencPayload,
+          priority: unencPriority,
+          topic: unencTopic,
+          privatizedPayload: unencPriv,
+        };
+      }
+
+      // 3) Minimal selfDownload variant (always provided)
+      const {
+        payload: selfPayload,
+        priority: selfPriority,
+        topic: selfTopic,
+        privatizedPayload: selfPriv,
+      } = await this.iosPushService.buildAPNsPayload(
+        notification,
+        userSettings,
+        undefined,
+        { selfDownload: true },
+      );
+
+      // Aggregate privatized payloads so we can still infer
+      // which strategies were used (encrypted / unencrypted / selfDownload)
+      const aggregatedPrivatized: any[] = [encryptedPrivatized];
+      if (unencryptedVariant?.privatizedPayload) {
+        aggregatedPrivatized.push(unencryptedVariant.privatizedPayload);
+      }
+      aggregatedPrivatized.push(selfPriv);
+
       returnValue = {
         platform: DevicePlatform.IOS,
-        privatizedPayload,
+        privatizedPayload: aggregatedPrivatized,
         payload: {
-          payload,
-          priority,
-          topic,
+          encrypted: {
+            payload: encryptedPayload,
+            priority: encryptedPriority,
+            topic: encryptedTopic,
+          },
+          ...(unencryptedVariant
+            ? {
+              unencrypted: {
+                payload: unencryptedVariant.payload,
+                priority: unencryptedVariant.priority,
+                topic: unencryptedVariant.topic,
+              },
+            }
+            : {}),
+          selfDownload: {
+            payload: selfPayload,
+            priority: selfPriority,
+            topic: selfTopic,
+          },
         },
         deviceData: {
           token: device.deviceToken,

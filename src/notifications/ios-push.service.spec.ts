@@ -3,6 +3,7 @@ import { IOSPushService } from './ios-push.service';
 import { LocaleService } from '../common/services/locale.service';
 import { NotificationActionType } from './notifications.types';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
+import { ExternalPlatform } from './dto/external-notify.dto';
 
 // Mock the crypto utils
 jest.mock('../common/utils/cryptoUtils', () => ({
@@ -102,17 +103,23 @@ describe('IOSPushService', () => {
         failed: [],
       });
 
-      const result = await service.sendPrebuilt({ deviceData, payload });
+      const result = await service.sendPrebuilt({
+        platform: ExternalPlatform.IOS,
+        deviceData,
+        payload,
+      } as any);
 
       expect(result.success).toBe(true);
       expect(result.results).toHaveLength(1);
-      expect(result.results![0]).toEqual({
-        token: 'test_device_token_123',
-        result: {
-          sent: [{ token: 'test_device_token_123' }],
-          failed: [],
-        },
-      });
+      expect(result.results![0]).toEqual(
+        expect.objectContaining({
+          token: 'test_device_token_123',
+          result: {
+            sent: [{ token: 'test_device_token_123' }],
+            failed: [],
+          },
+        }),
+      );
 
       expect(mockProvider.send).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -150,22 +157,28 @@ describe('IOSPushService', () => {
         ],
       });
 
-      const result = await service.sendPrebuilt({ deviceData, payload });
+      const result = await service.sendPrebuilt({
+        platform: ExternalPlatform.IOS,
+        deviceData,
+        payload,
+      } as any);
 
       expect(result.success).toBe(false);
       expect(result.results).toHaveLength(1);
-      expect(result.results![0]).toEqual({
-        token: 'test_device_token_123',
-        result: {
-          sent: [],
-          failed: [
-            {
-              token: 'test_device_token_123',
-              error: 'InvalidDeviceToken',
-            },
-          ],
-        },
-      });
+      expect(result.results![0]).toEqual(
+        expect.objectContaining({
+          token: 'test_device_token_123',
+          result: {
+            sent: [],
+            failed: [
+              {
+                token: 'test_device_token_123',
+                error: 'InvalidDeviceToken',
+              },
+            ],
+          },
+        }),
+      );
     });
 
     it('should throw error when provider is not initialized', async () => {
@@ -181,7 +194,13 @@ describe('IOSPushService', () => {
         topic: 'com.test.app',
       };
 
-      await expect(service.sendPrebuilt({ deviceData, payload })).rejects.toThrow(
+      await expect(
+        service.sendPrebuilt({
+          platform: ExternalPlatform.IOS,
+          deviceData,
+          payload,
+        } as any),
+      ).rejects.toThrow(
         'APNs provider not initialized',
       );
     });
@@ -199,9 +218,14 @@ describe('IOSPushService', () => {
 
       mockProvider.send.mockRejectedValue(new Error('Network error'));
 
-      await expect(service.sendPrebuilt({ deviceData, payload })).rejects.toThrow(
-        'Network error',
-      );
+      const result = await service.sendPrebuilt({
+        platform: ExternalPlatform.IOS,
+        deviceData,
+        payload,
+      } as any);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
     });
 
     it('should handle payload without priority', async () => {
@@ -220,7 +244,11 @@ describe('IOSPushService', () => {
         failed: [],
       });
 
-      const result = await service.sendPrebuilt({ deviceData, payload });
+      const result = await service.sendPrebuilt({
+        platform: ExternalPlatform.IOS,
+        deviceData,
+        payload,
+      } as any);
 
       expect(result.success).toBe(true);
       expect(mockProvider.send).toHaveBeenCalledWith(
@@ -248,7 +276,11 @@ describe('IOSPushService', () => {
         failed: [],
       });
 
-      const result = await service.sendPrebuilt({ deviceData, payload });
+      const result = await service.sendPrebuilt({
+        platform: ExternalPlatform.IOS,
+        deviceData,
+        payload,
+      } as any);
 
       expect(result.success).toBe(true);
       expect(mockProvider.send).toHaveBeenCalledWith(

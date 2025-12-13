@@ -23,6 +23,7 @@ import {
   ExternalDeviceDataWebDto,
   ExternalNotifyRequestDto,
   ExternalPlatform,
+  ExternalNotifyRequestIosDto,
 } from './dto/external-notify.dto';
 import { FirebasePushService } from './firebase-push.service';
 import { IOSPushService } from './ios-push.service';
@@ -949,7 +950,8 @@ export class NotificationsService implements OnModuleInit {
 
     if (body.platform === ExternalPlatform.IOS) {
       try {
-        const res = await this.iosPushService.sendPrebuilt(body);
+        const iosBody = body as ExternalNotifyRequestIosDto;
+        const res = await this.iosPushService.sendPrebuilt(iosBody);
 
         if (!res.success) {
           this.logger.error(

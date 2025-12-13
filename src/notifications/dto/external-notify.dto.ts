@@ -7,6 +7,39 @@ export enum ExternalPlatform {
   WEB = 'WEB',
 }
 
+/**
+ * Single APNs prebuilt payload variant used for iOS passthrough.
+ * This matches what the orchestrator builds when delegating to notify-external.
+ */
+export interface ExternalApnsPrebuiltVariantDto {
+  payload: any;
+  priority?: number;
+  topic?: string;
+}
+
+/**
+ * Multi-variant APNs payload for iOS passthrough.
+ *
+ * Compatibility notes:
+ * - "encrypted" contains the per-device encrypted payload (preferred)
+ * - "unencrypted" is used as a retry when APNs returns PayloadTooLarge
+ * - "selfDownload" is a minimal payload used as last-resort fallback
+ * - legacy callers may still send a single variant instead of this object
+ */
+export interface ExternalApnsPrebuiltMultiPayloadDto {
+  encrypted?: ExternalApnsPrebuiltVariantDto;
+  unencrypted?: ExternalApnsPrebuiltVariantDto;
+  selfDownload?: ExternalApnsPrebuiltVariantDto;
+}
+
+/**
+ * Allowed payload shapes for iOS notify-external requests.
+ * Either a single variant (legacy) or a multi-variant object.
+ */
+export type ExternalNotifyRequestIosPayload =
+  | ExternalApnsPrebuiltVariantDto
+  | ExternalApnsPrebuiltMultiPayloadDto;
+
 export class ExternalDeviceDataIosDto {
   @ApiProperty({ description: 'APNs device token', example: '1a2b3c4d...' })
   @IsString()
@@ -60,11 +93,32 @@ export class ExternalNotifyRequestDto {
     type: Object,
     examples: {
       IOS: {
-        rawPayload: {
-          aps: { alert: { title: 'Encrypted Notification' } },
-          enc: '...',
+        // Multi-variant APNs payload used by iOS passthrough
+        encrypted: {
+          payload: {
+            aps: { alert: { title: 'Encrypted Notification' } },
+            e: '...encrypted blob...'
+          },
+          priority: 10,
+          topic: 'com.example.app',
         },
-        customPayload: { priority: 10 },
+        unencrypted: {
+          payload: {
+            aps: { alert: { title: 'Hello' } },
+            tit: 'Hello',
+            bdy: 'World',
+          },
+          priority: 10,
+          topic: 'com.example.app',
+        },
+        selfDownload: {
+          payload: {
+            aps: { 'content-available': 1 },
+            selfDownload: true,
+          },
+          priority: 5,
+          topic: 'com.example.app',
+        },
       },
       ANDROID: {
         apns: {
@@ -112,3 +166,15 @@ export class ExternalNotifyRequestDto {
   @IsBoolean()
   retryWithoutEncEnabled?: boolean;
 }
+
+/**
+ * Narrowed view of ExternalNotifyRequestDto for iOS requests.
+ *
+ * This is used server-side to give strong typing to the iOS
+ * passthrough flow (notify-external → sendPrebuilt).
+ */
+export type ExternalNotifyRequestIosDto = ExternalNotifyRequestDto & {
+  platform: ExternalPlatform.IOS;
+  deviceData: ExternalDeviceDataIosDto;
+  payload: ExternalNotifyRequestIosPayload;
+};

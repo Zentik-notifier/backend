@@ -10,6 +10,7 @@ export interface AutoActionSettings {
   autoAddDeleteAction?: boolean;
   autoAddMarkAsReadAction?: boolean;
   autoAddOpenNotificationAction?: boolean;
+  unencryptOnBigPayload?: boolean;
   defaultSnoozes?: number[];
   defaultPostpones?: number[];
 }
@@ -20,8 +21,6 @@ export function generateAutomaticActions(
   localeService: LocaleService,
   userSettings?: AutoActionSettings,
 ): NotificationAction[] {
-  
-  
   const message = notification.message;
   const actions: NotificationAction[] = [];
   const locale = (message.locale || 'en-EN') as Locale;

@@ -11,6 +11,11 @@ import { ServerSettingsService } from '../server-manager/server-settings.service
 import { DevicePlatform } from '../users/dto';
 import { AutoActionSettings, generateAutomaticActions } from './notification-actions.util';
 import {
+  ExternalApnsPrebuiltVariantDto,
+  ExternalApnsPrebuiltMultiPayloadDto,
+  ExternalNotifyRequestIosDto,
+} from './dto/external-notify.dto';
+import {
   MediaType,
   NotificationActionType,
   NotificationDeliveryType,
@@ -871,50 +876,283 @@ export class IOSPushService {
   }
 
   /**
-   * Send a prebuilt APNs payload as-is using controller-provided deviceData and payload.
-   * deviceData: { token: string; priority?: number }
-   * payload: { rawPayload, customPayload } | rawPayload
+   * Send prebuilt APNs payloads as-is.
+   *
+    * Compatibility:
+    *  - legacy format: body.payload = { payload, priority, topic }
+    *  - extended multi-variant format:
+    *      body.payload = {
+    *        encrypted?: { payload, priority, topic },
+    *        unencrypted?: { payload, priority, topic },
+    *        selfDownload?: { payload, priority, topic },
+    *      }
+    *
+    * The external server can send:
+    *  - encrypted payload (encrypted)
+    *  - unencrypted payload for retry (unencrypted, optional)
+    *  - minimal selfDownload payload (selfDownload, recommended)
+    *
+    * This method mirrors the fallback strategy of `send`:
+    * 1) try encrypted payload (if present)
+    * 2) if APNs returns PayloadTooLarge and an unencrypted variant is provided, try it
+    * 3) if it still fails or unencrypted is missing, try selfDownload when available
    */
   async sendPrebuilt(
-    body: any,
+    body: ExternalNotifyRequestIosDto,
   ): Promise<SendResult> {
     await this.ensureInitialized();
-    const { deviceData: { token }, payload: payloadData } = body;
+
+    const token: string | undefined = body?.deviceData?.token;
+    if (!token || typeof token !== 'string') {
+      throw new Error('Missing or invalid device token in deviceData');
+    }
 
     if (!this.provider) {
       this.logger.error('APNs provider not initialized');
       throw new Error('APNs provider not initialized');
     }
 
-    // Extract payload structure: { payload, priority, topic }
-    const { payload: rawPayload, priority, topic } = payloadData;
-
-    // Reconstruct apn.Notification from components
-    const notification_apn = new apn.Notification();
-    notification_apn.rawPayload = rawPayload;
-    notification_apn.priority = priority;
-    notification_apn.topic = topic;
-
     const subToken = `${String(token).substring(0, 8)}...`;
-    this.logger.log(
-      `Sending APN passthrough notification to device ${subToken}`,
-    );
 
-    const result = await this.provider.send(notification_apn, token);
+    // Normalize payload into three possible variants.
+    // The DTO allows both a single-variant legacy shape and the
+    // newer multi-variant object with encrypted/unencrypted/selfDownload.
+    const payloadField = (body.payload || {}) as
+      | ExternalApnsPrebuiltVariantDto
+      | ExternalApnsPrebuiltMultiPayloadDto;
 
-    const ok = !result.failed || result.failed.length === 0;
+    const multi = payloadField as ExternalApnsPrebuiltMultiPayloadDto;
 
-    if (!ok && result.failed && result.failed.length > 0) {
-      for (const failed of result.failed as any[]) {
-        this.logger.error(
-          `❌ APN passthrough error for device ${subToken}: ${JSON.stringify(
-            failed,
-          )}`,
-        );
+    const payloadVariants: {
+      encrypted?: ExternalApnsPrebuiltVariantDto;
+      unencrypted?: ExternalApnsPrebuiltVariantDto;
+      selfDownload?: ExternalApnsPrebuiltVariantDto;
+    } =
+      multi && (multi.encrypted || multi.unencrypted || multi.selfDownload)
+        ? {
+            encrypted: multi.encrypted,
+            unencrypted: multi.unencrypted,
+            selfDownload: multi.selfDownload,
+          }
+        : {
+            // backward compat: payloadField is directly { payload, priority, topic }
+            encrypted: payloadField as ExternalApnsPrebuiltVariantDto,
+          };
+
+    const results: NotificationResult[] = [];
+    let payloadTooLargeDetected = false;
+    let retryAttempted = false;
+
+    const sendVariant = async (
+      label: 'encrypted' | 'unencrypted' | 'selfDownload',
+      variant?: ExternalApnsPrebuiltVariantDto,
+    ): Promise<{ ok: boolean; result?: any; payloadTooLarge?: boolean }> => {
+      if (!variant || !variant.payload) {
+        return { ok: false };
       }
-    }
 
-    return { success: ok, results: [{ token, result }] };
+      const notification_apn = new apn.Notification();
+      notification_apn.rawPayload = variant.payload;
+      if (typeof variant.priority !== 'undefined') {
+        notification_apn.priority = variant.priority as any;
+      }
+      if (variant.topic) {
+        notification_apn.topic = variant.topic;
+      }
+
+      // Estimate payload size in KB
+      const payloadSizeBytes = Buffer.byteLength(
+        JSON.stringify(variant.payload),
+        'utf8',
+      );
+      const payloadSizeKB = Number((payloadSizeBytes / 1024).toFixed(2));
+
+      this.logger.log(
+        `Sending APN ${label} payload to device ${subToken} (size=${payloadSizeKB}KB)`,
+      );
+
+      const apnResult = await this.provider!.send(notification_apn, token);
+
+      const entry: NotificationResult = {
+        token,
+        result: apnResult,
+        payloadTooLarge: false,
+        retriedWithoutEncryption: false,
+        retrySuccess: false,
+        payloadSizeKB,
+      };
+      results.push(entry);
+
+      const ok = !apnResult.failed || apnResult.failed.length === 0;
+
+      if (!ok && apnResult.failed && apnResult.failed.length > 0) {
+        for (const failed of apnResult.failed as any[]) {
+          this.logger.error(
+            `❌ APN ${label} error for device ${subToken}: ${JSON.stringify(
+              failed,
+            )}`,
+          );
+
+          const statusCode = Number(failed.status);
+          const reason = failed?.response?.reason;
+          if (
+            (statusCode === 403 || statusCode === 413) &&
+            reason === 'PayloadTooLarge'
+          ) {
+            entry.payloadTooLarge = true;
+            payloadTooLargeDetected = true;
+          }
+        }
+      }
+
+      return { ok, result: apnResult, payloadTooLarge: entry.payloadTooLarge };
+    };
+
+    try {
+      // 1) First attempt: encrypted (when present)
+      let primaryResult = await sendVariant('encrypted', payloadVariants.encrypted);
+
+      let needSelfDownloadFallback = false;
+
+      if (
+        !primaryResult.ok &&
+        primaryResult.payloadTooLarge &&
+        payloadVariants.unencrypted
+      ) {
+        // 2) Retry with unencrypted payload, when available
+        retryAttempted = true;
+        this.logger.warn(
+          `📦 PayloadTooLarge on encrypted, retrying with unencrypted for ${subToken}`,
+        );
+        const retryResult = await sendVariant(
+          'unencrypted',
+          payloadVariants.unencrypted,
+        );
+
+        const last = results[results.length - 1];
+        if (last) {
+          last.retriedWithoutEncryption = true;
+          last.retrySuccess = !!retryResult.ok;
+        }
+
+        if (!retryResult.ok) {
+          needSelfDownloadFallback = true;
+        }
+      } else if (!primaryResult.ok && primaryResult.payloadTooLarge) {
+        // No unencrypted variant available, go directly to selfDownload
+        needSelfDownloadFallback = true;
+      }
+
+      // 3) selfDownload fallback when required and available
+      if (needSelfDownloadFallback && payloadVariants.selfDownload) {
+        retryAttempted = true;
+        this.logger.warn(
+          `📦 Persistent PayloadTooLarge, using selfDownload fallback for ${subToken}`,
+        );
+        const selfResult = await sendVariant(
+          'selfDownload',
+          payloadVariants.selfDownload,
+        );
+
+        const last = results[results.length - 1];
+        if (last) {
+          // Here the retry is via selfDownload, not unencrypted
+          last.retriedWithoutEncryption = false;
+          last.retrySuccess = !!selfResult.ok;
+        }
+      }
+
+      // Case where we only have unencrypted/selfDownload but no encrypted variant
+      if (!payloadVariants.encrypted && payloadVariants.unencrypted && results.length === 0) {
+        const unResult = await sendVariant('unencrypted', payloadVariants.unencrypted);
+        if (unResult.payloadTooLarge && payloadVariants.selfDownload) {
+          retryAttempted = true;
+          this.logger.warn(
+            `📦 PayloadTooLarge on unencrypted, using selfDownload fallback for ${subToken}`,
+          );
+          const selfResult = await sendVariant(
+            'selfDownload',
+            payloadVariants.selfDownload,
+          );
+          const last = results[results.length - 1];
+          if (last) {
+            last.retriedWithoutEncryption = false;
+            last.retrySuccess = !!selfResult.ok;
+          }
+        }
+      }
+
+      // Aggregate success calculation
+      const successCount = results.filter(
+        (r) =>
+          r.result &&
+          (!r.result.failed || r.result.failed.length === 0) &&
+          !r.error,
+      ).length;
+
+      // Payload size statistics
+      const payloadSizes = results
+        .map((r) => r.payloadSizeKB)
+        .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
+
+      let averagePayloadSizeKB: number | undefined;
+      let maxPayloadSizeKB: number | undefined;
+      if (payloadSizes.length > 0) {
+        const sum = payloadSizes.reduce((acc, v) => acc + v, 0);
+        averagePayloadSizeKB = Number(
+          (sum / payloadSizes.length).toFixed(2),
+        );
+        maxPayloadSizeKB = Number(Math.max(...payloadSizes).toFixed(2));
+      }
+
+      // Human-readable aggregated error
+      let topError: string | undefined;
+      if (successCount === 0 && results.length > 0) {
+        const firstProblem = results.find(
+          (r) =>
+            r.error ||
+            (r.result && r.result.failed && r.result.failed.length > 0),
+        );
+
+        if (firstProblem) {
+          if (firstProblem.error) {
+            topError = firstProblem.error;
+          } else if (
+            firstProblem.result &&
+            firstProblem.result.failed &&
+            firstProblem.result.failed.length > 0
+          ) {
+            const f = firstProblem.result.failed[0];
+            const reason = f?.response?.reason;
+            if (reason) {
+              topError = `APNs error: ${reason}`;
+            } else if (f?.status) {
+              topError = `APNs error status ${f.status}`;
+            } else {
+              topError = 'APNs send failed';
+            }
+          }
+        }
+      }
+
+      return {
+        success: successCount > 0,
+        error: topError,
+        results,
+        payloadTooLargeDetected,
+        retryAttempted,
+        // In this flow payloads are already pre-privatized by the external server
+        privatizedPayload: undefined,
+        averagePayloadSizeKB,
+        maxPayloadSizeKB,
+      };
+    } catch (error) {
+      this.logger.error('Error sending prebuilt via APNs:', error);
+      return {
+        success: false,
+        error: (error as any)?.message || 'APNs prebuilt send failed',
+      };
+    }
   }
 
   async shutdown(): Promise<void> {
