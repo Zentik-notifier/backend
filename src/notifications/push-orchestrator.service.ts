@@ -88,12 +88,13 @@ export class PushNotificationOrchestratorService {
     const defaultSnoozes = this.parseListSetting(defaultSnoozesRaw);
     const defaultPostpones = this.parseListSetting(defaultPostponesRaw);
 
-
+    const unencryptOnBigPayload = settings.get(UserSettingType.UnencryptOnBigPayload)?.valueBool ?? false;
 
     return {
       autoAddDeleteAction: settings.get(UserSettingType.AutoAddDeleteAction)?.valueBool ?? true,
       autoAddMarkAsReadAction: settings.get(UserSettingType.AutoAddMarkAsReadAction)?.valueBool ?? true,
       autoAddOpenNotificationAction: settings.get(UserSettingType.AutoAddOpenNotificationAction)?.valueBool ?? false,
+      unencryptOnBigPayload,
       defaultSnoozes,
       defaultPostpones,
     };
