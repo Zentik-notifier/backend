@@ -103,10 +103,15 @@ async function fetchEventsByType(type) {
     type,
   )}&page=1&limit=100`;
 
+  const adminJwt = await getAdminJwt();
+  if (!adminJwt) {
+    throw new Error('Unable to fetch events: admin JWT not available');
+  }
+
   const res = await fetchHttp(url, {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${adminJwt}`,
     },
   });
 
