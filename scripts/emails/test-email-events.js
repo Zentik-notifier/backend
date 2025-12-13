@@ -188,10 +188,59 @@ function countEventsForEmail(events, email) {
   );
 }
 
+async function ensureEmailSettingsEnabled() {
+  console.log('⚙️ Ensuring email-related server settings are enabled via GraphQL...');
+
+  const mutation = `
+    mutation BatchUpdate($settings: [BatchUpdateSettingInput!]!) {
+      batchUpdateServerSettings(settings: $settings) {
+        configType
+        valueBool
+        valueText
+      }
+    }
+  `;
+
+  const variables = {
+    settings: [
+      {
+        configType: 'EmailEnabled',
+        valueBool: true,
+      },
+    ],
+  };
+
+  const res = await fetchHttp(`${BASE_URL}/graphql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TOKEN}`,
+    },
+    body: JSON.stringify({ query: mutation, variables }),
+  });
+
+  if (res.statusCode >= 400) {
+    console.error(`❌ Failed to batchUpdateServerSettings: ${res.statusCode} ${res.statusMessage}`);
+    console.error('Response:', res.data);
+    throw new Error('Failed to batchUpdateServerSettings');
+  }
+
+  const payload = JSON.parse(res.data || '{}');
+  if (payload.errors) {
+    console.error('❌ GraphQL errors in batchUpdateServerSettings:', JSON.stringify(payload.errors, null, 2));
+    throw new Error('batchUpdateServerSettings returned errors');
+  }
+
+  console.log('✅ Email-related server settings updated:', payload.data?.batchUpdateServerSettings);
+}
+
 async function main() {
   console.log('🚀 Starting EMAIL events E2E test');
   console.log(`BASE_URL=${BASE_URL}`);
   console.log(`EMAIL_MOCK_MODE=${EMAIL_MOCK_MODE}`);
+
+  // Ensure EmailEnabled=true so that public app-config and flows behave as expected
+  await ensureEmailSettingsEnabled();
 
   const appConfig = await fetchPublicAppConfig();
   console.log(
