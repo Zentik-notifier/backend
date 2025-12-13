@@ -43,6 +43,7 @@ import { AddUserLogsAndFeedbackEvent1763200000000 } from './database/migrations/
 import { CreateUserTemplatesTable1765194473000 } from './database/migrations/1765194473000-CreateUserTemplatesTable';
 import { AddMetadataToUserDevices1766000000000 } from './database/migrations/1766000000000-AddMetadataToUserDevices';
 import { CreateChangelogTable1767000000000 } from './database/migrations/1767000000000-CreateChangelogTable';
+import { AddChangelogRemoteServerSetting1768000000000 } from './database/migrations/1768000000000-AddChangelogRemoteServerSetting';
 
 config({ path: '.env' });
 
@@ -107,6 +108,7 @@ const dataSource = new DataSource({
     CreateUserTemplatesTable1765194473000,
     AddMetadataToUserDevices1766000000000,
     CreateChangelogTable1767000000000,
+    AddChangelogRemoteServerSetting1768000000000,
   ],
   migrationsTableName: 'migrations',
 });

@@ -37,6 +37,9 @@ export enum ServerSettingType {
   PushNotificationsPassthroughServer = 'PushNotificationsPassthroughServer',
   PushPassthroughToken = 'PushPassthroughToken',
   
+  // Changelog
+  ChangelogRemoteServer = 'ChangelogRemoteServer',
+  
   // Attachments
   AttachmentsEnabled = 'AttachmentsEnabled',
   AttachmentsStoragePath = 'AttachmentsStoragePath',

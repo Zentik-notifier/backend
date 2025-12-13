@@ -1129,6 +1129,7 @@ enum ServerSettingType {
   BackupExecuteOnStart
   BackupMaxToKeep
   BackupStoragePath
+  ChangelogRemoteServer
   CorsCredentials
   CorsOrigin
   EmailEnabled

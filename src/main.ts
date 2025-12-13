@@ -280,7 +280,7 @@ async function bootstrap() {
             if (!u || !p) { setStatus('Missing credentials', false); return; }
             try {
               const base = window.location.origin;
-              const prefix = '/api/v1';
+              const prefix = ${API_PREFIX};
               const res = await fetch(base + prefix + '/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

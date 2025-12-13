@@ -1,14 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Changelog } from '../entities/changelog.entity';
 import { CreateChangelogInput, UpdateChangelogInput } from './dto';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
+import { ServerSettingType } from '../entities/server-setting.entity';
 
 @Injectable()
 export class ChangelogService {
+  private readonly logger = new Logger(ChangelogService.name);
+
   constructor(
     @InjectRepository(Changelog)
     private readonly changelogRepository: Repository<Changelog>,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   async getLatest(): Promise<Changelog | null> {
@@ -18,10 +23,62 @@ export class ChangelogService {
   }
 
   async findAll(): Promise<Changelog[]> {
+    const remoteBase = await this.serverSettingsService.getStringValue(
+      ServerSettingType.ChangelogRemoteServer,
+    );
+
+    if (remoteBase) {
+      try {
+        const baseUrl = remoteBase.replace(/\/$/, '');
+        const res = await fetch(`${baseUrl}/changelogs`);
+
+        if (res.ok) {
+          const data = await res.json();
+          return data as Changelog[];
+        }
+
+        this.logger.warn(
+          `Remote changelog list request failed with status ${res.status}, falling back to local repository`,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Remote changelog list request errored, falling back to local repository: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
     return this.changelogRepository.find({ order: { createdAt: 'DESC' } });
   }
 
   async findOne(id: string): Promise<Changelog> {
+    const remoteBase = await this.serverSettingsService.getStringValue(
+      ServerSettingType.ChangelogRemoteServer,
+    );
+
+    if (remoteBase) {
+      try {
+        const baseUrl = remoteBase.replace(/\/$/, '');
+        const res = await fetch(`${baseUrl}/changelogs/${id}`);
+
+        if (res.status === 404) {
+          throw new NotFoundException(`Changelog with id ${id} not found`);
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          return data as Changelog;
+        }
+
+        this.logger.warn(
+          `Remote changelog detail request failed with status ${res.status}, falling back to local repository`,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Remote changelog detail request errored, falling back to local repository: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
     const item = await this.changelogRepository.findOne({ where: { id } });
     if (!item) {
       throw new NotFoundException(`Changelog with id ${id} not found`);

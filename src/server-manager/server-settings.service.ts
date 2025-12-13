@@ -149,6 +149,9 @@ export class ServerSettingsService {
         { configType: ServerSettingType.PushNotificationsPassthroughServer, envKey: 'PUSH_NOTIFICATIONS_PASSTHROUGH_SERVER', type: 'string', defaultValue: 'https://notifier-api.zentik.app/api/v1' },
         { configType: ServerSettingType.PushPassthroughToken, envKey: 'PUSH_PASSTHROUGH_TOKEN', type: 'string' },
 
+        // Changelog
+        { configType: ServerSettingType.ChangelogRemoteServer, envKey: 'CHANGELOG_REMOTE_SERVER', type: 'string', defaultValue: 'https://notifier-api.zentik.app' },
+
         // Attachments
         { configType: ServerSettingType.AttachmentsEnabled, envKey: 'ATTACHMENTS_ENABLED', type: 'boolean', defaultValue: false },
         { configType: ServerSettingType.AttachmentsStoragePath, envKey: 'ATTACHMENTS_STORAGE_PATH', type: 'string', defaultValue: '/attachments' },
