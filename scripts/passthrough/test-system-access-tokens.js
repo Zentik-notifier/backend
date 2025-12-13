@@ -228,6 +228,38 @@ async function callNotifyExternal(rawToken) {
   return res;
 }
 
+async function callNotifyExternalIos(rawToken) {
+  // Use IOS platform to exercise APNs path (payloadTooLarge mock, etc.)
+  const body = {
+    platform: 'IOS',
+    payload: {
+      payload: {
+        aps: {
+          alert: { title: 'SAT E2E iOS', body: 'Testing payloadTooLarge via passthrough' },
+          sound: 'default',
+        },
+      },
+      priority: 10,
+      topic: 'com.apocaliss92.zentik',
+    },
+    deviceData: {
+      token: 'sat-e2e-ios-mock-token',
+    },
+  };
+
+  const res = await fetchHttp(`${BASE_URL_B}/notifications/notify-external`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${rawToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  return res;
+}
+
 async function withDbClient(fn) {
   const client = new Client({
     host: DB_HOST,
@@ -367,6 +399,40 @@ async function testNonExistingToken() {
   log('✔ Non-existing token is rejected and no headers are returned.');
 }
 
+async function testPayloadTooLargeDoesNotIncrementCalls(adminJwt) {
+  log('--- Test: payloadTooLarge via passthrough does not increment calls ---');
+
+  // Create a fresh token with some maxCalls and ensure calls = 0
+  const sat = await createSystemToken(adminJwt, 5, 'E2E payloadTooLarge token');
+  await setTokenCalls(sat.id, 0);
+
+  const before = await getSystemToken(adminJwt, sat.id);
+  expect(before && before.calls === 0, 'Precondition: calls must start at 0');
+
+  const res = await callNotifyExternalIos(sat.rawToken);
+  log(`notify-external (ios, payloadTooLarge) HTTP status=${res.status}`);
+
+  let body = null;
+  try {
+    body = JSON.parse(res.data || '{}');
+  } catch (e) {
+    log(`Failed to parse notify-external iOS response JSON: ${e.message}`);
+  }
+
+  // In payloadTooLarge mock mode the APNs send should fail and report success=false
+  if (body) {
+    log(`[sat-e2e] notify-external iOS response: ${JSON.stringify(body)}`);
+  }
+
+  expect(body && body.success === false, 'notify-external iOS should report success=false when APNs send fails (e.g., PayloadTooLarge)');
+
+  const after = await getSystemToken(adminJwt, sat.id);
+  expect(after && after.calls === before.calls, 'Token calls must not increase when passthrough APNs send fails');
+  expect(after && after.totalCalls === before.totalCalls, 'Token totalCalls must not increase when passthrough APNs send fails');
+
+  log('✔ PayloadTooLarge via passthrough does not increment SAT call counters.');
+}
+
 async function testNonAdminCannotUpdateTokenScopes(adminJwt) {
   log('--- Test: only admin can update token scopes ---');
 
@@ -461,6 +527,7 @@ async function main() {
   await testTokenExhausted(jwt, limitedSat);
   await testNonExistingToken();
   await testNonAdminCannotUpdateTokenScopes(jwt);
+  await testPayloadTooLargeDoesNotIncrementCalls(jwt);
 
   log('All System Access Token E2E tests completed successfully.');
 }
