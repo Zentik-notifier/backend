@@ -895,14 +895,25 @@ export class IOSPushService {
     notification_apn.priority = priority;
     notification_apn.topic = topic;
 
-    this.logger.log(`Sending APN notification to token: ${token} and topic ${topic} with priority ${priority}`);
-    const result = await this.provider.send(notification_apn, token);
-
+    const subToken = `${String(token).substring(0, 8)}...`;
     this.logger.log(
-      `APN send result: ${JSON.stringify({ failed: result.failed, sent: result.sent })}`,
+      `Sending APN passthrough notification to device ${subToken}`,
     );
 
+    const result = await this.provider.send(notification_apn, token);
+
     const ok = !result.failed || result.failed.length === 0;
+
+    if (!ok && result.failed && result.failed.length > 0) {
+      for (const failed of result.failed as any[]) {
+        this.logger.error(
+          `❌ APN passthrough error for device ${subToken}: ${JSON.stringify(
+            failed,
+          )}`,
+        );
+      }
+    }
+
     return { success: ok, results: [{ token, result }] };
   }
 

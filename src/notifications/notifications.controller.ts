@@ -370,33 +370,13 @@ export class NotificationsController {
     @GetSystemAccessToken()
     sat?: { id: string },
   ) {
-    this.logger.log(
-      `Passthrough recv | tokenId=${sat?.id || 'n/a'} provider=${body?.platform || 'n/a'}`,
-    );
-
     if (!body || !body.platform) {
       this.logger.warn('[notify-external] Missing platform in request body');
       throw new BadRequestException('Missing platform');
     }
 
-    if (sat) {
-      this.logger.log(
-        `[notify-external] Processing external notification request using system access token: ${sat.id}`,
-      );
-    } else {
-      this.logger.warn('[notify-external] No system access token found in request');
-    }
-
-    this.logger.debug(
-      `[notify-external] Request body - Platform: ${body.platform}, Payload present: ${!!body.payload}, DeviceData present: ${!!body.deviceData}`,
-    );
-
     try {
       const result = await this.notificationsService.sendPrebuilt(body);
-
-      this.logger.log(
-        `Passthrough handled | tokenId=${sat?.id || 'n/a'} success=${result.success}`,
-      );
 
       if (sat && result.success) {
         await this.systemAccessTokenService.incrementCalls(sat.id);
@@ -407,7 +387,7 @@ export class NotificationsController {
 
       return result;
     } catch (error) {
-      this.logger.error(`Passthrough handled | tokenId=${sat?.id || 'n/a'} success=false error=${error}`);
+      this.logger.error('[notify-external] Failed to process external notification', error);
       throw error;
     }
   }

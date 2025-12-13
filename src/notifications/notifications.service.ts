@@ -943,35 +943,80 @@ export class NotificationsService implements OnModuleInit {
   async sendPrebuilt(
     body: ExternalNotifyRequestDto,
   ): Promise<{ success: boolean; message?: string }> {
-    this.logger.log(`Processing sendPrebuilt for platform: ${body.platform}`);
+    this.logger.log(
+      `[passthrough] sendPrebuilt start | platform=${body.platform}`,
+    );
 
     if (body.platform === ExternalPlatform.IOS) {
-      this.logger.log(
-        `Sending iOS prebuilt notification to token: ${(body.deviceData as ExternalDeviceDataIosDto).token}`,
-      );
-      const res = await this.iosPushService.sendPrebuilt(
-        body
-      );
-      this.logger.log(`iOS sendPrebuilt result: ${JSON.stringify(res)}`);
-      return { success: res.success };
+      try {
+        const res = await this.iosPushService.sendPrebuilt(body);
+
+        if (!res.success) {
+          this.logger.error(
+            `[passthrough] iOS sendPrebuilt failed for token ${(body.deviceData as ExternalDeviceDataIosDto).token}`,
+          );
+        }
+
+        return { success: res.success };
+      } catch (error) {
+        this.logger.error(
+          '[passthrough] iOS sendPrebuilt threw error',
+          error,
+        );
+        throw error;
+      }
     }
 
     if (body.platform === ExternalPlatform.ANDROID) {
-      const res = await this.firebasePushService.sendPrebuilt(
-        body.deviceData as ExternalDeviceDataFcmDto,
-        body.payload,
-      );
-      return { success: res.success };
+      try {
+        const res = await this.firebasePushService.sendPrebuilt(
+          body.deviceData as ExternalDeviceDataFcmDto,
+          body.payload,
+        );
+
+        if (!res.success) {
+          this.logger.error(
+            `[passthrough] Android sendPrebuilt failed for token ${(body.deviceData as ExternalDeviceDataFcmDto).token}`,
+          );
+        }
+
+        return { success: res.success };
+      } catch (error) {
+        this.logger.error(
+          '[passthrough] Android sendPrebuilt threw error',
+          error,
+        );
+        throw error;
+      }
     }
 
     if (body.platform === ExternalPlatform.WEB) {
-      const res = await this.webPushService.sendPrebuilt(
-        body.deviceData as ExternalDeviceDataWebDto,
-        body.payload,
-      );
-      return { success: res.success };
+      try {
+        const res = await this.webPushService.sendPrebuilt(
+          body.deviceData as ExternalDeviceDataWebDto,
+          body.payload,
+        );
+
+        if (!res.success) {
+          this.logger.error(
+            `[passthrough] Web sendPrebuilt failed for endpoint ${(body.deviceData as ExternalDeviceDataWebDto).endpoint}`,
+          );
+        }
+
+        return { success: res.success };
+      } catch (error) {
+        this.logger.error(
+          '[passthrough] Web sendPrebuilt threw error',
+          error,
+        );
+        throw error;
+      }
     }
 
-    return { success: false, message: 'Unsupported platform' };
+    const message = 'Unsupported platform';
+    this.logger.error(
+      `[passthrough] sendPrebuilt failed: ${message} (platform=${body.platform})`,
+    );
+    return { success: false, message };
   }
 }
