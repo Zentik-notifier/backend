@@ -36,6 +36,7 @@ interface BuiltExternalPayload {
   privatizedPayload: any;
   payload: any;
   deviceData: any;
+  retryWithoutEncEnabled?: boolean;
 }
 
 @Injectable()
@@ -841,10 +842,6 @@ export class PushNotificationOrchestratorService {
         remaining = res.headers.get('x-token-remaining');
       } catch { }
 
-      // Compute iOS delivery metadata for passthrough based on the
-      // prebuilt payload variants. Presence of a non-encrypted variant
-      // (no `e`, no `selfDownload`) implies that retry without encryption
-      // was allowed for this user/device.
       let passthroughDeliveryMeta:
         | {
           sentWithEncryption: boolean;
@@ -854,17 +851,8 @@ export class PushNotificationOrchestratorService {
         }
         | undefined;
       if (userDevice.platform === DevicePlatform.IOS && privatizedPayload) {
-        const payloadArray = Array.isArray(privatizedPayload)
-          ? privatizedPayload
-          : [privatizedPayload];
-
-        const retryWithoutEncEnabled = payloadArray.some(
-          (p: any) =>
-            p &&
-            typeof p === 'object' &&
-            !p.selfDownload &&
-            !p.e,
-        );
+        const retryWithoutEncEnabled =
+          (payload as any).retryWithoutEncEnabled ?? false;
 
         passthroughDeliveryMeta = this.buildIosDeliveryMetadata(
           privatizedPayload,
@@ -894,13 +882,11 @@ export class PushNotificationOrchestratorService {
           data,
         };
 
+        providerResponse.sentWithEncryption = data.sentWithEncryption;
+        providerResponse.sentWithoutEncryption = data.sentWithoutEncryption;
+        providerResponse.sentWithSelfDownload = data.sentWithSelfDownload;
+
         if (passthroughDeliveryMeta) {
-          providerResponse.sentWithEncryption =
-            passthroughDeliveryMeta.sentWithEncryption;
-          providerResponse.sentWithoutEncryption =
-            passthroughDeliveryMeta.sentWithoutEncryption;
-          providerResponse.sentWithSelfDownload =
-            passthroughDeliveryMeta.sentWithSelfDownload;
           providerResponse.retryWithoutEncEnabled =
             passthroughDeliveryMeta.retryWithoutEncEnabled;
         }
@@ -1221,6 +1207,7 @@ export class PushNotificationOrchestratorService {
         deviceData: {
           token: device.deviceToken,
         },
+        retryWithoutEncEnabled: allowUnencryptedRetryOnPayloadTooLarge,
       };
     }
 

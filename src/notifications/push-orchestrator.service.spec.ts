@@ -253,9 +253,11 @@ describe('PushNotificationOrchestratorService', () => {
       };
 
       const usersService = (service as any).usersService;
-      (usersService.getUserSetting as jest.Mock).mockResolvedValueOnce({
-        valueBool: true,
-      });
+      (usersService.getMultipleUserSettings as jest.Mock).mockResolvedValue(
+        new Map([
+          [UserSettingType.UnencryptOnBigPayload, { valueBool: true }],
+        ]),
+      );
 
       // Ensure external payload building succeeds for iOS passthrough
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
@@ -312,9 +314,11 @@ describe('PushNotificationOrchestratorService', () => {
       };
 
       const usersService = (service as any).usersService;
-      (usersService.getUserSetting as jest.Mock).mockResolvedValueOnce({
-        valueBool: false,
-      });
+      (usersService.getMultipleUserSettings as jest.Mock).mockResolvedValue(
+        new Map([
+          [UserSettingType.UnencryptOnBigPayload, { valueBool: false }],
+        ]),
+      );
 
       // Ensure external payload building succeeds for iOS passthrough
       mockIOSPushService.buildAPNsPayload.mockResolvedValue({
@@ -362,18 +366,11 @@ describe('PushNotificationOrchestratorService', () => {
 
   describe('User Settings Integration', () => {
     it('should pass user settings to iOS push service', async () => {
-      const mockUsersService = {
-        getMultipleUserSettings: jest.fn().mockResolvedValue(
-          new Map([
-            [UserSettingType.AutoAddDeleteAction, { valueBool: false }],
-            [UserSettingType.AutoAddMarkAsReadAction, { valueBool: true }],
-            [UserSettingType.AutoAddOpenNotificationAction, { valueBool: false }],
-          ]),
-        ),
+      const userSettings = {
+        autoAddDeleteAction: false,
+        autoAddMarkAsReadAction: true,
+        autoAddOpenNotificationAction: false,
       };
-
-      // Replace UsersService mock for this test
-      (service as any).usersService = mockUsersService;
 
       mockIOSPushService.send.mockResolvedValue({ 
         success: true,
@@ -387,30 +384,14 @@ describe('PushNotificationOrchestratorService', () => {
       const result = await service.sendPushToSingleDeviceStateless(
         mockNotification as Notification,
         mockUserDevice as UserDevice,
+        userSettings,
       );
 
       expect(result.success).toBe(true);
-      expect(mockUsersService.getMultipleUserSettings).toHaveBeenCalledWith(
-        'user-1',
-        [
-          UserSettingType.AutoAddDeleteAction,
-          UserSettingType.AutoAddMarkAsReadAction,
-          UserSettingType.AutoAddOpenNotificationAction,
-          UserSettingType.DefaultSnoozes,
-          UserSettingType.DefaultPostpones,
-        ],
-        'device-1',
-      );
       expect(mockIOSPushService.send).toHaveBeenCalledWith(
         mockNotification,
         [mockUserDevice],
-        {
-          autoAddDeleteAction: false,
-          autoAddMarkAsReadAction: true,
-          autoAddOpenNotificationAction: false,
-          defaultSnoozes: undefined,
-          defaultPostpones: undefined,
-        },
+        userSettings,
         { allowUnencryptedRetryOnPayloadTooLarge: false },
       );
     });
@@ -420,6 +401,7 @@ describe('PushNotificationOrchestratorService', () => {
         autoAddDeleteAction: false,
         autoAddMarkAsReadAction: false,
         autoAddOpenNotificationAction: true,
+        unencryptOnBigPayload: true,
       };
 
       mockIOSPushService.send.mockResolvedValue({ 
@@ -447,42 +429,25 @@ describe('PushNotificationOrchestratorService', () => {
     });
 
     it('should default to true for DELETE and MARK_AS_READ, false for OPEN when user settings are not found', async () => {
-      const mockUsersService = {
-        getMultipleUserSettings: jest.fn().mockResolvedValue(
-          new Map([
-            [UserSettingType.AutoAddDeleteAction, null],
-            [UserSettingType.AutoAddMarkAsReadAction, null],
-            [UserSettingType.AutoAddOpenNotificationAction, null],
-          ]),
-        ),
-      };
+      const settingsMap = new Map<
+        UserSettingType,
+        { valueBool?: boolean } | null
+      >([
+        [UserSettingType.AutoAddDeleteAction, null],
+        [UserSettingType.AutoAddMarkAsReadAction, null],
+        [UserSettingType.AutoAddOpenNotificationAction, null],
+      ]);
 
-      (service as any).usersService = mockUsersService;
-
-      mockIOSPushService.send.mockResolvedValue({ 
-        success: true,
-        privatizedPayload: {
-          aps: { alert: { title: 'Test...' } },
-          nid: 'notification-1',
-          bid: 'bucket-1',
-        },
-      });
-
-      const result = await service.sendPushToSingleDeviceStateless(
-        mockNotification as Notification,
-        mockUserDevice as UserDevice,
+      const autoSettings = (service as any).buildAutoActionSettings(
+        settingsMap,
       );
 
-      expect(result.success).toBe(true);
-      expect(mockIOSPushService.send).toHaveBeenCalledWith(
-        mockNotification,
-        [mockUserDevice],
-        {
+      expect(autoSettings).toEqual(
+        expect.objectContaining({
           autoAddDeleteAction: true,
           autoAddMarkAsReadAction: true,
           autoAddOpenNotificationAction: false,
-        },
-        { allowUnencryptedRetryOnPayloadTooLarge: false },
+        }),
       );
     });
 
@@ -574,6 +539,7 @@ describe('PushNotificationOrchestratorService', () => {
         autoAddDeleteAction: true,
         autoAddMarkAsReadAction: true,
         autoAddOpenNotificationAction: true,
+        unencryptOnBigPayload: true,
       };
 
       const result = await service.sendPushToSingleDeviceStateless(
@@ -914,42 +880,80 @@ describe('PushNotificationOrchestratorService', () => {
 
       expect(payload).toEqual({
         platform: DevicePlatform.IOS,
-        privatizedPayload: {
-          aps: {
-            alert: { title: 'Encrypted Notification' },
-            sound: 'default',
-            'mutable-content': 1,
-            'content-available': 1,
-          },
-          enc: 'encrypted_data_blob...',
-          nid: 'notification-1',
-          bid: 'bucket-1',
-          mid: 'message-1',
-          dty: 'NORMAL',
-          sensitive: {
-            tit: 'Test...',
-            bdy: 'Test...',
-            stl: 'Test...',
-            att: ['IMAGE:https://...'],
-            tap: { type: 'OPEN_NOTIFICATION', value: 'notif...' },
-          },
-        },
-        payload: {
-          payload: {
+        privatizedPayload: [
+          {
             aps: {
               alert: { title: 'Encrypted Notification' },
               sound: 'default',
               'mutable-content': 1,
               'content-available': 1,
             },
-            enc: 'encrypted_data_blob',
+            enc: 'encrypted_data_blob...',
+            nid: 'notification-1',
+            bid: 'bucket-1',
+            mid: 'message-1',
+            dty: 'NORMAL',
+            sensitive: {
+              tit: 'Test...',
+              bdy: 'Test...',
+              stl: 'Test...',
+              att: ['IMAGE:https://...'],
+              tap: { type: 'OPEN_NOTIFICATION', value: 'notif...' },
+            },
           },
-          priority: 10,
-          topic: 'com.apocaliss92.zentik',
+          {
+            aps: {
+              alert: { title: 'Encrypted Notification' },
+              sound: 'default',
+              'mutable-content': 1,
+              'content-available': 1,
+            },
+            enc: 'encrypted_data_blob...',
+            nid: 'notification-1',
+            bid: 'bucket-1',
+            mid: 'message-1',
+            dty: 'NORMAL',
+            sensitive: {
+              tit: 'Test...',
+              bdy: 'Test...',
+              stl: 'Test...',
+              att: ['IMAGE:https://...'],
+              tap: { type: 'OPEN_NOTIFICATION', value: 'notif...' },
+            },
+          },
+        ],
+        payload: {
+          encrypted: {
+            payload: {
+              aps: {
+                alert: { title: 'Encrypted Notification' },
+                sound: 'default',
+                'mutable-content': 1,
+                'content-available': 1,
+              },
+              enc: 'encrypted_data_blob',
+            },
+            priority: 10,
+            topic: 'com.apocaliss92.zentik',
+          },
+          selfDownload: {
+            payload: {
+              aps: {
+                alert: { title: 'Encrypted Notification' },
+                sound: 'default',
+                'mutable-content': 1,
+                'content-available': 1,
+              },
+              enc: 'encrypted_data_blob',
+            },
+            priority: 10,
+            topic: 'com.apocaliss92.zentik',
+          },
         },
         deviceData: {
           token: 'test_ios_token',
         },
+        retryWithoutEncEnabled: false,
       });
 
       expect(mockIOSPushService.buildAPNsPayload).toHaveBeenCalledWith(

@@ -602,7 +602,16 @@ describe('NotificationsService', () => {
 
       const result = await service.sendPrebuilt(iosPayload);
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          platform: ExternalPlatform.IOS,
+          sentWithEncryption: true,
+          sentWithoutEncryption: false,
+          sentWithSelfDownload: false,
+        }),
+      );
+      expect(typeof result.sentAt).toBe('string');
       expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(iosPayload);
     });
 
@@ -633,7 +642,13 @@ describe('NotificationsService', () => {
 
       const result = await service.sendPrebuilt(androidPayload);
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          platform: ExternalPlatform.ANDROID,
+        }),
+      );
+      expect(typeof result.sentAt).toBe('string');
       expect(mockFirebasePushService.sendPrebuilt).toHaveBeenCalledWith(
         androidPayload.deviceData,
         androidPayload.payload,
@@ -668,7 +683,13 @@ describe('NotificationsService', () => {
 
       const result = await service.sendPrebuilt(webPayload);
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          platform: ExternalPlatform.WEB,
+        }),
+      );
+      expect(typeof result.sentAt).toBe('string');
       expect(mockWebPushService.sendPrebuilt).toHaveBeenCalledWith(
         webPayload.deviceData,
         webPayload.payload,
@@ -692,7 +713,16 @@ describe('NotificationsService', () => {
 
       const result = await service.sendPrebuilt(iosPayload);
 
-      expect(result).toEqual({ success: false });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          platform: ExternalPlatform.IOS,
+          sentWithEncryption: true,
+          sentWithoutEncryption: false,
+          sentWithSelfDownload: false,
+        }),
+      );
+      expect(typeof result.sentAt).toBe('string');
       expect(mockIOSPushService.sendPrebuilt).toHaveBeenCalledWith(iosPayload);
     });
 
@@ -715,7 +745,13 @@ describe('NotificationsService', () => {
 
       const result = await service.sendPrebuilt(androidPayload);
 
-      expect(result).toEqual({ success: false });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          platform: ExternalPlatform.ANDROID,
+        }),
+      );
+      expect(typeof result.sentAt).toBe('string');
       expect(mockFirebasePushService.sendPrebuilt).toHaveBeenCalledWith(
         androidPayload.deviceData,
         androidPayload.payload,
@@ -742,7 +778,13 @@ describe('NotificationsService', () => {
 
       const result = await service.sendPrebuilt(webPayload);
 
-      expect(result).toEqual({ success: false });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          platform: ExternalPlatform.WEB,
+        }),
+      );
+      expect(typeof result.sentAt).toBe('string');
       expect(mockWebPushService.sendPrebuilt).toHaveBeenCalledWith(
         webPayload.deviceData,
         webPayload.payload,
@@ -758,10 +800,17 @@ describe('NotificationsService', () => {
 
       const result = await service.sendPrebuilt(unsupportedPayload);
 
-      expect(result).toEqual({
-        success: false,
-        message: 'Unsupported platform',
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          message: 'Unsupported platform',
+          platform: 'UNSUPPORTED',
+          sentWithEncryption: false,
+          sentWithoutEncryption: false,
+          sentWithSelfDownload: false,
+        }),
+      );
+      expect(typeof result.sentAt).toBe('string');
     });
 
     it('should handle iOS service throwing error', async () => {

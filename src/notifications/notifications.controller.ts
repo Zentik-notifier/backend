@@ -357,6 +357,9 @@ export class NotificationsController {
         message: { type: 'string' },
         platform: { type: 'string' },
         sentAt: { type: 'string', format: 'date-time' },
+        sentWithEncryption: { type: 'boolean' },
+        sentWithoutEncryption: { type: 'boolean' },
+        sentWithSelfDownload: { type: 'boolean' },
       },
     },
   })

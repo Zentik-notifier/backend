@@ -943,15 +943,47 @@ export class NotificationsService implements OnModuleInit {
    */
   async sendPrebuilt(
     body: ExternalNotifyRequestDto,
-  ): Promise<{ success: boolean; message?: string }> {
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    platform: ExternalPlatform;
+    sentAt: string;
+    sentWithEncryption?: boolean;
+    sentWithoutEncryption?: boolean;
+    sentWithSelfDownload?: boolean;
+  }> {
     this.logger.log(
       `[passthrough] sendPrebuilt start | platform=${body.platform}`,
     );
+
+    const sentAt = new Date().toISOString();
 
     if (body.platform === ExternalPlatform.IOS) {
       try {
         const iosBody = body as ExternalNotifyRequestIosDto;
         const res = await this.iosPushService.sendPrebuilt(iosBody);
+
+        // Derive which dispatch strategies were made available by the caller
+        // based purely on the payload variants provided.
+        let sentWithEncryption = false;
+        let sentWithoutEncryption = false;
+        let sentWithSelfDownload = false;
+
+        const payloadField: any = iosBody.payload || {};
+        if (payloadField) {
+          if (
+            payloadField.encrypted ||
+            payloadField.unencrypted ||
+            payloadField.selfDownload
+          ) {
+            sentWithEncryption = !!payloadField.encrypted;
+            sentWithoutEncryption = !!payloadField.unencrypted;
+            sentWithSelfDownload = !!payloadField.selfDownload;
+          } else {
+            // Legacy single-variant format: treat it as encrypted variant.
+            sentWithEncryption = true;
+          }
+        }
 
         if (!res.success) {
           this.logger.error(
@@ -959,7 +991,15 @@ export class NotificationsService implements OnModuleInit {
           );
         }
 
-        return { success: res.success };
+        return {
+          success: res.success,
+          message: res.error,
+          platform: body.platform,
+          sentAt,
+          sentWithEncryption,
+          sentWithoutEncryption,
+          sentWithSelfDownload,
+        };
       } catch (error) {
         this.logger.error(
           '[passthrough] iOS sendPrebuilt threw error',
@@ -982,7 +1022,11 @@ export class NotificationsService implements OnModuleInit {
           );
         }
 
-        return { success: res.success };
+        return {
+          success: res.success,
+          platform: body.platform,
+          sentAt,
+        };
       } catch (error) {
         this.logger.error(
           '[passthrough] Android sendPrebuilt threw error',
@@ -1005,7 +1049,11 @@ export class NotificationsService implements OnModuleInit {
           );
         }
 
-        return { success: res.success };
+        return {
+          success: res.success,
+          platform: body.platform,
+          sentAt,
+        };
       } catch (error) {
         this.logger.error(
           '[passthrough] Web sendPrebuilt threw error',
@@ -1019,6 +1067,14 @@ export class NotificationsService implements OnModuleInit {
     this.logger.error(
       `[passthrough] sendPrebuilt failed: ${message} (platform=${body.platform})`,
     );
-    return { success: false, message };
+    return {
+      success: false,
+      message,
+      platform: body.platform,
+      sentAt,
+      sentWithEncryption: false,
+      sentWithoutEncryption: false,
+      sentWithSelfDownload: false,
+    };
   }
 }
