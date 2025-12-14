@@ -18,6 +18,7 @@ export class ChangelogService {
 
   async getLatest(): Promise<Changelog | null> {
     return this.changelogRepository.findOne({
+      where: { active: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -33,8 +34,8 @@ export class ChangelogService {
         const res = await fetch(`${baseUrl}/changelogs`);
 
         if (res.ok) {
-          const data = await res.json();
-          return data as Changelog[];
+          const data = (await res.json()) as Changelog[];
+          return data.filter((item) => item.active !== false);
         }
 
         this.logger.warn(
@@ -47,7 +48,17 @@ export class ChangelogService {
       }
     }
 
-    return this.changelogRepository.find({ order: { createdAt: 'DESC' } });
+    return this.changelogRepository.find({
+      where: { active: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findAllAdmin(): Promise<Changelog[]> {
+    // For admins we want the full list, including inactive entries
+    return this.changelogRepository.find({
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findOne(id: string): Promise<Changelog> {
@@ -93,6 +104,8 @@ export class ChangelogService {
       uiVersion: input.uiVersion ?? '',
       backendVersion: input.backendVersion ?? '',
       description: input.description,
+      active: input.active ?? true,
+      entries: input.entries ?? null,
     });
     return this.changelogRepository.save(entity);
   }
@@ -105,6 +118,8 @@ export class ChangelogService {
       uiVersion: input.uiVersion ?? existing.uiVersion,
       backendVersion: input.backendVersion ?? existing.backendVersion,
       description: input.description ?? existing.description,
+      active: input.active ?? existing.active,
+      entries: input.entries ?? existing.entries,
     });
     return this.changelogRepository.save(existing);
   }

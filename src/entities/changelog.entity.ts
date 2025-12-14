@@ -9,6 +9,17 @@ import {
 } from 'typeorm';
 
 @ObjectType()
+export class ChangelogEntry {
+  @Field(() => String)
+  @ApiProperty({ description: 'Entry type', example: 'feature' })
+  type: string;
+
+  @Field(() => String)
+  @ApiProperty({ description: 'Entry text' })
+  text: string;
+}
+
+@ObjectType()
 @Entity('changelogs')
 export class Changelog {
   @Field(() => ID)
@@ -40,6 +51,25 @@ export class Changelog {
   @ApiProperty({ description: 'Combined changelog description' })
   @Column({ type: 'text' })
   description: string;
+
+  @Field(() => Boolean, {
+    description: 'Whether this changelog is active and should be shown',
+  })
+  @ApiProperty({ description: 'Whether this changelog is active', default: true })
+  @Column({ type: 'boolean', default: true })
+  active: boolean;
+
+  @Field(() => [ChangelogEntry], {
+    nullable: true,
+    description: 'Structured changelog entries (type + text)',
+  })
+  @ApiProperty({
+    description: 'Structured changelog entries',
+    required: false,
+    type: () => [ChangelogEntry],
+  })
+  @Column({ type: 'jsonb', nullable: true })
+  entries?: ChangelogEntry[] | null;
 
   @Field()
   @ApiProperty()

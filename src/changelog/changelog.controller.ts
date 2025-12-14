@@ -21,6 +21,14 @@ export class ChangelogController {
     return this.changelogService.findOne(id);
   }
 
+  // Admin-only endpoint to fetch all changelogs (including inactive)
+  @Get('admin/all')
+  @UseGuards(AdminOnlyGuard)
+  @ApiBearerAuth()
+  async findAllAdmin(): Promise<Changelog[]> {
+    return this.changelogService.findAllAdmin();
+  }
+
   // Admin-only endpoints for managing changelogs
   @Post()
   @UseGuards(AdminOnlyGuard)

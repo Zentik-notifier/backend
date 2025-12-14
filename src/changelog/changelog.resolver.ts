@@ -29,6 +29,16 @@ export class ChangelogResolver {
     return this.changelogService.findOne(id);
   }
 
+  // Admin-only GraphQL query for reading all changelogs (including inactive)
+  @Query(() => [Changelog], {
+    name: 'adminChangelogs',
+    description: 'List all changelogs (admin, includes inactive)',
+  })
+  @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
+  async adminChangelogs(): Promise<Changelog[]> {
+    return this.changelogService.findAllAdmin();
+  }
+
   // Admin-only GraphQL mutations
   @Mutation(() => Changelog, {
     name: 'createChangelog',

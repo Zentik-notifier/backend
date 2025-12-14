@@ -112,6 +112,9 @@ input ChangePasswordInput {
 }
 
 type Changelog {
+  """Whether this changelog is active and should be shown"""
+  active: Boolean!
+
   """Android app version"""
   androidVersion: String!
 
@@ -121,6 +124,9 @@ type Changelog {
 
   """Combined changelog description"""
   description: String!
+
+  """Structured changelog entries (type + text)"""
+  entries: [ChangelogEntry!]
   id: ID!
 
   """iOS app version"""
@@ -129,6 +135,16 @@ type Changelog {
   """Web/UI version"""
   uiVersion: String!
   updatedAt: DateTime!
+}
+
+type ChangelogEntry {
+  text: String!
+  type: String!
+}
+
+input ChangelogEntryInput {
+  text: String!
+  type: String!
 }
 
 input ConfirmEmailDto {
@@ -155,9 +171,11 @@ input CreateBucketDto {
 }
 
 input CreateChangelogInput {
+  active: Boolean
   androidVersion: String
   backendVersion: String
   description: String!
+  entries: [ChangelogEntryInput!]
   iosVersion: String
   uiVersion: String
 }
@@ -942,6 +960,8 @@ type PublicAppConfig {
 }
 
 type Query {
+  """List all changelogs (admin, includes inactive)"""
+  adminChangelogs: [Changelog!]!
   allOAuthProviders: [OAuthProvider!]!
   attachment(id: ID!): Attachment!
   bucket(id: String!): Bucket!
@@ -1297,9 +1317,11 @@ input UpdateBucketDto {
 }
 
 input UpdateChangelogInput {
+  active: Boolean
   androidVersion: String
   backendVersion: String
   description: String
+  entries: [ChangelogEntryInput!]
   id: ID!
   iosVersion: String
   uiVersion: String
