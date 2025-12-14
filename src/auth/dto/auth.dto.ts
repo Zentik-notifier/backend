@@ -500,6 +500,14 @@ export class SystemAccessTokenResponseDto {
   @Field()
   calls: number;
 
+  @ApiProperty({ description: 'Current failed calls count' })
+  @Field()
+  failedCalls: number;
+
+  @ApiProperty({ description: 'Total failed calls ever made by this token' })
+  @Field()
+  totalFailedCalls: number;
+
   @ApiProperty({ description: 'Token expiration date', required: false })
   @Field(() => Date, { nullable: true })
   expiresAt?: Date;

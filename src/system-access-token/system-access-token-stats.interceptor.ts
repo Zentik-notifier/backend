@@ -16,6 +16,8 @@ import { SystemAccessTokenService } from './system-access-token.service';
  * - X-Token-Calls: Current monthly call count (after increment)
  * - X-Token-MaxCalls: Maximum monthly calls allowed
  * - X-Token-TotalCalls: Total calls ever made (after increment)
+ * - X-Token-FailedCalls: Current monthly failed call count (after increment)
+ * - X-Token-TotalFailedCalls: Total failed calls ever made (after increment)
  * - X-Token-LastReset: ISO timestamp of last monthly reset
  * - X-Token-Remaining: Remaining calls in current month (maxCalls - calls)
  * - X-Token-Id: The ID of the system access token used
@@ -50,6 +52,8 @@ export class SystemAccessTokenStatsInterceptor implements NestInterceptor {
             response.setHeader('X-Token-Calls', updatedToken.calls || 0);
             response.setHeader('X-Token-MaxCalls', updatedToken.maxCalls || 0);
             response.setHeader('X-Token-TotalCalls', updatedToken.totalCalls || 0);
+            response.setHeader('X-Token-FailedCalls', updatedToken.failedCalls || 0);
+            response.setHeader('X-Token-TotalFailedCalls', updatedToken.totalFailedCalls || 0);
             response.setHeader('X-Token-Id', updatedToken.id);
             
             if (updatedToken.lastResetAt) {

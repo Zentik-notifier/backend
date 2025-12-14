@@ -397,14 +397,43 @@ export class NotificationsController {
 
       if (sat && result.success) {
         await this.systemAccessTokenService.incrementCalls(sat.id);
-        try { await this.eventsTrackingService.trackPushPassthrough(sat.id); } catch {}
+        try {
+          await this.eventsTrackingService.trackPushPassthrough(
+            sat.id,
+            result,
+          );
+        } catch { }
       } else if (sat && !result.success) {
-        // no extra log, summary above already covers outcome
+        try {
+          await this.systemAccessTokenService.incrementFailedCalls(sat.id);
+        } catch { }
+        try {
+          await this.eventsTrackingService.trackPushPassthroughFailed(
+            sat.id,
+            result,
+          );
+        } catch { }
       }
 
       return result;
     } catch (error) {
-      this.logger.error('[notify-external] Failed to process external notification', error);
+      this.logger.error(
+        '[notify-external] Failed to process external notification',
+        error,
+      );
+
+      if (sat) {
+        try {
+          await this.systemAccessTokenService.incrementFailedCalls(sat.id);
+        } catch { }
+        try {
+          await this.eventsTrackingService.trackPushPassthroughFailed(
+            sat.id,
+            body && body.platform ? { platform: body.platform } : undefined,
+          );
+        } catch { }
+      }
+
       throw error;
     }
   }

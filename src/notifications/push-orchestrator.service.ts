@@ -791,21 +791,25 @@ export class PushNotificationOrchestratorService {
 
       const contentType = res.headers.get('content-type') || '';
 
-      // Extract usage headers BEFORE parsing body
+      // Extract all X-Token-* headers BEFORE parsing body (extensible)
       let tokenId: string | null = null;
-      let calls: string | null = null;
-      let maxCalls: string | null = null;
-      let totalCalls: string | null = null;
-      let lastReset: string | null = null;
-      let remaining: string | null = null;
+      const tokenHeaders: Record<string, string> = {};
       try {
-        tokenId = res.headers.get('x-token-id');
-        calls = res.headers.get('x-token-calls');
-        maxCalls = res.headers.get('x-token-maxcalls');
-        totalCalls = res.headers.get('x-token-totalcalls');
-        lastReset = res.headers.get('x-token-lastreset');
-        remaining = res.headers.get('x-token-remaining');
+        res.headers.forEach((value, key) => {
+          const lowerKey = key.toLowerCase();
+          if (lowerKey.startsWith('x-token-')) {
+            tokenHeaders[lowerKey] = value;
+            if (lowerKey === 'x-token-id') {
+              tokenId = value;
+            }
+          }
+        });
       } catch { }
+
+      const calls = tokenHeaders['x-token-calls'] ?? null;
+      const maxCalls = tokenHeaders['x-token-maxcalls'] ?? null;
+      const totalCalls = tokenHeaders['x-token-totalcalls'] ?? null;
+      const remaining = tokenHeaders['x-token-remaining'] ?? null;
 
 
       // Parse body only if JSON
@@ -858,13 +862,38 @@ export class PushNotificationOrchestratorService {
             const nowIso = new Date().toISOString();
             const newStats: Record<string, any> = { lastCall: nowIso };
             if (token) newStats.token = token;
-            if (calls) newStats.calls = Number(calls);
-            if (maxCalls) newStats.maxCalls = Number(maxCalls);
-            if (totalCalls) newStats.totalCalls = Number(totalCalls);
-            if (lastReset) newStats.lastReset = lastReset;
-            // remaining: if header present set numeric, else preserve previous or null
-            if (remaining !== null && remaining !== undefined) {
-              newStats.remaining = Number(remaining);
+
+            // Deriva dinamicamente i campi da tutti gli header X-Token-*
+            Object.entries(tokenHeaders).forEach(([headerKey, headerValue]) => {
+              const suffix = headerKey.replace(/^x-token-/, '');
+              if (!suffix || suffix === 'id') return;
+
+              // Converte "failedcalls" -> "failedCalls", "totalfailedcalls" -> "totalFailedCalls", ecc.
+              const camelKey = suffix
+                .split('-')
+                .map((part, index) =>
+                  index === 0
+                    ? part.toLowerCase()
+                    : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(),
+                )
+                .join('');
+
+              if (!camelKey) return;
+
+              const numericValue = Number(headerValue);
+              const valueToStore = Number.isFinite(numericValue)
+                ? numericValue
+                : headerValue;
+
+              newStats[camelKey] = valueToStore;
+            });
+
+            // Store all X-Token-* headers in a nested map per raw values
+            if (Object.keys(tokenHeaders).length > 0) {
+              newStats.headers = {
+                ...(prev.headers || {}),
+                ...tokenHeaders,
+              };
             }
 
             usageMap[tokenId] = { ...prev, ...newStats };

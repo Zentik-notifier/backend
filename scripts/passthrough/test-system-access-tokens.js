@@ -159,6 +159,8 @@ async function createSystemToken(jwt, maxCalls, description) {
         calls
         totalCalls
         lastResetAt
+        failedCalls
+        totalFailedCalls
         rawToken
       }
     }
@@ -188,6 +190,8 @@ async function getSystemToken(jwt, id) {
         calls
         totalCalls
         lastResetAt
+        failedCalls
+        totalFailedCalls
       }
     }
   `;
@@ -408,6 +412,11 @@ async function testPayloadTooLargeDoesNotIncrementCalls(adminJwt) {
 
   const before = await getSystemToken(adminJwt, sat.id);
   expect(before && before.calls === 0, 'Precondition: calls must start at 0');
+  expect(before && (before.failedCalls === 0 || before.failedCalls == null), 'Precondition: failedCalls must start at 0 or be null');
+  expect(
+    before && (before.totalFailedCalls === 0 || before.totalFailedCalls == null),
+    'Precondition: totalFailedCalls must start at 0 or be null',
+  );
 
   const res = await callNotifyExternalIos(sat.rawToken);
   log(`notify-external (ios, payloadTooLarge) HTTP status=${res.status}`);
@@ -455,6 +464,21 @@ async function testPayloadTooLargeDoesNotIncrementCalls(adminJwt) {
   const after = await getSystemToken(adminJwt, sat.id);
   expect(after && after.calls === before.calls, 'Token calls must not increase when passthrough APNs send fails');
   expect(after && after.totalCalls === before.totalCalls, 'Token totalCalls must not increase when passthrough APNs send fails');
+
+  // Failed counters must increase for a failed passthrough send
+  if (before) {
+    const beforeFailed = before.failedCalls || 0;
+    const beforeTotalFailed = before.totalFailedCalls || 0;
+
+    expect(
+      after && after.failedCalls === beforeFailed + 1,
+      'Token failedCalls must increase by 1 when passthrough APNs send fails',
+    );
+    expect(
+      after && after.totalFailedCalls === beforeTotalFailed + 1,
+      'Token totalFailedCalls must increase by 1 when passthrough APNs send fails',
+    );
+  }
 
   log('✔ PayloadTooLarge via passthrough does not increment SAT call counters.');
 }

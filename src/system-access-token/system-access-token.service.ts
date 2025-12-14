@@ -180,4 +180,21 @@ export class SystemAccessTokenService {
       throw error;
     }
   }
+
+  /** Increment the failedCalls counters for a given token id. */
+  async incrementFailedCalls(id: string): Promise<void> {
+    try {
+      await this.systemTokenRepository.increment({ id }, 'failedCalls', 1);
+      await this.systemTokenRepository.increment({ id }, 'totalFailedCalls', 1);
+      this.logger.debug(
+        `Incremented failed call count for system access token: ${id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to increment failed call count for system access token: ${id}`,
+        error,
+      );
+      throw error;
+    }
+  }
 }

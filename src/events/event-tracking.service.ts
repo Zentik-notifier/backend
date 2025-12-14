@@ -4,7 +4,7 @@ import { EventsService } from './events.service';
 
 @Injectable()
 export class EventTrackingService {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(private readonly eventsService: EventsService) { }
 
   async trackLogin(userId: string): Promise<void> {
     await this.eventsService.createEvent({
@@ -34,10 +34,25 @@ export class EventTrackingService {
     });
   }
 
-  async trackPushPassthrough(systemTokenId: string): Promise<void> {
+  async trackPushPassthrough(
+    systemTokenId: string,
+    metadata?: any,
+  ): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.PUSH_PASSTHROUGH,
       objectId: systemTokenId,
+      additionalInfo: metadata,
+    });
+  }
+
+  async trackPushPassthroughFailed(
+    systemTokenId: string,
+    metadata?: any,
+  ): Promise<void> {
+    await this.eventsService.createEvent({
+      type: EventType.PUSH_PASSTHROUGH_FAILED,
+      objectId: systemTokenId,
+      additionalInfo: metadata
     });
   }
 
@@ -87,8 +102,8 @@ export class EventTrackingService {
   }
 
   async trackNotificationAck(
-    userId: string, 
-    deviceId: string, 
+    userId: string,
+    deviceId: string,
     notificationId: string,
     platform?: string,
   ): Promise<void> {

@@ -206,6 +206,7 @@ export class AdminNotificationsService implements OnModuleInit {
       [EventType.LOGOUT]: '👋 User Logout',
       [EventType.REGISTER]: '✨ New User Registration',
       [EventType.PUSH_PASSTHROUGH]: '📤 Push Passthrough',
+      [EventType.PUSH_PASSTHROUGH_FAILED]: '📤 Push Passthrough Failed',
       [EventType.MESSAGE]: '💬 New Message',
       [EventType.NOTIFICATION]: '🔔 Notification Sent',
       [EventType.NOTIFICATION_ACK]: '✅ Notification Acknowledged',

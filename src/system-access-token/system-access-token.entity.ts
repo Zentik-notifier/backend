@@ -39,6 +39,16 @@ export class SystemAccessToken {
   @Field()
   totalCalls: number;
 
+  @Column({ type: 'int', default: 0 })
+  @ApiProperty({ description: 'Number of failed calls in the current period' })
+  @Field()
+  failedCalls: number;
+
+  @Column({ type: 'int', default: 0 })
+  @ApiProperty({ description: 'Total number of failed calls ever made by this token' })
+  @Field()
+  totalFailedCalls: number;
+
   @Column({ type: 'text', nullable: true })
   @ApiProperty({ required: false, description: 'Plain text token (sat_...) saved for display/ops' })
   @Field({ nullable: true })

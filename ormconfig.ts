@@ -45,6 +45,7 @@ import { AddMetadataToUserDevices1766000000000 } from './database/migrations/176
 import { CreateChangelogTable1767000000000 } from './database/migrations/1767000000000-CreateChangelogTable';
 import { AddChangelogRemoteServerSetting1768000000000 } from './database/migrations/1768000000000-AddChangelogRemoteServerSetting';
 import { AddActiveAndEntriesToChangelog1769000000000 } from './database/migrations/1769000000000-AddActiveAndEntriesToChangelog';
+import { AddFailedCallsToSystemAccessToken1769100000000 } from './database/migrations/1769100000000-AddFailedCallsToSystemAccessToken';
 
 config({ path: '.env' });
 
@@ -111,6 +112,7 @@ const dataSource = new DataSource({
     CreateChangelogTable1767000000000,
     AddChangelogRemoteServerSetting1768000000000,
     AddActiveAndEntriesToChangelog1769000000000,
+    AddFailedCallsToSystemAccessToken1769100000000,
   ],
   migrationsTableName: 'migrations',
 });
