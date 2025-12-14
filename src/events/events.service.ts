@@ -71,7 +71,15 @@ export class EventsService {
   }
 
   async findAllPaginated(query: EventsQueryDto): Promise<EventsResponseDto> {
-    const { page = 1, limit = 20, type, userId, objectId, targetId } = query;
+    const {
+      page = 1,
+      limit = 20,
+      type,
+      userId,
+      objectId,
+      objectIds,
+      targetId,
+    } = query;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.eventsRepository
@@ -86,7 +94,9 @@ export class EventsService {
       queryBuilder.andWhere('event.userId = :userId', { userId });
     }
 
-    if (objectId) {
+    if (objectIds && objectIds.length > 0) {
+      queryBuilder.andWhere('event.objectId IN (:...objectIds)', { objectIds });
+    } else if (objectId) {
       queryBuilder.andWhere('event.objectId = :objectId', { objectId });
     }
 

@@ -382,6 +382,7 @@ enum EventType {
 input EventsQueryDto {
   limit: Int = 20
   objectId: String
+  objectIds: [String!]
   page: Int = 1
   targetId: String
   type: EventType

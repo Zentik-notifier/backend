@@ -7,6 +7,7 @@ import {
   Max,
   Min,
   IsEnum,
+  IsArray,
 } from 'class-validator';
 import { EventType } from '../../entities';
 
@@ -64,6 +65,17 @@ export class EventsQueryDto {
   @IsOptional()
   @IsString()
   objectId?: string;
+
+  @Field(() => [String], { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Filter events by a list of object IDs',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  objectIds?: string[];
 
   @Field({ nullable: true })
   @ApiProperty({
