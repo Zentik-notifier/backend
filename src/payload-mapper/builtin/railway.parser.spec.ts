@@ -166,6 +166,32 @@ describe('RailwayParser', () => {
 
       expect(await parser.validate(realPayload, {})).toBe(true);
     });
+
+    it('should validate new Railway payload format with resource.*', async () => {
+      const payload = {
+        type: 'Deployment.deployed',
+        severity: 'info',
+        timestamp: '2025-12-15T08:26:25.524Z',
+        resource: {
+          workspace: {
+            id: '700846fd-9c1c-44fe-9a5d-60bd6dcc947b',
+            name: 'Sample Workspace',
+          },
+          project: {
+            id: 'a418f086-cacf-432f-b209-334e17397ae2',
+            name: 'Zentik notifier',
+          },
+          environment: {
+            id: 'env-sample',
+            name: 'production',
+            isEphemeral: false,
+          },
+        },
+        details: {},
+      };
+
+      expect(await parser.validate(payload, {})).toBe(true);
+    });
   });
 
   describe('parse', () => {
@@ -384,13 +410,111 @@ describe('RailwayParser', () => {
 
       const result = await parser.parse(invalidPayload as any, {});
 
-      expect(result.title).toBe('❌ Railway webhook parsing error');
-      expect(result.subtitle).toBe('Parser ZentikRailway');
-      expect(result.body).toContain(
-        'An error occurred while parsing the Railway payload',
-      );
-      expect(result.body).toContain('"invalid": "data"');
-      expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
+      // With the new normalization logic, even a very loose payload
+      // will be normalized instead of throwing, so we just assert
+      // that a message is produced and marked as NORMAL severity.
+      expect(result).toBeDefined();
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should parse new Railway Deployment.building payload correctly', async () => {
+      const payload = {
+        type: 'Deployment.building',
+        details: {
+          id: '4a9dce1f-92f6-4f2d-bdfe-dec090712827',
+          source: 'CLI',
+          status: 'BUILDING',
+          builder: 'DOCKERFILE',
+          providers: 'node',
+          serviceId: 'e32663c3-2515-4abb-bb45-3370b9bdcac2',
+          checkSuites: false,
+          hasConfigAsCode: false,
+        },
+        resource: {
+          project: {
+            id: 'a418f086-cacf-432f-b209-334e17397ae2',
+            name: 'Zentik notifier',
+          },
+          service: {
+            id: 'e32663c3-2515-4abb-bb45-3370b9bdcac2',
+            name: 'PWA',
+          },
+          workspace: {
+            id: '700846fd-9c1c-44fe-9a5d-60bd6dcc947b',
+            name: "apocaliss92's Projects",
+          },
+          deployment: {
+            id: '4a9dce1f-92f6-4f2d-bdfe-dec090712827',
+          },
+          environment: {
+            id: '4af5f898-f125-46a2-bd11-acfb0b7760d7',
+            name: 'production',
+            isEphemeral: false,
+          },
+        },
+        severity: 'INFO',
+        timestamp: '2025-12-15T18:29:09.111Z',
+      };
+
+      const result = await parser.parse(payload as any, {});
+
+      expect(result.title).toBe('Zentik notifier - PWA');
+      expect(result.subtitle).toBe('Deployment.building - BUILDING');
+      expect(result.body).toContain('Project: Zentik notifier');
+      expect(result.body).toContain('Service: PWA');
+      expect(result.body).toContain('Environment: production');
+      expect(result.body).toContain('Deployment ID: 4a9dce1f-92f6-4f2d-bdfe-dec090712827');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
+    });
+
+    it('should parse new Railway Deployment.deployed payload correctly', async () => {
+      const payload = {
+        type: 'Deployment.deployed',
+        details: {
+          id: 'b4892222-7d8e-441e-b49b-7762c4c04616',
+          source: 'CLI',
+          status: 'SUCCESS',
+          builder: 'DOCKERFILE',
+          providers: 'node',
+          serviceId: 'bece679c-d79e-4895-84c0-aad3c62ea70c',
+          checkSuites: false,
+          hasConfigAsCode: false,
+        },
+        resource: {
+          project: {
+            id: 'a418f086-cacf-432f-b209-334e17397ae2',
+            name: 'Zentik notifier',
+          },
+          service: {
+            id: 'bece679c-d79e-4895-84c0-aad3c62ea70c',
+            name: 'Docs',
+          },
+          workspace: {
+            id: '700846fd-9c1c-44fe-9a5d-60bd6dcc947b',
+            name: "apocaliss92's Projects",
+          },
+          deployment: {
+            id: 'b4892222-7d8e-441e-b49b-7762c4c04616',
+          },
+          environment: {
+            id: '4af5f898-f125-46a2-bd11-acfb0b7760d7',
+            name: 'production',
+            isEphemeral: false,
+          },
+        },
+        severity: 'INFO',
+        timestamp: '2025-12-15T18:31:32.717Z',
+      };
+
+      const result = await parser.parse(payload as any, {});
+
+      expect(result.title).toBe('Zentik notifier - Docs');
+      expect(result.subtitle).toBe('Deployment.deployed - SUCCESS');
+      expect(result.body).toContain('Project: Zentik notifier');
+      expect(result.body).toContain('Service: Docs');
+      expect(result.body).toContain('Environment: production');
+      expect(result.body).toContain('Deployment ID: b4892222-7d8e-441e-b49b-7762c4c04616');
+      expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
   });
 

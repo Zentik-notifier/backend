@@ -54,25 +54,98 @@ export class RailwayParser implements IBuiltinParser {
   private syncValidate(payload: any, options?: ParserOptions): boolean {
     // Headers are available if needed for future webhook signature verification
     // For now, Railway doesn't require signature verification in this parser
-    return !!(
-      payload &&
-      typeof payload === 'object' &&
-      payload.type &&
-      payload.project?.name
-    );
+
+    if (!payload || typeof payload !== 'object') {
+      return false;
+    }
+
+    const hasType = !!payload.type;
+
+    // Support both old and new Railway webhook formats:
+    // - legacy: payload.project?.name
+    // - current: payload.resource?.project?.name
+    const hasLegacyProject = !!payload.project?.name;
+    const hasResourceProject = !!payload.resource?.project?.name;
+
+    return hasType && (hasLegacyProject || hasResourceProject);
   }
 
-  async parse(payload: RailwayWebhookPayload, options?: ParserOptions): Promise<CreateMessageDto> {
+  async parse(payload: any, options?: ParserOptions): Promise<CreateMessageDto> {
     return new Promise(resolve => resolve(this.syncParse(payload, options)));
   }
 
-  private syncParse(payload: RailwayWebhookPayload, options?: ParserOptions): CreateMessageDto {
+  private syncParse(payload: any, options?: ParserOptions): CreateMessageDto {
     try {
-      return this.createMessage(payload);
+      const normalized = this.normalizePayload(payload);
+      return this.createMessage(normalized);
     } catch (error) {
       console.error('Error parsing Railway payload:', error);
       return this.createErrorMessage(payload);
     }
+  }
+
+  private normalizePayload(raw: any): RailwayWebhookPayload {
+    // Normalize both the old and new Railway webhook formats into a
+    // single internal shape used by createMessage.
+
+    const project = raw.project || raw.resource?.project || {};
+    const service = raw.service || raw.resource?.service;
+    const environment = raw.environment || raw.resource?.environment || {};
+
+    const status: string | undefined =
+      raw.status ||
+      raw.details?.status ||
+      raw.details?.deploymentStatus ||
+      undefined;
+
+    const timestamp: string =
+      raw.timestamp ||
+      raw.time ||
+      new Date().toISOString();
+
+    const deploymentId: string | undefined =
+      raw.deployment?.id ||
+      raw.resource?.deployment?.id ||
+      raw.details?.id ||
+      undefined;
+
+    const deploymentMeta: Record<string, any> | undefined =
+      raw.deployment?.meta ||
+      raw.details ||
+      undefined;
+
+    const deploymentCreator = raw.deployment?.creator;
+
+    const normalized: RailwayWebhookPayload = {
+      type: raw.type,
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        createdAt: project.createdAt || timestamp,
+      },
+      service: service
+        ? {
+            id: service.id,
+            name: service.name,
+          }
+        : undefined,
+      environment: {
+        id: environment.id,
+        name: environment.name,
+      },
+      status,
+      timestamp,
+      deployment: deploymentId
+        ? {
+            id: deploymentId,
+            creator: deploymentCreator,
+            meta: deploymentMeta,
+          }
+        : undefined,
+    };
+
+    return normalized;
   }
 
   private createMessage(payload: RailwayWebhookPayload): CreateMessageDto {
