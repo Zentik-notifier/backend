@@ -366,6 +366,15 @@ export class BucketsService {
       }
     }
 
+    this.logger.log(
+      `Bucket deleted: dbId=${bucket.id} originalId=${id} by user ${userId}`,
+    );
+    try {
+      await this.eventTrackingService.trackBucketDeletion(bucket.user.id, bucket.id);
+    } catch (error) {
+      this.logger.error(`Failed to track bucket deletion event for bucket ${bucket.id}`, error.stack);
+    }
+
     // Permanent delete the bucket
     await this.bucketsRepository.remove(bucket);
   }

@@ -150,6 +150,14 @@ export class EventTrackingService {
     });
   }
 
+  async trackBucketDeletion(ownerUserId: string, bucketId: string): Promise<void> {
+    await this.eventsService.createEvent({
+      type: EventType.BUCKET_DELETION,
+      userId: ownerUserId,
+      objectId: bucketId,
+    });
+  }
+
   async trackDeviceRegister(userId: string, deviceId: string): Promise<void> {
     await this.eventsService.createEvent({
       type: EventType.DEVICE_REGISTER,
