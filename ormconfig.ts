@@ -46,6 +46,7 @@ import { CreateChangelogTable1767000000000 } from './database/migrations/1767000
 import { AddChangelogRemoteServerSetting1768000000000 } from './database/migrations/1768000000000-AddChangelogRemoteServerSetting';
 import { AddActiveAndEntriesToChangelog1769000000000 } from './database/migrations/1769000000000-AddActiveAndEntriesToChangelog';
 import { AddFailedCallsToSystemAccessToken1769100000000 } from './database/migrations/1769100000000-AddFailedCallsToSystemAccessToken';
+import { AddBucketDeletionEvent1769200000000 } from './database/migrations/1769200000000-AddBucketDeletionEvent';
 
 config({ path: '.env' });
 
@@ -113,6 +114,7 @@ const dataSource = new DataSource({
     AddChangelogRemoteServerSetting1768000000000,
     AddActiveAndEntriesToChangelog1769000000000,
     AddFailedCallsToSystemAccessToken1769100000000,
+    AddBucketDeletionEvent1769200000000,
   ],
   migrationsTableName: 'migrations',
 });
