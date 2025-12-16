@@ -25,6 +25,11 @@ describe('MessagesRootController', () => {
     updatedAt: new Date(),
   };
 
+  const mockCreateResult = {
+    message: mockMessage as Message,
+    notificationsCount: 0,
+  };
+
   const mockMessagesService = {
     create: jest.fn(),
     createWithAttachment: jest.fn(),
@@ -118,11 +123,11 @@ describe('MessagesRootController', () => {
         attachmentOptions: undefined as any
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -154,9 +159,7 @@ describe('MessagesRootController', () => {
         stream: {} as any,
       };
 
-      mockMessagesService.createWithAttachment.mockResolvedValue(
-        mockMessage as Message,
-      );
+      mockMessagesService.createWithAttachment.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create(
         'user-1',
@@ -164,7 +167,7 @@ describe('MessagesRootController', () => {
         mockFile,
       );
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.createWithAttachment).toHaveBeenCalledWith(
         createMessageWithAttachmentDto,
         'user-1',
@@ -189,11 +192,11 @@ describe('MessagesRootController', () => {
         deliveryType: 'NORMAL' as any,
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.sendMessage('user-1', queryParams as any);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         expectedCreateMessageDto,
         'user-1',
@@ -208,7 +211,7 @@ describe('MessagesRootController', () => {
       const payload = { foo: 'bar' };
       const userId = 'user-1';
 
-      mockMessagesService.transformAndCreate.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.transformAndCreate.mockResolvedValue(mockCreateResult);
 
       const result = await controller.transformAndCreate(
         userId,
@@ -220,7 +223,7 @@ describe('MessagesRootController', () => {
         { method: 'POST', url: '/transform' }
       );
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.transformAndCreate).toHaveBeenCalledWith(
         parserName,
         payload,
@@ -238,7 +241,7 @@ describe('MessagesRootController', () => {
       const templateData = { name: 'World' };
       const userId = 'user-1';
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.createFromTemplate(
         userId,
@@ -250,7 +253,7 @@ describe('MessagesRootController', () => {
         {}
       );
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.applyTemplate).toHaveBeenCalled();
       expect(messagesService.create).toHaveBeenCalled();
     });

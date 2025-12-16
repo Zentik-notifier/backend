@@ -121,7 +121,10 @@ describe('MessagesResolver', () => {
 
   describe('createMessage', () => {
     it('should create a message successfully', async () => {
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue({
+        message: mockMessage as Message,
+        notificationsCount: 0,
+      });
 
       const result = await resolver.createMessage(
         mockCreateMessageDto,
@@ -161,7 +164,10 @@ describe('MessagesResolver', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue({
+        message: mockMessage as Message,
+        notificationsCount: 0,
+      });
 
       const result = await resolver.createMessage(
         messageWithAttachments,
@@ -189,7 +195,10 @@ describe('MessagesResolver', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue({
+        message: mockMessage as Message,
+        notificationsCount: 0,
+      });
 
       const result = await resolver.createMessage(messageWithActions, 'user-1');
 

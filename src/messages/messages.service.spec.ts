@@ -187,6 +187,19 @@ describe('MessagesService', () => {
           provide: PushNotificationOrchestratorService,
           useValue: {
             create: jest.fn().mockResolvedValue([]),
+            createNotificationsForMessage: jest
+              .fn()
+              .mockResolvedValue({ notifications: [], authorizedUsers: [] }),
+            sendPushToDevices: jest.fn().mockResolvedValue({
+              processedNotifications: [],
+              successCount: 0,
+              errorCount: 0,
+              snoozedCount: 0,
+              errors: [],
+              iosSent: 0,
+              androidSent: 0,
+              webSent: 0,
+            }),
           },
         },
         {
@@ -310,8 +323,12 @@ describe('MessagesService', () => {
         attachmentUuids: [],
       });
       expect(messagesRepository.save).toHaveBeenCalled();
-      expect(pushOrchestrator.create).toHaveBeenCalled();
-      expect(result).toEqual(mockMessage);
+      expect(pushOrchestrator.createNotificationsForMessage).toHaveBeenCalledWith(
+        expect.any(Object),
+        'user-1',
+        [],
+      );
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should create a message with userIds filter', async () => {
@@ -341,25 +358,23 @@ describe('MessagesService', () => {
         attachmentUuids: [],
       });
       expect(messagesRepository.save).toHaveBeenCalled();
-      expect(pushOrchestrator.create).toHaveBeenCalledWith(
+      expect(pushOrchestrator.createNotificationsForMessage).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
         ['user-1', 'user-2', 'user-3'],
-        false,
       );
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should create a message without userIds filter when not specified', async () => {
       const result = await service.create(mockCreateMessageDto, 'user-1');
 
-      expect(pushOrchestrator.create).toHaveBeenCalledWith(
+      expect(pushOrchestrator.createNotificationsForMessage).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
         [],
-        false,
       );
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should create a message with groupId and collapseId', async () => {
@@ -383,13 +398,12 @@ describe('MessagesService', () => {
         }),
       );
       expect(messagesRepository.save).toHaveBeenCalled();
-      expect(pushOrchestrator.create).toHaveBeenCalledWith(
+      expect(pushOrchestrator.createNotificationsForMessage).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
         [],
-        false,
       );
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should not add bucket icon when icon is not HTTP URL', async () => {
@@ -423,8 +437,12 @@ describe('MessagesService', () => {
         attachmentUuids: [],
       });
       expect(messagesRepository.save).toHaveBeenCalled();
-      expect(pushOrchestrator.create).toHaveBeenCalled();
-      expect(result).toEqual(mockMessage);
+      expect(pushOrchestrator.createNotificationsForMessage).toHaveBeenCalledWith(
+        expect.any(Object),
+        'user-1',
+        [],
+      );
+      expect(result.message).toEqual(mockMessage);
     });
   });
 
@@ -457,7 +475,7 @@ describe('MessagesService', () => {
       );
       expect(messagesRepository.create).toHaveBeenCalled();
       expect(messagesRepository.save).toHaveBeenCalled();
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
   });
 
@@ -749,7 +767,7 @@ describe('MessagesService', () => {
           bucketId: 'bucket-1', // Should use the actual bucket ID
         }),
       );
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should create message with user usernames instead of IDs', async () => {
@@ -768,16 +786,15 @@ describe('MessagesService', () => {
 
       const result = await service.create(createMessageDto, 'user-1');
 
-      expect(pushOrchestrator.create).toHaveBeenCalledWith(
+      expect(pushOrchestrator.createNotificationsForMessage).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
         [
           '550e8400-e29b-41d4-a716-446655440000',
           '550e8400-e29b-41d4-a716-446655440001',
-        ], // Should use actual user IDs
-        false,
+        ],
       );
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should create message with mixed bucket ID/name and user ID/username', async () => {
@@ -829,16 +846,15 @@ describe('MessagesService', () => {
           bucketId: 'bucket-1', // Should use the actual bucket ID
         }),
       );
-      expect(pushOrchestrator.create).toHaveBeenCalledWith(
+      expect(pushOrchestrator.createNotificationsForMessage).toHaveBeenCalledWith(
         expect.any(Object),
         'user-1',
         [
           '550e8400-e29b-41d4-a716-446655440000',
           '550e8400-e29b-41d4-a716-446655440001',
-        ], // Should use actual user IDs
-        false,
+        ],
       );
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
   });
 
@@ -865,7 +881,7 @@ describe('MessagesService', () => {
             ]),
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should create video attachment from videoUrl', async () => {
@@ -889,7 +905,7 @@ describe('MessagesService', () => {
             ]),
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should create GIF attachment from gifUrl', async () => {
@@ -913,7 +929,7 @@ describe('MessagesService', () => {
             ]),
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should create multiple attachments when multiple URLs are provided', async () => {
@@ -949,7 +965,7 @@ describe('MessagesService', () => {
             ]),
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should work without any URL parameters', async () => {
@@ -966,7 +982,7 @@ describe('MessagesService', () => {
             attachments: [], // No automatic bucket icon attachment anymore
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should combine URL attachments with existing attachments', async () => {
@@ -1004,7 +1020,7 @@ describe('MessagesService', () => {
             ]),
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
     });
 
@@ -1027,7 +1043,7 @@ describe('MessagesService', () => {
             },
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should not override existing tapAction when tapUrl is not provided', async () => {
@@ -1050,7 +1066,7 @@ describe('MessagesService', () => {
             tapAction: existingTapAction,
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should override existing tapAction when tapUrl is provided', async () => {
@@ -1077,7 +1093,7 @@ describe('MessagesService', () => {
             },
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should work without tapUrl parameter', async () => {
@@ -1094,7 +1110,7 @@ describe('MessagesService', () => {
             tapAction: undefined,
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
     });
 
@@ -1137,7 +1153,7 @@ describe('MessagesService', () => {
             },
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
 
       it('should work with quick features and existing attachments/actions', async () => {
@@ -1192,7 +1208,7 @@ describe('MessagesService', () => {
             },
           }),
         );
-        expect(result).toEqual(mockMessage);
+        expect(result.message).toEqual(mockMessage);
       });
     });
   });
@@ -1256,7 +1272,7 @@ describe('MessagesService', () => {
         .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should proceed normally when saveOnServer is false regardless of attachments setting', async () => {
@@ -1294,7 +1310,7 @@ describe('MessagesService', () => {
         .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should proceed normally when no attachments are provided', async () => {
@@ -1325,7 +1341,7 @@ describe('MessagesService', () => {
         .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
 
     it('should proceed normally when attachments array is empty', async () => {
@@ -1357,7 +1373,7 @@ describe('MessagesService', () => {
         .mockResolvedValue(mockMessage as Message);
 
       const result = await service.create(createMessageDto, 'user-1');
-      expect(result).toEqual(mockMessage);
+      expect(result.message).toEqual(mockMessage);
     });
   });
 

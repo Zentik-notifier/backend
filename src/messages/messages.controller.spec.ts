@@ -26,6 +26,11 @@ describe('MessagesController', () => {
     updatedAt: new Date(),
   };
 
+  const mockCreateResult = {
+    message: mockMessage as Message,
+    notificationsCount: 0,
+  };
+
   const mockMessagesService = {
     create: jest.fn(),
     createWithAttachment: jest.fn(),
@@ -120,11 +125,11 @@ describe('MessagesController', () => {
         attachments: [],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -147,11 +152,11 @@ describe('MessagesController', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -177,11 +182,11 @@ describe('MessagesController', () => {
         addOpenNotificationAction: true,
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -198,11 +203,11 @@ describe('MessagesController', () => {
         sound: 'custom-sound.wav',
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -242,11 +247,11 @@ describe('MessagesController', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -298,11 +303,11 @@ describe('MessagesController', () => {
         },
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -323,11 +328,11 @@ describe('MessagesController', () => {
         snoozes: [15, 30, 60, 120, 240],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -341,11 +346,11 @@ describe('MessagesController', () => {
         deliveryType: 'NORMAL' as any,
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -390,11 +395,11 @@ describe('MessagesController', () => {
         locale: 'en-US',
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -414,11 +419,11 @@ describe('MessagesController', () => {
         sound: '', // Empty string
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -450,11 +455,11 @@ describe('MessagesController', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -478,11 +483,11 @@ describe('MessagesController', () => {
             testCase.deliveryType === 'CRITICAL' ? 'urgent.wav' : 'normal.wav',
         };
 
-        mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+        mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
         const result = await controller.create('user-1', createMessageDto);
 
-        expect(result).toEqual(mockMessage);
+        expect(result).toEqual(mockCreateResult);
         expect(messagesService.create).toHaveBeenCalledWith(
           createMessageDto,
           'user-1',
@@ -508,11 +513,11 @@ describe('MessagesController', () => {
           ],
         };
 
-        mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+        mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
         const result = await controller.create('user-1', createMessageDto);
 
-        expect(result).toEqual(mockMessage);
+        expect(result).toEqual(mockCreateResult);
         expect(messagesService.create).toHaveBeenCalledWith(
           createMessageDto,
           'user-1',
@@ -548,11 +553,11 @@ describe('MessagesController', () => {
           ],
         };
 
-        mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+        mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
         const result = await controller.create('user-1', createMessageDto);
 
-        expect(result).toEqual(mockMessage);
+        expect(result).toEqual(mockCreateResult);
         expect(messagesService.create).toHaveBeenCalledWith(
           createMessageDto,
           'user-1',
@@ -573,11 +578,11 @@ describe('MessagesController', () => {
         deliveryType: 'NORMAL' as any,
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', baseMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         baseMessageDto,
         'user-1',
@@ -610,11 +615,11 @@ describe('MessagesController', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -641,11 +646,11 @@ describe('MessagesController', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -703,11 +708,11 @@ describe('MessagesController', () => {
         addDeleteAction: false,
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -733,11 +738,11 @@ describe('MessagesController', () => {
         addDeleteAction: undefined,
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -771,11 +776,11 @@ describe('MessagesController', () => {
         ],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -792,11 +797,11 @@ describe('MessagesController', () => {
         attachments: [],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.create('user-1', createMessageDto);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         createMessageDto,
         'user-1',
@@ -831,7 +836,7 @@ describe('MessagesController', () => {
       };
 
       mockMessagesService.createWithAttachment.mockResolvedValue(
-        mockMessage as Message,
+        mockCreateResult,
       );
 
       const result = await controller.createWithAttachment(
@@ -840,7 +845,7 @@ describe('MessagesController', () => {
         createMessageWithAttachmentDto,
       );
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.createWithAttachment).toHaveBeenCalledWith(
         createMessageWithAttachmentDto,
         'user-1',
@@ -873,7 +878,7 @@ describe('MessagesController', () => {
       };
 
       mockMessagesService.createWithAttachment.mockResolvedValue(
-        mockMessage as Message,
+        mockCreateResult,
       );
 
       const result = await controller.createWithAttachment(
@@ -882,7 +887,7 @@ describe('MessagesController', () => {
         createMessageWithAttachmentDto,
       );
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.createWithAttachment).toHaveBeenCalledWith(
         createMessageWithAttachmentDto,
         'user-1',
@@ -909,11 +914,11 @@ describe('MessagesController', () => {
         userIds: ['user-1', 'user-2', 'user-3'],
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.sendMessage('user-1', queryParams as any);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         expectedCreateMessageDto,
         'user-1',
@@ -935,11 +940,11 @@ describe('MessagesController', () => {
         deliveryType: 'NORMAL' as any,
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.sendMessage('user-1', queryParams as any);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         expectedCreateMessageDto,
         'user-1',
@@ -965,11 +970,11 @@ describe('MessagesController', () => {
         collapseId: 'collapse-456',
       };
 
-      mockMessagesService.create.mockResolvedValue(mockMessage as Message);
+      mockMessagesService.create.mockResolvedValue(mockCreateResult);
 
       const result = await controller.sendMessage('user-1', queryParams as any);
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(mockCreateResult);
       expect(messagesService.create).toHaveBeenCalledWith(
         expectedCreateMessageDto,
         'user-1',
