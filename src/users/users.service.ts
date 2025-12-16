@@ -142,11 +142,13 @@ export class UsersService {
     let publicKeyNew: string | undefined;
     let privateKeyNew: string | undefined;
 
-    if (registerDeviceDto.platform === DevicePlatform.IOS) {
+    const isIos = registerDeviceDto.platform === DevicePlatform.IOS;
+    const isWeb = registerDeviceDto.platform === DevicePlatform.WEB;
+    if (isIos) {
       const { publicKey, privateKey } = await generateRSAKeyPair();
       publicKeyNew = publicKey;
       privateKeyNew = privateKey;
-    } else if (registerDeviceDto.platform === DevicePlatform.WEB) {
+    } else if (isWeb) {
       const { publicKey, privateKey } = webpush.generateVAPIDKeys();
       publicKeyNew = publicKey;
       privateKeyNew = privateKey;
@@ -158,14 +160,34 @@ export class UsersService {
       // Ensure onlyLocal has a default value if not provided
       if (registerDeviceDto.onlyLocal === undefined) {
         existingDevice.onlyLocal = existingDevice.onlyLocal ?? false;
-        existingDevice.publicKey = publicKeyNew;
+
+        if (isIos) {
+          existingDevice.publicKey = publicKeyNew;
+        } else {
+          existingDevice.publicKey = publicKeyNew;
+          existingDevice.privateKey = privateKeyNew;
+        }
       }
 
-      const saved = await this.userDevicesRepository.save(existingDevice);
+      const device = await this.userDevicesRepository.save(existingDevice);
+      const { privateKey, publicKey, ...rest } = device;
       this.logger.log(
-        `Updated existing device ${saved.id} for user=${userId} with token ${registerDeviceDto.deviceToken}`,
+        `Updated existing device ${rest.id} for user=${userId} with token ${registerDeviceDto.deviceToken}`,
       );
-      return saved;
+
+      if (isIos) {
+        return {
+          ...rest,
+          privateKey: privateKeyNew,
+        }
+      } else if (isWeb) {
+        return {
+          ...rest,
+          publicKey: publicKeyNew,
+        }
+      } else {
+        return device;
+      }
     }
 
     // Create new device
@@ -177,7 +199,12 @@ export class UsersService {
       onlyLocal: registerDeviceDto.onlyLocal ?? false,
     };
 
-    deviceData.publicKey = publicKeyNew;
+    if (isIos) {
+      deviceData.publicKey = publicKeyNew;
+    } else {
+      deviceData.publicKey = publicKeyNew;
+      deviceData.privateKey = privateKeyNew;
+    }
 
     const device = this.userDevicesRepository.create(deviceData);
     const saved = await this.userDevicesRepository.save(device);
@@ -189,10 +216,20 @@ export class UsersService {
     // Track device registration event
     await this.eventTrackingService.trackDeviceRegister(userId, saved.id);
 
-    return {
-      ...saved,
-      privateKey: privateKeyNew,
-    };
+    const { privateKey, publicKey, ...rest } = saved;
+    if (isIos) {
+      return {
+        ...rest,
+        privateKey: privateKeyNew,
+      }
+    } else if (isWeb) {
+      return {
+        ...rest,
+        publicKey: publicKeyNew,
+      }
+    } else {
+      return saved;
+    }
   }
 
   async getUserDevices(userId: string): Promise<UserDevice[]> {
@@ -319,13 +356,14 @@ export class UsersService {
     if (input.deviceToken !== undefined) {
       device.deviceToken = input.deviceToken;
     }
-    if (input.metadata !== undefined) {
-      device.metadata = input.metadata;
-    }
 
-    device.lastUsed = new Date();
+    const newDevice = {
+      ...device,
+      ...input,
+      lastUsed: new Date(),
+    };
 
-    const saved = await this.userDevicesRepository.save(device);
+    const saved = await this.userDevicesRepository.save(newDevice);
     this.logger.log(`Updated device ${saved.id} for user=${userId}`);
     return saved;
   }
