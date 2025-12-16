@@ -98,6 +98,16 @@ export class RegisterDeviceDto {
   @IsOptional()
   subscriptionFields?: WebPushSubscriptionFieldsInput;
 
+  @Field({ nullable: true, description: 'Optional JSON-serialized metadata for the device (app versions, build info, etc.)' })
+  @ApiProperty({
+    required: false,
+    description: 'Optional JSON-serialized metadata for the device (app versions, build info, etc.)',
+    example: '{"appVersion":"0.1.159","backendVersion":"0.1.153","dockerVersion":null,"nativeVersion":"1.6.28"}',
+  })
+  @IsOptional()
+  @IsString()
+  metadata?: string;
+
   @Field({ nullable: true })
   @ApiProperty({
     description: 'Whether this device should only receive local notifications',

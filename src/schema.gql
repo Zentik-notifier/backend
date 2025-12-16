@@ -1064,6 +1064,7 @@ input RegisterDeviceDto {
   deviceModel: String
   deviceName: String
   deviceToken: String
+  metadata: String
   onlyLocal: Boolean
   osVersion: String
   platform: DevicePlatform!
