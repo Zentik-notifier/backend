@@ -624,7 +624,7 @@ async function runBucketCombinationTests() {
     authToken: TOKEN,
     body: { bucketId: publicBucket.id },
   });
-  await assertRouting('Public bucket + token + bucketId', m3, { expectOwner: true, expectShared: false });
+  await assertRouting('Public bucket + token + bucketId', m3, { expectOwner: true, expectShared: true });
 
   // 4) Public bucket with magicCode (if available)
   if (publicBucket.magicCode) {
@@ -632,7 +632,7 @@ async function runBucketCombinationTests() {
       authToken: null,
       body: { magicCode: publicBucket.magicCode },
     });
-    await assertRouting('Public bucket + magicCode (no token)', m4, { expectOwner: true, expectShared: false });
+    await assertRouting('Public bucket + magicCode (no token)', m4, { expectOwner: true, expectShared: true });
   } else {
     console.log('   ⚠️ Skipping public bucket + magicCode (no magicCode available)');
   }
