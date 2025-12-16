@@ -161,27 +161,27 @@ export class AtlasStatuspageParser implements IBuiltinParser {
     const title = `🚨 Incident: ${incident.name}`;
     const lines: string[] = [];
 
-    lines.push(`<strong>Status:</strong> ${this.formatStatus(incident.status)}`);
+    lines.push(`Status: ${this.formatStatus(incident.status)}`);
     if (incident.impact) {
-      lines.push(`<strong>Impact:</strong> ${this.formatImpact(incident.impact)}`);
+      lines.push(`Impact: ${this.formatImpact(incident.impact)}`);
     }
 
     // Add affected components information
     if (incident.components && incident.components.length > 0) {
       lines.push('');
-      lines.push('<strong>Affected Components:</strong>');
+      lines.push('Affected Components:');
       incident.components.forEach(component => {
         const statusIcon = this.getComponentStatusIcon(component.status);
         lines.push(`• ${statusIcon} ${component.name} - ${this.formatComponentStatus(component.status)}`);
         if (component.description) {
-          lines.push(`  <em>${component.description}</em>`);
+          lines.push(`  Description: ${component.description}`);
         }
       });
     }
 
     if (incident.incident_updates && incident.incident_updates.length > 0) {
       lines.push('');
-      lines.push('<strong>Latest Update:</strong>');
+      lines.push('Latest Update:');
       const latestUpdate = incident.incident_updates[0];
       if (latestUpdate.body) {
         lines.push(latestUpdate.body);
@@ -190,26 +190,26 @@ export class AtlasStatuspageParser implements IBuiltinParser {
       // Add affected components from the latest update
       if (latestUpdate.affected_components && latestUpdate.affected_components.length > 0) {
         lines.push('');
-        lines.push('<strong>Component Status Changes:</strong>');
+        lines.push('Component Status Changes:');
         latestUpdate.affected_components.forEach(component => {
           const oldStatusIcon = this.getComponentStatusIcon(component.old_status);
           const newStatusIcon = this.getComponentStatusIcon(component.new_status);
-          lines.push(`• ${component.name}: ${oldStatusIcon} → ${newStatusIcon}`);
+          lines.push(`• ${component.name}: ${oldStatusIcon} -> ${newStatusIcon}`);
         });
       }
     }
 
     lines.push('');
-    lines.push(`<strong>Started:</strong> ${this.formatDateTime(incident.started_at || incident.created_at)}`);
+    lines.push(`Started: ${this.formatDateTime(incident.started_at || incident.created_at)}`);
     if (incident.resolved_at) {
-      lines.push(`<strong>Resolved:</strong> ${this.formatDateTime(incident.resolved_at)}`);
+      lines.push(`Resolved: ${this.formatDateTime(incident.resolved_at)}`);
     } else if (incident.monitoring_at) {
-      lines.push(`<strong>Monitoring Since:</strong> ${this.formatDateTime(incident.monitoring_at)}`);
+      lines.push(`Monitoring Since: ${this.formatDateTime(incident.monitoring_at)}`);
     }
 
     lines.push('');
     if (incident.shortlink) {
-      lines.push(`🔗 <a href="${incident.shortlink}">View Incident Details</a>`);
+      lines.push(`🔗 View Incident Details: ${incident.shortlink}`);
     }
 
     const deliveryType = this.getIncidentDeliveryType(incident.status, incident.resolved_at);
@@ -229,15 +229,15 @@ export class AtlasStatuspageParser implements IBuiltinParser {
     const title = `${statusIcon} Component Update: ${component.name}`;
     const lines: string[] = [];
 
-    lines.push(`<strong>Status Change:</strong> ${this.formatComponentStatus(component_update.old_status)} → ${this.formatComponentStatus(component_update.new_status)}`);
-    lines.push(`<strong>Component:</strong> ${component.name}`);
+    lines.push(`Status Change: ${this.formatComponentStatus(component_update.old_status)} -> ${this.formatComponentStatus(component_update.new_status)}`);
+    lines.push(`Component: ${component.name}`);
     if (component.description) {
-      lines.push(`<strong>Description:</strong> ${component.description}`);
+      lines.push(`Description: ${component.description}`);
     }
     lines.push('');
-    lines.push(`<strong>Page Status:</strong> ${page.status_description}`);
+    lines.push(`Page Status: ${page.status_description}`);
     lines.push('');
-    lines.push(`<strong>Updated:</strong> ${this.formatDateTime(component_update.created_at)}`);
+    lines.push(`Updated: ${this.formatDateTime(component_update.created_at)}`);
 
     const deliveryType = this.getComponentDeliveryType(component_update.new_status);
 

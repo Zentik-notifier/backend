@@ -130,18 +130,18 @@ export class StatusIoParser implements IBuiltinParser {
     if (isIncident) {
       const incident = payload as StatusIoIncidentPayload;
       if (incident.current_status) {
-        lines.push(`<strong>Status:</strong> ${incident.current_status}`);
+        lines.push(`Status: ${incident.current_status}`);
       }
       if (incident.current_state) {
-        lines.push(`<strong>State:</strong> ${incident.current_state}`);
+        lines.push(`State: ${incident.current_state}`);
       }
       if (incident.previous_status && incident.previous_state) {
-        lines.push(`<strong>Previous:</strong> ${incident.previous_status} (${incident.previous_state})`);
+        lines.push(`Previous: ${incident.previous_status} (${incident.previous_state})`);
       }
     } else if (isMaintenance) {
       const maintenance = payload as StatusIoMaintenancePayload;
       if (maintenance.current_status) {
-        lines.push(`<strong>Status:</strong> ${maintenance.current_status}`);
+        lines.push(`Status: ${maintenance.current_status}`);
       }
     }
 
@@ -156,39 +156,39 @@ export class StatusIoParser implements IBuiltinParser {
       const incident = payload as StatusIoIncidentPayload;
       if (incident.datetime_start) {
         lines.push('');
-        lines.push(`<strong>Started:</strong> ${this.formatDateTime(incident.datetime_start)}`);
+        lines.push(`Started: ${this.formatDateTime(incident.datetime_start)}`);
       }
       if (incident.datetime_resolve) {
-        lines.push(`<strong>Resolved:</strong> ${this.formatDateTime(incident.datetime_resolve)}`);
+        lines.push(`Resolved: ${this.formatDateTime(incident.datetime_resolve)}`);
       }
     } else if (isMaintenance) {
       const maintenance = payload as StatusIoMaintenancePayload;
       if (maintenance.datetime_start && maintenance.datetime_end) {
         lines.push('');
-        lines.push(`<strong>Window:</strong> ${this.formatDateTime(maintenance.datetime_start)} - ${this.formatDateTime(maintenance.datetime_end)}`);
+        lines.push(`Window: ${this.formatDateTime(maintenance.datetime_start)} - ${this.formatDateTime(maintenance.datetime_end)}`);
       }
     }
 
     // Affected infrastructure
     if (payload.components && payload.components.length > 0) {
       lines.push('');
-      lines.push(`<strong>Affected Components:</strong> ${payload.components.map(c => c.name).join(', ')}`);
+      lines.push(`Affected Components: ${payload.components.map(c => c.name).join(', ')}`);
     }
 
     if (payload.containers && payload.containers.length > 0) {
-      lines.push(`<strong>Affected Locations:</strong> ${payload.containers.map(c => c.name).join(', ')}`);
+      lines.push(`Affected Locations: ${payload.containers.map(c => c.name).join(', ')}`);
     }
 
     // Links
     lines.push('');
     if (isIncident) {
       const incident = payload as StatusIoIncidentPayload;
-      lines.push(`🔗 <a href="${incident.incident_url}">View Incident</a>`);
+      lines.push(`🔗 View Incident: ${incident.incident_url}`);
     } else if (isMaintenance) {
       const maintenance = payload as StatusIoMaintenancePayload;
-      lines.push(`🔗 <a href="${maintenance.maintenance_url}">View Maintenance</a>`);
+      lines.push(`🔗 View Maintenance: ${maintenance.maintenance_url}`);
     }
-    lines.push(`📊 <a href="${payload.status_page_url}">Status Page</a>`);
+    lines.push(`📊 Status Page: ${payload.status_page_url}`);
 
     return lines.join('\n');
   }

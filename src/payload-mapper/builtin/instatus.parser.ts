@@ -158,29 +158,29 @@ export class InstatusParser implements IBuiltinParser {
     const title = `🚨 Incident: ${incident.name}`;
     const lines: string[] = [];
 
-    lines.push(`<strong>Status:</strong> ${this.formatStatus(incident.status)}`);
+    lines.push(`Status: ${this.formatStatus(incident.status)}`);
     if (incident.impact) {
-      lines.push(`<strong>Impact:</strong> ${this.formatImpact(incident.impact)}`);
+      lines.push(`Impact: ${this.formatImpact(incident.impact)}`);
     }
 
     if (incident.incident_updates && incident.incident_updates.length > 0) {
       const latestUpdate = incident.incident_updates[incident.incident_updates.length - 1];
       if (latestUpdate.body) {
         lines.push('');
-        lines.push('<strong>Latest Update:</strong>');
+        lines.push('Latest Update:');
         lines.push(latestUpdate.body);
       }
     }
 
     lines.push('');
-    lines.push(`<strong>Started:</strong> ${this.formatDateTime(incident.created_at)}`);
+    lines.push(`Started: ${this.formatDateTime(incident.created_at)}`);
     if (incident.resolved_at) {
-      lines.push(`<strong>Resolved:</strong> ${this.formatDateTime(incident.resolved_at)}`);
+      lines.push(`Resolved: ${this.formatDateTime(incident.resolved_at)}`);
     }
 
     lines.push('');
-    lines.push(`🔗 <a href="${incident.url}">View Incident</a>`);
-    lines.push(`📊 <a href="${page.url}">Status Page</a>`);
+    lines.push(`🔗 View Incident: ${incident.url}`);
+    lines.push(`📊 Status Page: ${page.url}`);
 
     const deliveryType = this.getIncidentDeliveryType(incident.status, incident.resolved_at);
 
@@ -198,32 +198,32 @@ export class InstatusParser implements IBuiltinParser {
     const title = `🔧 Maintenance: ${maintenance.name}`;
     const lines: string[] = [];
 
-    lines.push(`<strong>Status:</strong> ${this.formatMaintenanceStatus(maintenance.status)}`);
+    lines.push(`Status: ${this.formatMaintenanceStatus(maintenance.status)}`);
     if (maintenance.impact) {
-      lines.push(`<strong>Impact:</strong> ${this.formatImpact(maintenance.impact)}`);
+      lines.push(`Impact: ${this.formatImpact(maintenance.impact)}`);
     }
     if (maintenance.duration) {
-      lines.push(`<strong>Duration:</strong> ${maintenance.duration}`);
+      lines.push(`Duration: ${maintenance.duration}`);
     }
 
     if (maintenance.maintenance_updates && maintenance.maintenance_updates.length > 0) {
       const latestUpdate = maintenance.maintenance_updates[maintenance.maintenance_updates.length - 1];
       if (latestUpdate.body) {
         lines.push('');
-        lines.push('<strong>Latest Update:</strong>');
+        lines.push('Latest Update:');
         lines.push(latestUpdate.body);
       }
     }
 
     lines.push('');
-    lines.push(`<strong>Created:</strong> ${this.formatDateTime(maintenance.created_at)}`);
+    lines.push(`Created: ${this.formatDateTime(maintenance.created_at)}`);
     if (maintenance.resolved_at) {
-      lines.push(`<strong>Completed:</strong> ${this.formatDateTime(maintenance.resolved_at)}`);
+      lines.push(`Completed: ${this.formatDateTime(maintenance.resolved_at)}`);
     }
 
     lines.push('');
-    lines.push(`🔗 <a href="${maintenance.url}">View Maintenance</a>`);
-    lines.push(`📊 <a href="${page.url}">Status Page</a>`);
+    lines.push(`🔗 View Maintenance: ${maintenance.url}`);
+    lines.push(`📊 Status Page: ${page.url}`);
 
     return {
       title,
@@ -240,10 +240,10 @@ export class InstatusParser implements IBuiltinParser {
     const title = `${statusIcon} Component Update: ${component.name}`;
     const lines: string[] = [];
 
-    lines.push(`<strong>New Status:</strong> ${this.formatComponentStatus(component_update.new_status)}`);
-    lines.push(`<strong>Component:</strong> ${component.name}`);
+    lines.push(`New Status: ${this.formatComponentStatus(component_update.new_status)}`);
+    lines.push(`Component: ${component.name}`);
     lines.push('');
-    lines.push(`📊 <a href="${page.url}">Status Page</a>`);
+    lines.push(`📊 Status Page: ${page.url}`);
 
     const deliveryType = this.getComponentDeliveryType(component_update.new_status);
 

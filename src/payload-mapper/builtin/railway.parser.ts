@@ -159,9 +159,11 @@ export class RailwayParser implements IBuiltinParser {
       deployment,
     } = payload;
 
-    const title = service?.name
+    const baseTitle = service?.name
       ? `${project.name} - ${service.name}`
       : project.name;
+    const statusEmoji = this.getStatusEmoji(status);
+    const title = statusEmoji ? `${statusEmoji} ${baseTitle}` : baseTitle;
     const subtitle = status ? `${type} - ${status}` : type;
 
     let body = `Project: ${project.name}\n`;
@@ -217,6 +219,24 @@ export class RailwayParser implements IBuiltinParser {
     }
 
     return NotificationDeliveryType.NORMAL;
+  }
+
+  private getStatusEmoji(status?: string): string {
+    if (!status) {
+      return '';
+    }
+
+    const normalized = status.toUpperCase();
+
+    if (normalized.includes('SUCCESS')) {
+      return '✅';
+    }
+
+    if (normalized.includes('FAIL') || normalized.includes('ERROR')) {
+      return '❌';
+    }
+
+    return '';
   }
 
   private createErrorMessage(payload: any): CreateMessageDto {

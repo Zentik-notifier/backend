@@ -231,7 +231,7 @@ describe('RailwayParser', () => {
 
       const result = await parser.parse(payload, {});
 
-      expect(result.title).toBe('Zentik notifier - Backend');
+      expect(result.title).toBe('✅ Zentik notifier - Backend');
       expect(result.subtitle).toBe('DEPLOY - SUCCESS');
       expect(result.body).toContain('Project: Zentik notifier');
       expect(result.body).toContain('Service: Backend');
@@ -297,7 +297,7 @@ describe('RailwayParser', () => {
 
       const result = await parser.parse(payload, {});
 
-      expect(result.title).toBe('Test App - Backend');
+      expect(result.title).toBe('❌ Test App - Backend');
       expect(result.subtitle).toBe('DEPLOY - FAILED');
       expect(result.deliveryType).toBe(NotificationDeliveryType.CRITICAL);
     });
@@ -320,7 +320,7 @@ describe('RailwayParser', () => {
 
       const result = await parser.parse(payload, {});
 
-      expect(result.title).toBe('Test App');
+      expect(result.title).toBe('✅ Test App');
       expect(result.subtitle).toBe('DEPLOY - SUCCESS');
       expect(result.body).toContain('Project: Test App');
       expect(result.body).not.toContain('Service:');
@@ -508,7 +508,7 @@ describe('RailwayParser', () => {
 
       const result = await parser.parse(payload as any, {});
 
-      expect(result.title).toBe('Zentik notifier - Docs');
+      expect(result.title).toBe('✅ Zentik notifier - Docs');
       expect(result.subtitle).toBe('Deployment.deployed - SUCCESS');
       expect(result.body).toContain('Project: Zentik notifier');
       expect(result.body).toContain('Service: Docs');

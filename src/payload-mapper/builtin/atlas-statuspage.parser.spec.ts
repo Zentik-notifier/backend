@@ -396,7 +396,7 @@ describe('AtlasStatuspageParser', () => {
       expect(result.title).toContain('API Server');
       expect(result.body).toContain('🚨 Major Outage');
       expect(result.body).toContain('✅ Operational');
-      expect(result.body).toContain('→');
+      expect(result.body).toContain('->');
       expect(result.body).toContain('Partial System Outage');
       expect(result.deliveryType).toBe(NotificationDeliveryType.NORMAL);
     });
