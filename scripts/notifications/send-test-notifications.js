@@ -7,9 +7,12 @@ const TOKEN = 'zat_0a8606faa990b38bf30a6b99720a9173331da64dfce3976c2c4c85b75be35
 const BASE_URL = 'http://192.168.1.193:3000/api/v1';
 
 const CHECK_NOTIFICATIONS = process.env.CHECK_NOTIFICATIONS !== 'false';
+const DEVICE_TOKEN = process.env.DEVICE_TOKEN;
 const NOTIFICATION_INITIAL_DELAY_MS = Number(process.env.NOTIFICATION_INITIAL_DELAY_MS || 1500);
 const NOTIFICATION_POLL_INTERVAL_MS = Number(process.env.NOTIFICATION_POLL_INTERVAL_MS || 1000);
 const NOTIFICATION_TIMEOUT_MS = Number(process.env.NOTIFICATION_TIMEOUT_MS || 20000);
+
+let hasWarnedMissingDeviceToken = false;
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -21,6 +24,7 @@ async function graphqlRequest(query, variables = {}) {
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${TOKEN}`,
+            ...(DEVICE_TOKEN ? { deviceToken: DEVICE_TOKEN } : {}),
         },
         body: JSON.stringify({ query, variables }),
     });
@@ -37,6 +41,15 @@ async function graphqlRequest(query, variables = {}) {
 
 async function waitForNotificationByMessageId(messageId) {
     if (!CHECK_NOTIFICATIONS || !messageId) return null;
+    if (!DEVICE_TOKEN) {
+        if (!hasWarnedMissingDeviceToken) {
+            console.warn(
+                '⚠️  Skipping notification check: set DEVICE_TOKEN env var (GraphQL notifications requires deviceToken header).',
+            );
+            hasWarnedMissingDeviceToken = true;
+        }
+        return null;
+    }
 
     await sleep(NOTIFICATION_INITIAL_DELAY_MS);
     const started = Date.now();
