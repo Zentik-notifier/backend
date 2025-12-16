@@ -14,8 +14,8 @@
  * - TOKEN    (required) admin access token (zat_...) exported by e2e:init-environment
  *
  * Optional timings:
- * - NOTIF_INITIAL_DELAY_MS (default 1200)
- * - NOTIF_POLL_INTERVAL_MS (default 500)
+ * - NOTIF_INITIAL_DELAY_MS (default 2000)
+ * - NOTIF_POLL_INTERVAL_MS (default 1500)
  * - NOTIF_TIMEOUT_MS       (default 20000)
  */
 
@@ -24,8 +24,8 @@ const request = require('supertest');
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const TOKEN = process.env.TOKEN;
 
-const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 1200);
-const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 500);
+const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 2000);
+const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 1500);
 const NOTIF_TIMEOUT_MS = Number(process.env.NOTIF_TIMEOUT_MS || 20000);
 
 if (!TOKEN) {
@@ -72,26 +72,43 @@ async function fetchHttp(url, options = {}) {
 }
 
 async function graphqlRequest(query, variables = {}, authToken = TOKEN, extraHeaders = {}) {
-  const res = await fetchHttp(`${BASE_URL}/graphql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken}`,
-      ...extraHeaders,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  const maxRetries = 6;
+  let attempt = 0;
 
-  if (res.status < 200 || res.status >= 300) {
-    throw new Error(`GraphQL HTTP error: ${res.status} - ${res.data || res.statusText}`);
+  while (true) {
+    const res = await fetchHttp(`${BASE_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+        ...extraHeaders,
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    const payload = JSON.parse(res.data || '{}');
+    const errors = payload?.errors || null;
+    const isThrottled =
+      res.status === 429 ||
+      (Array.isArray(errors) && errors.some((e) => String(e?.message || '').includes('ThrottlerException')));
+
+    if (isThrottled && attempt < maxRetries) {
+      const backoffMs = Math.min(1500 * Math.pow(2, attempt), 12000);
+      await sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`GraphQL HTTP error: ${res.status} - ${res.data || res.statusText}`);
+    }
+
+    if (errors) {
+      throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+    }
+
+    return payload.data;
   }
-
-  const payload = JSON.parse(res.data || '{}');
-  if (payload.errors) {
-    throw new Error(`GraphQL errors: ${JSON.stringify(payload.errors)}`);
-  }
-
-  return payload.data;
 }
 
 async function adminCreateUser({ email, username, password }) {
@@ -298,12 +315,14 @@ async function waitForNotificationByMessageId(authToken, deviceToken, messageId)
     }
   `;
 
+  let waitMs = Math.max(800, NOTIF_POLL_INTERVAL_MS);
   while (Date.now() - started < NOTIF_TIMEOUT_MS) {
     const data = await graphqlRequest(query, {}, authToken, { deviceToken });
     const notifications = data?.notifications || [];
     const found = notifications.find((n) => n?.message?.id === messageId);
     if (found) return found;
-    await sleep(NOTIF_POLL_INTERVAL_MS);
+    await sleep(waitMs);
+    waitMs = Math.min(Math.round(waitMs * 1.5), 4000);
   }
 
   return null;

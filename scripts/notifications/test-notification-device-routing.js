@@ -26,8 +26,8 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const TOKEN = process.env.TOKEN;
 const BUCKET_ID = process.env.BUCKET_ID;
 
-const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 1200);
-const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 500);
+const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 2000);
+const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 1500);
 const NOTIF_TIMEOUT_MS = Number(process.env.NOTIF_TIMEOUT_MS || 20000);
 
 if (!TOKEN) {
@@ -79,26 +79,44 @@ async function fetchHttp(url, options = {}) {
 }
 
 async function graphqlRequest(query, variables = {}, authToken, extraHeaders = {}) {
-  const res = await fetchHttp(`${BASE_URL}/graphql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken}`,
-      ...extraHeaders,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  const maxRetries = 6;
+  let attempt = 0;
 
-  if (res.status < 200 || res.status >= 300) {
-    throw new Error(`GraphQL HTTP error: ${res.status} - ${res.data || res.statusText}`);
+  while (true) {
+    const res = await fetchHttp(`${BASE_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+        ...extraHeaders,
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    const payload = JSON.parse(res.data || '{}');
+    const errors = payload?.errors || null;
+
+    const isThrottled =
+      res.status === 429 ||
+      (Array.isArray(errors) && errors.some((e) => String(e?.message || '').includes('ThrottlerException')));
+
+    if (isThrottled && attempt < maxRetries) {
+      const backoffMs = Math.min(1500 * Math.pow(2, attempt), 12000);
+      await sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`GraphQL HTTP error: ${res.status} - ${res.data || res.statusText}`);
+    }
+
+    if (errors) {
+      throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+    }
+
+    return payload.data;
   }
-
-  const payload = JSON.parse(res.data || '{}');
-  if (payload.errors) {
-    throw new Error(`GraphQL errors: ${JSON.stringify(payload.errors)}`);
-  }
-
-  return payload.data;
 }
 
 async function registerDevice(authToken, input) {
@@ -262,7 +280,12 @@ async function createMessage(authToken, bucketId, title) {
     throw new Error(`Expected 201 from POST /messages, got ${res.status}: ${JSON.stringify(res.body)}`);
   }
 
-  return res.body;
+  const messageId = res.body?.message?.id ?? res.body?.id;
+  if (!messageId) {
+    throw new Error(`POST /messages response missing message id: ${JSON.stringify(res.body)}`);
+  }
+
+  return { id: messageId };
 }
 
 async function waitForNotificationForMessage({ authToken, deviceToken, messageId, expectedBucketId }) {
@@ -282,6 +305,8 @@ async function waitForNotificationForMessage({ authToken, deviceToken, messageId
     }
   `;
 
+  let waitMs = Math.max(800, NOTIF_POLL_INTERVAL_MS);
+
   while (Date.now() - started < NOTIF_TIMEOUT_MS) {
     const data = await graphqlRequest(query, {}, authToken, { deviceToken });
     const notifications = data?.notifications || [];
@@ -295,15 +320,16 @@ async function waitForNotificationForMessage({ authToken, deviceToken, messageId
       return match;
     }
 
-    await sleep(NOTIF_POLL_INTERVAL_MS);
+    await sleep(waitMs);
+    waitMs = Math.min(Math.round(waitMs * 1.5), 4000);
   }
 
   return null;
 }
 
 async function assertNotificationAbsentForMessage({ authToken, deviceToken, messageId, timeoutMs = 5000 }) {
+  // Avoid tight polling to prevent throttling: wait a bit, then check a couple of times.
   const started = Date.now();
-
   const query = `
     query Notifications {
       notifications {
@@ -313,14 +339,19 @@ async function assertNotificationAbsentForMessage({ authToken, deviceToken, mess
     }
   `;
 
-  while (Date.now() - started < timeoutMs) {
+  // Initial delay
+  await sleep(Math.min(2000, timeoutMs));
+  const attempts = 3;
+  for (let i = 0; i < attempts && Date.now() - started < timeoutMs; i++) {
     const data = await graphqlRequest(query, {}, authToken, { deviceToken });
     const notifications = data?.notifications || [];
     const match = notifications.find((n) => n?.message?.id === messageId);
     if (match) {
-      throw new Error(`Unexpected notification found for message ${messageId} on deviceToken=${String(deviceToken).slice(0, 10)}...`);
+      throw new Error(
+        `Unexpected notification found for message ${messageId} on deviceToken=${String(deviceToken).slice(0, 10)}...`,
+      );
     }
-    await sleep(300);
+    await sleep(400);
   }
 }
 

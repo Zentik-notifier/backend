@@ -26,10 +26,14 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const TOKEN = process.env.TOKEN;
 const BUCKET_ID = process.env.BUCKET_ID;
 
-const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 1200);
-const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 500);
+const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 2000);
+const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 1500);
 const NOTIF_TIMEOUT_MS = Number(process.env.NOTIF_TIMEOUT_MS || 20000);
-const NOTIF_ABSENCE_TIMEOUT_MS = Number(process.env.NOTIF_ABSENCE_TIMEOUT_MS || 2500);
+const NOTIF_ABSENCE_TIMEOUT_MS = Number(process.env.NOTIF_ABSENCE_TIMEOUT_MS || 3500);
+
+const GRAPHQL_MAX_RETRIES = Number(process.env.GRAPHQL_MAX_RETRIES || 6);
+const GRAPHQL_RETRY_BASE_DELAY_MS = Number(process.env.GRAPHQL_RETRY_BASE_DELAY_MS || 250);
+const GRAPHQL_RETRY_MAX_DELAY_MS = Number(process.env.GRAPHQL_RETRY_MAX_DELAY_MS || 3000);
 
 if (!TOKEN) {
   console.error('❌ TOKEN environment variable is required');
@@ -80,26 +84,62 @@ async function fetchHttp(url, options = {}) {
 }
 
 async function graphqlRequest(query, variables, authToken = TOKEN, extraHeaders = {}) {
-  const res = await fetchHttp(`${BASE_URL}/graphql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken}`,
-      ...extraHeaders,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  let retryDelay = GRAPHQL_RETRY_BASE_DELAY_MS;
 
-  if (res.status < 200 || res.status >= 300) {
-    throw new Error(`GraphQL HTTP error: ${res.status} - ${res.data || res.statusText}`);
+  for (let attempt = 1; attempt <= GRAPHQL_MAX_RETRIES; attempt++) {
+    const res = await fetchHttp(`${BASE_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+        ...extraHeaders,
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (res.status === 429) {
+      if (attempt === GRAPHQL_MAX_RETRIES) {
+        throw new Error(`GraphQL throttled (HTTP 429) after ${attempt} attempts`);
+      }
+      await sleep(retryDelay);
+      retryDelay = Math.min(Math.floor(retryDelay * 1.8), GRAPHQL_RETRY_MAX_DELAY_MS);
+      continue;
+    }
+
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`GraphQL HTTP error: ${res.status} - ${res.data || res.statusText}`);
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(res.data || '{}');
+    } catch (e) {
+      throw new Error(`GraphQL invalid JSON response: ${String(e?.message || e)}`);
+    }
+
+    const errors = payload?.errors;
+    const throttledByGql = Array.isArray(errors) && errors.some((err) => {
+      const msg = err?.message || '';
+      return typeof msg === 'string' && msg.includes('ThrottlerException');
+    });
+
+    if (throttledByGql) {
+      if (attempt === GRAPHQL_MAX_RETRIES) {
+        throw new Error(`GraphQL throttled (ThrottlerException) after ${attempt} attempts`);
+      }
+      await sleep(retryDelay);
+      retryDelay = Math.min(Math.floor(retryDelay * 1.8), GRAPHQL_RETRY_MAX_DELAY_MS);
+      continue;
+    }
+
+    if (errors) {
+      throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+    }
+
+    return payload.data;
   }
 
-  const payload = JSON.parse(res.data || '{}');
-  if (payload.errors) {
-    throw new Error(`GraphQL errors: ${JSON.stringify(payload.errors)}`);
-  }
-
-  return payload.data;
+  throw new Error('GraphQL request failed after retries');
 }
 
 async function listUserDevices(authToken) {
@@ -144,6 +184,7 @@ async function ensureDevice(authToken, desired) {
 async function waitForNotificationByMessageId(authToken, deviceToken, messageId) {
   await sleep(NOTIF_INITIAL_DELAY_MS);
   const started = Date.now();
+  let delay = NOTIF_POLL_INTERVAL_MS;
 
   const query = `
     query GetNotificationsForUser {
@@ -160,7 +201,8 @@ async function waitForNotificationByMessageId(authToken, deviceToken, messageId)
     const notifications = data?.notifications || [];
     const found = notifications.find((n) => n?.message?.id === messageId);
     if (found) return found;
-    await sleep(NOTIF_POLL_INTERVAL_MS);
+    await sleep(delay);
+    delay = Math.min(Math.floor(delay * 1.5), 4000);
   }
 
   return null;
@@ -168,6 +210,7 @@ async function waitForNotificationByMessageId(authToken, deviceToken, messageId)
 
 async function assertNoNotificationByMessageId(authToken, deviceToken, messageId) {
   const started = Date.now();
+  let delay = 500;
   const query = `
     query GetNotificationsForUser {
       notifications {
@@ -184,7 +227,8 @@ async function assertNoNotificationByMessageId(authToken, deviceToken, messageId
     if (found) {
       throw new Error(`Did NOT expect notification for message ${messageId} on deviceToken ${deviceToken}, but it exists (notification ${found.id}).`);
     }
-    await sleep(200);
+    await sleep(delay);
+    delay = Math.min(Math.floor(delay * 1.4), 1500);
   }
 }
 

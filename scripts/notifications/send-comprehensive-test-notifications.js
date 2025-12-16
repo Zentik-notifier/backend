@@ -8,8 +8,8 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const DEFAULT_BUCKET_ID = process.env.DEFAULT_BUCKET_ID || '2dd0e29d-51c9-45d6-93b9-668b26c659e5';
 
 const CHECK_NOTIFICATIONS = process.env.CHECK_NOTIFICATIONS !== 'false';
-const NOTIFICATION_INITIAL_DELAY_MS = Number(process.env.NOTIFICATION_INITIAL_DELAY_MS || 1500);
-const NOTIFICATION_POLL_INTERVAL_MS = Number(process.env.NOTIFICATION_POLL_INTERVAL_MS || 1000);
+const NOTIFICATION_INITIAL_DELAY_MS = Number(process.env.NOTIFICATION_INITIAL_DELAY_MS || 2000);
+const NOTIFICATION_POLL_INTERVAL_MS = Number(process.env.NOTIFICATION_POLL_INTERVAL_MS || 1500);
 const NOTIFICATION_TIMEOUT_MS = Number(process.env.NOTIFICATION_TIMEOUT_MS || 20000);
 
 const PRIMARY_DEVICE_TOKENS = [];
@@ -19,42 +19,76 @@ function sleep(ms) {
 }
 
 async function graphqlRequest(query, variables = {}) {
-  const response = await fetch(`${BASE_URL}/graphql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${TOKEN}`,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  const maxRetries = 6;
+  let attempt = 0;
 
-  const json = response.data ? JSON.parse(response.data) : {};
-  if (response.statusCode >= 400 || json.errors) {
-    const errMsg = json?.errors?.map((e) => e.message).join('; ') || response.statusMessage || 'GraphQL error';
-    throw new Error(errMsg);
+  while (true) {
+    const response = await fetch(`${BASE_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TOKEN}`,
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    const json = response.data ? JSON.parse(response.data) : {};
+    const errors = json?.errors || null;
+    const isThrottled =
+      response.statusCode === 429 ||
+      (Array.isArray(errors) && errors.some((e) => String(e?.message || '').includes('ThrottlerException')));
+
+    if (isThrottled && attempt < maxRetries) {
+      const backoffMs = Math.min(1500 * Math.pow(2, attempt), 12000);
+      await sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+
+    if (response.statusCode >= 400 || errors) {
+      const errMsg = errors?.map((e) => e.message).join('; ') || response.statusMessage || 'GraphQL error';
+      throw new Error(errMsg);
+    }
+
+    return json.data;
   }
-
-  return json.data;
 }
 
 async function graphqlRequestWithDeviceToken(query, variables = {}, deviceToken) {
-  const response = await fetch(`${BASE_URL}/graphql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${TOKEN}`,
-      ...(deviceToken ? { deviceToken } : {}),
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  const maxRetries = 6;
+  let attempt = 0;
 
-  const json = response.data ? JSON.parse(response.data) : {};
-  if (response.statusCode >= 400 || json.errors) {
-    const errMsg = json?.errors?.map((e) => e.message).join('; ') || response.statusMessage || 'GraphQL error';
-    throw new Error(errMsg);
+  while (true) {
+    const response = await fetch(`${BASE_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TOKEN}`,
+        ...(deviceToken ? { deviceToken } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    const json = response.data ? JSON.parse(response.data) : {};
+    const errors = json?.errors || null;
+    const isThrottled =
+      response.statusCode === 429 ||
+      (Array.isArray(errors) && errors.some((e) => String(e?.message || '').includes('ThrottlerException')));
+
+    if (isThrottled && attempt < maxRetries) {
+      const backoffMs = Math.min(1500 * Math.pow(2, attempt), 12000);
+      await sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+
+    if (response.statusCode >= 400 || errors) {
+      const errMsg = errors?.map((e) => e.message).join('; ') || response.statusMessage || 'GraphQL error';
+      throw new Error(errMsg);
+    }
+
+    return json.data;
   }
-
-  return json.data;
 }
 
 async function listUserDevices() {
@@ -112,18 +146,15 @@ async function waitForNotificationByMessageId(messageId, deviceToken) {
     }
   `;
 
+  let waitMs = Math.max(800, NOTIFICATION_POLL_INTERVAL_MS);
   while (Date.now() - started < NOTIFICATION_TIMEOUT_MS) {
-    try {
-      const data = await graphqlRequestWithDeviceToken(query, {}, deviceToken);
-      const notifications = data?.notifications || [];
-      const match = notifications.find((n) => n?.message?.id === messageId);
-      if (match) return match;
-    } catch (e) {
-      console.warn(`⚠️  Notification check failed: ${e.message}`);
-      return null;
-    }
+    const data = await graphqlRequestWithDeviceToken(query, {}, deviceToken);
+    const notifications = data?.notifications || [];
+    const match = notifications.find((n) => n?.message?.id === messageId);
+    if (match) return match;
 
-    await sleep(NOTIFICATION_POLL_INTERVAL_MS);
+    await sleep(waitMs);
+    waitMs = Math.min(Math.round(waitMs * 1.5), 4000);
   }
 
   return null;
