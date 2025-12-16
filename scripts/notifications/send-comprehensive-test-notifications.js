@@ -7,6 +7,67 @@ const TOKEN = process.env.TOKEN || 'zat_ded1db02b4fc91e33ad9ff8aa3f0102c4eddbec1
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const DEFAULT_BUCKET_ID = process.env.DEFAULT_BUCKET_ID || '2dd0e29d-51c9-45d6-93b9-668b26c659e5';
 
+const CHECK_NOTIFICATIONS = process.env.CHECK_NOTIFICATIONS !== 'false';
+const NOTIFICATION_INITIAL_DELAY_MS = Number(process.env.NOTIFICATION_INITIAL_DELAY_MS || 1500);
+const NOTIFICATION_POLL_INTERVAL_MS = Number(process.env.NOTIFICATION_POLL_INTERVAL_MS || 1000);
+const NOTIFICATION_TIMEOUT_MS = Number(process.env.NOTIFICATION_TIMEOUT_MS || 20000);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function graphqlRequest(query, variables = {}) {
+  const response = await fetch(`${BASE_URL}/graphql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TOKEN}`,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  const json = response.data ? JSON.parse(response.data) : {};
+  if (response.statusCode >= 400 || json.errors) {
+    const errMsg = json?.errors?.map((e) => e.message).join('; ') || response.statusMessage || 'GraphQL error';
+    throw new Error(errMsg);
+  }
+
+  return json.data;
+}
+
+async function waitForNotificationByMessageId(messageId) {
+  if (!CHECK_NOTIFICATIONS || !messageId) return null;
+
+  await sleep(NOTIFICATION_INITIAL_DELAY_MS);
+  const started = Date.now();
+
+  const query = `
+    query GetNotificationsForUser {
+      notifications {
+        id
+        createdAt
+        message { id }
+      }
+    }
+  `;
+
+  while (Date.now() - started < NOTIFICATION_TIMEOUT_MS) {
+    try {
+      const data = await graphqlRequest(query);
+      const notifications = data?.notifications || [];
+      const match = notifications.find((n) => n?.message?.id === messageId);
+      if (match) return match;
+    } catch (e) {
+      console.warn(`⚠️  Notification check failed: ${e.message}`);
+      return null;
+    }
+
+    await sleep(NOTIFICATION_POLL_INTERVAL_MS);
+  }
+
+  return null;
+}
+
 /**
  * Make an HTTP request with better error handling
  */
@@ -438,7 +499,8 @@ async function sendNotification(config, index, total) {
       return false;
     }
 
-    const result = JSON.parse(response.data);
+    const createResult = JSON.parse(response.data);
+    const message = createResult?.message ?? createResult;
     const attachmentInfo = config.attachments.length > 0 
       ? ` [${config.attachments.map(a => a.mediaType).join(', ')}]` 
       : '';
@@ -447,6 +509,15 @@ async function sendNotification(config, index, total) {
       : ' {no actions}';
     
     console.log(`✅ ${index + 1}/${total} sent:${attachmentInfo}${actionInfo} - ${config.title.substring(0, 50)}`);
+
+    if (CHECK_NOTIFICATIONS && message?.id) {
+      const notification = await waitForNotificationByMessageId(message.id);
+      if (notification) {
+        console.log(`   🔔 Notification found: ${notification.id}`);
+      } else {
+        console.warn(`   ⏱  Notification not found yet for message ${message.id}`);
+      }
+    }
     return true;
   } catch (error) {
     console.error(`❌ Failed to send notification ${index + 1}/${total}:`, error.message);

@@ -6,6 +6,68 @@
 const TOKEN = 'zat_0a8606faa990b38bf30a6b99720a9173331da64dfce3976c2c4c85b75be35d97';
 const BASE_URL = 'http://192.168.1.193:3000/api/v1';
 
+const CHECK_NOTIFICATIONS = process.env.CHECK_NOTIFICATIONS !== 'false';
+const NOTIFICATION_INITIAL_DELAY_MS = Number(process.env.NOTIFICATION_INITIAL_DELAY_MS || 1500);
+const NOTIFICATION_POLL_INTERVAL_MS = Number(process.env.NOTIFICATION_POLL_INTERVAL_MS || 1000);
+const NOTIFICATION_TIMEOUT_MS = Number(process.env.NOTIFICATION_TIMEOUT_MS || 20000);
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function graphqlRequest(query, variables = {}) {
+    const response = await fetch(`${BASE_URL}/graphql`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${TOKEN}`,
+        },
+        body: JSON.stringify({ query, variables }),
+    });
+
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok || json.errors) {
+        const errMsg =
+            json?.errors?.map((e) => e.message).join('; ') || response.statusText || 'GraphQL error';
+        throw new Error(errMsg);
+    }
+
+    return json.data;
+}
+
+async function waitForNotificationByMessageId(messageId) {
+    if (!CHECK_NOTIFICATIONS || !messageId) return null;
+
+    await sleep(NOTIFICATION_INITIAL_DELAY_MS);
+    const started = Date.now();
+
+    const query = `
+      query GetNotificationsForUser {
+        notifications {
+          id
+          createdAt
+          message { id }
+        }
+      }
+    `;
+
+    while (Date.now() - started < NOTIFICATION_TIMEOUT_MS) {
+        try {
+            const data = await graphqlRequest(query);
+            const notifications = data?.notifications || [];
+            const match = notifications.find((n) => n?.message?.id === messageId);
+            if (match) return match;
+        } catch (e) {
+            console.warn(`⚠️  Notification check failed: ${e.message}`);
+            return null;
+        }
+
+        await sleep(NOTIFICATION_POLL_INTERVAL_MS);
+    }
+
+    return null;
+}
+
 // Function to fetch available buckets
 async function fetchBuckets() {
     try {
@@ -245,9 +307,16 @@ async function sendMessage(config, index, bucket) {
 
         const result = await response.json();
         const message = result?.message ?? result;
-        console.log(
-            `✅ Message ${index + 1} sent: ${config.title} (ID: ${message?.id || 'N/A'})`,
-        );
+        console.log(`✅ Message ${index + 1} sent: ${config.title} (ID: ${message?.id || 'N/A'})`);
+
+        if (CHECK_NOTIFICATIONS && message?.id) {
+            const notification = await waitForNotificationByMessageId(message.id);
+            if (notification) {
+                console.log(`   🔔 Notification found: ${notification.id}`);
+            } else {
+                console.warn(`   ⏱  Notification not found yet for message ${message.id}`);
+            }
+        }
         return true;
     } catch (error) {
         console.error(`❌ Failed to send message ${index + 1}:`, error.message);
