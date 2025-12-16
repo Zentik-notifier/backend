@@ -21,7 +21,6 @@ import {
   NotificationActionType,
   NotificationDeliveryType,
 } from './notifications.types';
-import { s } from 'graphql-ws/dist/common-DY-PBNYy';
 
 const DeliveryTypeMap = {
   [NotificationDeliveryType.NORMAL]: 0,

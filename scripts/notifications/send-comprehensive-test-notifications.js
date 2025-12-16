@@ -8,14 +8,11 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const DEFAULT_BUCKET_ID = process.env.DEFAULT_BUCKET_ID || '2dd0e29d-51c9-45d6-93b9-668b26c659e5';
 
 const CHECK_NOTIFICATIONS = process.env.CHECK_NOTIFICATIONS !== 'false';
-const DEVICE_TOKEN = process.env.DEVICE_TOKEN;
 const NOTIFICATION_INITIAL_DELAY_MS = Number(process.env.NOTIFICATION_INITIAL_DELAY_MS || 1500);
 const NOTIFICATION_POLL_INTERVAL_MS = Number(process.env.NOTIFICATION_POLL_INTERVAL_MS || 1000);
 const NOTIFICATION_TIMEOUT_MS = Number(process.env.NOTIFICATION_TIMEOUT_MS || 20000);
 
-let hasWarnedMissingDeviceToken = false;
-
-const CAN_CHECK_NOTIFICATIONS = CHECK_NOTIFICATIONS && !!DEVICE_TOKEN;
+const PRIMARY_DEVICE_TOKENS = [];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -27,7 +24,6 @@ async function graphqlRequest(query, variables = {}) {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${TOKEN}`,
-      ...(DEVICE_TOKEN ? { deviceToken: DEVICE_TOKEN } : {}),
     },
     body: JSON.stringify({ query, variables }),
   });
@@ -41,18 +37,67 @@ async function graphqlRequest(query, variables = {}) {
   return json.data;
 }
 
-async function waitForNotificationByMessageId(messageId) {
-  if (!CHECK_NOTIFICATIONS || !messageId) return null;
+async function graphqlRequestWithDeviceToken(query, variables = {}, deviceToken) {
+  const response = await fetch(`${BASE_URL}/graphql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TOKEN}`,
+      ...(deviceToken ? { deviceToken } : {}),
+    },
+    body: JSON.stringify({ query, variables }),
+  });
 
-  if (!DEVICE_TOKEN) {
-    if (!hasWarnedMissingDeviceToken) {
-      console.warn(
-        '⚠️  Skipping notification check: set DEVICE_TOKEN env var (GraphQL notifications requires deviceToken header).',
-      );
-      hasWarnedMissingDeviceToken = true;
-    }
-    return null;
+  const json = response.data ? JSON.parse(response.data) : {};
+  if (response.statusCode >= 400 || json.errors) {
+    const errMsg = json?.errors?.map((e) => e.message).join('; ') || response.statusMessage || 'GraphQL error';
+    throw new Error(errMsg);
   }
+
+  return json.data;
+}
+
+async function listUserDevices() {
+  const query = `
+    query UserDevices {
+      userDevices {
+        id
+        platform
+        deviceName
+        deviceToken
+      }
+    }
+  `;
+
+  const data = await graphqlRequest(query);
+  return data?.userDevices || [];
+}
+
+async function registerDevice(input) {
+  const mutation = `
+    mutation RegisterDevice($input: RegisterDeviceDto!) {
+      registerDevice(input: $input) {
+        id
+        platform
+        deviceName
+        deviceToken
+      }
+    }
+  `;
+
+  const data = await graphqlRequest(mutation, { input });
+  return data?.registerDevice;
+}
+
+async function ensureDevice(desired) {
+  const devices = await listUserDevices();
+  const existing = devices.find((d) => d.deviceToken === desired.deviceToken);
+  if (existing) return existing;
+  return registerDevice(desired);
+}
+
+async function waitForNotificationByMessageId(messageId, deviceToken) {
+  if (!CHECK_NOTIFICATIONS || !messageId) return null;
 
   await sleep(NOTIFICATION_INITIAL_DELAY_MS);
   const started = Date.now();
@@ -69,7 +114,7 @@ async function waitForNotificationByMessageId(messageId) {
 
   while (Date.now() - started < NOTIFICATION_TIMEOUT_MS) {
     try {
-      const data = await graphqlRequest(query);
+      const data = await graphqlRequestWithDeviceToken(query, {}, deviceToken);
       const notifications = data?.notifications || [];
       const match = notifications.find((n) => n?.message?.id === messageId);
       if (match) return match;
@@ -526,18 +571,17 @@ async function sendNotification(config, index, total) {
     
     console.log(`✅ ${index + 1}/${total} sent:${attachmentInfo}${actionInfo} - ${config.title.substring(0, 50)}`);
 
-    if (CAN_CHECK_NOTIFICATIONS && message?.id) {
-      const notification = await waitForNotificationByMessageId(message.id);
-      if (notification) {
-        console.log(`   🔔 Notification found: ${notification.id}`);
-      } else {
-        console.warn(`   ⏱  Notification not found yet for message ${message.id}`);
+    if (CHECK_NOTIFICATIONS && message?.id) {
+      if (PRIMARY_DEVICE_TOKENS.length === 0) {
+        throw new Error('Device tokens were not initialized; cannot check notifications.');
       }
-    } else if (CHECK_NOTIFICATIONS && !DEVICE_TOKEN && !hasWarnedMissingDeviceToken) {
-      console.warn(
-        '⚠️  Skipping notification check: set DEVICE_TOKEN env var (GraphQL notifications requires deviceToken header).',
-      );
-      hasWarnedMissingDeviceToken = true;
+
+      for (const dt of PRIMARY_DEVICE_TOKENS) {
+        const notification = await waitForNotificationByMessageId(message.id, dt);
+        if (!notification) {
+          throw new Error(`Expected notification for message ${message.id} on deviceToken ${dt}, but none found within timeout.`);
+        }
+      }
     }
     return true;
   } catch (error) {
@@ -550,6 +594,37 @@ async function sendNotification(config, index, total) {
 async function main() {
   console.log('🚀 Starting comprehensive notification test...');
   console.log('━'.repeat(80));
+
+  // Step 0: Ensure at least two devices exist for current user, so we can assert per-device routing.
+  if (CHECK_NOTIFICATIONS) {
+    const ts = Date.now();
+    const iosToken = `e2e-comp-ios-${ts}`;
+    const webToken = `e2e-comp-web-${ts}`;
+
+    console.log(`\n📱 STEP 0: Registering test devices (for per-device notification assertions)...`);
+
+    await ensureDevice({
+      platform: 'IOS',
+      deviceToken: iosToken,
+      deviceName: 'E2E Comprehensive iOS',
+    });
+
+    await ensureDevice({
+      platform: 'WEB',
+      deviceToken: webToken,
+      deviceName: 'E2E Comprehensive Web',
+      subscriptionFields: {
+        endpoint: `https://example.com/e2e/${ts}`,
+        keys: {
+          p256dh: 'e2e_p256dh_key',
+          auth: 'e2e_auth_key',
+        },
+      },
+    });
+
+    PRIMARY_DEVICE_TOKENS.push(iosToken, webToken);
+    console.log('   ✅ Devices ready');
+  }
   
   // Step 1: Use default bucket ID if specified, otherwise fetch buckets
   let buckets = [];

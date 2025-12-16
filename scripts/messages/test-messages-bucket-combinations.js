@@ -26,6 +26,11 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const TOKEN = process.env.TOKEN;
 const BUCKET_ID = process.env.BUCKET_ID;
 
+const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 1200);
+const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 500);
+const NOTIF_TIMEOUT_MS = Number(process.env.NOTIF_TIMEOUT_MS || 20000);
+const NOTIF_ABSENCE_TIMEOUT_MS = Number(process.env.NOTIF_ABSENCE_TIMEOUT_MS || 2500);
+
 if (!TOKEN) {
   console.error('❌ TOKEN environment variable is required');
   process.exit(1);
@@ -34,6 +39,10 @@ if (!TOKEN) {
 if (!BUCKET_ID) {
   console.error('❌ BUCKET_ID environment variable is required');
   process.exit(1);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function fetchHttp(url, options = {}) {
@@ -70,12 +79,13 @@ async function fetchHttp(url, options = {}) {
   });
 }
 
-async function graphqlRequest(query, variables, authToken = TOKEN) {
+async function graphqlRequest(query, variables, authToken = TOKEN, extraHeaders = {}) {
   const res = await fetchHttp(`${BASE_URL}/graphql`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${authToken}`,
+      ...extraHeaders,
     },
     body: JSON.stringify({ query, variables }),
   });
@@ -90,6 +100,92 @@ async function graphqlRequest(query, variables, authToken = TOKEN) {
   }
 
   return payload.data;
+}
+
+async function listUserDevices(authToken) {
+  const query = `
+    query UserDevices {
+      userDevices {
+        id
+        platform
+        deviceName
+        deviceToken
+      }
+    }
+  `;
+
+  const data = await graphqlRequest(query, {}, authToken);
+  return data?.userDevices || [];
+}
+
+async function registerDevice(authToken, input) {
+  const mutation = `
+    mutation RegisterDevice($input: RegisterDeviceDto!) {
+      registerDevice(input: $input) {
+        id
+        platform
+        deviceName
+        deviceToken
+      }
+    }
+  `;
+
+  const data = await graphqlRequest(mutation, { input }, authToken);
+  return data?.registerDevice;
+}
+
+async function ensureDevice(authToken, desired) {
+  const devices = await listUserDevices(authToken);
+  const existing = devices.find((d) => d.deviceToken === desired.deviceToken);
+  if (existing) return existing;
+  return registerDevice(authToken, desired);
+}
+
+async function waitForNotificationByMessageId(authToken, deviceToken, messageId) {
+  await sleep(NOTIF_INITIAL_DELAY_MS);
+  const started = Date.now();
+
+  const query = `
+    query GetNotificationsForUser {
+      notifications {
+        id
+        createdAt
+        message { id }
+      }
+    }
+  `;
+
+  while (Date.now() - started < NOTIF_TIMEOUT_MS) {
+    const data = await graphqlRequest(query, {}, authToken, { deviceToken });
+    const notifications = data?.notifications || [];
+    const found = notifications.find((n) => n?.message?.id === messageId);
+    if (found) return found;
+    await sleep(NOTIF_POLL_INTERVAL_MS);
+  }
+
+  return null;
+}
+
+async function assertNoNotificationByMessageId(authToken, deviceToken, messageId) {
+  const started = Date.now();
+  const query = `
+    query GetNotificationsForUser {
+      notifications {
+        id
+        message { id }
+      }
+    }
+  `;
+
+  while (Date.now() - started < NOTIF_ABSENCE_TIMEOUT_MS) {
+    const data = await graphqlRequest(query, {}, authToken, { deviceToken });
+    const notifications = data?.notifications || [];
+    const found = notifications.find((n) => n?.message?.id === messageId);
+    if (found) {
+      throw new Error(`Did NOT expect notification for message ${messageId} on deviceToken ${deviceToken}, but it exists (notification ${found.id}).`);
+    }
+    await sleep(200);
+  }
 }
 
 async function getBucketWithMagicCode(bucketId) {
@@ -211,6 +307,14 @@ async function sendMessageVariant(agent, description, { authToken, body }) {
   }
 
   console.log('   ✅ 201 Created');
+
+  const messageId = res.body?.message?.id ?? res.body?.id;
+  if (!messageId) {
+    console.error('      Response body:', JSON.stringify(res.body, null, 2));
+    throw new Error('Expected message id in POST /messages response');
+  }
+
+  return messageId;
 }
 
 async function runBucketCombinationTests() {
@@ -223,6 +327,30 @@ async function runBucketCombinationTests() {
   console.log(`   Base bucket ID (private/user): ${BUCKET_ID}`);
 
   const agent = request(BASE_URL);
+
+  // Prepare per-device notification assertions
+  const ts = Date.now();
+  const primaryDeviceTokens = {
+    ios: `e2e-msg-combo-owner-ios-${ts}`,
+    web: `e2e-msg-combo-owner-web-${ts}`,
+  };
+
+  console.log('\n📱 Registering owner test devices...');
+  await ensureDevice(TOKEN, {
+    platform: 'IOS',
+    deviceToken: primaryDeviceTokens.ios,
+    deviceName: 'E2E Msg Combos Owner iOS',
+  });
+  await ensureDevice(TOKEN, {
+    platform: 'WEB',
+    deviceToken: primaryDeviceTokens.web,
+    deviceName: 'E2E Msg Combos Owner Web',
+    subscriptionFields: {
+      endpoint: `https://example.com/e2e/${ts}`,
+      keys: { p256dh: 'e2e_p256dh_key', auth: 'e2e_auth_key' },
+    },
+  });
+  console.log('   ✅ Owner devices ready');
 
   // Private/user bucket from env
   const baseBucket = await getBucketWithMagicCode(BUCKET_ID);
@@ -353,6 +481,15 @@ async function runBucketCombinationTests() {
 
   console.log('   ✅ Secondary user access token created');
 
+  console.log('   📱 Registering secondary user test device...');
+  const sharedUserDeviceToken = `e2e-msg-combo-shared-ios-${ts}`;
+  await ensureDevice(sharedUserToken, {
+    platform: 'IOS',
+    deviceToken: sharedUserDeviceToken,
+    deviceName: 'E2E Msg Combos Shared iOS',
+  });
+  console.log('   ✅ Secondary user device ready');
+
   console.log('   🔍 Fetching bucket as shared user to verify personal magicCode...');
 
   const sharedUserBucketData = await graphqlRequest(
@@ -393,68 +530,102 @@ async function runBucketCombinationTests() {
   console.log('\n' + '─'.repeat(80));
   console.log('📨 Testing combinations...');
 
+  async function assertRouting(label, messageId, { expectOwner, expectShared }) {
+    // owner devices
+    if (expectOwner) {
+      for (const dt of [primaryDeviceTokens.ios, primaryDeviceTokens.web]) {
+        const notif = await waitForNotificationByMessageId(TOKEN, dt, messageId);
+        if (!notif) {
+          throw new Error(`Expected notification for ${label} (message ${messageId}) on owner deviceToken ${dt}, but none found.`);
+        }
+      }
+    } else {
+      for (const dt of [primaryDeviceTokens.ios, primaryDeviceTokens.web]) {
+        await assertNoNotificationByMessageId(TOKEN, dt, messageId);
+      }
+    }
+
+    // shared user device
+    if (expectShared) {
+      const notif = await waitForNotificationByMessageId(sharedUserToken, sharedUserDeviceToken, messageId);
+      if (!notif) {
+        throw new Error(`Expected notification for ${label} (message ${messageId}) on shared user deviceToken ${sharedUserDeviceToken}, but none found.`);
+      }
+    } else {
+      await assertNoNotificationByMessageId(sharedUserToken, sharedUserDeviceToken, messageId);
+    }
+  }
+
   // 1) Private bucket with access token + bucketId
-  await sendMessageVariant(agent, 'Private bucket + token + bucketId', {
+  const m1 = await sendMessageVariant(agent, 'Private bucket + token + bucketId', {
     authToken: TOKEN,
     body: { bucketId: privateBucket.id },
   });
+  await assertRouting('Private bucket + token + bucketId', m1, { expectOwner: true, expectShared: true });
 
   // 2) Private bucket with magicCode (no Authorization header)
   if (privateBucket.magicCode) {
-    await sendMessageVariant(agent, 'Private bucket + magicCode (no token)', {
+    const m2 = await sendMessageVariant(agent, 'Private bucket + magicCode (no token)', {
       authToken: null,
       body: { magicCode: privateBucket.magicCode },
     });
+    await assertRouting('Private bucket + magicCode (no token)', m2, { expectOwner: true, expectShared: true });
   } else {
     console.log('   ⚠️ Skipping private bucket + magicCode (no magicCode available)');
   }
 
   // 3) Public bucket with access token + bucketId
-  await sendMessageVariant(agent, 'Public bucket + token + bucketId', {
+  const m3 = await sendMessageVariant(agent, 'Public bucket + token + bucketId', {
     authToken: TOKEN,
     body: { bucketId: publicBucket.id },
   });
+  await assertRouting('Public bucket + token + bucketId', m3, { expectOwner: true, expectShared: false });
 
   // 4) Public bucket with magicCode (if available)
   if (publicBucket.magicCode) {
-    await sendMessageVariant(agent, 'Public bucket + magicCode (no token)', {
+    const m4 = await sendMessageVariant(agent, 'Public bucket + magicCode (no token)', {
       authToken: null,
       body: { magicCode: publicBucket.magicCode },
     });
+    await assertRouting('Public bucket + magicCode (no token)', m4, { expectOwner: true, expectShared: false });
   } else {
     console.log('   ⚠️ Skipping public bucket + magicCode (no magicCode available)');
   }
 
   // 5) Admin bucket with access token + bucketId (if present)
   if (adminBucket) {
-    await sendMessageVariant(agent, 'Admin bucket + token + bucketId', {
+    const m5 = await sendMessageVariant(agent, 'Admin bucket + token + bucketId', {
       authToken: TOKEN,
       body: { bucketId: adminBucket.id },
     });
+    await assertRouting('Admin bucket + token + bucketId', m5, { expectOwner: true, expectShared: false });
 
     // 6) Admin bucket with magicCode (if available)
     if (adminBucket.magicCode) {
-      await sendMessageVariant(agent, 'Admin bucket + magicCode (no token)', {
+      const m6 = await sendMessageVariant(agent, 'Admin bucket + magicCode (no token)', {
         authToken: null,
         body: { magicCode: adminBucket.magicCode },
       });
+      await assertRouting('Admin bucket + magicCode (no token)', m6, { expectOwner: true, expectShared: false });
     } else {
       console.log('   ⚠️ Skipping admin bucket + magicCode (no magicCode available)');
     }
   }
 
   // 7) Shared bucket (private bucket shared with another user) using shared user's access token
-  await sendMessageVariant(agent, 'Shared bucket (private) + shared user token + bucketId', {
+  const m7 = await sendMessageVariant(agent, 'Shared bucket (private) + shared user token + bucketId', {
     authToken: sharedUserToken,
     body: { bucketId: privateBucket.id },
   });
+  await assertRouting('Shared bucket (private) + shared user token + bucketId', m7, { expectOwner: true, expectShared: true });
 
   // 8) Shared bucket (private) using shared user's personal magicCode (no Authorization header)
   if (sharedUserMagicCode) {
-    await sendMessageVariant(agent, 'Shared bucket (private) + shared user magicCode (no token)', {
+    const m8 = await sendMessageVariant(agent, 'Shared bucket (private) + shared user magicCode (no token)', {
       authToken: null,
       body: { magicCode: sharedUserMagicCode },
     });
+    await assertRouting('Shared bucket (private) + shared user magicCode (no token)', m8, { expectOwner: true, expectShared: true });
   }
 
   console.log('\n✅ All bucket/access combinations tested successfully.');

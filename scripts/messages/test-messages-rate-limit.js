@@ -22,6 +22,10 @@ const BUCKET_ID = process.env.BUCKET_ID;
 // If defined in env we use it to have more precise expectations
 const RATE_LIMIT_LIMIT = Number(process.env.RATE_LIMIT_LIMIT || '0');
 
+const NOTIF_INITIAL_DELAY_MS = Number(process.env.NOTIF_INITIAL_DELAY_MS || 300);
+const NOTIF_POLL_INTERVAL_MS = Number(process.env.NOTIF_POLL_INTERVAL_MS || 300);
+const NOTIF_TIMEOUT_MS = Number(process.env.NOTIF_TIMEOUT_MS || 8000);
+
 if (!TOKEN) {
     console.error('❌ TOKEN environment variable is required');
     process.exit(1);
@@ -32,8 +36,141 @@ if (!BUCKET_ID) {
     process.exit(1);
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchHttp(url, options = {}) {
+    const https = require('https');
+    const http = require('http');
+    const { URL } = require('url');
+
+    const urlObj = new URL(url);
+    const client = urlObj.protocol === 'https:' ? https : http;
+
+    return new Promise((resolve, reject) => {
+        const req = client.request(url, options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+                res.data = data;
+                res.status = res.statusCode;
+                resolve(res);
+            });
+        });
+        req.on('error', reject);
+
+        if (options.headers) {
+            Object.keys(options.headers).forEach((key) => {
+                req.setHeader(key, options.headers[key]);
+            });
+        }
+
+        if (options.body) {
+            req.write(typeof options.body === 'string' ? options.body : JSON.stringify(options.body));
+        }
+
+        req.end();
+    });
+}
+
+async function graphqlRequest(query, variables, extraHeaders = {}) {
+    const res = await fetchHttp(`${BASE_URL}/graphql`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${TOKEN}`,
+            ...extraHeaders,
+        },
+        body: JSON.stringify({ query, variables }),
+    });
+
+    if (res.status < 200 || res.status >= 300) {
+        throw new Error(`GraphQL HTTP error: ${res.status} - ${res.data || res.statusText}`);
+    }
+
+    const payload = JSON.parse(res.data || '{}');
+    if (payload.errors) {
+        throw new Error(`GraphQL errors: ${JSON.stringify(payload.errors)}`);
+    }
+
+    return payload.data;
+}
+
+async function listUserDevices() {
+    const query = `
+        query UserDevices {
+            userDevices {
+                id
+                platform
+                deviceName
+                deviceToken
+            }
+        }
+    `;
+
+    const data = await graphqlRequest(query, {});
+    return data?.userDevices || [];
+}
+
+async function registerDevice(input) {
+    const mutation = `
+        mutation RegisterDevice($input: RegisterDeviceDto!) {
+            registerDevice(input: $input) {
+                id
+                platform
+                deviceName
+                deviceToken
+            }
+        }
+    `;
+
+    const data = await graphqlRequest(mutation, { input });
+    return data?.registerDevice;
+}
+
+async function ensureDevice(desired) {
+    const devices = await listUserDevices();
+    const existing = devices.find((d) => d.deviceToken === desired.deviceToken);
+    if (existing) return existing;
+    return registerDevice(desired);
+}
+
+async function waitForNotificationByMessageId(deviceToken, messageId) {
+    await sleep(NOTIF_INITIAL_DELAY_MS);
+    const started = Date.now();
+
+    const query = `
+        query GetNotificationsForUser {
+            notifications {
+                id
+                message { id }
+            }
+        }
+    `;
+
+    while (Date.now() - started < NOTIF_TIMEOUT_MS) {
+        const data = await graphqlRequest(query, {}, { deviceToken });
+        const notifications = data?.notifications || [];
+        const found = notifications.find((n) => n?.message?.id === messageId);
+        if (found) return found;
+        await sleep(NOTIF_POLL_INTERVAL_MS);
+    }
+
+    return null;
+}
+
 async function runRateLimitTests() {
     console.log(`\n🧪 Testing Messages Rate Limit (${BASE_URL}/messages)...`);
+
+    // Ensure we have at least one device to validate notification creation once.
+    const ts = Date.now();
+    const deviceToken = `e2e-rate-limit-ios-${ts}`;
+    await ensureDevice({
+        platform: 'IOS',
+        deviceToken,
+        deviceName: 'E2E Rate Limit iOS',
+    });
 
     const agent = request(BASE_URL);
 
@@ -49,6 +186,7 @@ async function runRateLimitTests() {
     let successCount = 0;
     let rateLimitedCount = 0;
     let retryAfterMs = null;
+    let firstMessageId = null;
 
     // Phase 1: push requests until we see a 429 (or exhaust maxRequests)
     for (let i = 1; i <= maxRequests; i++) {
@@ -68,6 +206,9 @@ async function runRateLimitTests() {
             if (res.status === 201) {
                 console.log('   ✅ 201 Created');
                 successCount++;
+                if (!firstMessageId) {
+                    firstMessageId = res.body?.message?.id ?? res.body?.id ?? null;
+                }
             } else if (res.status === 429) {
                 console.log('   🚫 429 Too Many Requests (rate limited)');
                 rateLimitedCount++;
@@ -122,6 +263,19 @@ async function runRateLimitTests() {
         console.error('\n❌ Rate limit did not trigger within the expected number of requests.');
         process.exit(1);
     }
+
+    if (!firstMessageId) {
+        console.error('\n❌ Could not capture a message id from 201 responses to verify notifications.');
+        process.exit(1);
+    }
+
+    console.log('\n🔔 Verifying notification creation for the first created message...');
+    const notif = await waitForNotificationByMessageId(deviceToken, firstMessageId);
+    if (!notif) {
+        console.error(`\n❌ Expected notification for message ${firstMessageId} on deviceToken ${deviceToken}, but none found.`);
+        process.exit(1);
+    }
+    console.log(`   ✅ Notification found: ${notif.id}`);
 
     // Phase 2: wait for the window and verify that requests go back to 201
     const waitMs = retryAfterMs != null ? retryAfterMs + 1000 : RATE_LIMIT_TTL_MS_GUESS();

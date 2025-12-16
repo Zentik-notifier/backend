@@ -74,6 +74,8 @@ jobs:
           BASE_URL: http://localhost:3000/api/v1
           DEFAULT_BUCKET_ID: ${{ env.BUCKET_ID }}
         run: |
+          node scripts/notifications/test-notification-device-routing.js
+          node scripts/notifications/test-admin-public-bucket-broadcast.js
           node scripts/notifications/send-comprehensive-test-notifications.js
           node scripts/messages/test-messages-bucket-combinations.js
           node scripts/messages/test-messages-rate-limit.js
