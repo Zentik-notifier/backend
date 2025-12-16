@@ -329,6 +329,12 @@ export class IOSPushService {
       y: DeliveryTypeMap[message.deliveryType] ?? 0,
     };
 
+    // Public buckets should not use iOS Communication Notifications (INSendMessageIntent)
+    // to avoid attributing a "sender"/thread style to broadcast/public notifications.
+    if (message.bucket?.isPublic === true) {
+      payload.skipSendMessageIntent = true;
+    }
+
     if (message.bucket?.iconUrl) {
       payload.bi = message.bucket.iconUrl;
     }

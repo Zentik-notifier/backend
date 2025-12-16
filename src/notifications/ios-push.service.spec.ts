@@ -448,6 +448,27 @@ describe('IOSPushService', () => {
       expect(result.payload.aps.alert.body).toBeUndefined();
     });
 
+    it('should force skipSendMessageIntent for public buckets', async () => {
+      const publicBucketNotification = {
+        ...mockNotification,
+        message: {
+          ...mockNotification.message,
+          bucket: {
+            ...mockNotification.message.bucket,
+            isPublic: true,
+          },
+        },
+      };
+
+      const result = await service.buildAPNsPayload(
+        publicBucketNotification as any,
+        mockUserSettings,
+        mockDevice as any,
+      );
+
+      expect(result.payload.skipSendMessageIntent).toBe(true);
+    });
+
     it('should build APNs payload without Communication Notifications format when bucket fields missing', async () => {
       const notificationWithoutBucket = {
         ...mockNotification,
