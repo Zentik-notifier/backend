@@ -465,6 +465,14 @@ export class MessagesService {
 
     try {
       const baseMessage: Message = savedMessageWithRelations || savedMessage;
+
+      // Log explicitly when sending a message on a public bucket
+      if (baseMessage.bucket?.isPublic) {
+        this.logger.log(
+          `Sending message ${baseMessage.id} to PUBLIC bucket ${baseMessage.bucket.name} (requester=${requesterId})`,
+        );
+      }
+
       const notifications = await this.pushOrchestrator.create(
         baseMessage,
         requesterId,

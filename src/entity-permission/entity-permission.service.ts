@@ -159,7 +159,7 @@ export class EntityPermissionService {
       const existing = await this.userBucketRepository.findOne({
         where: { userId, bucketId: resourceId },
       });
-      
+
       if (!existing) {
         const magicCode = generateMagicCode();
         const userBucket = this.userBucketRepository.create({
@@ -620,9 +620,6 @@ export class EntityPermissionService {
 
     const userIds = new Set<string>();
 
-    // Add bucket owner
-    userIds.add(bucket.user.id);
-
     // Special case: If this is an admin bucket, all admins have access
     if (bucket.isAdmin) {
       const adminUsers = await this.userRepository.find({
@@ -632,21 +629,27 @@ export class EntityPermissionService {
       // this.logger.debug(
       //   `Admin bucket ${bucketId}: Added ${adminUsers.length} admins as authorized users`,
       // );
+    } else if (bucket.isPublic) {
+      const allUsers = await this.userRepository.find();
+      allUsers.forEach((admin) => userIds.add(admin.id));
+    } else {
+      // Add bucket owner
+      userIds.add(bucket.user.id);
+
+      // Get all permissions for this bucket to find users with access
+      const permissions = await this.entityPermissionRepository.find({
+        where: {
+          resourceType: ResourceType.BUCKET,
+          resourceId: bucketId,
+        },
+        relations: ['user'],
+      });
+
+      // Add all users who have permissions on this bucket
+      permissions.forEach((permission) => {
+        userIds.add(permission.user.id);
+      });
     }
-
-    // Get all permissions for this bucket to find users with access
-    const permissions = await this.entityPermissionRepository.find({
-      where: {
-        resourceType: ResourceType.BUCKET,
-        resourceId: bucketId,
-      },
-      relations: ['user'],
-    });
-
-    // Add all users who have permissions on this bucket
-    permissions.forEach((permission) => {
-      userIds.add(permission.user.id);
-    });
 
     return Array.from(userIds);
   }
