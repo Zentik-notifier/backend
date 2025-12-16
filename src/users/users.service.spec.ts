@@ -355,7 +355,11 @@ describe('UsersService', () => {
 
       const result = await service.registerDevice('user-1', registerDeviceDto);
 
-      expect(result).toEqual(mockUserDevice);
+      expect(result).toMatchObject({
+        ...mockUserDevice,
+        privateKey: 'mock-private-key',
+      });
+      expect((result as any).publicKey).toBeUndefined();
       expect(userDevicesRepository.create).toHaveBeenCalled();
       expect(userDevicesRepository.save).toHaveBeenCalled();
     });
@@ -374,7 +378,12 @@ describe('UsersService', () => {
 
       const result = await service.registerDevice('user-1', registerDeviceDto);
 
-      expect(result).toEqual(existingDevice);
+      expect(result).toMatchObject({
+        ...mockUserDevice,
+        deviceToken: registerDeviceDto.deviceToken,
+        privateKey: 'mock-private-key',
+      });
+      expect((result as any).publicKey).toBeUndefined();
       expect(userDevicesRepository.save).toHaveBeenCalledWith(existingDevice);
     });
 
