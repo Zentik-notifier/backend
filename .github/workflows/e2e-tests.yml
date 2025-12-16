@@ -58,7 +58,6 @@ jobs:
           DB_PORT: 5432
           DB_USERNAME: zentik_user
           DB_PASSWORD: zentik_password
-          DB_DATABASE: zentik_test
           DB_SSL: 'false'
           DB_SYNCHRONIZE: 'true'
           DB_DROP_SCHEMA: 'false'
@@ -77,8 +76,8 @@ jobs:
           DB_PORT: 5432
           DB_USERNAME: zentik_user
           DB_PASSWORD: zentik_password
-          DB_DATABASE: zentik_test
-        run: npm run scripts:test-device-keys
+          DB_DATABASE: zentik_test_a
+        run: node scripts/auth/test-device-keys.js
 
       - name: Notifications & Messages tests
         env:

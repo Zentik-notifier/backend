@@ -30,7 +30,32 @@ const DB_HOST = process.env.DB_HOST || 'localhost';
 const DB_PORT = Number(process.env.DB_PORT || 5432);
 const DB_USERNAME = process.env.DB_USERNAME || 'zentik_user';
 const DB_PASSWORD = process.env.DB_PASSWORD || 'zentik_password';
-const DB_DATABASE = process.env.DB_DATABASE || process.env.POSTGRES_DB;
+const DB_DATABASE = process.env.DB_DATABASE || process.env.DB_NAME_A || process.env.DB_NAME || process.env.POSTGRES_DB;
+
+function uniqueNonEmpty(values) {
+  const seen = new Set();
+  const out = [];
+  for (const v of values) {
+    if (!v) continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+  return out;
+}
+
+function getDbCandidates() {
+  // In CI the E2E initializer creates `zentik_test_a` and `zentik_test_b`.
+  // Server A (port 3000) uses `zentik_test_a` by default.
+  return uniqueNonEmpty([
+    process.env.DB_DATABASE,
+    process.env.DB_NAME_A,
+    process.env.DB_NAME,
+    process.env.POSTGRES_DB,
+    'zentik_test_a',
+    'zentik_test',
+  ]);
+}
 
 function log(msg) {
   console.log(`[test-device-keys] ${msg}`);
@@ -126,50 +151,73 @@ function assert(cond, msg) {
 }
 
 async function verifyDb(deviceId, expected) {
-  if (!DB_DATABASE) {
-    throw new Error('DB_DATABASE (or POSTGRES_DB) is required to verify DB');
+  const candidates = getDbCandidates();
+  if (!candidates.length) {
+    throw new Error('No database configured (set DB_DATABASE or DB_NAME/DB_NAME_A)');
   }
 
-  const client = new Client({
-    host: DB_HOST,
-    port: DB_PORT,
-    user: DB_USERNAME,
-    password: DB_PASSWORD,
-    database: DB_DATABASE,
-  });
+  const q = 'SELECT "id","userId","deviceToken","platform","publicKey","privateKey" FROM "user_devices" WHERE "id" = $1';
+  let lastErr;
 
-  await client.connect();
-  try {
-    const q = 'SELECT "id","userId","deviceToken","platform","publicKey","privateKey" FROM "user_devices" WHERE "id" = $1';
-    const { rows } = await client.query(q, [deviceId]);
-    assert(rows.length === 1, `Device not found in DB for id=${deviceId}`);
+  for (const database of candidates) {
+    const client = new Client({
+      host: DB_HOST,
+      port: DB_PORT,
+      user: DB_USERNAME,
+      password: DB_PASSWORD,
+      database,
+    });
 
-    const row = rows[0];
-    assert(row.userId === expected.userId, `DB userId mismatch: ${row.userId} != ${expected.userId}`);
-    assert(row.deviceToken === expected.deviceToken, `DB deviceToken mismatch: ${row.deviceToken} != ${expected.deviceToken}`);
-    assert(row.platform === expected.platform, `DB platform mismatch: ${row.platform} != ${expected.platform}`);
+    await client.connect();
+    try {
+      const { rows } = await client.query(q, [deviceId]);
+      if (!rows || rows.length === 0) {
+        continue;
+      }
+      assert(rows.length === 1, `Device not found in DB for id=${deviceId}`);
 
-    if (expected.platform === 'IOS') {
-      // Expected behavior for iOS in UsersService.registerDevice:
-      // - publicKey is saved in DB
-      // - privateKey is NOT saved in DB (returned once to device)
-      assert(typeof row.publicKey === 'string' && row.publicKey.length > 0, 'DB publicKey should be a non-empty string (iOS)');
-      assert(row.privateKey === null || row.privateKey === undefined || row.privateKey === '', 'DB privateKey should be empty/null for iOS');
-    } else if (expected.platform === 'WEB') {
-      // Expected behavior for WEB in UsersService.registerDevice:
-      // - publicKey is saved in DB
-      // - privateKey is saved in DB
-      // - response returns publicKey and strips privateKey
-      assert(typeof row.publicKey === 'string' && row.publicKey.length > 0, 'DB publicKey should be a non-empty string (WEB)');
-      assert(typeof row.privateKey === 'string' && row.privateKey.length > 0, 'DB privateKey should be a non-empty string (WEB)');
-    } else {
-      throw new Error(`Unsupported platform for DB verification: ${expected.platform}`);
+      const row = rows[0];
+      assert(row.userId === expected.userId, `DB userId mismatch: ${row.userId} != ${expected.userId}`);
+      assert(row.deviceToken === expected.deviceToken, `DB deviceToken mismatch: ${row.deviceToken} != ${expected.deviceToken}`);
+      assert(row.platform === expected.platform, `DB platform mismatch: ${row.platform} != ${expected.platform}`);
+
+      if (expected.platform === 'IOS') {
+        // Expected behavior for iOS in UsersService.registerDevice:
+        // - publicKey is saved in DB
+        // - privateKey is NOT saved in DB (returned once to device)
+        assert(typeof row.publicKey === 'string' && row.publicKey.length > 0, 'DB publicKey should be a non-empty string (iOS)');
+        assert(row.privateKey === null || row.privateKey === undefined || row.privateKey === '', 'DB privateKey should be empty/null for iOS');
+      } else if (expected.platform === 'WEB') {
+        // Expected behavior for WEB in UsersService.registerDevice:
+        // - publicKey is saved in DB
+        // - privateKey is saved in DB
+        // - response returns publicKey and strips privateKey
+        assert(typeof row.publicKey === 'string' && row.publicKey.length > 0, 'DB publicKey should be a non-empty string (WEB)');
+        assert(typeof row.privateKey === 'string' && row.privateKey.length > 0, 'DB privateKey should be a non-empty string (WEB)');
+      } else {
+        throw new Error(`Unsupported platform for DB verification: ${expected.platform}`);
+      }
+
+      row.__dbName = database;
+      return row;
+    } catch (err) {
+      // 42P01: undefined_table (e.g. wrong database/schema)
+      // 3D000: invalid_catalog_name (db doesn't exist)
+      if (err && (err.code === '42P01' || err.code === '3D000')) {
+        lastErr = err;
+        continue;
+      }
+      throw err;
+    } finally {
+      await client.end();
     }
-
-    return row;
-  } finally {
-    await client.end();
   }
+
+  const hint = `Tried DBs: ${candidates.join(', ')}`;
+  if (lastErr) {
+    throw new Error(`${lastErr.message} (${hint})`);
+  }
+  throw new Error(`Device not found in any candidate DB. ${hint}`);
 }
 
 async function runScenario(accessToken, platform) {
@@ -244,7 +292,8 @@ async function runScenario(accessToken, platform) {
 
 async function main() {
   log(`BASE_URL=${BASE_URL}`);
-  log(`DB=${DB_USERNAME}@${DB_HOST}:${DB_PORT}/${DB_DATABASE || '(missing DB_DATABASE)'}`);
+  const dbCandidates = getDbCandidates();
+  log(`DB candidates=${DB_USERNAME}@${DB_HOST}:${DB_PORT} -> [${dbCandidates.join(', ') || '(none)'}]`);
 
   const accessToken = await loginAdmin();
 
