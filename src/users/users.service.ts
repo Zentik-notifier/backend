@@ -45,7 +45,7 @@ export class UsersService {
     @InjectRepository(AdminSubscription)
     private readonly adminSubscriptionRepository: Repository<AdminSubscription>,
     private readonly eventTrackingService: EventTrackingService,
-  ) {}
+  ) { }
 
   async findOne(userId: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -122,7 +122,7 @@ export class UsersService {
     // Check if device already exists for this user
     // First check by deviceId if provided, otherwise by deviceToken
     let existingDevice: UserDevice | null = null;
-    
+
     if (registerDeviceDto.deviceId) {
       existingDevice = await this.userDevicesRepository.findOne({
         where: {
@@ -159,7 +159,6 @@ export class UsersService {
       if (registerDeviceDto.onlyLocal === undefined) {
         existingDevice.onlyLocal = existingDevice.onlyLocal ?? false;
         existingDevice.publicKey = publicKeyNew;
-        existingDevice.privateKey = privateKeyNew;
       }
 
       const saved = await this.userDevicesRepository.save(existingDevice);
@@ -179,7 +178,6 @@ export class UsersService {
     };
 
     deviceData.publicKey = publicKeyNew;
-    deviceData.privateKey = privateKeyNew;
 
     const device = this.userDevicesRepository.create(deviceData);
     const saved = await this.userDevicesRepository.save(device);
@@ -191,7 +189,10 @@ export class UsersService {
     // Track device registration event
     await this.eventTrackingService.trackDeviceRegister(userId, saved.id);
 
-    return saved;
+    return {
+      ...saved,
+      privateKey: privateKeyNew,
+    };
   }
 
   async getUserDevices(userId: string): Promise<UserDevice[]> {
