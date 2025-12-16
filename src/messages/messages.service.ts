@@ -40,6 +40,11 @@ import * as Handlebars from 'handlebars';
 import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.entity';
 
+export interface CreateMessageResult {
+  message: Message;
+  notificationsCount: number;
+}
+
 @Injectable()
 export class MessagesService {
   private readonly logger = new Logger(MessagesService.name);
@@ -342,7 +347,7 @@ export class MessagesService {
     requesterId: string | undefined,
     skipEventTracking = false,
     executionId?: string,
-  ): Promise<Message> {
+  ): Promise<CreateMessageResult> {
     if (!createMessageDto.bucketId) {
       throw new BadRequestException('bucketId or magicCode is required');
     }
@@ -463,22 +468,58 @@ export class MessagesService {
         relations: ['bucket'],
       });
 
+    let notificationsCount = 0;
+
     try {
       const baseMessage: Message = savedMessageWithRelations || savedMessage;
 
-      // Log explicitly when sending a message on a public bucket
+      // Log explicitly when preparing notifications for a public bucket
       if (baseMessage.bucket?.isPublic) {
         this.logger.log(
-          `Sending message ${baseMessage.id} to PUBLIC bucket ${baseMessage.bucket.name} (requester=${requesterId})`,
+          `Creating notifications for PUBLIC bucket ${baseMessage.bucket.name} (message=${baseMessage.id}, requester=${requesterId})`,
         );
       }
 
-      const notifications = await this.pushOrchestrator.create(
-        baseMessage,
-        requesterId,
-        processedUserIds,
-        skipEventTracking, // Also skip notification tracking to prevent infinite loop
-      );
+      // Create notifications now (fast DB work) and send push asynchronously
+      const { notifications, authorizedUsers } =
+        await this.pushOrchestrator.createNotificationsForMessage(
+          baseMessage,
+          requesterId,
+          processedUserIds,
+        );
+
+      notificationsCount = notifications.length;
+
+      if (notifications.length > 0 && authorizedUsers.length > 0) {
+        // Fire-and-forget push delivery, without blocking the response
+        this.pushOrchestrator
+          .sendPushToDevices(
+            notifications,
+            authorizedUsers,
+            baseMessage.bucketId,
+            skipEventTracking,
+          )
+          .then(
+            ({
+              successCount,
+              errorCount,
+              snoozedCount,
+              iosSent,
+              androidSent,
+              webSent,
+            }) => {
+              this.logger.log(
+                `Async send for message ${baseMessage.id} → Users [${authorizedUsers.join(',')}] → ${successCount} sent, ${errorCount} failed, ${snoozedCount} snoozed | iOS ${iosSent}, Android ${androidSent}, Web ${webSent}`,
+              );
+            },
+          )
+          .catch((error) => {
+            this.logger.error(
+              `Failed to send push notifications asynchronously for message ${baseMessage.id}`,
+              error,
+            );
+          });
+      }
 
       // Create reminders if remindEveryMinutes is set
       if (createMessageDto.remindEveryMinutes) {
@@ -487,7 +528,9 @@ export class MessagesService {
         // Get all user IDs that received notifications
         const userIdsToRemind = processedUserIds.length > 0
           ? processedUserIds
-          : notifications.map(n => n.userId).filter((v, i, a) => a.indexOf(v) === i);
+          : notificationsCount > 0
+            ? Array.from(new Set(notifications.map((n) => n.userId)))
+            : [];
 
         // Create a reminder for each user
         for (const userId of userIdsToRemind) {
@@ -519,7 +562,12 @@ export class MessagesService {
       // Don't fail the message creation if notifications fail
     }
 
-    return savedMessageWithRelations || savedMessage;
+    const finalMessage = savedMessageWithRelations || savedMessage;
+
+    return {
+      message: finalMessage,
+      notificationsCount,
+    };
   }
 
   private async processAttachments(
@@ -698,7 +746,7 @@ export class MessagesService {
     input: CreateMessageWithAttachmentDto,
     userId: string,
     attachment: Express.Multer.File,
-  ): Promise<Message> {
+  ): Promise<CreateMessageResult> {
     const normalizedInput = input as any;
     this.logger.log(
       `Creating message with attachment for bucketId=${normalizedInput.bucketId} by user=${userId}`,
@@ -774,15 +822,15 @@ export class MessagesService {
     // Already validated by ValidationPipe
 
     // Create the message using the existing logic
-    const savedMessage = await this.create(messageInput, userId);
+    const result = await this.create(messageInput, userId);
 
     // Link the attachment to the message
     await this.attachmentsService.linkAttachmentToMessage(
       savedAttachment.id,
-      savedMessage.id,
+      result.message.id,
     );
 
-    return savedMessage;
+    return result;
   }
 
   private async linkAttachmentsToMessage(
@@ -953,7 +1001,7 @@ export class MessagesService {
     userId: string,
     bucketId: string,
     headers?: Record<string, string>,
-  ): Promise<Message | undefined> {
+  ): Promise<CreateMessageResult | undefined> {
     // Delegate to PayloadMapperService for parser identification and transformation
     const { messageDto, executionId } = await this.payloadMapperService.transformPayload(
       parserName,

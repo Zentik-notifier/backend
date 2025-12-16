@@ -23,6 +23,7 @@ export class MessagesResolver {
     @Args('input') input: CreateMessageDto,
     @CurrentUser('id') userId: string | undefined,
   ): Promise<Message> {
-    return this.messagesService.create(input, userId);
+    const { message } = await this.messagesService.create(input, userId);
+    return message;
   }
 }

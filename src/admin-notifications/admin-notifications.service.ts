@@ -125,7 +125,7 @@ export class AdminNotificationsService implements OnModuleInit {
       const eventDetails = await this.getEventDetails(event);
 
       // Create a single message with all admin users as recipients
-      const message = await this.messagesService.create(
+      const { message, notificationsCount } = await this.messagesService.create(
         {
           bucketId: adminBucket.id,
           title: this.formatEventTitle(event.type),
@@ -138,7 +138,7 @@ export class AdminNotificationsService implements OnModuleInit {
       );
 
       this.logger.debug(
-        `Created admin notification message ${message.id} for event ${event.id} to ${adminUserIds.length} admin(s): ${adminUserIds.join(', ')}`,
+        `Created admin notification message ${message.id} for event ${event.id} to ${adminUserIds.length} admin(s): ${adminUserIds.join(', ')} | Notifications: ${notificationsCount}`,
       );
     } catch (error) {
       this.logger.error(

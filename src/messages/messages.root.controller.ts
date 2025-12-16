@@ -21,13 +21,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { RequireMessageBucketCreation } from '../auth/decorators/require-scopes.decorator';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
-import { Message } from '../entities';
+import { CreateMessageResponseDto } from './dto/create-message-response.dto';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 
@@ -65,8 +64,8 @@ export class MessagesRootController {
   })
   @ApiResponse({
     status: 201,
-    description: 'Notifications created successfully',
-    type: Message,
+    description: 'Message created and notifications scheduled',
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -80,7 +79,7 @@ export class MessagesRootController {
     @GetUser('id') userId: string | undefined,
     @CombineMessageSources() input: CreateMessageWithAttachmentDto,
     @UploadedFile() file?: Express.Multer.File,
-  ) {
+  ): Promise<CreateMessageResponseDto> {
     if (file) {
       // If file is present, use createWithAttachment logic
       // We need to ensure input is treated as CreateMessageWithAttachmentDto
@@ -88,15 +87,17 @@ export class MessagesRootController {
       if (!userId) {
         throw new BadRequestException('User ID is required for file upload');
       }
-      return await this.messagesService.createWithAttachment(
-        input,
-        userId,
-        file,
-      );
+      const { message, notificationsCount } =
+        await this.messagesService.createWithAttachment(input, userId, file);
+      return { message, notificationsCount };
     } else {
       // If no file, use standard create logic
       // input is compatible with CreateMessageDto since CreateMessageWithAttachmentDto extends it
-      return await this.messagesService.create(input, userId);
+      const { message, notificationsCount } = await this.messagesService.create(
+        input,
+        userId,
+      );
+      return { message, notificationsCount };
     }
   }
 
@@ -113,7 +114,7 @@ export class MessagesRootController {
   @ApiResponse({
     status: 200,
     description: 'Message sent successfully',
-    type: Message,
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -131,9 +132,12 @@ export class MessagesRootController {
   async sendMessage(
     @GetUser('id') userId: string,
     @Query() input: CreateMessageDto,
-  ) {
-    const result = await this.messagesService.create(input, userId);
-    return result;
+  ): Promise<CreateMessageResponseDto> {
+    const { message, notificationsCount } = await this.messagesService.create(
+      input,
+      userId,
+    );
+    return { message, notificationsCount };
   }
 
   @Post('transform')
@@ -148,7 +152,7 @@ export class MessagesRootController {
   @ApiResponse({
     status: 201,
     description: 'Message created successfully from transformed payload',
-    type: Message,
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 204,
@@ -201,7 +205,7 @@ export class MessagesRootController {
 
       if (result) {
         this.logger.log(
-          `Message created successfully | MessageId: ${result.id} | Parser: ${parserName}`,
+          `Message created successfully | MessageId: ${result.message.id} | Parser: ${parserName} | Notifications: ${result.notificationsCount}`,
         );
       } else {
         this.logger.log(
@@ -251,7 +255,7 @@ export class MessagesRootController {
   @ApiResponse({
     status: 201,
     description: 'Message created successfully from template',
-    type: Message,
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -366,7 +370,7 @@ export class MessagesRootController {
     );
 
     this.logger.log(
-      `Message created successfully from template | MessageId: ${result.id} | Template: ${template}`,
+      `Message created successfully from template | MessageId: ${result.message.id} | Template: ${template} | Notifications: ${result.notificationsCount}`,
     );
 
     return result;

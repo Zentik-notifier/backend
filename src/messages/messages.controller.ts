@@ -27,7 +27,7 @@ import { RequireMessageBucketCreation } from '../auth/decorators/require-scopes.
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
-import { Message } from '../entities';
+import { CreateMessageResponseDto } from './dto/create-message-response.dto';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 
@@ -63,8 +63,8 @@ export class MessagesController {
   })
   @ApiResponse({
     status: 201,
-    description: 'Notifications created successfully',
-    type: Message,
+    description: 'Message created and notifications scheduled',
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -77,9 +77,12 @@ export class MessagesController {
   async create(
     @GetUser('id') userId: string | undefined,
     @CombineMessageSources() input: CreateMessageDto,
-  ) {
-    const result = await this.messagesService.create(input, userId);
-    return result;
+  ): Promise<CreateMessageResponseDto> {
+    const { message, notificationsCount } = await this.messagesService.create(
+      input,
+      userId,
+    );
+    return { message, notificationsCount };
   }
 
   @Post('with-attachment')
@@ -95,7 +98,7 @@ export class MessagesController {
   @ApiResponse({
     status: 201,
     description: 'Message created successfully with attachment',
-    type: Message,
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 403,
@@ -105,13 +108,10 @@ export class MessagesController {
     @GetUser('id') userId: string,
     @UploadedFile() file: Express.Multer.File,
     @Body() input: CreateMessageWithAttachmentDto,
-  ) {
-    const saved = await this.messagesService.createWithAttachment(
-      input,
-      userId,
-      file,
-    );
-    return saved;
+  ): Promise<CreateMessageResponseDto> {
+    const { message, notificationsCount } =
+      await this.messagesService.createWithAttachment(input, userId, file);
+    return { message, notificationsCount };
   }
 
   @Get()
@@ -125,7 +125,7 @@ export class MessagesController {
   @ApiResponse({
     status: 200,
     description: 'Message sent successfully',
-    type: Message,
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -143,9 +143,12 @@ export class MessagesController {
   async sendMessage(
     @GetUser('id') userId: string,
     @Query() input: CreateMessageDto,
-  ) {
-    const result = await this.messagesService.create(input, userId);
-    return result;
+  ): Promise<CreateMessageResponseDto> {
+    const { message, notificationsCount } = await this.messagesService.create(
+      input,
+      userId,
+    );
+    return { message, notificationsCount };
   }
 
   @Post('transform')
@@ -160,7 +163,7 @@ export class MessagesController {
   @ApiResponse({
     status: 201,
     description: 'Message created successfully from transformed payload',
-    type: Message,
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 204,
@@ -213,7 +216,7 @@ export class MessagesController {
 
       if (result) {
         this.logger.log(
-          `Message created successfully | MessageId: ${result.id} | Parser: ${parserName}`,
+          `Message created successfully | MessageId: ${result.message.id} | Parser: ${parserName} | Notifications: ${result.notificationsCount}`,
         );
       } else {
         this.logger.log(
@@ -263,7 +266,7 @@ export class MessagesController {
   @ApiResponse({
     status: 201,
     description: 'Message created successfully from template',
-    type: Message,
+    type: CreateMessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -378,7 +381,7 @@ export class MessagesController {
     );
 
     this.logger.log(
-      `Message created successfully from template | MessageId: ${result.id} | Template: ${template}`,
+      `Message created successfully from template | MessageId: ${result.message.id} | Template: ${template} | Notifications: ${result.notificationsCount}`,
     );
 
     return result;

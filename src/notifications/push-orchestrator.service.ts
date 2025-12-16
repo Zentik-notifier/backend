@@ -183,7 +183,7 @@ export class PushNotificationOrchestratorService {
    * Reusable method for both create() and resendNotification()
    * Completely autonomous - loads devices, settings, buckets internally
    */
-  private async sendPushToDevices(
+  public async sendPushToDevices(
     notifications: Notification[],
     userIds: string[],
     bucketId?: string,
@@ -387,19 +387,20 @@ export class PushNotificationOrchestratorService {
   }
 
   /**
-   * Create notifications for all authorized users and send push notifications
+   * Create notifications for all authorized users for a message (DB + subscriptions),
+   * without waiting for push delivery. Returns the notifications and the user IDs.
    */
-  async create(
+  public async createNotificationsForMessage(
     message: Message,
     requesterId: string,
     userIds?: string[],
-    skipNotificationTracking = false,
     addReminderPrefix = false,
-  ): Promise<Notification[]> {
-    // Get authorized users for the bucket
+  ): Promise<{ notifications: Notification[]; authorizedUsers: string[] }> {
+    // Get authorized users for the bucket (includes public bucket logic and requester when applicable)
     let authorizedUsers =
       await this.entityPermissionService.getBucketAuthorizedUserIds(
         message.bucketId,
+        requesterId,
       );
 
     // Filter by specific userIds if provided
@@ -413,10 +414,10 @@ export class PushNotificationOrchestratorService {
       this.logger.warn(
         `No authorized users found for bucket ${message.bucketId}${userIds ? ` with userIds filter: ${userIds.join(', ')}` : ''}`,
       );
-      return [];
+      return { notifications: [], authorizedUsers: [] };
     }
 
-    // Get target devices to create notifications (sendPushToDevices will load them again internally)
+    // Get target devices to create notifications
     const targetDevices = await this.userDevicesRepository.find({
       where: {
         userId: In(authorizedUsers),
@@ -425,7 +426,7 @@ export class PushNotificationOrchestratorService {
       order: { lastUsed: 'DESC' },
     });
 
-    // Create one notification per device (user + device pair) - ALWAYS create notifications
+    // Create one notification per device (user + device pair)
     const notificationsPerDevice: Notification[] = [];
     for (const device of targetDevices) {
       const notification = this.notificationsRepository.create({
@@ -465,20 +466,51 @@ export class PushNotificationOrchestratorService {
       }
     }
 
-    // Add reminder prefix to notifications if requested
-    let notificationsToSend = notificationsWithRelations;
-    if (addReminderPrefix) {
-      notificationsToSend = notificationsWithRelations.map(n => this.addReminderPrefix(n));
+    // Optionally add reminder prefix
+    const finalNotifications = addReminderPrefix
+      ? notificationsWithRelations.map((n) => this.addReminderPrefix(n))
+      : notificationsWithRelations;
+
+    return { notifications: finalNotifications, authorizedUsers };
+  }
+
+  /**
+   * Create notifications and send push notifications (legacy API, kept for callers
+   * that still want to await full delivery).
+   */
+  async create(
+    message: Message,
+    requesterId: string,
+    userIds?: string[],
+    skipNotificationTracking = false,
+    addReminderPrefix = false,
+  ): Promise<Notification[]> {
+    const { notifications, authorizedUsers } =
+      await this.createNotificationsForMessage(
+        message,
+        requesterId,
+        userIds,
+        addReminderPrefix,
+      );
+
+    if (notifications.length === 0 || authorizedUsers.length === 0) {
+      return [];
     }
 
-    // Send push notifications (handles devices, settings, buckets, tracking internally)
-    const { processedNotifications, successCount, errorCount, snoozedCount, errors, iosSent, androidSent, webSent } =
-      await this.sendPushToDevices(
-        notificationsToSend,
-        authorizedUsers,
-        message.bucketId,
-        skipNotificationTracking,
-      );
+    const {
+      processedNotifications,
+      successCount,
+      errorCount,
+      snoozedCount,
+      iosSent,
+      androidSent,
+      webSent,
+    } = await this.sendPushToDevices(
+      notifications,
+      authorizedUsers,
+      message.bucketId,
+      skipNotificationTracking,
+    );
 
     // Log summary
     this.logger.log(
