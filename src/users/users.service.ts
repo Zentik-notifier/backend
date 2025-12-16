@@ -201,6 +201,7 @@ export class UsersService {
 
     if (isIos) {
       deviceData.publicKey = publicKeyNew;
+      deviceData.privateKey = null;
     } else {
       deviceData.publicKey = publicKeyNew;
       deviceData.privateKey = privateKeyNew;
@@ -221,6 +222,7 @@ export class UsersService {
       return {
         ...rest,
         privateKey: privateKeyNew,
+        publicKey: null,
       }
     } else if (isWeb) {
       return {

@@ -359,7 +359,7 @@ describe('UsersService', () => {
         ...mockUserDevice,
         privateKey: 'mock-private-key',
       });
-      expect((result as any).publicKey).toBeUndefined();
+      expect((result as any).publicKey).toBeNull();
       expect(userDevicesRepository.create).toHaveBeenCalled();
       expect(userDevicesRepository.save).toHaveBeenCalled();
     });
