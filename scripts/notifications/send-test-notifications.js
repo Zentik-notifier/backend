@@ -14,6 +14,8 @@ const NOTIFICATION_TIMEOUT_MS = Number(process.env.NOTIFICATION_TIMEOUT_MS || 20
 
 let hasWarnedMissingDeviceToken = false;
 
+const CAN_CHECK_NOTIFICATIONS = CHECK_NOTIFICATIONS && !!DEVICE_TOKEN;
+
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -322,13 +324,18 @@ async function sendMessage(config, index, bucket) {
         const message = result?.message ?? result;
         console.log(`✅ Message ${index + 1} sent: ${config.title} (ID: ${message?.id || 'N/A'})`);
 
-        if (CHECK_NOTIFICATIONS && message?.id) {
+        if (CAN_CHECK_NOTIFICATIONS && message?.id) {
             const notification = await waitForNotificationByMessageId(message.id);
             if (notification) {
                 console.log(`   🔔 Notification found: ${notification.id}`);
             } else {
                 console.warn(`   ⏱  Notification not found yet for message ${message.id}`);
             }
+        } else if (CHECK_NOTIFICATIONS && !DEVICE_TOKEN && !hasWarnedMissingDeviceToken) {
+            console.warn(
+                '⚠️  Skipping notification check: set DEVICE_TOKEN env var (GraphQL notifications requires deviceToken header).',
+            );
+            hasWarnedMissingDeviceToken = true;
         }
         return true;
     } catch (error) {
