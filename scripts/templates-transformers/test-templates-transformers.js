@@ -166,17 +166,18 @@ async function testTemplate(magicCode, templateName) {
     });
 
     const responseData = response.data ? JSON.parse(response.data) : null;
+    const createdMessage = responseData?.message ?? responseData;
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      console.log(`  ✅ SUCCESS: Message created with ID: ${responseData?.id}`);
-      console.log(`     Title: ${responseData?.title || 'N/A'}`);
-      console.log(`     Body: ${(responseData?.body || '').substring(0, 100)}...`);
+      console.log(`  ✅ SUCCESS: Message created with ID: ${createdMessage?.id}`);
+      console.log(`     Title: ${createdMessage?.title || 'N/A'}`);
+      console.log(`     Body: ${(createdMessage?.body || '').substring(0, 100)}...`);
       results.templates.success.push({
         template: templateName,
-        messageId: responseData?.id,
+        messageId: createdMessage?.id,
         status: response.statusCode
       });
-      return { success: true, messageId: responseData?.id, template: templateName };
+      return { success: true, messageId: createdMessage?.id, template: templateName };
     } else {
       console.log(`  ❌ FAILED: ${response.statusCode} - ${responseData?.message || response.statusMessage}`);
       results.templates.failure.push({
@@ -225,6 +226,7 @@ async function testTransformer(magicCode, parserName) {
     });
 
     const responseData = response.data ? JSON.parse(response.data) : null;
+    const createdMessage = responseData?.message ?? responseData;
 
     if (response.statusCode === 204) {
       console.log(`  ⏭️  SKIPPED: Parser skipped (no content produced)`);
@@ -236,16 +238,16 @@ async function testTransformer(magicCode, parserName) {
       return { success: true, skipped: true, parser: parserName };
     } else if (response.statusCode >= 200 && response.statusCode < 300) {
       // Check if response actually contains a message
-      if (responseData && responseData.id) {
-        console.log(`  ✅ SUCCESS: Message created with ID: ${responseData.id}`);
-        console.log(`     Title: ${responseData.title || 'N/A'}`);
-        console.log(`     Body: ${(responseData.body || '').substring(0, 100)}...`);
+      if (createdMessage && createdMessage.id) {
+        console.log(`  ✅ SUCCESS: Message created with ID: ${createdMessage.id}`);
+        console.log(`     Title: ${createdMessage.title || 'N/A'}`);
+        console.log(`     Body: ${(createdMessage.body || '').substring(0, 100)}...`);
         results.transformers.success.push({
           parser: parserName,
-          messageId: responseData.id,
+          messageId: createdMessage.id,
           status: response.statusCode
         });
-        return { success: true, messageId: responseData.id, parser: parserName };
+        return { success: true, messageId: createdMessage.id, parser: parserName };
       } else {
         // Response OK but no message ID - might be an error message
         console.log(`  ⚠️  WARNING: Parser returned success but no message ID`);

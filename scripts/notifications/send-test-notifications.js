@@ -244,7 +244,10 @@ async function sendMessage(config, index, bucket) {
         }
 
         const result = await response.json();
-        console.log(`✅ Message ${index + 1} sent: ${config.title} (ID: ${result.id})`);
+        const message = result?.message ?? result;
+        console.log(
+            `✅ Message ${index + 1} sent: ${config.title} (ID: ${message?.id || 'N/A'})`,
+        );
         return true;
     } catch (error) {
         console.error(`❌ Failed to send message ${index + 1}:`, error.message);

@@ -158,10 +158,11 @@ async function createMessageWithToken(bucketId, bucketName) {
     });
 
     const responseData = response.data ? JSON.parse(response.data) : null;
+    const createdMessage = responseData?.message ?? responseData;
 
     if (response.statusCode < 400) {
-      console.log(`    ✅ SUCCESS: Message created with ID: ${responseData?.id}`);
-      return { success: true, messageId: responseData?.id, bucketId, bucketName, method: 'token' };
+      console.log(`    ✅ SUCCESS: Message created with ID: ${createdMessage?.id}`);
+      return { success: true, messageId: createdMessage?.id, bucketId, bucketName, method: 'token' };
     } else {
       console.log(`    ❌ FAILED: ${response.statusCode} - ${responseData?.message || response.statusMessage}`);
       return { success: false, error: responseData?.message || response.statusMessage, bucketId, bucketName, method: 'token' };
@@ -197,10 +198,11 @@ async function createMessageWithMagicCode(bucketId, bucketName, magicCode) {
     });
 
     const responseData = response.data ? JSON.parse(response.data) : null;
+    const createdMessage = responseData?.message ?? responseData;
 
     if (response.statusCode < 400) {
-      console.log(`    ✅ SUCCESS: Message created with ID: ${responseData?.id}`);
-      return { success: true, messageId: responseData?.id, bucketId, bucketName, method: 'magicCode', magicCode };
+      console.log(`    ✅ SUCCESS: Message created with ID: ${createdMessage?.id}`);
+      return { success: true, messageId: createdMessage?.id, bucketId, bucketName, method: 'magicCode', magicCode };
     } else {
       console.log(`    ❌ FAILED: ${response.statusCode} - ${responseData?.message || response.statusMessage}`);
       return { success: false, error: responseData?.message || response.statusMessage, bucketId, bucketName, method: 'magicCode', magicCode };

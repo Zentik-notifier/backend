@@ -280,12 +280,17 @@ async function createMessage(bucketId, scenarioName, bodySize) {
         throw new Error('Failed to create message');
     }
 
-    const message = JSON.parse(res.data || '{}');
-    console.log(`   ✅ Message created: id=${message.id}, title="${message.title}"`);
+    const createResult = JSON.parse(res.data || '{}');
+    const message = createResult?.message ?? createResult;
+    const notificationsCount = createResult?.notificationsCount;
+    console.log(
+        `   ✅ Message created: id=${message?.id}, title="${message?.title}"` +
+            (typeof notificationsCount === 'number' ? `, notifications=${notificationsCount}` : ''),
+    );
     return message;
 }
 
-async function waitForNotificationForMessage(messageId, deviceId, deviceToken, timeoutMs = 30000) {
+async function waitForNotificationForMessage(messageId, deviceId, deviceToken, timeoutMs = 60000) {
     const started = Date.now();
     const pollInterval = 1000;
 
