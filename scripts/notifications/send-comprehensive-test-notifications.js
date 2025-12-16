@@ -646,10 +646,8 @@ async function main() {
       deviceName: 'E2E Comprehensive Web',
       subscriptionFields: {
         endpoint: `https://example.com/e2e/${ts}`,
-        keys: {
-          p256dh: 'e2e_p256dh_key',
-          auth: 'e2e_auth_key',
-        },
+        p256dh: 'e2e_p256dh_key',
+        auth: 'e2e_auth_key',
       },
     });
 
