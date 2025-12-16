@@ -58,6 +58,7 @@ jobs:
           DB_PORT: 5432
           DB_USERNAME: zentik_user
           DB_PASSWORD: zentik_password
+          DB_DATABASE: zentik_test
           DB_SSL: 'false'
           DB_SYNCHRONIZE: 'true'
           DB_DROP_SCHEMA: 'false'
@@ -66,6 +67,18 @@ jobs:
           NODE_ENV: test
           IOS_APN_MOCK_MODE: payloadtoolarge
         run: npm run e2e:init-environment
+
+      - name: Device keys tests (iOS + Web)
+        env:
+          BASE_URL: http://localhost:3000/api/v1
+          ADMIN_USERS: admin
+          ADMIN_DEFAULT_PASSWORD: admin
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: zentik_user
+          DB_PASSWORD: zentik_password
+          DB_DATABASE: zentik_test
+        run: npm run scripts:test-device-keys
 
       - name: Notifications & Messages tests
         env:
