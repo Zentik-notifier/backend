@@ -185,8 +185,11 @@ async function bootstrap() {
       'transform',
     ],
   });
-  // Enable urlencoded parsing for providers like Apple that POST form data to callback
-  app.use(bodyParser.urlencoded({ extended: true }));
+
+  const bodyLimit = process.env.BODY_PARSER_LIMIT ?? '1mb';
+  app.use(bodyParser.json({ limit: bodyLimit }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: bodyLimit }));
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
