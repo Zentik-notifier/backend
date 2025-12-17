@@ -11,6 +11,7 @@ import { ExpoParser } from './expo.parser';
 import { StatusIoParser } from './status-io.parser';
 import { InstatusParser } from './instatus.parser';
 import { AtlasStatuspageParser } from './atlas-statuspage.parser';
+import { EmqxParser } from './emqx.parser';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 
 @Injectable()
@@ -31,6 +32,7 @@ export class BuiltinParserService {
     [PayloadMapperBuiltInType.ZENTIK_STATUS_IO, []],
     [PayloadMapperBuiltInType.ZENTIK_INSTATUS, []],
     [PayloadMapperBuiltInType.ZENTIK_ATLAS_STATUSPAGE, []],
+    [PayloadMapperBuiltInType.ZENTIK_EMQX, []],
   ]);
 
   constructor(
@@ -42,6 +44,7 @@ export class BuiltinParserService {
     private readonly statusIoParser: StatusIoParser,
     private readonly instatusParser: InstatusParser,
     private readonly atlasStatuspageParser: AtlasStatuspageParser,
+    private readonly emqxParser: EmqxParser,
     private readonly loggerService: BuiltinParserLoggerService,
   ) {
     this.registerParsers();
@@ -82,6 +85,7 @@ export class BuiltinParserService {
       PayloadMapperBuiltInType.ZENTIK_ATLAS_STATUSPAGE,
       this.atlasStatuspageParser,
     );
+    this.parsers.set(PayloadMapperBuiltInType.ZENTIK_EMQX, this.emqxParser);
 
     // Register parsers also by name (for endpoint compatibility)
     this.parsersByName.set('authentik', this.authentikParser);
@@ -111,6 +115,10 @@ export class BuiltinParserService {
     this.parsersByName.set('Statuspage', this.atlasStatuspageParser);
     this.parsersByName.set('statuspage', this.atlasStatuspageParser);
     this.parsersByName.set('ZentikAtlasStatuspage', this.atlasStatuspageParser);
+
+    this.parsersByName.set('emqx', this.emqxParser);
+    this.parsersByName.set('EMQX', this.emqxParser);
+    this.parsersByName.set('ZentikEMQX', this.emqxParser);
   }
 
   /**

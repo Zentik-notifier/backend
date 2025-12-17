@@ -17,6 +17,7 @@ import {
   StatusIoParser,
   InstatusParser,
   AtlasStatuspageParser,
+  EmqxParser,
   BuiltinParserLoggerService,
 } from './builtin';
 
@@ -40,6 +41,7 @@ import {
     StatusIoParser,
     InstatusParser,
     AtlasStatuspageParser,
+    EmqxParser,
     BuiltinParserLoggerService,
   ],
   exports: [PayloadMapperService],

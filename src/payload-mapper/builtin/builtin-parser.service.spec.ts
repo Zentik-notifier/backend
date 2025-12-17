@@ -8,6 +8,7 @@ import { ExpoParser } from './expo.parser';
 import { StatusIoParser } from './status-io.parser';
 import { InstatusParser } from './instatus.parser';
 import { AtlasStatuspageParser } from './atlas-statuspage.parser';
+import { EmqxParser } from './emqx.parser';
 import { BuiltinParserService } from './builtin-parser.service';
 import { BuiltinParserLoggerService } from './builtin-parser-logger.service';
 import { UsersService } from '../../users/users.service';
@@ -30,6 +31,7 @@ describe('BuiltinParserService', () => {
         StatusIoParser,
         InstatusParser,
         AtlasStatuspageParser,
+        EmqxParser,
         BuiltinParserLoggerService,
         {
           provide: UsersService,
@@ -158,7 +160,7 @@ describe('BuiltinParserService', () => {
     it('should return all registered parsers', () => {
       const parsers = service.getAllParsers();
 
-      expect(parsers).toHaveLength(8);
+      expect(parsers).toHaveLength(9);
       expect(parsers).toContainEqual({
         name: 'Authentik',
         type: PayloadMapperBuiltInType.ZENTIK_AUTHENTIK,
@@ -206,6 +208,12 @@ describe('BuiltinParserService', () => {
         type: PayloadMapperBuiltInType.ZENTIK_ATLAS_STATUSPAGE,
         description:
           'Parser for Atlassian Statuspage webhooks - handles incidents and component updates',
+      });
+      expect(parsers).toContainEqual({
+        name: 'EMQX',
+        type: PayloadMapperBuiltInType.ZENTIK_EMQX,
+        description:
+          'Parser for EMQX webhooks - handles client connect/disconnect, subscribe/unsubscribe and message events. Supports common EMQX 4/5 webhook payload templates.',
       });
     });
   });

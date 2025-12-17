@@ -20,6 +20,7 @@ export enum PayloadMapperBuiltInType {
   ZENTIK_STATUS_IO = 'ZENTIK_STATUS_IO',
   ZENTIK_INSTATUS = 'ZENTIK_INSTATUS',
   ZENTIK_ATLAS_STATUSPAGE = 'ZENTIK_ATLAS_STATUSPAGE',
+  ZENTIK_EMQX = 'ZENTIK_EMQX',
 }
 
 registerEnumType(PayloadMapperBuiltInType, {

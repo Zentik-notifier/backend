@@ -9,3 +9,4 @@ export * from './expo.parser';
 export * from './status-io.parser';
 export * from './instatus.parser';
 export * from './atlas-statuspage.parser';
+export * from './emqx.parser';
