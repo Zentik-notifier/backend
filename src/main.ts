@@ -186,7 +186,7 @@ async function bootstrap() {
     ],
   });
 
-  const bodyLimit = process.env.BODY_PARSER_LIMIT ?? '1mb';
+  const bodyLimit = process.env.BODY_PARSER_LIMIT ?? '10mb';
   app.use(bodyParser.json({ limit: bodyLimit }));
   app.use(bodyParser.urlencoded({ extended: true, limit: bodyLimit }));
 
