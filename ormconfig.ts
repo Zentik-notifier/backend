@@ -34,6 +34,7 @@ import { AddIconAndRegistrationSettings1762036000000 } from './database/migratio
 import { AddSocialLoginEnabledSetting1762037000000 } from './database/migrations/1762037000000-AddSocialLoginEnabledSetting';
 import { AddIconUrlToBuckets1762423000000 } from './database/migrations/1762423000000-AddIconUrlToBuckets';
 import { AddLogStorageDirectorySetting1762438000000 } from './database/migrations/1762438000000-AddLogStorageDirectorySetting';
+import { AddPresetToBuckets1762500000000 } from './database/migrations/1762500000000-AddPresetToBuckets';
 import { MakePasswordNullable1731839520000 } from './database/migrations/1731839520000-MakePasswordNullable';
 import { AddNoPushDeliveryType1731847000000 } from './database/migrations/1731847000000-AddNoPushDeliveryType';
 import { AddAdditionalInfoToEventsAndNotificationExecution1732021200000 } from './database/migrations/1732021200000-AddAdditionalInfoToEventsAndNotificationExecution';
@@ -102,6 +103,7 @@ const dataSource = new DataSource({
     AddSocialLoginEnabledSetting1762037000000,
     AddIconUrlToBuckets1762423000000,
     AddLogStorageDirectorySetting1762438000000,
+    AddPresetToBuckets1762500000000,
     MakePasswordNullable1731839520000,
     AddNoPushDeliveryType1731847000000,
     AddAdditionalInfoToEventsAndNotificationExecution1732021200000,

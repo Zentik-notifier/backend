@@ -76,6 +76,7 @@ type Bucket {
   messages: [Message!]
   name: String!
   permissions: [EntityPermission!]!
+  preset: String
   updatedAt: DateTime!
   user: User!
   userBucket: UserBucket
@@ -168,6 +169,7 @@ input CreateBucketDto {
   isProtected: Boolean
   isPublic: Boolean
   name: String!
+  preset: String
 }
 
 input CreateChangelogInput {
@@ -1327,6 +1329,7 @@ input UpdateBucketDto {
   isProtected: Boolean
   isPublic: Boolean
   name: String
+  preset: String
 }
 
 input UpdateChangelogInput {
