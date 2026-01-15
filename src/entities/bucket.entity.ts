@@ -85,6 +85,14 @@ export class Bucket {
   @Column({ default: false })
   isAdmin?: boolean;
 
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Preset ID that was used to create this bucket',
+  })
+  @Column({ nullable: true })
+  preset?: string;
+
   @Field(() => User)
   @ApiProperty({ type: () => User })
   @ManyToOne(() => User, (user) => user.buckets, { onDelete: 'CASCADE' })

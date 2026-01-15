@@ -74,4 +74,13 @@ export class CreateBucketDto {
   })
   @IsOptional()
   generateMagicCode?: boolean;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Preset ID to assign to the bucket',
+  })
+  @IsOptional()
+  @IsString()
+  preset?: string;
 }
