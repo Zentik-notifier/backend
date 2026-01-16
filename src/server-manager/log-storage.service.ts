@@ -31,6 +31,13 @@ export class LogStorageService implements OnModuleInit {
    * Initialize logs directory and Winston logger from settings
    */
   private async initializeLogsDirectory(): Promise<void> {
+    // Always initialize logs directory (needed for reading existing logs and cleanup)
+    const logsDir = await this.serverSettingsService.getStringValue(
+      ServerSettingType.LogStorageDirectory,
+      path.join(process.cwd(), 'logs'),
+    );
+    this.logsDirectory = logsDir || path.join(process.cwd(), 'logs');
+
     // Check if file system logging is enabled
     const storeLogsOnFs = await this.serverSettingsService.getBooleanValue(
       ServerSettingType.StoreLogsOnFs,
@@ -48,17 +55,13 @@ export class LogStorageService implements OnModuleInit {
         ),
         transports: [], // No transports - logging disabled
       });
-      this.logger.log('File system logging is disabled (StoreLogsOnFs = false)');
+      this.logger.log(
+        `File system logging is disabled (StoreLogsOnFs = false). Logs directory: ${this.logsDirectory}`,
+      );
       return;
     }
 
     try {
-      const logsDir = await this.serverSettingsService.getStringValue(
-        ServerSettingType.LogStorageDirectory,
-        path.join(process.cwd(), 'logs'),
-      );
-      this.logsDirectory = logsDir || path.join(process.cwd(), 'logs');
-
       // Create directory if it doesn't exist
       await fs.promises.mkdir(this.logsDirectory, { recursive: true });
 
@@ -233,10 +236,28 @@ export class LogStorageService implements OnModuleInit {
 
   /**
    * Read all log files and parse logs
+   * Works even if logging is disabled to read existing log files
    */
   private async readAllLogs(): Promise<Log[]> {
     try {
       await this.initPromise;
+
+      // Ensure logsDirectory is initialized
+      if (!this.logsDirectory) {
+        const logsDir = await this.serverSettingsService.getStringValue(
+          ServerSettingType.LogStorageDirectory,
+          path.join(process.cwd(), 'logs'),
+        );
+        this.logsDirectory = logsDir || path.join(process.cwd(), 'logs');
+      }
+
+      // Check if directory exists, if not return empty array
+      try {
+        await fs.promises.access(this.logsDirectory);
+      } catch {
+        // Directory doesn't exist, return empty logs
+        return [];
+      }
 
       const files = await fs.promises.readdir(this.logsDirectory);
       const logFiles = files
@@ -375,20 +396,9 @@ export class LogStorageService implements OnModuleInit {
   /**
    * Clean up old logs based on retention policy (public method for manual cleanup)
    * Reads retention days from settings
+   * Note: Cleanup works even if logging is disabled to clean up existing log files
    */
   async cleanupOldLogs(): Promise<void> {
-    // Check if file system logging is enabled
-    const storeLogsOnFs = await this.serverSettingsService.getBooleanValue(
-      ServerSettingType.StoreLogsOnFs,
-      false,
-    );
-
-    if (!storeLogsOnFs || this.loggingDisabled) {
-      // File system logging is disabled - skip cleanup
-      this.logger.log('Skipping log cleanup - file system logging is disabled');
-      return;
-    }
-
     try {
       const retentionDays = await this.getLogRetentionDays();
 
@@ -412,19 +422,9 @@ export class LogStorageService implements OnModuleInit {
   /**
    * Clean up old logs based on retention policy
    * Called by cron job every 2 hours
+   * Note: Cleanup works even if logging is disabled to clean up existing log files
    */
   async cleanupOldLogsTask(): Promise<void> {
-    // Check if file system logging is enabled
-    const storeLogsOnFs = await this.serverSettingsService.getBooleanValue(
-      ServerSettingType.StoreLogsOnFs,
-      false,
-    );
-
-    if (!storeLogsOnFs || this.loggingDisabled) {
-      // File system logging is disabled - skip cleanup
-      return;
-    }
-
     try {
       this.logger.log('Starting log cleanup cron job...');
       await this.cleanupOldLogs();
@@ -437,10 +437,28 @@ export class LogStorageService implements OnModuleInit {
    * Perform the actual cleanup of old log files
    * Note: Winston's DailyRotateFile already handles this via maxFiles,
    * but we keep this for manual cleanup and compatibility
+   * Works even if logging is disabled to clean up existing log files
    */
   private async performCleanup(retentionDays: number): Promise<number> {
     try {
       await this.initPromise;
+
+      // Ensure logsDirectory is initialized
+      if (!this.logsDirectory) {
+        const logsDir = await this.serverSettingsService.getStringValue(
+          ServerSettingType.LogStorageDirectory,
+          path.join(process.cwd(), 'logs'),
+        );
+        this.logsDirectory = logsDir || path.join(process.cwd(), 'logs');
+      }
+
+      // Check if directory exists, if not return 0
+      try {
+        await fs.promises.access(this.logsDirectory);
+      } catch {
+        // Directory doesn't exist, nothing to clean up
+        return 0;
+      }
 
       const files = await fs.promises.readdir(this.logsDirectory);
       const logFiles = files.filter((file) => {
