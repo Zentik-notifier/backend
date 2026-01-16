@@ -425,6 +425,14 @@ type FileInfoDto {
   size: Float!
 }
 
+type FileInfoWithPathDto {
+  fullPath: String!
+  isDir: Boolean!
+  mtime: DateTime!
+  name: String!
+  size: Float!
+}
+
 input GetEntityExecutionsInput {
   entityId: String
   entityName: String
@@ -969,6 +977,7 @@ type Query {
   """List all changelogs (admin, includes inactive)"""
   adminChangelogs: [Changelog!]!
   allOAuthProviders: [OAuthProvider!]!
+  allServerFiles(path: String): [FileInfoWithPathDto!]!
   attachment(id: ID!): Attachment!
   bucket(id: String!): Bucket!
   bucketPermissions(bucketId: String!): [EntityPermission!]!

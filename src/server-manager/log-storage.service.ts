@@ -528,4 +528,33 @@ export class LogStorageService implements OnModuleInit {
       return 0;
     }
   }
+
+  async getAllLogsAsJson(): Promise<string> {
+    try {
+      await this.initPromise;
+
+      // Ensure logsDirectory is initialized
+      if (!this.logsDirectory) {
+        const logsDir = await this.serverSettingsService.getStringValue(
+          ServerSettingType.LogStorageDirectory,
+          path.join(process.cwd(), 'logs'),
+        );
+        this.logsDirectory = logsDir || path.join(process.cwd(), 'logs');
+      }
+
+      // Check if directory exists
+      try {
+        await fs.promises.access(this.logsDirectory);
+      } catch {
+        // Directory doesn't exist, return empty array JSON
+        return JSON.stringify([], null, 2);
+      }
+
+      const allLogs = await this.readAllLogs();
+      return JSON.stringify(allLogs, null, 2);
+    } catch (error) {
+      this.logger.error('Failed to get all logs as JSON:', error);
+      throw error;
+    }
+  }
 }

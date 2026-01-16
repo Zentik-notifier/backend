@@ -83,6 +83,43 @@ export class FilesAdminService {
     const target = path.join(base, path.basename(name));
     return target;
   }
+
+  async listAllFilesRecursive(relativePath?: string): Promise<{ name: string; fullPath: string; size: number; mtime: Date; isDir: boolean }[]> {
+    const baseDir = await this.ensureBaseDir();
+    const startDir = relativePath ? await this.resolveSafePath(relativePath) : baseDir;
+    const results: { name: string; fullPath: string; size: number; mtime: Date; isDir: boolean }[] = [];
+
+    const traverse = async (currentDir: string, relativePrefix: string = ''): Promise<void> => {
+      try {
+        const entries = await fsp.readdir(currentDir, { withFileTypes: true });
+        
+        for (const entry of entries) {
+          const fullPath = path.join(currentDir, entry.name);
+          const relativePath = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name;
+          const stat = await fsp.stat(fullPath);
+
+          if (entry.isDirectory()) {
+            // Recursively traverse subdirectories
+            await traverse(fullPath, relativePath);
+          } else {
+            // Add file to results
+            results.push({
+              name: entry.name,
+              fullPath: relativePath,
+              size: stat.size,
+              mtime: stat.mtime,
+              isDir: false,
+            });
+          }
+        }
+      } catch (error: any) {
+        this.logger.warn(`Error traversing directory ${currentDir}: ${error?.message || error}`);
+      }
+    };
+
+    await traverse(startDir, relativePath || '');
+    return results.sort((a, b) => a.fullPath.localeCompare(b.fullPath));
+  }
 }
 
 

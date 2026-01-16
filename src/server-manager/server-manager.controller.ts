@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ServerSetting, ServerSettingType } from '../entities/server-setting.entity';
@@ -192,6 +193,28 @@ export class ServerManagerController {
   async getTotalLogCount(): Promise<{ count: number }> {
     const count = await this.logStorageService.getTotalLogCount();
     return { count };
+  }
+
+  @Get('logs/download')
+  @ApiOperation({ summary: 'Download all logs as JSON file' })
+  @ApiResponse({
+    status: 200,
+    description: 'JSON file with all logs',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'string',
+        },
+      },
+    },
+  })
+  async downloadAllLogs(@Res() res: Response): Promise<void> {
+    const jsonContent = await this.logStorageService.getAllLogsAsJson();
+    const filename = `logs-${new Date().toISOString().split('T')[0]}.json`;
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(jsonContent);
   }
 
   @Post('logs/cleanup')

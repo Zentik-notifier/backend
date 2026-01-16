@@ -177,10 +177,45 @@ export class ServerManagerService implements OnModuleInit {
       // Always compress backup
       this.logger.debug('Compressing backup...');
       const compressCommand = `gzip "${backupPath}"`;
-      await execAsync(compressCommand);
+      try {
+        const { stderr: compressStderr } = await execAsync(compressCommand);
+        if (compressStderr && !compressStderr.trim() && !compressStderr.includes('gzip:')) {
+          this.logger.warn(`gzip warning: ${compressStderr}`);
+        }
+      } catch (compressError: any) {
+        // If compression fails, throw error - backup must be compressed
+        this.logger.error(`Failed to compress backup: ${compressError.message}`);
+        // Clean up uncompressed file if compression failed
+        if (fs.existsSync(backupPath)) {
+          try {
+            fs.unlinkSync(backupPath);
+            this.logger.debug('Removed uncompressed backup file after compression failure');
+          } catch (unlinkError) {
+            this.logger.warn(`Failed to remove uncompressed backup: ${unlinkError.message}`);
+          }
+        }
+        throw new Error(`Backup compression failed: ${compressError.message}. Make sure 'gzip' is installed and the backup directory is writable.`);
+      }
+
+      // Verify compressed file was created
+      const finalBackupPath = `${backupPath}.gz`;
+      if (!fs.existsSync(finalBackupPath)) {
+        throw new Error('Compressed backup file was not created after gzip command');
+      }
+
+      // Verify the original uncompressed file was removed (gzip should delete it)
+      if (fs.existsSync(backupPath)) {
+        this.logger.warn('Original uncompressed backup file still exists after compression');
+        // Remove it manually to avoid leaving uncompressed files
+        try {
+          fs.unlinkSync(backupPath);
+          this.logger.debug('Removed leftover uncompressed backup file');
+        } catch (unlinkError) {
+          this.logger.warn(`Failed to remove leftover uncompressed backup: ${unlinkError.message}`);
+        }
+      }
 
       // Get final backup path and size
-      const finalBackupPath = `${backupPath}.gz`;
       const stats = fs.statSync(finalBackupPath);
       const size = this.formatBytes(stats.size);
 
@@ -220,10 +255,11 @@ export class ServerManagerService implements OnModuleInit {
       }> = [];
 
       // Collect all backup files with their metadata
+      // Only include compressed .sql.gz files (ignore uncompressed .sql files)
       for (const file of files) {
         if (
           file.startsWith('zentik_backup_') &&
-          (file.endsWith('.sql') || file.endsWith('.sql.gz'))
+          file.endsWith('.sql.gz')
         ) {
           const filePath = path.join(this.config.storagePath, file);
           const stats = fs.statSync(filePath);
@@ -233,6 +269,20 @@ export class ServerManagerService implements OnModuleInit {
             path: filePath,
             mtime: stats.mtime,
           });
+        } else if (
+          file.startsWith('zentik_backup_') &&
+          file.endsWith('.sql') &&
+          !file.endsWith('.sql.gz')
+        ) {
+          // Remove any leftover uncompressed .sql files (should not exist)
+          const filePath = path.join(this.config.storagePath, file);
+          this.logger.warn(`Found uncompressed backup file during cleanup, removing: ${file}`);
+          try {
+            fs.unlinkSync(filePath);
+            this.logger.debug(`Removed uncompressed backup: ${file}`);
+          } catch (unlinkError) {
+            this.logger.error(`Failed to remove uncompressed backup ${file}: ${unlinkError.message}`);
+          }
         }
       }
 
@@ -308,10 +358,11 @@ export class ServerManagerService implements OnModuleInit {
         createdAt: Date;
       }> = [];
 
+      // Only list compressed backup files (.sql.gz)
       for (const file of files) {
         if (
           file.startsWith('zentik_backup_') &&
-          (file.endsWith('.sql') || file.endsWith('.sql.gz'))
+          file.endsWith('.sql.gz')
         ) {
           const filePath = path.join(this.config.storagePath, file);
           const stats = fs.statSync(filePath);
@@ -323,6 +374,20 @@ export class ServerManagerService implements OnModuleInit {
             sizeBytes: stats.size,
             createdAt: stats.mtime,
           });
+        } else if (
+          file.startsWith('zentik_backup_') &&
+          file.endsWith('.sql') &&
+          !file.endsWith('.sql.gz')
+        ) {
+          // Remove any leftover uncompressed .sql files (should not exist)
+          const filePath = path.join(this.config.storagePath, file);
+          this.logger.warn(`Found uncompressed backup file during listing, removing: ${file}`);
+          try {
+            fs.unlinkSync(filePath);
+            this.logger.debug(`Removed uncompressed backup: ${file}`);
+          } catch (unlinkError) {
+            this.logger.error(`Failed to remove uncompressed backup ${file}: ${unlinkError.message}`);
+          }
         }
       }
 
