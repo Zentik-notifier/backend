@@ -48,6 +48,7 @@ import { AddChangelogRemoteServerSetting1768000000000 } from './database/migrati
 import { AddActiveAndEntriesToChangelog1769000000000 } from './database/migrations/1769000000000-AddActiveAndEntriesToChangelog';
 import { AddFailedCallsToSystemAccessToken1769100000000 } from './database/migrations/1769100000000-AddFailedCallsToSystemAccessToken';
 import { AddBucketDeletionEvent1769200000000 } from './database/migrations/1769200000000-AddBucketDeletionEvent';
+import { AddStoreLogsOnFsSetting1769300000000 } from './database/migrations/1769300000000-AddStoreLogsOnFsSetting';
 
 config({ path: '.env' });
 
@@ -117,6 +118,7 @@ const dataSource = new DataSource({
     AddActiveAndEntriesToChangelog1769000000000,
     AddFailedCallsToSystemAccessToken1769100000000,
     AddBucketDeletionEvent1769200000000,
+    AddStoreLogsOnFsSetting1769300000000,
   ],
   migrationsTableName: 'migrations',
 });

@@ -202,7 +202,8 @@ export class ServerSettingsService {
         // Logging
         { configType: ServerSettingType.LogLevel, envKey: 'LOG_LEVEL', type: 'string', defaultValue: 'info', possibleValues: ['error', 'warn', 'info', 'debug', 'verbose'] },
         { configType: ServerSettingType.LogStorageDirectory, envKey: 'LOG_STORAGE_DIRECTORY', type: 'string', defaultValue: '/logs' },
-        { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 7 },
+        { configType: ServerSettingType.LogRetentionDays, envKey: 'LOG_RETENTION_DAYS', type: 'number', defaultValue: 3 },
+        { configType: ServerSettingType.StoreLogsOnFs, envKey: 'STORE_LOGS_ON_FS', type: 'boolean', defaultValue: false },
 
         // UI / Features
         { configType: ServerSettingType.IconUploaderEnabled, envKey: 'ICON_UPLOADER_ENABLED', type: 'boolean', defaultValue: true },

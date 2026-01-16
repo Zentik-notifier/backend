@@ -31,6 +31,27 @@ export class LogStorageService implements OnModuleInit {
    * Initialize logs directory and Winston logger from settings
    */
   private async initializeLogsDirectory(): Promise<void> {
+    // Check if file system logging is enabled
+    const storeLogsOnFs = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.StoreLogsOnFs,
+      false,
+    );
+
+    if (!storeLogsOnFs) {
+      // File system logging is disabled - create a dummy logger without file transport
+      this.loggingDisabled = true;
+      this.winstonLogger = winston.createLogger({
+        level: 'silly',
+        format: winston.format.combine(
+          winston.format.timestamp(),
+          winston.format.json(),
+        ),
+        transports: [], // No transports - logging disabled
+      });
+      this.logger.log('File system logging is disabled (StoreLogsOnFs = false)');
+      return;
+    }
+
     try {
       const logsDir = await this.serverSettingsService.getStringValue(
         ServerSettingType.LogStorageDirectory,
@@ -356,6 +377,18 @@ export class LogStorageService implements OnModuleInit {
    * Reads retention days from settings
    */
   async cleanupOldLogs(): Promise<void> {
+    // Check if file system logging is enabled
+    const storeLogsOnFs = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.StoreLogsOnFs,
+      false,
+    );
+
+    if (!storeLogsOnFs || this.loggingDisabled) {
+      // File system logging is disabled - skip cleanup
+      this.logger.log('Skipping log cleanup - file system logging is disabled');
+      return;
+    }
+
     try {
       const retentionDays = await this.getLogRetentionDays();
 
@@ -381,6 +414,17 @@ export class LogStorageService implements OnModuleInit {
    * Called by cron job every 2 hours
    */
   async cleanupOldLogsTask(): Promise<void> {
+    // Check if file system logging is enabled
+    const storeLogsOnFs = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.StoreLogsOnFs,
+      false,
+    );
+
+    if (!storeLogsOnFs || this.loggingDisabled) {
+      // File system logging is disabled - skip cleanup
+      return;
+    }
+
     try {
       this.logger.log('Starting log cleanup cron job...');
       await this.cleanupOldLogs();
