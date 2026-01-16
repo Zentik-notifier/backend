@@ -18,6 +18,7 @@ export class LogStorageService implements OnModuleInit {
   private logsDirectory: string;
   private winstonLogger: winston.Logger;
   private initPromise: Promise<void>;
+  private loggingDisabled = false;
 
   constructor(
     private readonly serverSettingsService: ServerSettingsService,
@@ -44,22 +45,38 @@ export class LogStorageService implements OnModuleInit {
 
       // Initialize Winston with daily rotate file transport
       // Set level to 'silly' to capture all log levels including debug
+      const dailyRotateTransport = new DailyRotateFile({
+        dirname: this.logsDirectory,
+        filename: '%DATE%.json',
+        datePattern: 'YYYY-MM-DD',
+        maxFiles: `${retentionDays}d`,
+        zippedArchive: false,
+        format: winston.format.json(),
+      });
+
+      // Handle errors from the transport (e.g., disk full)
+      dailyRotateTransport.on('error', (error: any) => {
+        if (error.code === 'ENOSPC') {
+          // Disk full - disable logging to prevent crash
+          this.loggingDisabled = true;
+          this.logger.error(
+            'Disk full detected (ENOSPC). File logging has been disabled to prevent application crash.',
+          );
+          // Remove the transport to stop further write attempts
+          this.winstonLogger.remove(dailyRotateTransport);
+        } else {
+          // Other errors - log but don't disable
+          this.logger.error('Error in file logging transport:', error);
+        }
+      });
+
       this.winstonLogger = winston.createLogger({
         level: 'silly',
         format: winston.format.combine(
           winston.format.timestamp(),
           winston.format.json(),
         ),
-        transports: [
-          new DailyRotateFile({
-            dirname: this.logsDirectory,
-            filename: '%DATE%.json',
-            datePattern: 'YYYY-MM-DD',
-            maxFiles: `${retentionDays}d`,
-            zippedArchive: false,
-            format: winston.format.json(),
-          }),
-        ],
+        transports: [dailyRotateTransport],
       });
 
       this.logger.log(
@@ -70,22 +87,38 @@ export class LogStorageService implements OnModuleInit {
       await fs.promises.mkdir(this.logsDirectory, { recursive: true });
 
       // Fallback Winston logger with default 30 days retention
+      const fallbackDailyRotateTransport = new DailyRotateFile({
+        dirname: this.logsDirectory,
+        filename: '%DATE%.json',
+        datePattern: 'YYYY-MM-DD',
+        maxFiles: '30d',
+        zippedArchive: false,
+        format: winston.format.json(),
+      });
+
+      // Handle errors from the transport (e.g., disk full)
+      fallbackDailyRotateTransport.on('error', (error: any) => {
+        if (error.code === 'ENOSPC') {
+          // Disk full - disable logging to prevent crash
+          this.loggingDisabled = true;
+          this.logger.error(
+            'Disk full detected (ENOSPC). File logging has been disabled to prevent application crash.',
+          );
+          // Remove the transport to stop further write attempts
+          this.winstonLogger.remove(fallbackDailyRotateTransport);
+        } else {
+          // Other errors - log but don't disable
+          this.logger.error('Error in file logging transport:', error);
+        }
+      });
+
       this.winstonLogger = winston.createLogger({
         level: 'silly',
         format: winston.format.combine(
           winston.format.timestamp(),
           winston.format.json(),
         ),
-        transports: [
-          new DailyRotateFile({
-            dirname: this.logsDirectory,
-            filename: '%DATE%.json',
-            datePattern: 'YYYY-MM-DD',
-            maxFiles: '30d',
-            zippedArchive: false,
-            format: winston.format.json(),
-          }),
-        ],
+        transports: [fallbackDailyRotateTransport],
       });
 
       this.logger.warn(
@@ -140,6 +173,11 @@ export class LogStorageService implements OnModuleInit {
     metadata?: Record<string, any>,
   ): Promise<void> {
     try {
+      // Skip logging if disabled due to disk full
+      if (this.loggingDisabled) {
+        return;
+      }
+
       // Wait for initialization
       await this.initPromise;
 
@@ -157,6 +195,16 @@ export class LogStorageService implements OnModuleInit {
       // Winston handles file locking, rotation, and concurrency automatically
       this.winstonLogger.log(level, logEntry);
     } catch (error) {
+      // Check if it's a disk full error
+      if (error.code === 'ENOSPC') {
+        this.loggingDisabled = true;
+        this.logger.error(
+          'Disk full detected (ENOSPC). File logging has been disabled to prevent application crash.',
+        );
+        // Remove all transports to stop further write attempts
+        this.winstonLogger.clear();
+        return;
+      }
       // Don't throw errors for logging failures to avoid breaking the app
       this.logger.error('Failed to save log:', error);
     }
