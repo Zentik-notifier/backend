@@ -17,6 +17,8 @@ export enum UserSettingType {
   GithubEventsFilter = 'GithubEventsFilter',
   // Self-hosted stable server identifier
   ServerStableIdentifier = 'ServerStableIdentifier',
+  // Privacy: disable user action tracking for non-commercial purposes
+  DisableUserTracking = 'DisableUserTracking',
 }
 
 registerEnumType(UserSettingType, { name: 'UserSettingType' });

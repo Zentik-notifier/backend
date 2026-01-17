@@ -1631,6 +1631,7 @@ enum UserSettingType {
   AutoAddOpenNotificationAction
   DefaultPostpones
   DefaultSnoozes
+  DisableUserTracking
   ExpoKey
   GithubEventsFilter
   HomeassistantToken
