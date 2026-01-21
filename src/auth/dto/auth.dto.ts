@@ -48,6 +48,8 @@ export enum ResourceType {
 export enum AccessTokenScope {
   // Create messages in a specific bucket
   MESSAGE_BUCKET_CREATION = 'message-bucket-creation',
+  // Watch app - access to notification actions only
+  WATCH = 'watch',
 }
 
 /**

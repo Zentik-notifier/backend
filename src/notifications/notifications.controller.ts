@@ -23,7 +23,10 @@ import {
 } from '@nestjs/swagger';
 import { EventTrackingService } from 'src/events/event-tracking.service';
 import { GetUser } from '../auth/decorators/get-user.decorator';
+import { RequireScopes } from '../auth/decorators/require-scopes.decorator';
+import { AccessTokenScope } from '../auth/dto/auth.dto';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
+import { ScopesGuard } from '../auth/guards/scopes.guard';
 import { Notification } from '../entities/notification.entity';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { GetSystemAccessToken } from '../system-access-token/decorators/get-system-access-token.decorator';
@@ -492,5 +495,92 @@ export class NotificationsController {
     @GetUser('id') userId: string,
   ) {
     return this.postponeService.cancelPostpone(id, userId);
+  }
+
+  // MARK: - Watch-specific endpoints (require WATCH scope)
+
+  @Patch('watch/:id/read')
+  @ApiOperation({ summary: 'Mark notification as read (Watch)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification marked as read',
+    type: Notification,
+  })
+  @ApiResponse({ status: 404, description: 'Notification not found' })
+  @UseGuards(ScopesGuard)
+  @RequireScopes([AccessTokenScope.WATCH])
+  async markAsReadWatch(@Param('id') id: string, @GetUser('id') userId: string) {
+    const notification = await this.notificationsService.markAsRead(id, userId);
+
+    // Publish to GraphQL subscriptions
+    try {
+      await this.subscriptionService.publishNotificationUpdated(
+        notification,
+        userId,
+      );
+    } catch (error) {
+      console.error(
+        'Failed to publish notification updated subscription:',
+        error,
+      );
+    }
+
+    return notification;
+  }
+
+  @Delete('watch/:id')
+  @ApiOperation({ summary: 'Delete a notification (Watch)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification deleted successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Notification not found' })
+  @UseGuards(ScopesGuard)
+  @RequireScopes([AccessTokenScope.WATCH])
+  async removeWatch(@Param('id') id: string, @GetUser('id') userId: string) {
+    const result = await this.notificationsService.remove(id, userId);
+
+    // Publish to GraphQL subscriptions
+    try {
+      await this.subscriptionService.publishNotificationDeleted(id, userId);
+    } catch (error) {
+      console.error(
+        'Failed to publish notification deleted subscription:',
+        error,
+      );
+    }
+
+    return result;
+  }
+
+  @Post('watch/postpone')
+  @ApiOperation({ summary: 'Postpone a notification to be resent later (Watch)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Notification postponed successfully',
+    type: PostponeResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Notification not found',
+  })
+  @UseGuards(ScopesGuard)
+  @RequireScopes([AccessTokenScope.WATCH])
+  async postponeNotificationWatch(
+    @Body() dto: PostponeNotificationDto,
+    @GetUser('id') userId: string,
+  ): Promise<PostponeResponseDto> {
+    const postpone = await this.postponeService.createPostpone(
+      dto.notificationId,
+      userId,
+      dto.minutes,
+    );
+
+    return {
+      id: postpone.id,
+      notificationId: postpone.notificationId,
+      sendAt: postpone.sendAt,
+      createdAt: postpone.createdAt,
+    };
   }
 }

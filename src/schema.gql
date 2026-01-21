@@ -663,6 +663,7 @@ type Mutation {
   """
   createMessage(input: CreateMessageDto!): Message!
   createOAuthProvider(input: CreateOAuthProviderDto!): OAuthProvider!
+  createOrRegenerateWatchToken: AccessTokenResponseDto!
   createPayloadMapper(input: CreatePayloadMapperDto!): PayloadMapper!
   createSystemAccessTokenRequest(input: CreateSystemAccessTokenRequestDto!): SystemAccessTokenRequest!
   createSystemToken(description: String, expiresAt: String, maxCalls: Float!, requesterId: String, scopes: [String!]): SystemAccessTokenDto!
@@ -692,6 +693,7 @@ type Mutation {
 
   """Delete user template by ID"""
   deleteUserTemplate(id: ID!): Boolean!
+  deleteWatchToken: Boolean!
   deleteWebhook(id: ID!): Boolean!
   deviceReportNotificationReceived(id: String!): Notification!
   executeWebhook(id: ID!): Boolean!
@@ -1003,6 +1005,7 @@ type Query {
   getSystemToken(id: String!): SystemAccessTokenDto
   getUserAccessTokens: [AccessTokenListDto!]!
   getUserSessions: [SessionInfoDto!]!
+  getWatchToken: AccessTokenListDto
   healthcheck: String!
 
   """Get invite code by ID"""

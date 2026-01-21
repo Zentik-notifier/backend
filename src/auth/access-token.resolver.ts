@@ -78,4 +78,25 @@ export class AccessTokenResolver {
   ): Promise<boolean> {
     return this.accessTokenService.revokeAllAccessTokens(userId);
   }
+
+  @Mutation(() => AccessTokenResponseDto)
+  async createOrRegenerateWatchToken(
+    @CurrentUser('id') userId: string,
+  ): Promise<AccessTokenResponseDto> {
+    return this.accessTokenService.createOrRegenerateWatchToken(userId);
+  }
+
+  @Query(() => AccessTokenListDto, { nullable: true })
+  async getWatchToken(
+    @CurrentUser('id') userId: string,
+  ): Promise<AccessTokenListDto | null> {
+    return this.accessTokenService.getWatchToken(userId);
+  }
+
+  @Mutation(() => Boolean)
+  async deleteWatchToken(
+    @CurrentUser('id') userId: string,
+  ): Promise<boolean> {
+    return this.accessTokenService.deleteWatchToken(userId);
+  }
 }

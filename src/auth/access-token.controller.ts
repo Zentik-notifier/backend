@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -143,6 +144,53 @@ export class AccessTokenController {
     @GetUser('id') userId: string,
   ): Promise<{ success: boolean }> {
     const success = await this.accessTokenService.revokeAllAccessTokens(userId);
+    return { success };
+  }
+
+  @Post('watch')
+  @ApiOperation({ summary: 'Create or regenerate Watch token' })
+  @ApiResponse({
+    status: 201,
+    description: 'Watch token created/regenerated successfully',
+    type: AccessTokenResponseDto,
+  })
+  async createOrRegenerateWatchToken(
+    @GetUser('id') userId: string,
+  ): Promise<AccessTokenResponseDto> {
+    return this.accessTokenService.createOrRegenerateWatchToken(userId);
+  }
+
+  @Get('watch')
+  @ApiOperation({ summary: 'Get Watch token (if exists)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Watch token retrieved successfully',
+    type: AccessTokenListDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Watch token not found',
+  })
+  async getWatchToken(
+    @GetUser('id') userId: string,
+  ): Promise<AccessTokenListDto | null> {
+    const token = await this.accessTokenService.getWatchToken(userId);
+    if (!token) {
+      throw new NotFoundException('Watch token not found');
+    }
+    return token;
+  }
+
+  @Delete('watch')
+  @ApiOperation({ summary: 'Delete Watch token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Watch token deleted successfully',
+  })
+  async deleteWatchToken(
+    @GetUser('id') userId: string,
+  ): Promise<{ success: boolean }> {
+    const success = await this.accessTokenService.deleteWatchToken(userId);
     return { success };
   }
 }

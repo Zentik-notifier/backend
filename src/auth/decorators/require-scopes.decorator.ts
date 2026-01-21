@@ -31,3 +31,21 @@ export const RequireMessageBucketCreation = (bucketParamName: string = 'bucketId
   };
 };
 
+/**
+ * Decorator to require specific scopes for an endpoint
+ * When used with access tokens, the token must have the required scopes
+ * JWT tokens are not affected by this decorator
+ * 
+ * @param scopes - Array of required scopes
+ * 
+ * @example
+ * ```typescript
+ * @RequireScopes([AccessTokenScope.WATCH])
+ * @Patch(':id/read')
+ * async markAsRead() { }
+ * ```
+ */
+export const RequireScopes = (scopes: AccessTokenScope[]) => {
+  return SetMetadata(SCOPES_KEY, scopes);
+};
+

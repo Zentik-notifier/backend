@@ -79,6 +79,18 @@ export class ScopesGuard implements CanActivate {
       return true;
     }
 
+    // Handle WATCH scope - allows access to notification action routes only
+    if (requiredScopes.includes(AccessTokenScope.WATCH)) {
+      // Check if token has WATCH scope
+      if (!tokenScopes.includes(AccessTokenScope.WATCH)) {
+        throw new ForbiddenException(
+          'Access token does not have WATCH scope',
+        );
+      }
+
+      return true;
+    }
+
     throw new ForbiddenException(
       `Access token does not have required scopes`,
     );

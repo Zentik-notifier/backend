@@ -257,4 +257,82 @@ export class AccessTokenService {
     await this.accessTokenRepository.delete({ userId });
     return true;
   }
+
+  /**
+   * Create or regenerate Watch token for a user
+   * A user can only have one Watch token at a time
+   * If a Watch token already exists, it will be deleted before creating a new one
+   */
+  async createOrRegenerateWatchToken(
+    userId: string,
+  ): Promise<AccessTokenResponseDto> {
+    // Find existing Watch token
+    const existingTokens = await this.accessTokenRepository.find({
+      where: { userId },
+    });
+
+    const watchToken = existingTokens.find(
+      (token) => token.scopes?.includes('watch'),
+    );
+
+    // Delete existing Watch token if found
+    if (watchToken) {
+      await this.accessTokenRepository.delete(watchToken.id);
+    }
+
+    // Create new Watch token
+    return this.createAccessToken(userId, {
+      name: 'Watch Token',
+      scopes: ['watch'],
+      storeToken: true,
+    });
+  }
+
+  /**
+   * Get Watch token for a user (if exists)
+   */
+  async getWatchToken(userId: string): Promise<AccessTokenListDto | null> {
+    const tokens = await this.accessTokenRepository.find({
+      where: { userId },
+    });
+
+    const watchToken = tokens.find(
+      (token) => token.scopes?.includes('watch'),
+    );
+
+    if (!watchToken) {
+      return null;
+    }
+
+    return {
+      id: watchToken.id,
+      name: watchToken.name,
+      expiresAt: watchToken.expiresAt,
+      createdAt: watchToken.createdAt,
+      lastUsed: watchToken.lastUsed,
+      isExpired: watchToken.isExpired,
+      token: watchToken.token,
+      scopes: watchToken.scopes,
+    };
+  }
+
+  /**
+   * Delete Watch token for a user
+   */
+  async deleteWatchToken(userId: string): Promise<boolean> {
+    const tokens = await this.accessTokenRepository.find({
+      where: { userId },
+    });
+
+    const watchToken = tokens.find(
+      (token) => token.scopes?.includes('watch'),
+    );
+
+    if (!watchToken) {
+      return false;
+    }
+
+    await this.accessTokenRepository.delete(watchToken.id);
+    return true;
+  }
 }
