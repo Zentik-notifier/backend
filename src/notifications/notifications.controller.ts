@@ -510,7 +510,18 @@ export class NotificationsController {
   @UseGuards(ScopesGuard)
   @RequireScopes([AccessTokenScope.WATCH])
   async markAsReadWatch(@Param('id') id: string, @GetUser('id') userId: string) {
-    const notification = await this.notificationsService.markAsRead(id, userId);
+    const start = Date.now();
+    this.logger.log(`[WatchAPI] markAsRead start id=${id} userId=${userId}`);
+    let notification: Notification;
+    try {
+      notification = await this.notificationsService.markAsRead(id, userId);
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] markAsRead error id=${id} userId=${userId} ms=${Date.now() - start}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
 
     // Publish to GraphQL subscriptions
     try {
@@ -519,11 +530,62 @@ export class NotificationsController {
         userId,
       );
     } catch (error) {
-      console.error(
-        'Failed to publish notification updated subscription:',
-        error,
+      this.logger.error(
+        `[WatchAPI] publishNotificationUpdated failed (read) id=${id} userId=${userId}`,
+        error instanceof Error ? error.stack : undefined,
       );
     }
+
+    this.logger.log(
+      `[WatchAPI] markAsRead ok id=${id} userId=${userId} ms=${Date.now() - start}`,
+    );
+
+    return notification;
+  }
+
+  @Patch('watch/:id/unread')
+  @ApiOperation({ summary: 'Mark notification as unread (Watch)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification marked as unread',
+    type: Notification,
+  })
+  @ApiResponse({ status: 404, description: 'Notification not found' })
+  @UseGuards(ScopesGuard)
+  @RequireScopes([AccessTokenScope.WATCH])
+  async markAsUnreadWatch(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+  ) {
+    const start = Date.now();
+    this.logger.log(`[WatchAPI] markAsUnread start id=${id} userId=${userId}`);
+    let notification: Notification;
+    try {
+      notification = await this.notificationsService.markAsUnread(id, userId);
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] markAsUnread error id=${id} userId=${userId} ms=${Date.now() - start}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+
+    // Publish to GraphQL subscriptions
+    try {
+      await this.subscriptionService.publishNotificationUpdated(
+        notification,
+        userId,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] publishNotificationUpdated failed (unread) id=${id} userId=${userId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+
+    this.logger.log(
+      `[WatchAPI] markAsUnread ok id=${id} userId=${userId} ms=${Date.now() - start}`,
+    );
 
     return notification;
   }
@@ -538,17 +600,32 @@ export class NotificationsController {
   @UseGuards(ScopesGuard)
   @RequireScopes([AccessTokenScope.WATCH])
   async removeWatch(@Param('id') id: string, @GetUser('id') userId: string) {
-    const result = await this.notificationsService.remove(id, userId);
+    const start = Date.now();
+    this.logger.log(`[WatchAPI] delete start id=${id} userId=${userId}`);
+    let result: any;
+    try {
+      result = await this.notificationsService.remove(id, userId);
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] delete error id=${id} userId=${userId} ms=${Date.now() - start}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
 
     // Publish to GraphQL subscriptions
     try {
       await this.subscriptionService.publishNotificationDeleted(id, userId);
     } catch (error) {
-      console.error(
-        'Failed to publish notification deleted subscription:',
-        error,
+      this.logger.error(
+        `[WatchAPI] publishNotificationDeleted failed id=${id} userId=${userId}`,
+        error instanceof Error ? error.stack : undefined,
       );
     }
+
+    this.logger.log(
+      `[WatchAPI] delete ok id=${id} userId=${userId} ms=${Date.now() - start}`,
+    );
 
     return result;
   }
@@ -570,10 +647,27 @@ export class NotificationsController {
     @Body() dto: PostponeNotificationDto,
     @GetUser('id') userId: string,
   ): Promise<PostponeResponseDto> {
-    const postpone = await this.postponeService.createPostpone(
-      dto.notificationId,
-      userId,
-      dto.minutes,
+    const start = Date.now();
+    this.logger.log(
+      `[WatchAPI] postpone start notificationId=${dto.notificationId} minutes=${dto.minutes} userId=${userId}`,
+    );
+    let postpone: any;
+    try {
+      postpone = await this.postponeService.createPostpone(
+        dto.notificationId,
+        userId,
+        dto.minutes,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] postpone error notificationId=${dto.notificationId} minutes=${dto.minutes} userId=${userId} ms=${Date.now() - start}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+
+    this.logger.log(
+      `[WatchAPI] postpone ok notificationId=${dto.notificationId} minutes=${dto.minutes} userId=${userId} ms=${Date.now() - start}`,
     );
 
     return {
