@@ -13,6 +13,9 @@ const TOKEN = process.env.TOKEN || 'zat_9652cc52d3e899326a70adb2059d96647d3a3ec4
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
 const COUNT = parseInt(process.env.COUNT || '500', 10);
 const DELAY_MS = parseInt(process.env.DELAY_MS || '50', 10);
+const BUCKET_ID = process.env.BUCKET_ID;
+const BUCKET_NAME = process.env.BUCKET_NAME;
+const VERBOSE_ERRORS = process.env.VERBOSE_ERRORS === 'true';
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,6 +48,17 @@ async function fetchBuckets() {
 function getRandomBucket(buckets) {
     if (!buckets || buckets.length === 0) return null;
     return buckets[Math.floor(Math.random() * buckets.length)];
+}
+
+function pickBucket(buckets) {
+    if (!buckets || buckets.length === 0) return null;
+    if (BUCKET_ID) {
+        return buckets.find((b) => b?.id === BUCKET_ID) || null;
+    }
+    if (BUCKET_NAME) {
+        return buckets.find((b) => b?.name === BUCKET_NAME) || null;
+    }
+    return getRandomBucket(buckets);
 }
 
 // Generate notification configs
@@ -95,8 +109,14 @@ async function sendMessage(config, index, bucket) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`❌ Error sending message ${index + 1}:`, response.statusText, errorText);
-            return false;
+            if (VERBOSE_ERRORS) {
+                console.error(
+                    `❌ Error sending message ${index + 1} (bucketId=${bucket?.id || 'N/A'} name=${bucket?.name || 'N/A'}):`,
+                    response.statusText,
+                    errorText
+                );
+            }
+            return { ok: false, status: response.status, errorText };
         }
 
         const result = await response.json();
@@ -107,10 +127,12 @@ async function sendMessage(config, index, bucket) {
             console.log(`✅ Message ${index + 1}/${COUNT} sent: ${config.title} (ID: ${message?.id || 'N/A'})`);
         }
         
-        return true;
+        return { ok: true };
     } catch (error) {
-        console.error(`❌ Failed to send message ${index + 1}:`, error.message);
-        return false;
+        if (VERBOSE_ERRORS) {
+            console.error(`❌ Failed to send message ${index + 1}:`, error.message);
+        }
+        return { ok: false, status: -1, errorText: error.message };
     }
 }
 
@@ -137,11 +159,42 @@ async function main() {
 
     // Send notifications in batches with progress updates
     for (let i = 0; i < COUNT; i++) {
-        // Pick a random bucket for each notification
-        const randomBucket = getRandomBucket(buckets);
-        
+        // Pick a bucket for each notification (optional fixed bucket via env)
         const config = generateNotificationConfig(i);
-        const success = await sendMessage(config, i, randomBucket);
+        let success = false;
+        let lastFailure = null;
+
+        // Retry with different buckets on access/not-found errors
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const bucket = pickBucket(buckets);
+            const result = await sendMessage(config, i, bucket);
+            if (result === true || result?.ok === true) {
+                success = true;
+                break;
+            }
+
+            lastFailure = {
+                status: result?.status,
+                bucketId: bucket?.id,
+                bucketName: bucket?.name,
+                errorText: result?.errorText,
+            };
+
+            // 403/404: likely no access or stale bucket entry; try again with another bucket.
+            if (result?.status === 403 || result?.status === 404) {
+                continue;
+            }
+
+            // Other errors: don't spam retries.
+            break;
+        }
+
+        if (!success && lastFailure) {
+            console.error(
+                `❌ Error sending message ${i + 1} after retries (bucketId=${lastFailure.bucketId || 'N/A'} name=${lastFailure.bucketName || 'N/A'}):`,
+                lastFailure.errorText || `status=${lastFailure.status}`
+            );
+        }
 
         if (success) {
             successCount++;

@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { Repository } from 'typeorm';
 import { UserAccessToken } from '../entities/user-access-token.entity';
 import { User } from '../entities/user.entity';
+import { isUUID } from 'class-validator';
 import {
   AccessTokenListDto,
   AccessTokenResponseDto,
@@ -113,9 +114,11 @@ export class AccessTokenService {
   }
 
   async getAccessToken(userId: string, tokenId: string): Promise<AccessTokenListDto> {
-    const token = await this.accessTokenRepository.findOne({
-      where: { id: tokenId, userId },
-    });
+    const where = isUUID(tokenId)
+      ? ({ id: tokenId, userId } as const)
+      : ({ name: tokenId, userId } as const);
+
+    const token = await this.accessTokenRepository.findOne({ where });
 
     if (!token) {
       throw new NotFoundException(
