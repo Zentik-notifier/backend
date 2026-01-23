@@ -48,6 +48,13 @@ import {
   IosDeliveryStrategy,
 } from './dto/external-notify.dto';
 import { PostponeNotificationDto, PostponeResponseDto } from './dto/postpone-notification.dto';
+import {
+  BatchDeleteWatchDto,
+  BatchDeleteWatchResponseDto,
+  BatchMarkReadWatchDto,
+  BatchMarkUnreadWatchDto,
+  BatchMarkWatchResponseDto,
+} from './dto/batch-watch.dto';
 import { NotificationPostponeService } from './notification-postpone.service';
 import { NotificationsService } from './notifications.service';
 
@@ -628,6 +635,168 @@ export class NotificationsController {
     );
 
     return result;
+  }
+
+  @Delete('watch/batch')
+  @ApiOperation({ summary: 'Delete multiple notifications in batch (Watch)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notifications deleted successfully',
+    type: BatchDeleteWatchResponseDto,
+  })
+  @UseGuards(ScopesGuard)
+  @RequireScopes([AccessTokenScope.WATCH])
+  async removeBatchWatch(
+    @Body() dto: BatchDeleteWatchDto,
+    @GetUser('id') userId: string,
+  ): Promise<BatchDeleteWatchResponseDto> {
+    const start = Date.now();
+    this.logger.log(
+      `[WatchAPI] batch delete start count=${dto.ids.length} userId=${userId}`,
+    );
+    let result: { deletedIds: string[] };
+    try {
+      result = await this.notificationsService.removeMany(dto.ids, userId);
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] batch delete error count=${dto.ids.length} userId=${userId} ms=${Date.now() - start}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+
+    // Publish to GraphQL subscriptions
+    for (const id of result.deletedIds) {
+      try {
+        await this.subscriptionService.publishNotificationDeleted(id, userId);
+      } catch (error) {
+        this.logger.error(
+          `[WatchAPI] publishNotificationDeleted failed id=${id} userId=${userId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
+    }
+
+    this.logger.log(
+      `[WatchAPI] batch delete ok count=${result.deletedIds.length} userId=${userId} ms=${Date.now() - start}`,
+    );
+
+    return {
+      deletedCount: result.deletedIds.length,
+      deletedIds: result.deletedIds,
+    };
+  }
+
+  @Patch('watch/batch/read')
+  @ApiOperation({ summary: 'Mark multiple notifications as read in batch (Watch)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notifications marked as read',
+    type: BatchMarkWatchResponseDto,
+  })
+  @UseGuards(ScopesGuard)
+  @RequireScopes([AccessTokenScope.WATCH])
+  async markAsReadBatchWatch(
+    @Body() dto: BatchMarkReadWatchDto,
+    @GetUser('id') userId: string,
+  ): Promise<BatchMarkWatchResponseDto> {
+    const start = Date.now();
+    this.logger.log(
+      `[WatchAPI] batch markAsRead start count=${dto.ids.length} userId=${userId}`,
+    );
+    let result: { notifications: Notification[]; updatedCount: number };
+    try {
+      result = await this.notificationsService.markNotificationsAsReadBatch(
+        dto.ids,
+        userId,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] batch markAsRead error count=${dto.ids.length} userId=${userId} ms=${Date.now() - start}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+
+    // Publish to GraphQL subscriptions
+    for (const notification of result.notifications) {
+      try {
+        await this.subscriptionService.publishNotificationUpdated(
+          notification,
+          userId,
+        );
+      } catch (error) {
+        this.logger.error(
+          `[WatchAPI] publishNotificationUpdated failed (read) id=${notification.id} userId=${userId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
+    }
+
+    this.logger.log(
+      `[WatchAPI] batch markAsRead ok count=${result.updatedCount} userId=${userId} ms=${Date.now() - start}`,
+    );
+
+    return {
+      updatedCount: result.updatedCount,
+      success: true,
+    };
+  }
+
+  @Patch('watch/batch/unread')
+  @ApiOperation({ summary: 'Mark multiple notifications as unread in batch (Watch)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notifications marked as unread',
+    type: BatchMarkWatchResponseDto,
+  })
+  @UseGuards(ScopesGuard)
+  @RequireScopes([AccessTokenScope.WATCH])
+  async markAsUnreadBatchWatch(
+    @Body() dto: BatchMarkUnreadWatchDto,
+    @GetUser('id') userId: string,
+  ): Promise<BatchMarkWatchResponseDto> {
+    const start = Date.now();
+    this.logger.log(
+      `[WatchAPI] batch markAsUnread start count=${dto.ids.length} userId=${userId}`,
+    );
+    let result: { notifications: Notification[]; updatedCount: number };
+    try {
+      result = await this.notificationsService.markNotificationsAsUnreadBatch(
+        dto.ids,
+        userId,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[WatchAPI] batch markAsUnread error count=${dto.ids.length} userId=${userId} ms=${Date.now() - start}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+
+    // Publish to GraphQL subscriptions
+    for (const notification of result.notifications) {
+      try {
+        await this.subscriptionService.publishNotificationUpdated(
+          notification,
+          userId,
+        );
+      } catch (error) {
+        this.logger.error(
+          `[WatchAPI] publishNotificationUpdated failed (unread) id=${notification.id} userId=${userId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
+    }
+
+    this.logger.log(
+      `[WatchAPI] batch markAsUnread ok count=${result.updatedCount} userId=${userId} ms=${Date.now() - start}`,
+    );
+
+    return {
+      updatedCount: result.updatedCount,
+      success: true,
+    };
   }
 
   @Post('watch/postpone')
