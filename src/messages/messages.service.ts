@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -39,6 +40,7 @@ import { UserTemplatesService } from './user-templates.service';
 import * as Handlebars from 'handlebars';
 import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.entity';
+import { BucketsService } from '../buckets/buckets.service';
 
 export interface CreateMessageResult {
   message: Message;
@@ -71,6 +73,7 @@ export class MessagesService {
     private readonly urlBuilderService: UrlBuilderService,
     private readonly userTemplatesService: UserTemplatesService,
     private readonly entityExecutionService: EntityExecutionService,
+    private readonly bucketsService: BucketsService,
   ) {}
 
 
@@ -359,6 +362,14 @@ export class MessagesService {
 
     if (!requesterId) {
       throw new UnauthorizedException('Unable to determine user ID for message creation');
+    }
+
+    const permissions = await this.bucketsService.calculateBucketPermissions(
+      bucket,
+      requesterId,
+    );
+    if (!permissions.canWrite) {
+      throw new ForbiddenException('You do not have write permission on this bucket');
     }
 
     // If locale missing, fallback from user settings

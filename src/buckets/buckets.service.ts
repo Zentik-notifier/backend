@@ -619,7 +619,7 @@ export class BucketsService {
     const canWrite =
       isOwner ||
       (bucket.isAdmin && isAdmin) ||
-      (bucket.isPublic && isModerator) ||
+      (bucket.isPublic && isAdmin) ||
       permissions.includes(Permission.WRITE) ||
       permissions.includes(Permission.ADMIN);
 

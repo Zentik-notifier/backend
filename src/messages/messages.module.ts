@@ -29,10 +29,12 @@ import { UserTemplatesService } from './user-templates.service';
 import { UsersModule } from '../users/users.module';
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
+import { BucketsModule } from '../buckets/buckets.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Message, MessageReminder, Notification, UserDevice, Bucket, User, UserBucket, UserTemplate]),
+    BucketsModule,
     AuthModule,
     forwardRef(() => NotificationsModule),
     AttachmentsModule,
