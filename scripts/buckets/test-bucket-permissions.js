@@ -14,6 +14,9 @@
  *   - Cannot delete bucket or update permissions.
  * - Shared user with ADMIN:
  *   - Can share/unshare bucket and perform admin-level operations.
+ * - Public bucket and messages:
+ *   - User (role USER) cannot send a message to a public bucket (403 Forbidden).
+ *   - Admin can send a message to a public bucket (success).
  *
  * Environment variables:
  * - BASE_URL  (e.g. http://localhost:3000/api/v1)
@@ -76,8 +79,9 @@ async function graphqlRequest(query, variables, authToken) {
   return { httpStatus: res.status, payload };
 }
 
-async function createTestBucket(nameSuffix) {
-  console.log(`\n📦 Creating test bucket (${nameSuffix})...`);
+async function createTestBucket(nameSuffix, opts = {}) {
+  const { isPublic = false } = opts;
+  console.log(`\n📦 Creating test bucket (${nameSuffix})${isPublic ? ' [public]' : ''}...`);
 
   const mutation = `
     mutation CreateBucket($input: CreateBucketDto!) {
@@ -85,6 +89,7 @@ async function createTestBucket(nameSuffix) {
         id
         name
         isProtected
+        isPublic
       }
     }
   `;
@@ -92,7 +97,7 @@ async function createTestBucket(nameSuffix) {
   const input = {
     name: `E2E Scope Bucket ${nameSuffix} ${Date.now()}`,
     description: 'Bucket for bucket permission scope tests',
-    isPublic: false,
+    isPublic,
     isProtected: false,
     generateIconWithInitials: true,
     generateMagicCode: false,
@@ -281,6 +286,46 @@ async function expectBucketDelete({ bucketId, jwt, description, shouldSucceed })
   console.log('   ✅ Delete behavior as expected');
 }
 
+async function sendMessageToBucket(bucketId, authToken) {
+  const url = `${BASE_URL.replace(/\/$/, '')}/messages`;
+  const res = await fetchHttp(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    body: JSON.stringify({
+      title: `E2E message ${Date.now()}`,
+      body: 'E2E bucket permission message test',
+      bucketId,
+      deliveryType: 'NORMAL',
+    }),
+  });
+  return { status: res.status, data: res.data };
+}
+
+async function expectMessageSend({ bucketId, jwt, description, shouldSucceed }) {
+  console.log(`\n   [SEND MESSAGE] ${description} (shouldSucceed=${shouldSucceed})`);
+
+  const res = await sendMessageToBucket(bucketId, jwt);
+  const ok = res.status >= 200 && res.status < 300;
+
+  if (shouldSucceed && !ok) {
+    console.error('   ❌ Expected message send to succeed, got:', res.status, res.data);
+    process.exit(1);
+  }
+  if (!shouldSucceed && ok) {
+    console.error('   ❌ Expected message send to fail (e.g. 403), but got success:', res.status);
+    process.exit(1);
+  }
+  if (!shouldSucceed && res.status !== 403) {
+    console.error('   ❌ Expected 403 Forbidden for non-admin on public bucket, got:', res.status);
+    process.exit(1);
+  }
+
+  console.log('   ✅ Message send behavior as expected');
+}
+
 async function runBucketPermissionTests() {
   console.log('\n' + '═'.repeat(80));
   console.log('🧪 BUCKET PERMISSION SCOPE E2E TESTS');
@@ -338,6 +383,25 @@ async function runBucketPermissionTests() {
   const adminDeleteBucketId = await createTestBucket('admin-delete');
   await shareBucketWithPermissions(adminDeleteBucketId, adminUser.username, ['ADMIN']);
   await expectBucketDelete({ bucketId: adminDeleteBucketId, jwt: adminUser.jwt, description: 'ADMIN user delete on own shared bucket', shouldSucceed: true });
+
+  console.log('\n' + '─'.repeat(80));
+  console.log('5) Public bucket: User cannot send message, Admin can');
+
+  const publicBucketId = await createTestBucket('public-msg', { isPublic: true });
+  const messageUser = await registerAndLoginUser('msg-user');
+
+  await expectMessageSend({
+    bucketId: publicBucketId,
+    jwt: messageUser.jwt,
+    description: 'User role cannot send message to public bucket',
+    shouldSucceed: false,
+  });
+  await expectMessageSend({
+    bucketId: publicBucketId,
+    jwt: TOKEN,
+    description: 'Admin can send message to public bucket',
+    shouldSucceed: true,
+  });
 
   console.log('\n✅ All bucket permission scope checks passed.');
 }

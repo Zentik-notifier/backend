@@ -28,6 +28,7 @@ import { UrlBuilderService } from '../common/services/url-builder.service';
 import { UserTemplatesService } from './user-templates.service';
 import { UserTemplate } from '../entities/user-template.entity';
 import { EntityExecutionService } from '../entity-execution/entity-execution.service';
+import { BucketsService } from '../buckets/buckets.service';
 
 describe('MessagesService', () => {
   let service: MessagesService;
@@ -269,6 +270,20 @@ describe('MessagesService', () => {
               id: 'execution-1',
               type: 'MESSAGE_TEMPLATE',
               status: 'SUCCESS',
+            }),
+          },
+        },
+        {
+          provide: BucketsService,
+          useValue: {
+            calculateBucketPermissions: jest.fn().mockResolvedValue({
+              canWrite: true,
+              canRead: true,
+              canDelete: false,
+              canAdmin: false,
+              isOwner: false,
+              isSharedWithMe: false,
+              sharedCount: 0,
             }),
           },
         },
