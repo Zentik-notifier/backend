@@ -1,9 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
- * Create external_notify_systems table (generic third-party integrations:
- * type enum NTFY/Gotify, name, baseUrl, channel, iconUrl, color, authUser, authPassword, authToken)
- * and link buckets via externalNotifySystemId.
+ * Create external_notify_systems table (type, name, baseUrl, iconUrl, color, auth)
+ * and link buckets via externalNotifySystemId + externalSystemChannel (channel is per-bucket).
  */
 export class AddExternalNotifyEndpointsAndBucketLink1769400000000
   implements MigrationInterface
@@ -30,7 +29,6 @@ export class AddExternalNotifyEndpointsAndBucketLink1769400000000
           "type" "external_notify_system_type_enum" NOT NULL DEFAULT 'NTFY',
           "name" character varying NOT NULL,
           "baseUrl" character varying NOT NULL,
-          "channel" character varying NOT NULL,
           "iconUrl" character varying,
           "color" character varying,
           "authUser" character varying,
@@ -45,6 +43,15 @@ export class AddExternalNotifyEndpointsAndBucketLink1769400000000
         )
       `);
     } else {
+      const channelColExists = await queryRunner.query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'external_notify_systems' AND column_name = 'channel'
+      `);
+      if (channelColExists.length > 0) {
+        await queryRunner.query(`
+          ALTER TABLE "external_notify_systems" DROP COLUMN "channel"
+        `);
+      }
       const typeColExists = await queryRunner.query(`
         SELECT column_name FROM information_schema.columns
         WHERE table_schema = 'public' AND table_name = 'external_notify_systems' AND column_name = 'type'
@@ -68,14 +75,11 @@ export class AddExternalNotifyEndpointsAndBucketLink1769400000000
       }
     }
 
-    const columnExists = await queryRunner.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_schema = 'public'
-        AND table_name = 'buckets'
-        AND column_name = 'externalNotifySystemId';
+    const idColExists = await queryRunner.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'buckets' AND column_name = 'externalNotifySystemId';
     `);
-    if (columnExists.length === 0) {
+    if (idColExists.length === 0) {
       await queryRunner.query(`
         ALTER TABLE "buckets"
         ADD COLUMN "externalNotifySystemId" uuid NULL
@@ -88,6 +92,16 @@ export class AddExternalNotifyEndpointsAndBucketLink1769400000000
         ON DELETE SET NULL
       `);
     }
+    const channelColExists = await queryRunner.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'buckets' AND column_name = 'externalSystemChannel';
+    `);
+    if (channelColExists.length === 0) {
+      await queryRunner.query(`
+        ALTER TABLE "buckets"
+        ADD COLUMN "externalSystemChannel" character varying NULL
+      `);
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -98,6 +112,10 @@ export class AddExternalNotifyEndpointsAndBucketLink1769400000000
     await queryRunner.query(`
       ALTER TABLE "buckets"
       DROP COLUMN IF EXISTS "externalNotifySystemId"
+    `);
+    await queryRunner.query(`
+      ALTER TABLE "buckets"
+      DROP COLUMN IF EXISTS "externalSystemChannel"
     `);
     await queryRunner.query(`DROP TABLE IF EXISTS "external_notify_systems"`);
     await queryRunner.query(`DROP TYPE IF EXISTS "external_notify_system_type_enum"`);

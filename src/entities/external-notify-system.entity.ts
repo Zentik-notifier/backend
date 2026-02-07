@@ -50,14 +50,6 @@ export class ExternalNotifySystem {
   @Column()
   baseUrl: string;
 
-  @Field()
-  @ApiProperty({
-    description:
-      'Generic target identifier: topic (NTFY), app id (Gotify), channel, etc.',
-  })
-  @Column()
-  channel: string;
-
   @Field(() => String, { nullable: true })
   @ApiProperty({ required: false, description: 'Icon URL for the system' })
   @Column({ type: 'varchar', nullable: true })

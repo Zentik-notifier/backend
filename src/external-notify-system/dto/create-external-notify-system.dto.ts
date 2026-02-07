@@ -33,18 +33,6 @@ export class CreateExternalNotifySystemDto {
   @MaxLength(2048)
   baseUrl: string;
 
-  @Field()
-  @ApiProperty({
-    description: 'Topic (NTFY), app id (Gotify), or generic channel identifier',
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  @Matches(/^[a-zA-Z0-9_-]+$/, {
-    message: 'channel must contain only letters, numbers, underscore and hyphen',
-  })
-  channel: string;
-
   @Field(() => String, { nullable: true })
   @ApiProperty({ required: false })
   @IsOptional()

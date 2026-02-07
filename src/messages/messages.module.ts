@@ -30,9 +30,11 @@ import { UsersModule } from '../users/users.module';
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
 import { BucketsModule } from '../buckets/buckets.module';
+import { NtfyModule } from '../ntfy/ntfy.module';
 
 @Module({
   imports: [
+    NtfyModule,
     TypeOrmModule.forFeature([Message, MessageReminder, Notification, UserDevice, Bucket, User, UserBucket, UserTemplate]),
     BucketsModule,
     AuthModule,

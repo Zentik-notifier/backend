@@ -4,8 +4,10 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationPostponeService } from 'src/notifications/notification-postpone.service';
 import { In, Repository } from 'typeorm';
@@ -41,6 +43,12 @@ import * as Handlebars from 'handlebars';
 import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.entity';
 import { BucketsService } from '../buckets/buckets.service';
+import { ExternalNotifySystemType } from '../entities/external-notify-system.entity';
+import { NtfyService } from '../ntfy/ntfy.service';
+
+export interface CreateMessageOptions {
+  fromNtfy?: boolean;
+}
 
 export interface CreateMessageResult {
   message: Message;
@@ -74,6 +82,7 @@ export class MessagesService {
     private readonly userTemplatesService: UserTemplatesService,
     private readonly entityExecutionService: EntityExecutionService,
     private readonly bucketsService: BucketsService,
+    @Optional() @Inject(forwardRef(() => NtfyService)) private readonly ntfyService: NtfyService | null,
   ) {}
 
 
@@ -350,6 +359,7 @@ export class MessagesService {
     requesterId: string | undefined,
     skipEventTracking = false,
     executionId?: string,
+    options?: CreateMessageOptions,
   ): Promise<CreateMessageResult> {
     if (!createMessageDto.bucketId) {
       throw new BadRequestException('bucketId or magicCode is required');
@@ -571,6 +581,37 @@ export class MessagesService {
         error,
       );
       // Don't fail the message creation if notifications fail
+    }
+
+    if (!options?.fromNtfy && this.ntfyService) {
+      const bucketWithExt = await this.bucketsRepository.findOne({
+        where: { id: bucket.id },
+        relations: ['externalNotifySystem'],
+      });
+      const ext = bucketWithExt?.externalNotifySystem;
+      const channel = bucketWithExt?.externalSystemChannel;
+      if (
+        ext?.type === ExternalNotifySystemType.NTFY &&
+        channel
+      ) {
+        this.ntfyService
+          .publishMessage(
+            savedMessageWithRelations || savedMessage,
+            ext.baseUrl,
+            channel,
+            {
+              authUser: ext.authUser,
+              authPassword: ext.authPassword,
+              authToken: ext.authToken,
+            },
+            bucketWithExt,
+          )
+          .catch((err: any) =>
+            this.logger.warn(
+              `NTFY publish failed for message ${savedMessage.id}: ${err?.message}`,
+            ),
+          );
+      }
     }
 
     const finalMessage = savedMessageWithRelations || savedMessage;

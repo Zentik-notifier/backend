@@ -67,6 +67,7 @@ type Bucket {
   createdAt: DateTime!
   description: String
   externalNotifySystem: ExternalNotifySystem
+  externalSystemChannel: String
   icon: String
   iconAttachmentUuid: String
   iconUrl: String
@@ -165,7 +166,6 @@ input CreateExternalNotifySystemDto {
   authToken: String
   authUser: String
   baseUrl: String!
-  channel: String!
   color: String
   iconUrl: String
   name: String!
@@ -413,7 +413,6 @@ type ExternalNotifySystem {
   authToken: String
   authUser: String
   baseUrl: String!
-  channel: String!
   color: String
   createdAt: DateTime!
   iconUrl: String
@@ -1414,7 +1413,6 @@ input UpdateExternalNotifySystemDto {
   authToken: String
   authUser: String
   baseUrl: String
-  channel: String
   color: String
   iconUrl: String
   name: String

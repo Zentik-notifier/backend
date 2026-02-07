@@ -37,16 +37,6 @@ export class UpdateExternalNotifySystemDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  @Matches(/^[a-zA-Z0-9_-]+$/, {
-    message: 'channel must contain only letters, numbers, underscore and hyphen',
-  })
-  channel?: string;
-
-  @Field(() => String, { nullable: true })
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
   @IsUrl()
   @MaxLength(2048)
   iconUrl?: string | null;

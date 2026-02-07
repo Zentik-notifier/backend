@@ -102,6 +102,14 @@ export class Bucket {
   @ManyToOne(() => ExternalNotifySystem, (e) => e.buckets, { onDelete: 'SET NULL' })
   externalNotifySystem?: ExternalNotifySystem | null;
 
+  @Field(() => String, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Topic/channel on the linked external system (e.g. NTFY topic). Required when externalNotifySystem is set for subscribe/publish.',
+  })
+  @Column({ type: 'varchar', nullable: true })
+  externalSystemChannel?: string | null;
+
   @Field(() => User)
   @ApiProperty({ type: () => User })
   @ManyToOne(() => User, (user) => user.buckets, { onDelete: 'CASCADE' })
