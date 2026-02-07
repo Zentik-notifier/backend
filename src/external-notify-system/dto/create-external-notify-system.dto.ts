@@ -29,7 +29,7 @@ export class CreateExternalNotifySystemDto {
   @ApiProperty({ description: 'Base URL of the external notification service' })
   @IsString()
   @IsNotEmpty()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @MaxLength(2048)
   baseUrl: string;
 
@@ -37,7 +37,7 @@ export class CreateExternalNotifySystemDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @MaxLength(2048)
   iconUrl?: string | null;
 
