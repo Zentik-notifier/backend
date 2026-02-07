@@ -26,12 +26,13 @@ export class NtfyService {
     return {};
   }
 
+  /** NTFY publish response: only id and time are persisted. */
   async publish(
     baseUrl: string,
     topic: string,
     payload: NtfyPublishPayload,
     auth?: NtfyAuth,
-  ): Promise<void> {
+  ): Promise<{ id: string; time: number } | null> {
     const url = `${baseUrl.replace(/\/$/, '')}/${encodeURIComponent(topic)}`;
     const headers: Record<string, string> = {
       'Content-Type': 'text/plain; charset=utf-8',
@@ -46,6 +47,7 @@ export class NtfyService {
     if (payload.actions) headers['X-Actions'] = payload.actions;
 
     try {
+      this.logger.debug(`NTFY publish POST ${url} topic=${topic}`);
       const res = await fetch(url, {
         method: 'POST',
         headers,
@@ -55,9 +57,18 @@ export class NtfyService {
         this.logger.warn(
           `NTFY publish failed: ${res.status} ${res.statusText} for ${url}`,
         );
+        return null;
       }
+      const data = (await res.json()) as { id?: string; time?: number };
+      if (data?.id != null && data?.time != null) {
+        this.logger.debug(`NTFY publish response id=${data.id} time=${data.time}`);
+        return { id: data.id, time: data.time };
+      }
+      this.logger.warn(`NTFY publish response missing id/time: ${JSON.stringify(data)}`);
+      return null;
     } catch (err: any) {
       this.logger.error(`NTFY publish error for ${url}: ${err?.message}`);
+      return null;
     }
   }
 
@@ -67,8 +78,11 @@ export class NtfyService {
     topic: string,
     auth?: NtfyAuth,
     bucket?: { iconUrl?: string | null } | null,
-  ): Promise<void> {
+  ): Promise<{ id: string; time: number } | null> {
     const payload = messageToNtfyPayload(message, bucket as any);
+    payload.tags = [...(payload.tags ?? []), 'Zentik'];
     return this.publish(baseUrl, topic, payload, auth);
   }
 }
+
+export const NTFY_ZENTIK_TAG = 'Zentik';

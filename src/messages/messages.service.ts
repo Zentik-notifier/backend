@@ -45,10 +45,7 @@ import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.ent
 import { BucketsService } from '../buckets/buckets.service';
 import { ExternalNotifySystemType } from '../entities/external-notify-system.entity';
 import { NtfyService } from '../ntfy/ntfy.service';
-
-export interface CreateMessageOptions {
-  fromNtfy?: boolean;
-}
+import { NtfySubscriptionService } from '../ntfy/ntfy-subscription.service';
 
 export interface CreateMessageResult {
   message: Message;
@@ -83,7 +80,8 @@ export class MessagesService {
     private readonly entityExecutionService: EntityExecutionService,
     private readonly bucketsService: BucketsService,
     @Optional() @Inject(forwardRef(() => NtfyService)) private readonly ntfyService: NtfyService | null,
-  ) {}
+    @Optional() @Inject(forwardRef(() => NtfySubscriptionService)) private readonly ntfySubscriptionService: NtfySubscriptionService | null,
+  ) { }
 
 
   private async findBucketByIdOrName(
@@ -124,7 +122,7 @@ export class MessagesService {
         )
         .where(
           'bucket.id = :bucketId AND ' +
-            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketId: bucketIdOrName, userId },
         )
         .getOne();
@@ -143,7 +141,7 @@ export class MessagesService {
         )
         .where(
           'bucket.name = :bucketName AND ' +
-            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketName: bucketIdOrName, userId },
         )
         .getOne();
@@ -314,7 +312,7 @@ export class MessagesService {
         let titleTemplate: string | undefined;
         let subtitleTemplate: string | undefined;
         let bodyTemplate: string | undefined;
-        
+
         try {
           const template = await this.userTemplatesService.findByUserIdAndNameOrId(
             userId,
@@ -325,7 +323,7 @@ export class MessagesService {
             subtitleTemplate = template.subtitle;
             bodyTemplate = template.body;
           }
-        } catch (_) {}
+        } catch (_) { }
 
         await this.entityExecutionService.create({
           type: ExecutionType.MESSAGE_TEMPLATE,
@@ -359,7 +357,6 @@ export class MessagesService {
     requesterId: string | undefined,
     skipEventTracking = false,
     executionId?: string,
-    options?: CreateMessageOptions,
   ): Promise<CreateMessageResult> {
     if (!createMessageDto.bucketId) {
       throw new BadRequestException('bucketId or magicCode is required');
@@ -393,7 +390,7 @@ export class MessagesService {
         if (lang?.valueText) {
           createMessageDto.locale = lang.valueText as any;
         }
-      } catch {}
+      } catch { }
     }
 
     // Process userIds - convert usernames to user IDs if needed
@@ -461,7 +458,7 @@ export class MessagesService {
 
     const message = this.messagesRepository.create({
       ...createMessageDto,
-      bucketId: bucket.id, // Always use the bucket ID, not the name
+      bucketId: bucket.id,
       attachments: processedAttachments,
       attachmentUuids,
       tapAction,
@@ -545,7 +542,7 @@ export class MessagesService {
       // Create reminders if remindEveryMinutes is set
       if (createMessageDto.remindEveryMinutes) {
         const maxReminders = createMessageDto.maxReminders || 5;
-        
+
         // Get all user IDs that received notifications
         const userIdsToRemind = processedUserIds.length > 0
           ? processedUserIds
@@ -583,34 +580,39 @@ export class MessagesService {
       // Don't fail the message creation if notifications fail
     }
 
-    if (!options?.fromNtfy && this.ntfyService) {
-      const bucketWithExt = await this.bucketsRepository.findOne({
-        where: { id: bucket.id },
-        relations: ['externalNotifySystem'],
-      });
-      const ext = bucketWithExt?.externalNotifySystem;
-      const channel = bucketWithExt?.externalSystemChannel;
-      if (
-        ext?.type === ExternalNotifySystemType.NTFY &&
-        channel
-      ) {
-        this.ntfyService
-          .publishMessage(
-            savedMessageWithRelations || savedMessage,
-            ext.baseUrl,
-            channel,
-            {
-              authUser: ext.authUser,
-              authPassword: ext.authPassword,
-              authToken: ext.authToken,
-            },
-            bucketWithExt,
-          )
-          .catch((err: any) =>
-            this.logger.warn(
-              `NTFY publish failed for message ${savedMessage.id}: ${err?.message}`,
-            ),
-          );
+    const bucketWithExt = await this.bucketsRepository.findOne({
+      where: { id: bucket.id },
+      relations: ['externalNotifySystem'],
+    });
+    const ext = bucketWithExt?.externalNotifySystem;
+    const channel = bucketWithExt?.externalSystemChannel;
+    if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
+      this.logger.log(`NTFY publish starting for message ${savedMessage.id} topic=${channel}`);
+      try {
+        const ntfyResponse = await this.ntfyService.publishMessage(
+          savedMessageWithRelations || savedMessage,
+          ext.baseUrl,
+          channel,
+          {
+            authUser: ext.authUser,
+            authPassword: ext.authPassword,
+            authToken: ext.authToken,
+          },
+          bucketWithExt,
+        );
+        if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
+          this.ntfySubscriptionService?.registerPublishedNtfyId(ntfyResponse.id);
+          this.logger.log(`NTFY publish registered id=${ntfyResponse.id} for message ${savedMessage.id}`);
+          await this.messagesRepository.update(savedMessage.id, {
+            externalSystemResponse: { ntfy: { id: ntfyResponse.id, time: ntfyResponse.time } },
+          });
+        } else {
+          this.logger.warn(`NTFY publish no id/time in response for message ${savedMessage.id}`);
+        }
+      } catch (err: any) {
+        this.logger.warn(
+          `NTFY publish failed for message ${savedMessage.id}: ${err?.message}`,
+        );
       }
     }
 
@@ -960,7 +962,7 @@ export class MessagesService {
       (await this.serverSettingsService.getSettingByType(ServerSettingType.MessagesMaxAge))?.valueText || '7d';
     const maxAgeMs = this.parseDurationToMs(maxAgeInput);
     this.logger.log(
-      `Scanning messages for cleanup (all notifications received${maxAgeMs ? ` or older than ${maxAgeMs}ms` : ''})`,
+      `Scanning messages for cleanup (ephemeral >1h, all notifications received${maxAgeMs ? ` or older than ${maxAgeMs}ms` : ''})`,
     );
     // Load all messages with their buckets to check protection status
     const messages = await this.messagesRepository.find({
@@ -984,21 +986,25 @@ export class MessagesService {
       messageIdToNotifications[mId].push(n);
     }
 
-    // Determine messages whose all notifications have receivedAt set, or older than maxAge, or have no notifications at all
-    // BUT exclude messages that have pending postpones OR belong to protected buckets
+    const EPHEMERAL_TTL_MS = 60 * 60 * 1000; // 1 hour
     const deletableMessageIds: string[] = [];
     const now = Date.now();
     for (const m of messages) {
-      // Skip messages from protected buckets
+      if (m.ephemeral && m.createdAt) {
+        const age = now - new Date(m.createdAt).getTime();
+        if (age >= EPHEMERAL_TTL_MS) {
+          deletableMessageIds.push(m.id);
+          continue;
+        }
+      }
+
       if (m.bucket?.isProtected) {
         continue;
       }
 
-      // Check if message has pending postpones
       const hasPendingPostpones = this.postponeService
         ? await this.postponeService.hasPendingPostpones(m.id)
         : false;
-      
       if (hasPendingPostpones) {
         this.logger.debug(
           `Skipping message ${m.id} - has pending postpones`,

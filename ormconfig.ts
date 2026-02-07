@@ -52,6 +52,8 @@ import { AddBucketDeletionEvent1769200000000 } from './database/migrations/17692
 import { AddStoreLogsOnFsSetting1769300000000 } from './database/migrations/1769300000000-AddStoreLogsOnFsSetting';
 import { AddDisableUserTrackingSetting1768638868000 } from './database/migrations/1768638868000-AddDisableUserTrackingSetting';
 import { AddExternalNotifyEndpointsAndBucketLink1769400000000 } from './database/migrations/1769400000000-AddExternalNotifyEndpointsAndBucketLink';
+import { AddEphemeralToMessages1769500000000 } from './database/migrations/1769500000000-AddEphemeralToMessages';
+import { AddExternalSystemResponseToMessages1769600000000 } from './database/migrations/1769600000000-AddExternalSystemResponseToMessages';
 
 config({ path: '.env' });
 
@@ -125,6 +127,8 @@ const dataSource = new DataSource({
     AddStoreLogsOnFsSetting1769300000000,
     AddDisableUserTrackingSetting1768638868000,
     AddExternalNotifyEndpointsAndBucketLink1769400000000,
+    AddEphemeralToMessages1769500000000,
+    AddExternalSystemResponseToMessages1769600000000,
   ],
   migrationsTableName: 'migrations',
 });

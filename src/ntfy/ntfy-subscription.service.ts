@@ -1,15 +1,12 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, forwardRef } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Inject, forwardRef } from '@nestjs/common';
 import { IsNull, Not, Repository } from 'typeorm';
-import { ExternalNotifySystem } from '../entities/external-notify-system.entity';
 import { Bucket } from '../entities/bucket.entity';
-import { ExternalNotifySystemType } from '../entities/external-notify-system.entity';
+import { ExternalNotifySystem, ExternalNotifySystemType } from '../entities/external-notify-system.entity';
 import { MessagesService } from '../messages/messages.service';
-import { CreateMessageDto } from '../messages/dto/create-message.dto';
-import { NtfyService, NtfyAuth } from './ntfy.service';
 import { NtfyIncomingMessage, ntfyMessageToCreatePayload } from './ntfy-mapper';
+import { NTFY_ZENTIK_TAG, NtfyAuth, NtfyService } from './ntfy.service';
 
 function setEquals<T>(a: Set<T>, b: Set<T>): boolean {
   if (a.size !== b.size) return false;
@@ -17,11 +14,14 @@ function setEquals<T>(a: Set<T>, b: Set<T>): boolean {
   return true;
 }
 
+const PUBLISHED_NTFY_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 @Injectable()
 export class NtfySubscriptionService implements OnModuleInit {
   private readonly logger = new Logger(NtfySubscriptionService.name);
   private abortControllers = new Map<string, AbortController>();
   private currentTopicsBySystemId = new Map<string, Set<string>>();
+  private publishedNtfyIds = new Map<string, number>(); // id -> timestamp when registered
 
   constructor(
     @InjectRepository(ExternalNotifySystem)
@@ -62,6 +62,26 @@ export class NtfySubscriptionService implements OnModuleInit {
           `NTFY subscription refresh failed for ${system.baseUrl}: ${err?.message}`,
         );
       });
+    }
+  }
+
+  registerPublishedNtfyId(id: string): void {
+    this.publishedNtfyIds.set(id, Date.now());
+    this.prunePublishedNtfyIds();
+  }
+
+  isPublishedByUs(id: string): boolean {
+    this.prunePublishedNtfyIds();
+    const added = this.publishedNtfyIds.get(id);
+    if (added == null) return false;
+    this.publishedNtfyIds.delete(id);
+    return true;
+  }
+
+  private prunePublishedNtfyIds(): void {
+    const cutoff = Date.now() - PUBLISHED_NTFY_TTL_MS;
+    for (const [id, ts] of this.publishedNtfyIds.entries()) {
+      if (ts < cutoff) this.publishedNtfyIds.delete(id);
     }
   }
 
@@ -211,6 +231,9 @@ export class NtfySubscriptionService implements OnModuleInit {
     ntfy: NtfyIncomingMessage,
     buckets: Bucket[],
   ) {
+    if (this.isPublishedByUs(ntfy.id)) return;
+    if (ntfy.tags?.includes(NTFY_ZENTIK_TAG)) return;
+
     const dto = ntfyMessageToCreatePayload(ntfy);
 
     for (const bucket of buckets) {
@@ -218,11 +241,10 @@ export class NtfySubscriptionService implements OnModuleInit {
       if (!ownerId) continue;
       try {
         await this.messagesService.create(
-          { ...dto, bucketId: bucket.id },
+          { ...dto, bucketId: bucket.id, ephemeral: true },
           ownerId,
           true,
           undefined,
-          { fromNtfy: true },
         );
       } catch (err: any) {
         this.logger.error(

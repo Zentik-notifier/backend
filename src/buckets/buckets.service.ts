@@ -10,6 +10,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository, In } from 'typeorm';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { Bucket } from '../entities/bucket.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
 import { User } from '../entities/user.entity';
@@ -391,7 +392,10 @@ export class BucketsService {
       );
     }
 
-    await this.bucketsRepository.update(bucket.id, bucket);
+    await this.bucketsRepository.update(
+      bucket.id,
+      bucket as QueryDeepPartialEntity<Bucket>,
+    );
 
     const newExternalSystemId =
       updateBucketDto.externalNotifySystemId !== undefined

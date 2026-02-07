@@ -253,6 +253,16 @@ export class CreateMessageDto {
 
   @Field({ nullable: true })
   @ApiProperty({
+    required: false,
+    description: 'When true, message is deleted automatically after 1 hour by cleanup',
+  })
+  @IsOptional()
+  @Transform(transformMultipartBoolean, { toClassOnly: true })
+  @IsBoolean()
+  ephemeral?: boolean;
+
+  @Field({ nullable: true })
+  @ApiProperty({
     description:
       'Bucket ID or name. If a name is provided, the system will find the corresponding bucket by name.',
     required: false,

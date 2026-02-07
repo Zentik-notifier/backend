@@ -15,6 +15,7 @@ import {
   NotificationActionType,
   NotificationDeliveryType,
 } from '../notifications/notifications.types';
+import { GraphQLJSON } from '../common/types/json.type';
 import { Attachment } from './attachment.entity';
 import { Bucket } from './bucket.entity';
 
@@ -233,6 +234,22 @@ export class Message {
   })
   @Column({ nullable: true })
   executionId?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'When true, message is deleted automatically after 1 hour by cleanup',
+  })
+  @Column({ type: 'boolean', nullable: true, default: false })
+  ephemeral?: boolean;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Data from external notify system responses (e.g. NTFY message id)',
+  })
+  @Column({ type: 'json', nullable: true })
+  externalSystemResponse?: Record<string, unknown>;
 
   @Field()
   @ApiProperty()

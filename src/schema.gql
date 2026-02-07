@@ -202,6 +202,7 @@ input CreateMessageDto {
   bucketId: String
   collapseId: String
   deliveryType: NotificationDeliveryType!
+  ephemeral: Boolean
   executionId: String
   gifUrl: String
   groupId: String
@@ -619,7 +620,9 @@ type Message {
   collapseId: String
   createdAt: DateTime!
   deliveryType: NotificationDeliveryType!
+  ephemeral: Boolean
   executionId: String
+  externalSystemResponse: JSON
   fileAttachments: [Attachment!]
   groupId: String
   id: ID!
