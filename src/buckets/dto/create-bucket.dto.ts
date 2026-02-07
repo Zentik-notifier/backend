@@ -84,7 +84,7 @@ export class CreateBucketDto {
   @IsString()
   preset?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @ApiProperty({
     required: false,
     description: 'External notify system to link (e.g. NTFY). Use with externalSystemChannel.',
@@ -93,7 +93,7 @@ export class CreateBucketDto {
   @IsString()
   externalNotifySystemId?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @ApiProperty({
     required: false,
     description: 'Topic/channel on the linked external system. Used with externalNotifySystemId.',

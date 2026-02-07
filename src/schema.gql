@@ -142,6 +142,8 @@ input CreateAccessTokenDto {
 input CreateBucketDto {
   color: String
   description: String
+  externalNotifySystemId: String
+  externalSystemChannel: String
   generateIconWithInitials: Boolean
   generateMagicCode: Boolean
   icon: String
@@ -1384,6 +1386,8 @@ input UpdateAccessTokenDto {
 input UpdateBucketDto {
   color: String
   description: String
+  externalNotifySystemId: String
+  externalSystemChannel: String
   generateIconWithInitials: Boolean
   icon: String
   isProtected: Boolean
