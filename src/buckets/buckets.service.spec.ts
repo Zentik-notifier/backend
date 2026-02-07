@@ -227,7 +227,7 @@ describe('BucketsService', () => {
 
       expect(bucketsRepository.find).toHaveBeenCalledWith({
         where: { user: { id: 'user-1' } },
-        relations: ['user', 'userBuckets'],
+        relations: ['user', 'userBuckets', 'externalNotifySystem'],
         order: { createdAt: 'DESC' },
       });
       expect(result).toBeTruthy();
@@ -266,7 +266,7 @@ describe('BucketsService', () => {
 
       expect(bucketsRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'bucket-1' },
-        relations: ['messages', 'messages.bucket', 'user'],
+        relations: ['messages', 'messages.bucket', 'user', 'externalNotifySystem'],
       });
       expect(result).toEqual(mockBucket);
     });
