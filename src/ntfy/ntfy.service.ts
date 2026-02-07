@@ -43,6 +43,7 @@ export class NtfyService {
     if (payload.click) headers['X-Click'] = payload.click;
     if (payload.icon) headers['X-Icon'] = payload.icon;
     if (payload.attach) headers['X-Attach'] = payload.attach;
+    if (payload.actions) headers['X-Actions'] = payload.actions;
 
     try {
       const res = await fetch(url, {

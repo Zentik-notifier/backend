@@ -31,7 +31,7 @@ export class NtfySubscriptionService implements OnModuleInit {
     @Inject(forwardRef(() => MessagesService))
     private readonly messagesService: MessagesService,
     private readonly ntfyService: NtfyService,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     await this.startAllSubscriptions();
@@ -68,7 +68,7 @@ export class NtfySubscriptionService implements OnModuleInit {
   onBucketLinksChanged(affectedSystemIds: string[]): void {
     const ids = [...new Set(affectedSystemIds)].filter(Boolean);
     for (const id of ids) {
-      this.refreshSubscriptionForSystem(id).catch(() => {});
+      this.refreshSubscriptionForSystem(id).catch(() => { });
     }
   }
 
@@ -132,7 +132,7 @@ export class NtfySubscriptionService implements OnModuleInit {
           `NTFY SSE ${url} returned ${res.status}, retrying in 30s`,
         );
         this.currentTopicsBySystemId.delete(system.id);
-        this.subscribe(system, 30_000).catch(() => {});
+        this.subscribe(system, 30_000).catch(() => { });
         return;
       }
       await this.consumeStream(system, buckets, res.body as any, key);
@@ -142,13 +142,13 @@ export class NtfySubscriptionService implements OnModuleInit {
         `NTFY SSE ${url} error: ${e?.message}, retrying in 30s`,
       );
       this.currentTopicsBySystemId.delete(system.id);
-      this.subscribe(system, 30_000).catch(() => {});
+      this.subscribe(system, 30_000).catch(() => { });
       return;
     } finally {
       this.abortControllers.delete(key);
     }
     this.currentTopicsBySystemId.delete(system.id);
-    this.subscribe(system, 30_000).catch(() => {});
+    this.subscribe(system, 30_000).catch(() => { });
   }
 
   private authFrom(system: ExternalNotifySystem): NtfyAuth {
@@ -211,15 +211,7 @@ export class NtfySubscriptionService implements OnModuleInit {
     ntfy: NtfyIncomingMessage,
     buckets: Bucket[],
   ) {
-    const payload = ntfyMessageToCreatePayload(ntfy);
-    const dto: CreateMessageDto = {
-      title: payload.title,
-      body: payload.body,
-      subtitle: payload.subtitle,
-      tapAction: payload.tapAction,
-      deliveryType: payload.deliveryType,
-      attachments: payload.attachments,
-    } as CreateMessageDto;
+    const dto = ntfyMessageToCreatePayload(ntfy);
 
     for (const bucket of buckets) {
       const ownerId = bucket.user?.id;

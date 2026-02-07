@@ -1,3 +1,4 @@
+import { CreateMessageDto } from 'src/messages/dto';
 import { Bucket } from '../entities/bucket.entity';
 import { Message } from '../entities/message.entity';
 import {
@@ -14,6 +15,8 @@ export interface NtfyPublishPayload {
   click?: string;
   icon?: string;
   attach?: string;
+  /** X-Actions header value (up to 3 actions: view, http, broadcast) */
+  actions?: string;
 }
 
 const DELIVERY_TO_NTFY_PRIORITY: Record<NotificationDeliveryType, number> = {
@@ -22,6 +25,11 @@ const DELIVERY_TO_NTFY_PRIORITY: Record<NotificationDeliveryType, number> = {
   [NotificationDeliveryType.CRITICAL]: 5,
   [NotificationDeliveryType.NO_PUSH]: 1,
 };
+
+function quoteForNtfyAction(v: string): string {
+  if (/[,;]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+  return v;
+}
 
 export function messageToNtfyPayload(
   message: Message,
@@ -57,7 +65,39 @@ export function messageToNtfyPayload(
     payload.tags = [message.subtitle];
   }
 
+  const actions = message.actions ?? [];
+  const ntfyActionParts: string[] = [];
+  for (const a of actions.slice(0, 3)) {
+    const label = a.title ?? '';
+    const value = a.value ?? '';
+    if (a.type === NotificationActionType.NAVIGATE && value) {
+      ntfyActionParts.push(`view, ${quoteForNtfyAction(label)}, ${quoteForNtfyAction(value)}`);
+    } else if (a.type === NotificationActionType.WEBHOOK && value) {
+      ntfyActionParts.push(`http, ${quoteForNtfyAction(label)}, ${quoteForNtfyAction(value)}`);
+    } else if (a.type === NotificationActionType.BACKGROUND_CALL) {
+      const part = value
+        ? `broadcast, ${quoteForNtfyAction(label)}, intent=${quoteForNtfyAction(value)}`
+        : `broadcast, ${quoteForNtfyAction(label)}`;
+      ntfyActionParts.push(part);
+    }
+  }
+  if (ntfyActionParts.length) {
+    payload.actions = ntfyActionParts.join('; ');
+  }
+
   return payload;
+}
+
+export interface NtfyIncomingAction {
+  action: string;
+  label: string;
+  url?: string;
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  intent?: string;
+  extras?: Record<string, string>;
+  clear?: boolean;
 }
 
 export interface NtfyIncomingMessage {
@@ -71,7 +111,7 @@ export interface NtfyIncomingMessage {
   tags?: string[];
   click?: string;
   attachment?: { name?: string; url: string; type?: string; size?: number; expires?: number };
-  actions?: Array<{ action: string; label: string; url?: string; clear?: boolean }>;
+  actions?: NtfyIncomingAction[];
   icon?: string;
 }
 
@@ -83,21 +123,18 @@ const NTFY_PRIORITY_TO_DELIVERY: Record<number, NotificationDeliveryType> = {
   5: NotificationDeliveryType.CRITICAL,
 };
 
-export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): { title: string; body?: string; subtitle?: string; tapAction?: { type: NotificationActionType; value: string }; deliveryType: NotificationDeliveryType; attachments?: Array<{ mediaType: MediaType; url: string }> } {
-  const title = ntfy.title ?? ntfy.topic ?? 'Notification';
-  const body = ntfy.message ?? '';
+export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): CreateMessageDto {
+  let title = ntfy.title;
+  let body = ntfy.message;
+  if (!title) {
+    title = body;
+    body = undefined;
+  }
   const deliveryType =
     NTFY_PRIORITY_TO_DELIVERY[ntfy.priority ?? 3] ?? NotificationDeliveryType.NORMAL;
 
-  const result: {
-    title: string;
-    body?: string;
-    subtitle?: string;
-    tapAction?: { type: NotificationActionType; value: string };
-    deliveryType: NotificationDeliveryType;
-    attachments?: Array<{ mediaType: MediaType; url: string }>;
-  } = {
-    title,
+  const result: CreateMessageDto = {
+    title: title ?? '',
     body: body || undefined,
     deliveryType,
   };
@@ -111,6 +148,29 @@ export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): { title: 
       type: NotificationActionType.NAVIGATE,
       value: ntfy.click,
     };
+  }
+
+  if (ntfy.actions?.length) {
+    result.actions = ntfy.actions
+      .map((a) => {
+        const label = a.label ?? '';
+        if (a.action === 'view' && a.url) {
+          return { type: NotificationActionType.NAVIGATE, value: a.url, title: label };
+        }
+        if (a.action === 'http' && a.url) {
+          return { type: NotificationActionType.WEBHOOK, value: a.url, title: label };
+        }
+        if (a.action === 'broadcast') {
+          return {
+            type: NotificationActionType.BACKGROUND_CALL,
+            value: a.intent ?? '',
+            title: label,
+          };
+        }
+        return null;
+      })
+      .filter((a): a is NonNullable<typeof a> => a !== null);
+    if (result.actions.length === 0) result.actions = undefined;
   }
 
   if (ntfy.attachment?.url) {
@@ -130,12 +190,11 @@ export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): { title: 
 /**
  * NTFY properties NOT supported in our mapping (incoming or outgoing):
  *
- * Incoming (subscribe): icon (URL) – not stored on message; actions (array of
- *   action buttons) – we only map a single tap/click; email – not in our model;
- *   delay – not mapped; since (polling) – not used.
+ * Incoming (subscribe): icon (URL) – not stored on message; email – not in our
+ *   model; delay – not mapped; since (polling) – not used. http action
+ *   method/headers/body and broadcast extras are not stored for round-trip.
  *
- * Outgoing (publish): NTFY action buttons (view, http, broadcast) – we only send
- *   one click URL; email – not sent; delay – not sent; multiple attachments –
+ * Outgoing (publish): email – not sent; delay – not sent; multiple attachments –
  *   we send at most one (first image); NTFY-specific headers (e.g. X-Markdown,
- *   X-Filename) – not sent.
+ *   X-Filename) – not sent. We send up to 3 actions (view, http, broadcast).
  */
