@@ -2,14 +2,13 @@ name: Unit Tests
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    if: github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
+
     steps:
     - uses: actions/checkout@v4
       with:

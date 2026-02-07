@@ -12,6 +12,6 @@ import { NtfySubscriptionService } from './ntfy-subscription.service';
     forwardRef(() => MessagesModule),
   ],
   providers: [NtfyService, NtfySubscriptionService],
-  exports: [NtfyService],
+  exports: [NtfyService, NtfySubscriptionService],
 })
 export class NtfyModule {}

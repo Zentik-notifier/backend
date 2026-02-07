@@ -3,9 +3,7 @@ name: E2E Tests
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 permissions:
   contents: read
@@ -13,6 +11,7 @@ permissions:
 jobs:
   test-scripts:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     env:
       # Rate limiting configuration (applied at server startup via ServerSettings)
@@ -160,6 +159,7 @@ jobs:
 
   bucket-icons-e2e:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     services:
       postgres:
@@ -245,6 +245,7 @@ jobs:
 
   email-events-e2e:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     services:
       postgres:
@@ -332,6 +333,7 @@ jobs:
 
   sat-passthrough-apns-e2e:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     services:
       postgres:
@@ -420,6 +422,7 @@ jobs:
 
   ios-apns-e2e:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     strategy:
       matrix:

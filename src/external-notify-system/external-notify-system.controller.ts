@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -16,8 +18,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { GetUser } from '../auth/decorators/get-user.decorator';
+import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { ExternalNotifySystem } from '../entities/external-notify-system.entity';
+import { NtfySubscriptionService } from '../ntfy/ntfy-subscription.service';
 import { ExternalNotifySystemService } from './external-notify-system.service';
 import { CreateExternalNotifySystemDto, UpdateExternalNotifySystemDto } from './dto';
 
@@ -28,6 +32,7 @@ import { CreateExternalNotifySystemDto, UpdateExternalNotifySystemDto } from './
 export class ExternalNotifySystemController {
   constructor(
     private readonly externalNotifySystemService: ExternalNotifySystemService,
+    private readonly ntfySubscriptionService: NtfySubscriptionService,
   ) {}
 
   @Post()
@@ -54,6 +59,16 @@ export class ExternalNotifySystemController {
   })
   findAll(@GetUser('id') userId: string) {
     return this.externalNotifySystemService.findAll(userId);
+  }
+
+  @Post('reload-ntfy-subscriptions')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminOnlyGuard)
+  @ApiOperation({ summary: 'Reload NTFY subscriptions (admin only)' })
+  @ApiResponse({ status: 200, description: 'Subscriptions reloaded' })
+  async reloadNtfySubscriptions(): Promise<{ ok: boolean }> {
+    await this.ntfySubscriptionService.startAllSubscriptions();
+    return { ok: true };
   }
 
   @Get(':id')

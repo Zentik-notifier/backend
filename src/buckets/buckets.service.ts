@@ -304,6 +304,33 @@ export class BucketsService {
       );
     }
 
+    if (updateBucketDto.externalNotifySystemId !== undefined) {
+      if (
+        updateBucketDto.externalNotifySystemId === null ||
+        updateBucketDto.externalNotifySystemId === ''
+      ) {
+        bucket.externalNotifySystem = null;
+        bucket.externalSystemChannel = null;
+      } else {
+        const hasAccess = await this.entityPermissionService.hasPermissions(
+          userId,
+          ResourceType.EXTERNAL_NOTIFY_SYSTEM,
+          updateBucketDto.externalNotifySystemId,
+          [Permission.READ],
+        );
+        if (!hasAccess) {
+          throw new ForbiddenException(
+            'You do not have permission to use this external notify system',
+          );
+        }
+        bucket.externalNotifySystem = {
+          id: updateBucketDto.externalNotifySystemId,
+        } as any;
+        bucket.externalSystemChannel =
+          updateBucketDto.externalSystemChannel ?? null;
+      }
+    }
+
     // Check if properties that affect icon generation have changed
     const nameChanged = updateBucketDto.name !== undefined && updateBucketDto.name !== bucket.name;
     const colorChanged = updateBucketDto.color !== undefined && updateBucketDto.color !== bucket.color;
@@ -313,8 +340,12 @@ export class BucketsService {
     // Store generateIconWithInitials before updating bucket
     const generateIconWithInitials = updateBucketDto.generateIconWithInitials ?? true;
 
-    // Update basic bucket properties (excluding non-entity fields)
-    const { generateIconWithInitials: _, ...bucketUpdates } = updateBucketDto;
+    const {
+      generateIconWithInitials: _g,
+      externalNotifySystemId: _eid,
+      externalSystemChannel: _ech,
+      ...bucketUpdates
+    } = updateBucketDto;
     Object.assign(bucket, bucketUpdates);
 
     // Regenerate icon if needed

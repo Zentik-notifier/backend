@@ -75,5 +75,21 @@ export class UpdateBucketDto {
   @IsString()
   preset?: string;
 
-  // deviceIds removed
+  @Field(() => String, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'External notify system ID to link (e.g. NTFY server). Requires permission on the system.',
+  })
+  @IsOptional()
+  @IsString()
+  externalNotifySystemId?: string | null;
+
+  @Field(() => String, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Topic/channel on the linked external system (e.g. NTFY topic). Used with externalNotifySystemId.',
+  })
+  @IsOptional()
+  @IsString()
+  externalSystemChannel?: string | null;
 }
