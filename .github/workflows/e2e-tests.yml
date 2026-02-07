@@ -22,7 +22,8 @@ jobs:
           if [[ "${{ github.ref_name }}" == *"[test]"* ]]; then echo "run_tests=true" >> $GITHUB_OUTPUT; exit 0; fi
           if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.head_ref }}" == *"[test]"* ]]; then echo "run_tests=true" >> $GITHUB_OUTPUT; exit 0; fi
           echo "run_tests=false" >> $GITHUB_OUTPUT
-          echo "Skipping: branch/ref does not match main or [test]"
+          echo "::error::E2E tests skipped: branch/ref does not match main or [test]"
+          exit 1
 
   test-scripts:
     needs: gate
