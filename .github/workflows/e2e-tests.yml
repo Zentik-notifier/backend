@@ -9,9 +9,25 @@ permissions:
   contents: read
 
 jobs:
-  test-scripts:
+  gate:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
+    outputs:
+      run_tests: ${{ steps.check.outputs.run_tests }}
+    steps:
+      - name: Check if E2E tests should run
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then echo "run_tests=true" >> $GITHUB_OUTPUT; exit 0; fi
+          if [[ "${{ github.ref_name }}" == "main" ]]; then echo "run_tests=true" >> $GITHUB_OUTPUT; exit 0; fi
+          if [[ "${{ github.ref_name }}" == *"[test]"* ]]; then echo "run_tests=true" >> $GITHUB_OUTPUT; exit 0; fi
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.head_ref }}" == *"[test]"* ]]; then echo "run_tests=true" >> $GITHUB_OUTPUT; exit 0; fi
+          echo "run_tests=false" >> $GITHUB_OUTPUT
+          echo "Skipping: branch/ref does not match main or [test]"
+
+  test-scripts:
+    needs: gate
+    if: needs.gate.outputs.run_tests == 'true'
+    runs-on: ubuntu-latest
 
     env:
       # Rate limiting configuration (applied at server startup via ServerSettings)
@@ -129,6 +145,12 @@ jobs:
           ADMIN_DEFAULT_PASSWORD: admin
         run: node scripts/passthrough/test-system-access-tokens.js
 
+      - name: NTFY E2E tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/ntfy/test-ntfy-e2e.js
+
       - name: Show server logs on failure
         if: failure()
         run: |
@@ -158,8 +180,9 @@ jobs:
           echo "Servers stopped"
 
   bucket-icons-e2e:
+    needs: gate
+    if: needs.gate.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     services:
       postgres:
@@ -244,8 +267,9 @@ jobs:
           echo "Servers stopped"
 
   email-events-e2e:
+    needs: gate
+    if: needs.gate.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     services:
       postgres:
@@ -332,8 +356,9 @@ jobs:
           echo "Servers stopped"
 
   sat-passthrough-apns-e2e:
+    needs: gate
+    if: needs.gate.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     services:
       postgres:
@@ -421,8 +446,9 @@ jobs:
           echo "Servers stopped"
 
   ios-apns-e2e:
+    needs: gate
+    if: needs.gate.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || contains(github.ref_name, '[test]') || (github.event_name == 'pull_request' && contains(github.head_ref, '[test]'))
 
     strategy:
       matrix:
