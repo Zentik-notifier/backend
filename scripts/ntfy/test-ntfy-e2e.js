@@ -56,6 +56,23 @@ async function fetchHttp(url, options = {}) {
   });
 }
 
+function fetchHttpStatusOnly(url, options = {}) {
+  const urlObj = new URL(url);
+  const client = urlObj.protocol === 'https:' ? https : http;
+  return new Promise((resolve, reject) => {
+    const req = client.request(url, options, (res) => {
+      res.status = res.statusCode;
+      res.destroy();
+      resolve(res);
+    });
+    req.on('error', reject);
+    if (options.headers) {
+      Object.keys(options.headers).forEach((k) => req.setHeader(k, options.headers[k]));
+    }
+    req.end();
+  });
+}
+
 async function graphql(query, variables, token) {
   const res = await fetchHttp(`${BASE_URL}/graphql`, {
     method: 'POST',
@@ -69,7 +86,7 @@ async function graphql(query, variables, token) {
   return { status: res.status, payload };
 }
 
-async function createExternalNotifySystem(token, baseUrl = MOCK_BASE) {
+async function createExternalNotifySystem(token, baseUrl = MOCK_BASE, opts = {}) {
   const mutation = `
     mutation CreateExternalNotifySystem($input: CreateExternalNotifySystemDto!) {
       createExternalNotifySystem(input: $input) {
@@ -80,17 +97,15 @@ async function createExternalNotifySystem(token, baseUrl = MOCK_BASE) {
       }
     }
   `;
-  const result = await graphql(
-    mutation,
-    {
-      input: {
-        type: 'NTFY',
-        name: `E2E NTFY ${Date.now()}`,
-        baseUrl,
-      },
-    },
-    token,
-  );
+  const input = {
+    type: 'NTFY',
+    name: `E2E NTFY ${Date.now()}`,
+    baseUrl,
+  };
+  if (opts.authToken != null) input.authToken = opts.authToken;
+  if (opts.authUser != null) input.authUser = opts.authUser;
+  if (opts.authPassword != null) input.authPassword = opts.authPassword;
+  const result = await graphql(mutation, { input }, token);
   if (result.status >= 400 || result.payload.errors) {
     throw new Error(JSON.stringify(result.payload));
   }
@@ -381,6 +396,105 @@ async function runTests() {
       throw new Error('Expected 403 or permission error after unshare: ' + JSON.stringify(linkB2.payload));
     }
     console.log('   ✅ After unshare, B correctly forbidden to link new bucket');
+
+    console.log('\n' + '─'.repeat(80));
+    console.log('6) Subscription change: new topic receives messages after link (auto refresh)');
+    const topic2 = 'e2e-ntfy-topic-new';
+    const bucket2 = await createBucket(TOKEN);
+    const link2Res = await updateBucketLink(TOKEN, bucket2.id, systemId, topic2);
+    if (link2Res.status >= 400 || link2Res.payload.errors) {
+      throw new Error('Failed to link second bucket to new topic: ' + JSON.stringify(link2Res.payload));
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+    const messagesBeforeTopic2 = await getMessagesForBucket(TOKEN, bucket2.id);
+    mock.emitIncoming(topic2, {
+      title: 'Subscription change test',
+      message: 'Message on new topic after auto refresh',
+      priority: 3,
+    });
+    await new Promise((r) => setTimeout(r, 2000));
+    const messagesAfterTopic2 = await getMessagesForBucket(TOKEN, bucket2.id);
+    const newOnTopic2 = messagesAfterTopic2.filter(
+      (m) => !messagesBeforeTopic2.some((b) => b.id === m.id)
+    );
+    if (newOnTopic2.length === 0) {
+      throw new Error('No message on new topic after subscription change (auto refresh on link should have added topic)');
+    }
+    const fromTopic2 = newOnTopic2.find((m) => m.body && m.body.includes('Message on new topic after auto refresh'));
+    if (!fromTopic2) {
+      throw new Error('New topic message content mismatch: ' + JSON.stringify(newOnTopic2));
+    }
+    console.log('   ✅ Subscription change test passed: new topic received message after link');
+
+    console.log('\n' + '─'.repeat(80));
+    console.log('7) Same server: topic A without auth, topic B with auth');
+    const authMockPort = NTFY_MOCK_PORT + 1;
+    const MOCK_AUTH_BASE = `http://localhost:${authMockPort}`;
+    const authMock = createMockNtfyServer({
+      port: authMockPort,
+      auth: { bearer: 'e2e-auth-secret' },
+      publicTopics: ['topic-a'],
+    });
+    await authMock.listen();
+    try {
+      const system1 = await createExternalNotifySystem(TOKEN, MOCK_AUTH_BASE, {});
+      const bucket1 = await createBucket(TOKEN);
+      const link1 = await updateBucketLink(TOKEN, bucket1.id, system1.id, 'topic-a');
+      if (link1.status >= 400 || link1.payload.errors) {
+        throw new Error('User 1 link failed: ' + JSON.stringify(link1.payload));
+      }
+      const user2 = await registerAndLogin('ntfy-auth-u2');
+      const system2 = await createExternalNotifySystem(user2.jwt, MOCK_AUTH_BASE, {
+        authToken: 'e2e-auth-secret',
+      });
+      const bucket2 = await createBucket(user2.jwt);
+      const link2 = await updateBucketLink(user2.jwt, bucket2.id, system2.id, 'topic-b');
+      if (link2.status >= 400 || link2.payload.errors) {
+        throw new Error('User 2 link failed: ' + JSON.stringify(link2.payload));
+      }
+      await reloadNtfySubscriptions(TOKEN);
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const resA = await fetchHttpStatusOnly(`${MOCK_AUTH_BASE}/topic-a/sse`, { method: 'GET' });
+      if (resA.status !== 200) {
+        throw new Error(`Topic A without auth should return 200, got ${resA.status}`);
+      }
+
+      const resB = await fetchHttpStatusOnly(`${MOCK_AUTH_BASE}/topic-b/sse`, { method: 'GET' });
+      if (resB.status !== 401) {
+        throw new Error(`Topic B without auth should return 401, got ${resB.status}`);
+      }
+
+      const beforeA = await getMessagesForBucket(TOKEN, bucket1.id);
+      authMock.emitIncoming('topic-a', {
+        title: 'No auth topic',
+        message: 'Message on topic A without auth',
+        priority: 3,
+      });
+      await new Promise((r) => setTimeout(r, 2000));
+      const afterA = await getMessagesForBucket(TOKEN, bucket1.id);
+      const newA = afterA.filter((m) => !beforeA.some((b) => b.id === m.id));
+      if (newA.length === 0 || !newA.some((m) => m.body && m.body.includes('Message on topic A without auth'))) {
+        throw new Error('User 1 bucket should receive message on topic A (no auth)');
+      }
+
+      const beforeB = await getMessagesForBucket(user2.jwt, bucket2.id);
+      authMock.emitIncoming('topic-b', {
+        title: 'Auth topic',
+        message: 'Message on topic B with auth',
+        priority: 3,
+      });
+      await new Promise((r) => setTimeout(r, 2000));
+      const afterB = await getMessagesForBucket(user2.jwt, bucket2.id);
+      const newB = afterB.filter((m) => !beforeB.some((b) => b.id === m.id));
+      if (newB.length === 0 || !newB.some((m) => m.body && m.body.includes('Message on topic B with auth'))) {
+        throw new Error('User 2 bucket should receive message on topic B (with auth subscription)');
+      }
+
+      console.log('   ✅ Topic A passes without auth; topic B does not pass without auth; both receive when using correct auth');
+    } finally {
+      await authMock.close();
+    }
 
     console.log('\n✅ All NTFY E2E tests passed.');
   } finally {

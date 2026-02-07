@@ -18,30 +18,43 @@
 const http = require('http');
 const { EventEmitter } = require('events');
 
-function createMockNtfyServer({ port = 9999, auth }) {
+/**
+ * @param {Object} opts
+ * @param {number} [opts.port=9999]
+ * @param {Object} [opts.auth] - If set, requests may require auth. Supports { bearer: 'token' } or { basic: 'base64' }.
+ * @param {string[]} [opts.publicTopics] - When auth is set, SSE subscribe to these topics does not require auth. Other topics require auth.
+ */
+function createMockNtfyServer({ port = 9999, auth, publicTopics }) {
   const events = new EventEmitter();
   const published = [];
   const sseClients = new Map();
+
+  function checkAuth(req, topics) {
+    if (!auth) return true;
+    const authHeader = req.headers['authorization'] || '';
+    const valid =
+      (auth.basic && authHeader === `Basic ${auth.basic}`) ||
+      (auth.bearer && authHeader === `Bearer ${auth.bearer}`);
+    if (valid) return true;
+    if (publicTopics && Array.isArray(publicTopics) && topics.length > 0) {
+      const allPublic = topics.every((t) => publicTopics.includes(t));
+      if (allPublic) return true;
+    }
+    return false;
+  }
 
   const server = http.createServer((req, res) => {
     const url = new URL(req.url || '', `http://localhost:${port}`);
     const pathname = url.pathname.replace(/^\/+/, '');
 
-    if (auth) {
-      const authHeader = req.headers['authorization'] || '';
-      const valid =
-        (auth.basic && authHeader === `Basic ${auth.basic}`) ||
-        (auth.bearer && authHeader === `Bearer ${auth.bearer}`);
-      if (!valid) {
+    if (req.method === 'GET' && pathname.endsWith('/sse')) {
+      const topics = pathname.replace(/\/sse$/, '').split(',').map((t) => decodeURIComponent(t));
+      if (auth && !checkAuth(req, topics)) {
         res.statusCode = 401;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ error: 'Unauthorized' }));
         return;
       }
-    }
-
-    if (req.method === 'GET' && pathname.endsWith('/sse')) {
-      const topics = pathname.replace(/\/sse$/, '').split(',').map((t) => decodeURIComponent(t));
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -52,6 +65,19 @@ function createMockNtfyServer({ port = 9999, auth }) {
       req.on('close', () => sseClients.delete(clientId));
       events.emit('subscribe', { topics, clientId });
       return;
+    }
+
+    if (auth && !publicTopics) {
+      const authHeader = req.headers['authorization'] || '';
+      const valid =
+        (auth.basic && authHeader === `Basic ${auth.basic}`) ||
+        (auth.bearer && authHeader === `Bearer ${auth.bearer}`);
+      if (!valid) {
+        res.statusCode = 401;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
     }
 
     if (req.method === 'POST' && pathname.length > 0 && !pathname.includes(',')) {

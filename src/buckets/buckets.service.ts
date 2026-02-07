@@ -6,6 +6,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository, In } from 'typeorm';
@@ -20,6 +21,10 @@ import { generateMagicCode } from '../common/utils/code-generation.utils';
 import { UserRole } from '../users/users.types';
 import { CreateBucketDto, UpdateBucketDto } from './dto/index';
 import { ResourcePermissionsDto } from '../entity-permission/dto/entity-permission.dto';
+import {
+  BUCKET_LINKS_CHANGED,
+  BucketLinksChangedPayload,
+} from '../common/events/bucket-events';
 
 @Injectable()
 export class BucketsService {
@@ -36,26 +41,50 @@ export class BucketsService {
     private readonly eventTrackingService: EventTrackingService,
     private readonly attachmentsService: AttachmentsService,
     private readonly urlBuilderService: UrlBuilderService,
+    private readonly eventEmitter: EventEmitter2,
   ) { }
 
   async create(
     userId: string,
     createBucketDto: CreateBucketDto,
   ): Promise<Bucket> {
+    const {
+      externalNotifySystemId,
+      externalSystemChannel,
+      ...rest
+    } = createBucketDto;
     const bucket = this.bucketsRepository.create({
-      ...createBucketDto,
+      ...rest,
       user: { id: userId },
     });
 
-    // Save then reload with relations to ensure User fields (e.g. email)
-    // are populated before returning to the GraphQL layer.
+    if (
+      externalNotifySystemId !== undefined &&
+      externalNotifySystemId !== null &&
+      externalNotifySystemId !== ''
+    ) {
+      const hasAccess = await this.entityPermissionService.hasPermissions(
+        userId,
+        ResourceType.EXTERNAL_NOTIFY_SYSTEM,
+        externalNotifySystemId,
+        [Permission.READ],
+      );
+      if (!hasAccess) {
+        throw new ForbiddenException(
+          'You do not have permission to use this external notify system',
+        );
+      }
+      bucket.externalNotifySystem = {
+        id: externalNotifySystemId,
+      } as any;
+      bucket.externalSystemChannel = externalSystemChannel ?? null;
+    }
+
     const saved = await this.bucketsRepository.save(bucket);
 
-    // Track bucket creation event
     this.logger.log(`Bucket created: ${saved.id} by user ${userId}`);
     await this.eventTrackingService.trackBucketCreation(userId, saved.id);
 
-    // Regenerate icon automatically
     await this.regenerateBucketIconIfNeeded(
       userId,
       saved,
@@ -64,16 +93,22 @@ export class BucketsService {
 
     const reloaded = await this.bucketsRepository.findOne({
       where: { id: saved.id },
-      relations: ['user'],
+      relations: ['user', 'externalNotifySystem'],
     });
 
-    // Create UserBucket relationship immediately to optimize future snooze operations
     try {
       await this.createUserBucket(userId, {
         bucketId: saved.id,
         generateMagicCode: createBucketDto.generateMagicCode
       });
     } catch (error) { }
+
+    const affectedSystemIds = reloaded?.externalNotifySystem
+      ? [reloaded.externalNotifySystem.id]
+      : [];
+    this.eventEmitter.emit(BUCKET_LINKS_CHANGED, {
+      affectedSystemIds,
+    } as BucketLinksChangedPayload);
 
     return reloaded ?? saved;
   }
@@ -273,12 +308,14 @@ export class BucketsService {
   ): Promise<Bucket> {
     const bucket = await this.bucketsRepository.findOne({
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'externalNotifySystem'],
     });
 
     if (!bucket) {
       throw new NotFoundException('Bucket not found');
     }
+
+    const previousExternalSystemId = bucket.externalNotifySystem?.id ?? null;
 
     // Check if user owns the bucket or has admin permissions
     const isOwner = bucket.user.id === userId;
@@ -358,6 +395,20 @@ export class BucketsService {
     }
 
     await this.bucketsRepository.update(bucket.id, bucket);
+
+    const newExternalSystemId =
+      updateBucketDto.externalNotifySystemId !== undefined
+        ? (updateBucketDto.externalNotifySystemId ?? null)
+        : (bucket.externalNotifySystem?.id ?? null);
+    if (previousExternalSystemId || newExternalSystemId) {
+      const payload: BucketLinksChangedPayload = {
+        affectedSystemIds: [previousExternalSystemId, newExternalSystemId].filter(
+          Boolean,
+        ) as string[],
+      };
+      this.eventEmitter.emit(BUCKET_LINKS_CHANGED, payload);
+    }
+
     const saved = await this.bucketsRepository.findOne({
       where: { id },
       relations: ['user'],
@@ -369,12 +420,14 @@ export class BucketsService {
   async remove(id: string, userId: string): Promise<void> {
     const bucket = await this.bucketsRepository.findOne({
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'externalNotifySystem'],
     });
 
     if (!bucket) {
       throw new NotFoundException('Bucket not found');
     }
+
+    const externalSystemId = bucket.externalNotifySystem?.id ?? null;
 
     // Check if bucket is protected
     if (bucket.isProtected) {
@@ -407,8 +460,13 @@ export class BucketsService {
       this.logger.error(`Failed to track bucket deletion event for bucket ${bucket.id}`, error.stack);
     }
 
-    // Permanent delete the bucket
     await this.bucketsRepository.remove(bucket);
+
+    if (externalSystemId) {
+      this.eventEmitter.emit(BUCKET_LINKS_CHANGED, {
+        affectedSystemIds: [externalSystemId],
+      } as BucketLinksChangedPayload);
+    }
   }
 
   async getNotificationsCount(

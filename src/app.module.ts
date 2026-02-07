@@ -1,5 +1,6 @@
 import { Module, Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -40,6 +41,7 @@ import { ExternalNotifySystemModule } from './external-notify-system/external-no
       envFilePath: ['.env'],
     }),
     TypeOrmModule.forRoot(databaseConfig),
+    EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     // Serve static frontend files
     ServeStaticModule.forRoot({

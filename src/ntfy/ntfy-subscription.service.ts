@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Inject, forwardRef } from '@nestjs/common';
 import { IsNull, Not, Repository } from 'typeorm';
@@ -10,10 +11,17 @@ import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { NtfyService, NtfyAuth } from './ntfy.service';
 import { NtfyIncomingMessage, ntfyMessageToCreatePayload } from './ntfy-mapper';
 
+function setEquals<T>(a: Set<T>, b: Set<T>): boolean {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
 @Injectable()
 export class NtfySubscriptionService implements OnModuleInit {
   private readonly logger = new Logger(NtfySubscriptionService.name);
   private abortControllers = new Map<string, AbortController>();
+  private currentTopicsBySystemId = new Map<string, Set<string>>();
 
   constructor(
     @InjectRepository(ExternalNotifySystem)
@@ -43,6 +51,33 @@ export class NtfySubscriptionService implements OnModuleInit {
     }
   }
 
+  async refreshSubscriptionForSystem(systemId: string): Promise<void> {
+    const system = await this.systemRepo.findOne({
+      where: { id: systemId, type: ExternalNotifySystemType.NTFY },
+      relations: ['user'],
+    });
+    if (system) {
+      this.subscribe(system).catch((err) => {
+        this.logger.error(
+          `NTFY subscription refresh failed for ${system.baseUrl}: ${err?.message}`,
+        );
+      });
+    }
+  }
+
+  onBucketLinksChanged(affectedSystemIds: string[]): void {
+    const ids = [...new Set(affectedSystemIds)].filter(Boolean);
+    for (const id of ids) {
+      this.refreshSubscriptionForSystem(id).catch(() => {});
+    }
+  }
+
+  @Cron('0 * * * *')
+  async hourlyRefreshSubscriptions(): Promise<void> {
+    this.logger.log('Running hourly NTFY subscription refresh');
+    await this.startAllSubscriptions();
+  }
+
   private async subscribe(system: ExternalNotifySystem, reconnectDelayMs = 0) {
     if (reconnectDelayMs > 0) {
       await new Promise((r) => setTimeout(r, reconnectDelayMs));
@@ -61,10 +96,21 @@ export class NtfySubscriptionService implements OnModuleInit {
           .filter((c): c is string => !!c),
       ),
     ];
-    if (channels.length === 0) return;
+    const newTopics = new Set(channels);
+    if (channels.length === 0) {
+      this.currentTopicsBySystemId.delete(system.id);
+      this.abortControllers.get(system.id)?.abort();
+      return;
+    }
+
+    const current = this.currentTopicsBySystemId.get(system.id);
+    if (current && setEquals(current, newTopics)) {
+      return;
+    }
 
     const key = `${system.id}`;
     this.abortControllers.get(key)?.abort();
+    this.currentTopicsBySystemId.set(system.id, newTopics);
     const ac = new AbortController();
     this.abortControllers.set(key, ac);
 
@@ -85,6 +131,7 @@ export class NtfySubscriptionService implements OnModuleInit {
         this.logger.warn(
           `NTFY SSE ${url} returned ${res.status}, retrying in 30s`,
         );
+        this.currentTopicsBySystemId.delete(system.id);
         this.subscribe(system, 30_000).catch(() => {});
         return;
       }
@@ -94,11 +141,13 @@ export class NtfySubscriptionService implements OnModuleInit {
       this.logger.warn(
         `NTFY SSE ${url} error: ${e?.message}, retrying in 30s`,
       );
+      this.currentTopicsBySystemId.delete(system.id);
       this.subscribe(system, 30_000).catch(() => {});
       return;
     } finally {
       this.abortControllers.delete(key);
     }
+    this.currentTopicsBySystemId.delete(system.id);
     this.subscribe(system, 30_000).catch(() => {});
   }
 
