@@ -10,6 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { EntityPermission } from './entity-permission.entity';
+import { ExternalNotifySystem } from './external-notify-system.entity';
 import { Message } from './message.entity';
 import { UserBucket } from './user-bucket.entity';
 import { User } from './user.entity';
@@ -92,6 +93,14 @@ export class Bucket {
   })
   @Column({ nullable: true })
   preset?: string;
+
+  @Field(() => ExternalNotifySystem, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'External notification system (NTFY, Gotify, etc.) this bucket is connected to',
+  })
+  @ManyToOne(() => ExternalNotifySystem, (e) => e.buckets, { onDelete: 'SET NULL' })
+  externalNotifySystem?: ExternalNotifySystem | null;
 
   @Field(() => User)
   @ApiProperty({ type: () => User })

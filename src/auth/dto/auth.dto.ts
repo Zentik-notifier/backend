@@ -34,6 +34,7 @@ export enum Permission {
 export enum ResourceType {
   BUCKET = 'BUCKET',
   USER_WEBHOOK = 'USER_WEBHOOK',
+  EXTERNAL_NOTIFY_SYSTEM = 'EXTERNAL_NOTIFY_SYSTEM',
 }
 
 /**

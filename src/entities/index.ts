@@ -3,6 +3,10 @@ export { Attachment } from './attachment.entity';
 export { Bucket } from './bucket.entity';
 export { EntityPermission } from './entity-permission.entity';
 export {
+  ExternalNotifySystem,
+  ExternalNotifySystemType,
+} from './external-notify-system.entity';
+export {
   EntityExecution,
   ExecutionType,
   ExecutionStatus,

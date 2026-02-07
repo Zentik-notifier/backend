@@ -37,6 +37,7 @@ describe('UserTemplatesService', () => {
     identities: [],
     webhooks: [],
     templates: [],
+    externalNotifySystems: [],
   };
 
   const mockUserTemplate: UserTemplate = {

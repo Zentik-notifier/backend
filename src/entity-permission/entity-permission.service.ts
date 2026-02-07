@@ -536,6 +536,15 @@ export class EntityPermissionService {
         });
         return webhook?.user?.id === userId;
 
+      case ResourceType.EXTERNAL_NOTIFY_SYSTEM:
+        const systemRepo =
+          this.entityPermissionRepository.manager.getRepository('ExternalNotifySystem');
+        const system = await systemRepo.findOne({
+          where: { id: resourceId },
+          relations: ['user'],
+        });
+        return system?.user?.id === userId;
+
       default:
         return false;
     }
@@ -555,6 +564,9 @@ export class EntityPermissionService {
         break;
       case ResourceType.USER_WEBHOOK:
         tableName = 'user_webhooks';
+        break;
+      case ResourceType.EXTERNAL_NOTIFY_SYSTEM:
+        tableName = 'external_notify_systems';
         break;
       default:
         return [];
@@ -584,6 +596,9 @@ export class EntityPermissionService {
         break;
       case ResourceType.USER_WEBHOOK:
         tableName = 'user_webhooks';
+        break;
+      case ResourceType.EXTERNAL_NOTIFY_SYSTEM:
+        tableName = 'external_notify_systems';
         break;
       default:
         return [];

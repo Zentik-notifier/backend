@@ -31,6 +31,7 @@ import { EntityExecutionModule } from './entity-execution/entity-execution.modul
 import { ServerSettingsService } from './server-manager/server-settings.service';
 import { ServerSettingType } from './entities/server-setting.entity';
 import { ChangelogModule } from './changelog/changelog.module';
+import { ExternalNotifySystemModule } from './external-notify-system/external-notify-system.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { ChangelogModule } from './changelog/changelog.module';
     ServerManagerModule,
     EntityExecutionModule,
     ChangelogModule,
+    ExternalNotifySystemModule,
   ],
   controllers: [AppController],
   providers: [

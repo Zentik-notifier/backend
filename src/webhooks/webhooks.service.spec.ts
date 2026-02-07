@@ -98,6 +98,7 @@ describe('WebhooksService', () => {
       identities: [],
       webhooks: [],
       templates: [],
+      externalNotifySystems: [],
     };
 
     const mockWebhook: UserWebhook = {

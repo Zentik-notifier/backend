@@ -16,7 +16,6 @@ import {
   UpdateBucketDto,
   SnoozeScheduleInput,
   SetBucketSnoozeMinutesInput,
-  BucketPermissionsDto,
 } from './dto';
 import { Bucket } from '../entities/bucket.entity';
 import { EntityPermission } from '../entities/entity-permission.entity';
@@ -24,6 +23,7 @@ import { UserBucket } from '../entities/user-bucket.entity';
 import {
   GrantEntityPermissionInput,
   RevokeEntityPermissionInput,
+  ResourcePermissionsDto,
 } from '../entity-permission/dto/entity-permission.dto';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
 import { EventTrackingService } from '../events/event-tracking.service';
@@ -108,11 +108,11 @@ export class BucketsResolver {
     );
   }
 
-  @ResolveField(() => BucketPermissionsDto, { name: 'userPermissions' })
+  @ResolveField(() => ResourcePermissionsDto, { name: 'userPermissions' })
   async userPermissionsField(
     @Parent() bucket: Bucket,
     @CurrentUser('id') userId: string,
-  ): Promise<BucketPermissionsDto> {
+  ): Promise<ResourcePermissionsDto> {
     return this.bucketsService.calculateBucketPermissions(bucket, userId);
   }
 

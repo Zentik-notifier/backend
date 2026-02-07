@@ -18,7 +18,8 @@ import { AttachmentsService } from '../attachments/attachments.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { generateMagicCode } from '../common/utils/code-generation.utils';
 import { UserRole } from '../users/users.types';
-import { CreateBucketDto, UpdateBucketDto, BucketPermissionsDto } from './dto/index';
+import { CreateBucketDto, UpdateBucketDto } from './dto/index';
+import { ResourcePermissionsDto } from '../entity-permission/dto/entity-permission.dto';
 
 @Injectable()
 export class BucketsService {
@@ -587,7 +588,7 @@ export class BucketsService {
   async calculateBucketPermissions(
     bucket: Bucket,
     userId: string,
-  ): Promise<BucketPermissionsDto> {
+  ): Promise<ResourcePermissionsDto> {
     const isOwner = bucket.user?.id === userId;
 
     // Get user to check if admin

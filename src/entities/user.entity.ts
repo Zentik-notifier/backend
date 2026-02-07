@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { UserRole } from '../users/users.types';
 import { Bucket } from './bucket.entity';
+import { ExternalNotifySystem } from './external-notify-system.entity';
 import { UserAccessToken } from './user-access-token.entity';
 import { UserBucket } from './user-bucket.entity';
 import { UserDevice } from './user-device.entity';
@@ -141,4 +142,12 @@ export class User {
   @Field(() => [UserTemplate], { nullable: true })
   @OneToMany(() => UserTemplate, (template) => template.user, { cascade: true })
   templates: UserTemplate[];
+
+  @Field(() => [ExternalNotifySystem], { nullable: true })
+  @OneToMany(
+    () => ExternalNotifySystem,
+    (system) => system.user,
+    { cascade: true },
+  )
+  externalNotifySystems: ExternalNotifySystem[];
 }

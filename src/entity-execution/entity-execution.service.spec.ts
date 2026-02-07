@@ -38,6 +38,7 @@ describe('EntityExecutionService', () => {
     identities: [],
     webhooks: [],
     templates: [],
+    externalNotifySystems: [],
   };
 
   const mockEntityExecutionRepository = {

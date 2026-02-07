@@ -1,4 +1,4 @@
-import { Field, InputType } from '@nestjs/graphql';
+import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -147,4 +147,28 @@ export class GetAccessibleResourcesInput {
   @ApiProperty({ enum: ResourceType })
   @IsEnum(ResourceType)
   resourceType: ResourceType;
+}
+
+@ObjectType()
+export class ResourcePermissionsDto {
+  @Field(() => Boolean, { description: 'User can read this resource' })
+  canRead: boolean;
+
+  @Field(() => Boolean, { description: 'User can write/update this resource' })
+  canWrite: boolean;
+
+  @Field(() => Boolean, { description: 'User can delete this resource' })
+  canDelete: boolean;
+
+  @Field(() => Boolean, { description: 'User can administer (share) this resource' })
+  canAdmin: boolean;
+
+  @Field(() => Boolean, { description: 'User is the owner of this resource' })
+  isOwner: boolean;
+
+  @Field(() => Boolean, { description: 'Resource is shared with this user' })
+  isSharedWithMe: boolean;
+
+  @Field(() => Int, { description: 'Number of users this resource is shared with' })
+  sharedCount: number;
 }

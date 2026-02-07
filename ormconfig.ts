@@ -6,6 +6,7 @@ import {
   EntityExecution,
   EntityPermission,
   Event,
+  ExternalNotifySystem,
   InviteCode,
   Message,
   Notification,
@@ -50,6 +51,7 @@ import { AddFailedCallsToSystemAccessToken1769100000000 } from './database/migra
 import { AddBucketDeletionEvent1769200000000 } from './database/migrations/1769200000000-AddBucketDeletionEvent';
 import { AddStoreLogsOnFsSetting1769300000000 } from './database/migrations/1769300000000-AddStoreLogsOnFsSetting';
 import { AddDisableUserTrackingSetting1768638868000 } from './database/migrations/1768638868000-AddDisableUserTrackingSetting';
+import { AddExternalNotifyEndpointsAndBucketLink1769400000000 } from './database/migrations/1769400000000-AddExternalNotifyEndpointsAndBucketLink';
 
 config({ path: '.env' });
 
@@ -87,6 +89,7 @@ const dataSource = new DataSource({
     UserIdentity,
     Bucket,
     EntityPermission,
+    ExternalNotifySystem,
     Notification,
     NotificationPostpone,
     OAuthProvider,
@@ -121,6 +124,7 @@ const dataSource = new DataSource({
     AddBucketDeletionEvent1769200000000,
     AddStoreLogsOnFsSetting1769300000000,
     AddDisableUserTrackingSetting1768638868000,
+    AddExternalNotifyEndpointsAndBucketLink1769400000000,
   ],
   migrationsTableName: 'migrations',
 });

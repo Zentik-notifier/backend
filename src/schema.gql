@@ -66,6 +66,7 @@ type Bucket {
   color: String
   createdAt: DateTime!
   description: String
+  externalNotifySystem: ExternalNotifySystem
   icon: String
   iconAttachmentUuid: String
   iconUrl: String
@@ -81,30 +82,7 @@ type Bucket {
   user: User!
   userBucket: UserBucket
   userBuckets: [UserBucket!]
-  userPermissions: BucketPermissionsDto!
-}
-
-type BucketPermissionsDto {
-  """User can administer this bucket"""
-  canAdmin: Boolean!
-
-  """User can delete this bucket"""
-  canDelete: Boolean!
-
-  """User can read from this bucket"""
-  canRead: Boolean!
-
-  """User can write to this bucket"""
-  canWrite: Boolean!
-
-  """User is the owner of this bucket"""
-  isOwner: Boolean!
-
-  """Bucket is shared with this user"""
-  isSharedWithMe: Boolean!
-
-  """Number of users this bucket is shared with"""
-  sharedCount: Int!
+  userPermissions: ResourcePermissionsDto!
 }
 
 input ChangePasswordInput {
@@ -180,6 +158,18 @@ input CreateChangelogInput {
   entries: [ChangelogEntryInput!]
   iosVersion: String
   uiVersion: String
+}
+
+input CreateExternalNotifySystemDto {
+  authPassword: String
+  authToken: String
+  authUser: String
+  baseUrl: String!
+  channel: String!
+  color: String
+  iconUrl: String
+  name: String!
+  type: ExternalNotifySystemType!
 }
 
 input CreateInviteCodeInput {
@@ -418,6 +408,32 @@ enum ExecutionType {
   WEBHOOK
 }
 
+type ExternalNotifySystem {
+  authPassword: String
+  authToken: String
+  authUser: String
+  baseUrl: String!
+  channel: String!
+  color: String
+  createdAt: DateTime!
+  iconUrl: String
+  id: ID!
+  name: String!
+  permissions: [EntityPermission!]!
+  type: ExternalNotifySystemType!
+  updatedAt: DateTime!
+  user: User!
+  userPermissions: ResourcePermissionsDto!
+}
+
+"""
+Type of external notification system (each has its own publish/subscribe implementation)
+"""
+enum ExternalNotifySystemType {
+  Gotify
+  NTFY
+}
+
 type FileInfoDto {
   isDir: Boolean!
   mtime: DateTime!
@@ -654,6 +670,7 @@ type Mutation {
 
   """Create a new changelog (admin only)"""
   createChangelog(input: CreateChangelogInput!): Changelog!
+  createExternalNotifySystem(input: CreateExternalNotifySystemDto!): ExternalNotifySystem!
 
   """Create a new invite code for a resource"""
   createInviteCode(input: CreateInviteCodeInput!): InviteCode!
@@ -682,6 +699,7 @@ type Mutation {
 
   """Delete a changelog (admin only)"""
   deleteChangelog(id: ID!): Boolean!
+  deleteExternalNotifySystem(id: ID!): Boolean!
 
   """Delete an invite code"""
   deleteInviteCode(id: String!): Boolean!
@@ -733,6 +751,7 @@ type Mutation {
   setBucketSnoozeMinutes(bucketId: String!, input: SetBucketSnoozeMinutesInput!): UserBucket!
   setPassword(input: ChangePasswordInput!): Boolean!
   shareBucket(input: GrantEntityPermissionInput!): EntityPermission!
+  shareExternalNotifySystem(input: GrantEntityPermissionInput!): EntityPermission!
   toggleOAuthProvider(id: String!): OAuthProvider!
 
   """Manually trigger a database backup"""
@@ -741,6 +760,7 @@ type Mutation {
   """Manually trigger log cleanup based on retention policy"""
   triggerLogCleanup: Boolean!
   unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
+  unshareExternalNotifySystem(input: RevokeEntityPermissionInput!): Boolean!
   updateAccessToken(input: UpdateAccessTokenDto!, tokenId: String!): AccessTokenListDto!
   updateBucket(id: String!, input: UpdateBucketDto!): Bucket!
   updateBucketSnoozes(bucketId: String!, snoozes: [SnoozeScheduleInput!]!): UserBucket! @deprecated(reason: "Usa future Bucket mutation (updateBucketSnoozes)")
@@ -748,6 +768,7 @@ type Mutation {
   """Update an existing changelog (admin only)"""
   updateChangelog(input: UpdateChangelogInput!): Changelog!
   updateDeviceToken(input: UpdateDeviceTokenDto!): UserDevice!
+  updateExternalNotifySystem(id: ID!, input: UpdateExternalNotifySystemDto!): ExternalNotifySystem!
 
   """Update an invite code"""
   updateInviteCode(input: UpdateInviteCodeInput!): InviteCode!
@@ -994,6 +1015,9 @@ type Query {
   enabledOAuthProviders: [OAuthProviderPublicDto!]!
   entityExecution(id: String!): EntityExecution
   events(query: EventsQueryDto!): EventsResponseDto!
+  externalNotifySystem(id: ID!): ExternalNotifySystem!
+  externalNotifySystemPermissions(resourceId: String!): [EntityPermission!]!
+  externalNotifySystems: [ExternalNotifySystem!]!
   getAccessToken(tokenId: String!): AccessTokenListDto!
   getAccessTokensForBucket(bucketId: String!): [AccessTokenListDto!]!
   getBackendVersion: String!
@@ -1123,9 +1147,33 @@ input ResetPasswordDto {
   resetToken: String!
 }
 
+type ResourcePermissionsDto {
+  """User can administer (share) this resource"""
+  canAdmin: Boolean!
+
+  """User can delete this resource"""
+  canDelete: Boolean!
+
+  """User can read this resource"""
+  canRead: Boolean!
+
+  """User can write/update this resource"""
+  canWrite: Boolean!
+
+  """User is the owner of this resource"""
+  isOwner: Boolean!
+
+  """Resource is shared with this user"""
+  isSharedWithMe: Boolean!
+
+  """Number of users this resource is shared with"""
+  sharedCount: Int!
+}
+
 """Type of resource for permissions"""
 enum ResourceType {
   BUCKET
+  EXTERNAL_NOTIFY_SYSTEM
   USER_WEBHOOK
 }
 
@@ -1361,6 +1409,18 @@ input UpdateDeviceTokenDto {
   oldDeviceToken: String!
 }
 
+input UpdateExternalNotifySystemDto {
+  authPassword: String
+  authToken: String
+  authUser: String
+  baseUrl: String
+  channel: String
+  color: String
+  iconUrl: String
+  name: String
+  type: ExternalNotifySystemType
+}
+
 input UpdateInviteCodeInput {
   """Expiration date (ISO string)"""
   expiresAt: String
@@ -1468,6 +1528,7 @@ type User {
   emailConfirmationToken: String
   emailConfirmationTokenRequestedAt: DateTime
   emailConfirmed: Boolean!
+  externalNotifySystems: [ExternalNotifySystem!]
   firstName: String
   hasPassword: Boolean!
   id: ID!
