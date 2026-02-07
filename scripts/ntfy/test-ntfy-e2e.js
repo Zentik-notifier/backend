@@ -325,7 +325,7 @@ async function runTests() {
     await new Promise((r) => setTimeout(r, 2000));
     const messagesAfter = await getMessagesForBucket(TOKEN, bucketId);
     const newOnes = messagesAfter.filter(
-      (m) => !messagesBefore.some((b) => b.id === m.id)),
+      (m) => !messagesBefore.some((b) => b.id === m.id)
     );
     if (newOnes.length === 0) {
       throw new Error('No new message created after mock emit (is backend subscribed? Run reload after linking bucket)');
