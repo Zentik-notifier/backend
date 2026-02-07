@@ -130,6 +130,12 @@ jobs:
           ADMIN_DEFAULT_PASSWORD: admin
         run: node scripts/passthrough/test-system-access-tokens.js
 
+      - name: NTFY E2E tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/ntfy/test-ntfy-e2e.js
+
       - name: Show server logs on failure
         if: failure()
         run: |
