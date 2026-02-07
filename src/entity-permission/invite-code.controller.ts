@@ -20,7 +20,7 @@ import {
 } from './dto/invite-code.dto';
 import { ResourceType } from '../auth/dto/auth.dto';
 
-@ApiTags('invite-codes')
+@ApiTags('Invite codes')
 @Controller('api/v1/invite-codes')
 @UseGuards(JwtOrAccessTokenGuard)
 export class InviteCodeController {
