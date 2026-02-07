@@ -6,6 +6,8 @@
  * - Subscribe: mock emits SSE message -> backend creates message in bucket
  * - Sharing: share ExternalNotifySystem with user B; B can link bucket and use; after unshare B cannot use
  * - Forbidden: user without share cannot link bucket to owner's system
+ * - Create/update bucket with external system: create and update bucket with another user's system (not shared) -> 403;
+ *   with shared system -> success
  *
  * Prerequisites: Backend running, TOKEN (admin). Optional: NTFY_MOCK_PORT (default 9999).
  * Run: node scripts/ntfy/test-ntfy-e2e.js
@@ -112,12 +114,39 @@ async function createExternalNotifySystem(token, baseUrl = MOCK_BASE, opts = {})
   return result.payload.data.createExternalNotifySystem;
 }
 
-async function createBucket(token) {
+async function createBucket(token, opts = {}) {
   const mutation = `
     mutation CreateBucket($input: CreateBucketDto!) {
       createBucket(input: $input) {
         id
         name
+        externalNotifySystem { id }
+        externalSystemChannel
+      }
+    }
+  `;
+  const input = {
+    name: opts.name || `E2E Bucket ${Date.now()}`,
+    generateIconWithInitials: true,
+    generateMagicCode: false,
+  };
+  if (opts.externalNotifySystemId != null) input.externalNotifySystemId = opts.externalNotifySystemId;
+  if (opts.externalSystemChannel != null) input.externalSystemChannel = opts.externalSystemChannel;
+  const result = await graphql(mutation, { input }, token);
+  if (result.status >= 400 || result.payload.errors) {
+    throw new Error(JSON.stringify(result.payload));
+  }
+  return result.payload.data.createBucket;
+}
+
+async function createBucketWithSystemResult(token, systemId, channel) {
+  const mutation = `
+    mutation CreateBucket($input: CreateBucketDto!) {
+      createBucket(input: $input) {
+        id
+        name
+        externalNotifySystem { id }
+        externalSystemChannel
       }
     }
   `;
@@ -125,17 +154,16 @@ async function createBucket(token) {
     mutation,
     {
       input: {
-        name: `E2E Bucket ${Date.now()}`,
+        name: `E2E Bucket with system ${Date.now()}`,
         generateIconWithInitials: true,
         generateMagicCode: false,
+        externalNotifySystemId: systemId,
+        externalSystemChannel: channel,
       },
     },
     token,
   );
-  if (result.status >= 400 || result.payload.errors) {
-    throw new Error(JSON.stringify(result.payload));
-  }
-  return result.payload.data.createBucket;
+  return result;
 }
 
 async function updateBucketLink(token, bucketId, externalNotifySystemId, externalSystemChannel) {
@@ -366,6 +394,18 @@ async function runTests() {
     console.log('   ✅ User B linked bucket after share');
 
     console.log('\n' + '─'.repeat(80));
+    console.log('3b) Create bucket with shared system (user B)');
+    const createWithSharedRes = await createBucketWithSystemResult(userB.jwt, systemId, 'e2e-topic-create-shared');
+    if (createWithSharedRes.status >= 400 || createWithSharedRes.payload.errors) {
+      throw new Error('User B should be able to create bucket with shared system: ' + JSON.stringify(createWithSharedRes.payload));
+    }
+    const createdWithShared = createWithSharedRes.payload.data?.createBucket;
+    if (!createdWithShared?.id || !createdWithShared.externalNotifySystem?.id) {
+      throw new Error('Create bucket with shared system should return bucket linked to system: ' + JSON.stringify(createdWithShared));
+    }
+    console.log('   ✅ User B created bucket with shared system');
+
+    console.log('\n' + '─'.repeat(80));
     console.log('4) Forbidden: user C (no share) cannot link bucket to system');
     const userC = await registerAndLogin('ntfy-forbid-c');
     const bucketC = await createBucket(userC.jwt);
@@ -380,6 +420,20 @@ async function runTests() {
       throw new Error('Expected 403 or permission error: ' + JSON.stringify(linkC.payload));
     }
     console.log('   ✅ User C correctly forbidden to link bucket');
+
+    console.log('\n' + '─'.repeat(80));
+    console.log('4b) Forbidden: user C cannot create bucket with other user\'s system (not shared)');
+    const createOtherRes = await createBucketWithSystemResult(userC.jwt, systemId, 'e2e-topic-c-create');
+    if (createOtherRes.status < 400 && !createOtherRes.payload.errors) {
+      throw new Error('User C should NOT be able to create bucket with owner\'s system (no share)');
+    }
+    const isForbiddenCreate =
+      createOtherRes.status === 403 ||
+      (createOtherRes.payload.errors && createOtherRes.payload.errors.some((e) => e.message && e.message.includes('permission')));
+    if (!isForbiddenCreate) {
+      throw new Error('Expected 403 or permission error on create: ' + JSON.stringify(createOtherRes.payload));
+    }
+    console.log('   ✅ User C correctly forbidden to create bucket with other user\'s system');
 
     console.log('\n' + '─'.repeat(80));
     console.log('5) Unshare: after unshare, B cannot link another bucket to system');

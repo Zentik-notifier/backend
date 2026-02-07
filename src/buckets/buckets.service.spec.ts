@@ -1,4 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
@@ -120,6 +121,7 @@ describe('BucketsService', () => {
             trackBucketSharing: jest.fn().mockResolvedValue(undefined),
             trackBucketUnsharing: jest.fn().mockResolvedValue(undefined),
             trackBucketCreation: jest.fn().mockResolvedValue(undefined),
+            trackBucketDeletion: jest.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -139,6 +141,10 @@ describe('BucketsService', () => {
           useValue: {
             buildAttachmentUrl: jest.fn().mockReturnValue('/api/v1/attachments/public/attachment-1.png'),
           },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: { emit: jest.fn() },
         },
       ],
     }).compile();
@@ -521,7 +527,7 @@ describe('BucketsService', () => {
 
       expect(bucketsRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'bucket-1' },
-        relations: ['user'],
+        relations: ['user', 'externalNotifySystem'],
       });
       expect(bucketsRepository.remove).toHaveBeenCalledWith(mockBucket);
     });
