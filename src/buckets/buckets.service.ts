@@ -114,17 +114,16 @@ export class BucketsService {
   }
 
   async findAll(userId: string): Promise<Bucket[]> {
-    // Get owned buckets with userBucket relation
     const ownedBuckets = await this.bucketsRepository.find({
       where: { user: { id: userId } },
-      relations: ['user', 'userBuckets'],
+      relations: ['user', 'userBuckets', 'externalNotifySystem'],
       order: { createdAt: 'DESC' },
     });
 
-    // Get shared buckets through entity permissions
     const sharedBuckets = await this.bucketsRepository
       .createQueryBuilder('bucket')
       .leftJoinAndSelect('bucket.user', 'user')
+      .leftJoinAndSelect('bucket.externalNotifySystem', 'externalNotifySystem')
       .leftJoinAndSelect(
         'bucket.userBuckets',
         'userBuckets',
@@ -141,10 +140,9 @@ export class BucketsService {
       .orderBy('bucket.createdAt', 'DESC')
       .getMany();
 
-    // Get public buckets
     const publicBuckets = await this.bucketsRepository.find({
       where: { isPublic: true },
-      relations: ['user', 'userBuckets'],
+      relations: ['user', 'userBuckets', 'externalNotifySystem'],
       order: { createdAt: 'DESC' },
     });
 
@@ -156,7 +154,7 @@ export class BucketsService {
     if (user && user.role === UserRole.ADMIN) {
       adminBuckets = await this.bucketsRepository.find({
         where: { isAdmin: true },
-        relations: ['user', 'userBuckets'],
+        relations: ['user', 'userBuckets', 'externalNotifySystem'],
         order: { createdAt: 'DESC' },
       });
     }
@@ -190,10 +188,9 @@ export class BucketsService {
   }
 
   async findOne(id: string, userId: string): Promise<Bucket> {
-    // Load bucket with owner and messages
     const baseBucket = await this.bucketsRepository.findOne({
       where: { id },
-      relations: ['messages', 'messages.bucket', 'user'],
+      relations: ['messages', 'messages.bucket', 'user', 'externalNotifySystem'],
     });
 
     if (!baseBucket) {
