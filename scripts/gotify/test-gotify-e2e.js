@@ -123,6 +123,7 @@ async function createBucket(token, opts = {}) {
   };
   if (opts.externalNotifySystemId != null) input.externalNotifySystemId = opts.externalNotifySystemId;
   if (opts.externalSystemChannel != null) input.externalSystemChannel = opts.externalSystemChannel;
+  if (opts.externalSystemAuthToken != null) input.externalSystemAuthToken = opts.externalSystemAuthToken;
   const result = await graphql(mutation, { input }, token);
   if (result.status >= 400 || result.payload.errors) {
     throw new Error(JSON.stringify(result.payload));
@@ -258,6 +259,8 @@ async function runTests() {
     const system = await createExternalNotifySystem(TOKEN);
     const bucket = await createBucket(TOKEN, {
       externalNotifySystemId: system.id,
+      externalSystemChannel: 'e2e-channel',
+      externalSystemAuthToken: GOTIFY_E2E_TOKEN,
     });
     const systemId = system.id;
     const bucketId = bucket.id;

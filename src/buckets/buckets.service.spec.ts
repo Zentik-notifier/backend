@@ -14,6 +14,8 @@ import { UrlBuilderService } from '../common/services/url-builder.service';
 import { BucketsService } from './buckets.service';
 import { CreateBucketDto, UpdateBucketDto } from './dto';
 import { UserRole } from '../users/users.types';
+import { ExternalNotifySystem } from '../entities/external-notify-system.entity';
+import { ExternalNotifyCredentialsStore } from '../external-notify-system/external-notify-credentials.store';
 
 describe('BucketsService', () => {
   let service: BucketsService;
@@ -101,10 +103,17 @@ describe('BucketsService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: {
-            findOne: jest.fn().mockResolvedValue({ 
-              id: 'user-1', 
-              role: UserRole.USER 
+            findOne: jest.fn().mockResolvedValue({
+              id: 'user-1',
+              role: UserRole.USER
             }),
+          },
+        },
+        {
+          provide: getRepositoryToken(ExternalNotifySystem),
+          useValue: {
+            findOne: jest.fn().mockResolvedValue(null),
+            find: jest.fn().mockResolvedValue([]),
           },
         },
         {
@@ -145,6 +154,14 @@ describe('BucketsService', () => {
         {
           provide: EventEmitter2,
           useValue: { emit: jest.fn() },
+        },
+        {
+          provide: ExternalNotifyCredentialsStore,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            delete: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();

@@ -71,6 +71,41 @@ export class UsersController {
     return this.usersService.updateUserRole(userId, updateUserRoleDto.role);
   }
 
+  @Get('settings')
+  @ApiOperation({
+    summary: 'Get user settings (optionally filtered by deviceId)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User settings',
+    type: [UserSetting],
+  })
+  async getUserSettings(
+    @GetUser('id') userId: string,
+    @Query('deviceId') deviceId?: string,
+  ) {
+    return this.usersService.getUserSettings(userId, deviceId);
+  }
+
+  @Post('settings')
+  @ApiOperation({ summary: 'Upsert a user setting' })
+  @ApiResponse({
+    status: 200,
+    description: 'User setting upserted',
+    type: UserSetting,
+  })
+  async upsertUserSetting(
+    @GetUser('id') userId: string,
+    @Body() input: UpsertUserSettingInput,
+  ) {
+    return this.usersService.upsertUserSetting(
+      userId,
+      input.configType,
+      { valueText: input.valueText, valueBool: input.valueBool },
+      input.deviceId,
+    );
+  }
+
   @Get(':userId')
   @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
   @ApiBearerAuth()
@@ -160,41 +195,6 @@ export class UsersController {
   })
   async deleteAccount(@GetUser('id') userId: string) {
     return this.usersService.deleteAccount(userId);
-  }
-
-  @Get('settings')
-  @ApiOperation({
-    summary: 'Get user settings (optionally filtered by deviceId)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'User settings',
-    type: [UserSetting],
-  })
-  async getUserSettings(
-    @GetUser('id') userId: string,
-    @Query('deviceId') deviceId?: string,
-  ) {
-    return this.usersService.getUserSettings(userId, deviceId);
-  }
-
-  @Post('settings')
-  @ApiOperation({ summary: 'Upsert a user setting' })
-  @ApiResponse({
-    status: 200,
-    description: 'User setting upserted',
-    type: UserSetting,
-  })
-  async upsertUserSetting(
-    @GetUser('id') userId: string,
-    @Body() input: UpsertUserSettingInput,
-  ) {
-    return this.usersService.upsertUserSetting(
-      userId,
-      input.configType,
-      { valueText: input.valueText, valueBool: input.valueBool },
-      input.deviceId,
-    );
   }
 
   @Get('admin-subscriptions/me')

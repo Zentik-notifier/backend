@@ -29,6 +29,7 @@ import { UserTemplatesService } from './user-templates.service';
 import { UserTemplate } from '../entities/user-template.entity';
 import { EntityExecutionService } from '../entity-execution/entity-execution.service';
 import { BucketsService } from '../buckets/buckets.service';
+import { ExternalNotifyCredentialsStore } from '../external-notify-system/external-notify-credentials.store';
 
 describe('MessagesService', () => {
   let service: MessagesService;
@@ -294,6 +295,14 @@ describe('MessagesService', () => {
             buildThumbnailUrl: jest.fn().mockImplementation((id: string) => `/api/v1/attachments/${id}/thumbnail?size=medium`),
             processNotifications: jest.fn().mockImplementation((x: any) => x),
             buildUrl: jest.fn().mockImplementation((p: string) => `/api/v1${p.startsWith('/')?p:`/${p}`}`),
+          },
+        },
+        {
+          provide: ExternalNotifyCredentialsStore,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            delete: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
