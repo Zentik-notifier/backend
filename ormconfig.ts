@@ -54,6 +54,7 @@ import { AddDisableUserTrackingSetting1768638868000 } from './database/migration
 import { AddExternalNotifyEndpointsAndBucketLink1769400000000 } from './database/migrations/1769400000000-AddExternalNotifyEndpointsAndBucketLink';
 import { AddEphemeralToMessages1769500000000 } from './database/migrations/1769500000000-AddEphemeralToMessages';
 import { AddExternalSystemResponseToMessages1769600000000 } from './database/migrations/1769600000000-AddExternalSystemResponseToMessages';
+import { AddScheduledSendAtToMessages1769700000000 } from './database/migrations/1769700000000-AddScheduledSendAtToMessages';
 
 config({ path: '.env' });
 
@@ -129,6 +130,7 @@ const dataSource = new DataSource({
     AddExternalNotifyEndpointsAndBucketLink1769400000000,
     AddEphemeralToMessages1769500000000,
     AddExternalSystemResponseToMessages1769600000000,
+    AddScheduledSendAtToMessages1769700000000,
   ],
   migrationsTableName: 'migrations',
 });

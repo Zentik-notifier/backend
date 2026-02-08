@@ -56,14 +56,16 @@ export class NotificationPostponeService {
   }
 
   /**
-   * Find all pending postpones for a user
+   * Find all pending postpones for a user.
+   * Excludes postpones whose message has no bucket (e.g. bucket was deleted) so GraphQL never returns null for Message.bucket.
    */
   async findPendingByUser(userId: string): Promise<NotificationPostpone[]> {
-    return this.postponeRepository.find({
+    const list = await this.postponeRepository.find({
       where: { userId },
-      relations: ['notification', 'message', 'user'],
+      relations: ['notification', 'message', 'message.bucket', 'user'],
       order: { sendAt: 'ASC' },
     });
+    return list.filter((p) => p.message?.bucket != null);
   }
 
   /**

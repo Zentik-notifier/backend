@@ -251,6 +251,14 @@ export class Message {
   @Column({ type: 'json', nullable: true })
   externalSystemResponse?: Record<string, unknown>;
 
+  @Field(() => Date, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'When set, message is sent at this time by the scheduler instead of immediately',
+  })
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  scheduledSendAt?: Date | null;
+
   @Field()
   @ApiProperty()
   @CreateDateColumn()

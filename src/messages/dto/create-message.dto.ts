@@ -392,4 +392,13 @@ export class CreateMessageDto {
   @IsOptional()
   @IsString()
   executionId?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'When set, message is sent at this time by the scheduler instead of immediately',
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value ? new Date(value) : undefined))
+  scheduledSendAt?: Date;
 }

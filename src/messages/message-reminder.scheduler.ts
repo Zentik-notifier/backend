@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { MessageReminderService } from './message-reminder.service';
+import { MessagesService } from './messages.service';
 import { PushNotificationOrchestratorService } from '../notifications/push-orchestrator.service';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class MessageReminderScheduler {
   constructor(
     private readonly reminderService: MessageReminderService,
     private readonly pushOrchestrator: PushNotificationOrchestratorService,
+    private readonly messagesService: MessagesService,
   ) {
     this.logger.log('Message reminder scheduler initialized');
   }
@@ -19,10 +21,14 @@ export class MessageReminderScheduler {
    */
   @Cron('*/1 * * * *')
   async handleReminders() {
-    // this.logger.debug('Cron started: process message reminders');
-
     try {
-      // Get unread notifications that need reminders
+      const scheduledResult = await this.messagesService.processScheduledSends();
+      if (scheduledResult.processed > 0 || scheduledResult.failed > 0) {
+        this.logger.log(
+          `Scheduled sends: ${scheduledResult.processed} processed, ${scheduledResult.failed} failed`,
+        );
+      }
+
       const notifications = await this.reminderService.getUnreadNotificationsToRemind();
 
       if (notifications.length === 0) {

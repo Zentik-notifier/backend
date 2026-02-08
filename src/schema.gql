@@ -212,6 +212,7 @@ input CreateMessageDto {
   maxReminders: Float
   postpones: [Float!]
   remindEveryMinutes: Float
+  scheduledSendAt: DateTime
   snoozes: [Float!]
   sound: String
   subtitle: String
@@ -630,6 +631,7 @@ type Message {
   maxReminders: Float
   postpones: [Float!]
   remindEveryMinutes: Float
+  scheduledSendAt: DateTime
   snoozes: [Float!]
   sound: String
   subtitle: String
@@ -644,6 +646,20 @@ type MessageAttachment {
   name: String
   saveOnServer: Boolean
   url: String
+}
+
+type MessageReminder {
+  createdAt: DateTime!
+  id: ID!
+  maxReminders: Int!
+  message: Message!
+  messageId: ID!
+  nextReminderAt: DateTime!
+  remindEveryMinutes: Int!
+  remindersSent: Int!
+  updatedAt: DateTime!
+  user: User!
+  userId: ID!
 }
 
 input MobileAppleAuthDto {
@@ -664,6 +680,9 @@ type Mutation {
 
   """Batch update multiple server settings"""
   batchUpdateServerSettings(settings: [BatchUpdateSettingInput!]!): [ServerSetting!]!
+
+  """Cancel all reminders for a message for the current user."""
+  cancelMessageReminders(messageId: String!): Int!
   cancelPostpone(id: String!): Boolean!
   changePassword(input: ChangePasswordInput!): Boolean!
   cleanupExpiredPermissions: Float!
@@ -708,6 +727,11 @@ type Mutation {
   """Delete an invite code"""
   deleteInviteCode(id: String!): Boolean!
   deleteMagicCode(bucketId: String!): UserBucket!
+
+  """
+  Delete a message (user must have write on bucket). Returns true if deleted.
+  """
+  deleteMessage(id: String!): Boolean!
   deleteNotification(id: String!): Boolean!
   deleteOAuthProvider(id: String!): Boolean!
   deletePayloadMapper(id: String!): Boolean!
@@ -776,6 +800,9 @@ type Mutation {
 
   """Update an invite code"""
   updateInviteCode(input: UpdateInviteCodeInput!): InviteCode!
+
+  """Update a message (e.g. scheduled send time)."""
+  updateMessage(id: String!, input: UpdateMessageDto!): Message!
   updateOAuthProvider(id: String!, input: UpdateOAuthProviderDto!): OAuthProvider!
   updatePayloadMapper(id: String!, input: UpdatePayloadMapperDto!): PayloadMapper!
   updateProfile(input: UpdateProfileInput!): User!
@@ -1050,6 +1077,9 @@ type Query {
   logs(input: GetLogsInput!): PaginatedLogs!
   me: User!
   messageAttachments(messageId: ID!): [Attachment!]!
+
+  """Active message reminders (retry) for the current user."""
+  messageRemindersForCurrentUser: [MessageReminder!]!
   myAdminSubscription: [String!]
   mySystemAccessTokenRequests: [SystemAccessTokenRequest!]!
   notification(id: String!): Notification!
@@ -1060,6 +1090,11 @@ type Query {
   payloadMappers: [PayloadMapper!]!
   pendingPostpones: [NotificationPostpone!]!
   publicAppConfig: PublicAppConfig!
+
+  """
+  Messages with scheduled send in the future (user must have write on bucket).
+  """
+  scheduledMessagesForCurrentUser: [Message!]!
   serverFiles(path: String): [FileInfoDto!]!
 
   """Get a specific server setting by type"""
@@ -1438,6 +1473,10 @@ input UpdateInviteCodeInput {
 
   """Permissions to grant"""
   permissions: [String!]
+}
+
+input UpdateMessageDto {
+  scheduledSendAt: DateTime
 }
 
 input UpdateOAuthProviderDto {

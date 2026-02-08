@@ -10,7 +10,7 @@ import {
 import { Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationPostponeService } from 'src/notifications/notification-postpone.service';
-import { In, Repository } from 'typeorm';
+import { In, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { MessageReminderService } from './message-reminder.service';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { ResourceType } from '../auth/dto/auth.dto';
@@ -37,6 +37,7 @@ import {
   CreateMessageDto,
   CreateMessageWithAttachmentDto,
   NotificationAttachmentDto,
+  UpdateMessageDto,
 } from './dto';
 import { UserTemplatesService } from './user-templates.service';
 import * as Handlebars from 'handlebars';
@@ -44,6 +45,7 @@ import { EntityExecutionService } from '../entity-execution/entity-execution.ser
 import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.entity';
 import { BucketsService } from '../buckets/buckets.service';
 import { ExternalNotifySystemType } from '../entities/external-notify-system.entity';
+import { GotifyService } from '../gotify/gotify.service';
 import { NtfyService } from '../ntfy/ntfy.service';
 import { NtfySubscriptionService } from '../ntfy/ntfy-subscription.service';
 
@@ -81,6 +83,7 @@ export class MessagesService {
     private readonly bucketsService: BucketsService,
     @Optional() @Inject(forwardRef(() => NtfyService)) private readonly ntfyService: NtfyService | null,
     @Optional() @Inject(forwardRef(() => NtfySubscriptionService)) private readonly ntfySubscriptionService: NtfySubscriptionService | null,
+    @Optional() @Inject(GotifyService) private readonly gotifyService: GotifyService | null,
   ) { }
 
 
@@ -463,6 +466,7 @@ export class MessagesService {
       attachmentUuids,
       tapAction,
       executionId: executionId || createMessageDto.executionId,
+      scheduledSendAt: createMessageDto.scheduledSendAt ?? undefined,
     });
 
     const savedMessage: Message = await this.messagesRepository.save(
@@ -487,132 +491,156 @@ export class MessagesService {
       });
 
     let notificationsCount = 0;
+    const isScheduled = createMessageDto.scheduledSendAt != null;
 
-    try {
-      const baseMessage: Message = savedMessageWithRelations || savedMessage;
+    if (!isScheduled) {
+      try {
+        const baseMessage: Message = savedMessageWithRelations || savedMessage;
 
-      // Log explicitly when preparing notifications for a public bucket
-      if (baseMessage.bucket?.isPublic) {
-        this.logger.log(
-          `Creating notifications for PUBLIC bucket ${baseMessage.bucket.name} (message=${baseMessage.id}, requester=${requesterId})`,
-        );
-      }
-
-      // Create notifications now (fast DB work) and send push asynchronously
-      const { notifications, authorizedUsers } =
-        await this.pushOrchestrator.createNotificationsForMessage(
-          baseMessage,
-          requesterId,
-          processedUserIds,
-        );
-
-      notificationsCount = notifications.length;
-
-      if (notifications.length > 0 && authorizedUsers.length > 0) {
-        // Fire-and-forget push delivery, without blocking the response
-        this.pushOrchestrator
-          .sendPushToDevices(
-            notifications,
-            authorizedUsers,
-            baseMessage.bucketId,
-            skipEventTracking,
-          )
-          .then(
-            ({
-              successCount,
-              errorCount,
-              snoozedCount,
-              iosSent,
-              androidSent,
-              webSent,
-            }) => {
-              this.logger.log(
-                `Async send for message ${baseMessage.id} → Users [${authorizedUsers.join(',')}] → ${successCount} sent, ${errorCount} failed, ${snoozedCount} snoozed | iOS ${iosSent}, Android ${androidSent}, Web ${webSent}`,
-              );
-            },
-          )
-          .catch((error) => {
-            this.logger.error(
-              `Failed to send push notifications asynchronously for message ${baseMessage.id}`,
-              error,
-            );
-          });
-      }
-
-      // Create reminders if remindEveryMinutes is set
-      if (createMessageDto.remindEveryMinutes) {
-        const maxReminders = createMessageDto.maxReminders || 5;
-
-        // Get all user IDs that received notifications
-        const userIdsToRemind = processedUserIds.length > 0
-          ? processedUserIds
-          : notificationsCount > 0
-            ? Array.from(new Set(notifications.map((n) => n.userId)))
-            : [];
-
-        // Create a reminder for each user
-        for (const userId of userIdsToRemind) {
-          try {
-            await this.reminderService.createReminder(
-              savedMessage.id,
-              userId,
-              createMessageDto.remindEveryMinutes,
-              maxReminders,
-            );
-          } catch (error) {
-            this.logger.error(
-              `Failed to create reminder for user ${userId} on message ${savedMessage.id}`,
-              error,
-            );
-            // Don't fail message creation if reminder creation fails
-          }
+        if (baseMessage.bucket?.isPublic) {
+          this.logger.log(
+            `Creating notifications for PUBLIC bucket ${baseMessage.bucket.name} (message=${baseMessage.id}, requester=${requesterId})`,
+          );
         }
 
-        this.logger.log(
-          `Created reminders for ${userIdsToRemind.length} user(s) on message ${savedMessage.id}`,
+        const { notifications, authorizedUsers } =
+          await this.pushOrchestrator.createNotificationsForMessage(
+            baseMessage,
+            requesterId,
+            processedUserIds,
+          );
+
+        notificationsCount = notifications.length;
+
+        if (notifications.length > 0 && authorizedUsers.length > 0) {
+          this.pushOrchestrator
+            .sendPushToDevices(
+              notifications,
+              authorizedUsers,
+              baseMessage.bucketId,
+              skipEventTracking,
+            )
+            .then(
+              ({
+                successCount,
+                errorCount,
+                snoozedCount,
+                iosSent,
+                androidSent,
+                webSent,
+              }) => {
+                this.logger.log(
+                  `Async send for message ${baseMessage.id} → Users [${authorizedUsers.join(',')}] → ${successCount} sent, ${errorCount} failed, ${snoozedCount} snoozed | iOS ${iosSent}, Android ${androidSent}, Web ${webSent}`,
+                );
+              },
+            )
+            .catch((error) => {
+              this.logger.error(
+                `Failed to send push notifications asynchronously for message ${baseMessage.id}`,
+                error,
+              );
+            });
+        }
+
+        if (createMessageDto.remindEveryMinutes) {
+          const maxReminders = createMessageDto.maxReminders || 5;
+          const userIdsToRemind = processedUserIds.length > 0
+            ? processedUserIds
+            : notificationsCount > 0
+              ? Array.from(new Set(notifications.map((n) => n.userId)))
+              : [];
+
+          for (const userId of userIdsToRemind) {
+            try {
+              await this.reminderService.createReminder(
+                savedMessage.id,
+                userId,
+                createMessageDto.remindEveryMinutes,
+                maxReminders,
+              );
+            } catch (error) {
+              this.logger.error(
+                `Failed to create reminder for user ${userId} on message ${savedMessage.id}`,
+                error,
+              );
+            }
+          }
+
+          this.logger.log(
+            `Created reminders for ${userIdsToRemind.length} user(s) on message ${savedMessage.id}`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to create notifications for message ${savedMessage.id}`,
+          error,
         );
       }
-    } catch (error) {
-      this.logger.error(
-        `Failed to create notifications for message ${savedMessage.id}`,
-        error,
+    } else {
+      this.logger.log(
+        `Message ${savedMessage.id} scheduled for ${createMessageDto.scheduledSendAt?.toISOString()}`,
       );
-      // Don't fail the message creation if notifications fail
     }
 
-    const bucketWithExt = await this.bucketsRepository.findOne({
-      where: { id: bucket.id },
-      relations: ['externalNotifySystem'],
-    });
-    const ext = bucketWithExt?.externalNotifySystem;
-    const channel = bucketWithExt?.externalSystemChannel;
-    if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
-      this.logger.log(`NTFY publish starting for message ${savedMessage.id} topic=${channel}`);
-      try {
-        const ntfyResponse = await this.ntfyService.publishMessage(
-          savedMessageWithRelations || savedMessage,
-          ext.baseUrl,
-          channel,
-          {
-            authUser: ext.authUser,
-            authPassword: ext.authPassword,
-            authToken: ext.authToken,
-          },
-          bucketWithExt,
-        );
-        if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
-          this.ntfySubscriptionService?.registerPublishedNtfyId(ntfyResponse.id);
-          this.logger.log(`NTFY publish registered id=${ntfyResponse.id} for message ${savedMessage.id}`);
-          await this.messagesRepository.update(savedMessage.id, {
-            externalSystemResponse: { ntfy: { id: ntfyResponse.id, time: ntfyResponse.time } },
-          });
-        } else {
-          this.logger.warn(`NTFY publish no id/time in response for message ${savedMessage.id}`);
+    if (!isScheduled) {
+      const bucketWithExt = await this.bucketsRepository.findOne({
+        where: { id: bucket.id },
+        relations: ['externalNotifySystem'],
+      });
+      const ext = bucketWithExt?.externalNotifySystem;
+      const channel = bucketWithExt?.externalSystemChannel;
+      if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
+        this.logger.log(`NTFY publish starting for message ${savedMessage.id} topic=${channel}`);
+        try {
+          const ntfyResponse = await this.ntfyService.publishMessage(
+            savedMessageWithRelations || savedMessage,
+            ext.baseUrl,
+            channel,
+            {
+              authUser: ext.authUser,
+              authPassword: ext.authPassword,
+              authToken: ext.authToken,
+            },
+            bucketWithExt,
+          );
+          if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
+            this.ntfySubscriptionService?.registerPublishedNtfyId(ntfyResponse.id);
+            this.logger.log(`NTFY publish registered id=${ntfyResponse.id} for message ${savedMessage.id}`);
+            await this.messagesRepository.update(savedMessage.id, {
+              externalSystemResponse: { ntfy: { id: ntfyResponse.id, time: ntfyResponse.time } },
+            });
+          } else {
+            this.logger.warn(`NTFY publish no id/time in response for message ${savedMessage.id}`);
+          }
+        } catch (err: any) {
+          this.logger.warn(
+            `NTFY publish failed for message ${savedMessage.id}: ${err?.message}`,
+          );
         }
-      } catch (err: any) {
-        this.logger.warn(
-          `NTFY publish failed for message ${savedMessage.id}: ${err?.message}`,
-        );
+      }
+
+      if (ext?.type === ExternalNotifySystemType.Gotify && ext.authToken && this.gotifyService) {
+        this.logger.log(`Gotify publish starting for message ${savedMessage.id}`);
+        try {
+          const gotifyResponse = await this.gotifyService.publishMessage(
+            savedMessageWithRelations || savedMessage,
+            ext.baseUrl,
+            ext.authToken,
+            bucketWithExt,
+          );
+          if (gotifyResponse?.id != null) {
+            this.logger.log(`Gotify publish id=${gotifyResponse.id} for message ${savedMessage.id}`);
+            await this.messagesRepository.update(savedMessage.id, {
+              externalSystemResponse: { gotify: { id: gotifyResponse.id } },
+            });
+          } else {
+            this.logger.warn(`Gotify publish no id in response for message ${savedMessage.id}`);
+          }
+        } catch (err: any) {
+          this.logger.warn(
+            `Gotify publish failed for message ${savedMessage.id}: ${err?.message}`,
+          );
+        }
       }
     }
 
@@ -907,6 +935,150 @@ export class MessagesService {
     }
   }
 
+  async findDueScheduledMessages(): Promise<Message[]> {
+    const now = new Date();
+    return this.messagesRepository.find({
+      where: {
+        scheduledSendAt: LessThanOrEqual(now),
+      },
+      relations: ['bucket', 'bucket.user', 'bucket.externalNotifySystem'],
+    });
+  }
+
+  async processScheduledSends(): Promise<{ processed: number; failed: number }> {
+    const messages = await this.findDueScheduledMessages();
+    if (messages.length === 0) return { processed: 0, failed: 0 };
+    this.logger.log(`Processing ${messages.length} scheduled message(s)`);
+    let failed = 0;
+    for (const message of messages) {
+      try {
+        const bucket = message.bucket;
+        const requesterId = bucket?.user?.id;
+        if (!requesterId) {
+          this.logger.warn(`Scheduled message ${message.id} has no bucket owner, skipping`);
+          failed++;
+          continue;
+        }
+        const baseMessage = await this.messagesRepository.findOne({
+          where: { id: message.id },
+          relations: ['bucket'],
+        });
+        if (!baseMessage) continue;
+        const { notifications, authorizedUsers } =
+          await this.pushOrchestrator.createNotificationsForMessage(
+            baseMessage,
+            requesterId,
+            undefined,
+          );
+        if (notifications.length > 0 && authorizedUsers.length > 0) {
+          await this.pushOrchestrator.sendPushToDevices(
+            notifications,
+            authorizedUsers,
+            baseMessage.bucketId,
+            false,
+          );
+        }
+        if (message.remindEveryMinutes) {
+          const maxReminders = message.maxReminders ?? 5;
+          const userIdsToRemind = authorizedUsers?.length ? authorizedUsers : [];
+          for (const userId of userIdsToRemind) {
+            try {
+              await this.reminderService.createReminder(
+                message.id,
+                userId,
+                message.remindEveryMinutes,
+                maxReminders,
+              );
+            } catch { }
+          }
+        }
+        const bucketWithExt = await this.bucketsRepository.findOne({
+          where: { id: message.bucketId },
+          relations: ['externalNotifySystem'],
+        });
+        const ext = bucketWithExt?.externalNotifySystem;
+        const channel = bucketWithExt?.externalSystemChannel;
+        if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
+          try {
+            const ntfyResponse = await this.ntfyService.publishMessage(
+              baseMessage,
+              ext.baseUrl,
+              channel,
+              { authUser: ext.authUser, authPassword: ext.authPassword, authToken: ext.authToken },
+              bucketWithExt,
+            );
+            if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
+              this.ntfySubscriptionService?.registerPublishedNtfyId(ntfyResponse.id);
+              await this.messagesRepository.update(message.id, {
+                externalSystemResponse: { ntfy: { id: ntfyResponse.id, time: ntfyResponse.time } },
+              });
+            }
+          } catch { }
+        }
+        if (ext?.type === ExternalNotifySystemType.Gotify && ext.authToken && this.gotifyService) {
+          try {
+            const gotifyResponse = await this.gotifyService.publishMessage(
+              baseMessage,
+              ext.baseUrl,
+              ext.authToken,
+              bucketWithExt,
+            );
+            if (gotifyResponse?.id != null) {
+              await this.messagesRepository.update(message.id, {
+                externalSystemResponse: { gotify: { id: gotifyResponse.id } },
+              });
+            }
+          } catch { }
+        }
+        await this.messagesRepository.update(message.id, { scheduledSendAt: null });
+      } catch (error) {
+        failed++;
+        this.logger.error(`Failed to process scheduled message ${message.id}`, error);
+      }
+    }
+    return { processed: messages.length, failed };
+  }
+
+  /**
+   * Find messages with scheduledSendAt in the future for buckets the user can write.
+   */
+  async findScheduledForUser(userId: string): Promise<Message[]> {
+    const now = new Date();
+    const messages = await this.messagesRepository.find({
+      where: { scheduledSendAt: MoreThan(now) },
+      relations: ['bucket', 'bucket.user'],
+    });
+    const allowed: Message[] = [];
+    for (const message of messages) {
+      const permissions = await this.bucketsService.calculateBucketPermissions(
+        message.bucket,
+        userId,
+      );
+      if (permissions.canWrite) allowed.push(message);
+    }
+    return allowed;
+  }
+
+  /**
+   * Delete a message if the user has write permission on its bucket.
+   */
+  async deleteMessage(messageId: string, userId: string): Promise<Message | null> {
+    const message = await this.messagesRepository.findOne({
+      where: { id: messageId },
+      relations: ['bucket'],
+    });
+    if (!message) return null;
+    const permissions = await this.bucketsService.calculateBucketPermissions(
+      message.bucket,
+      userId,
+    );
+    if (!permissions.canWrite) {
+      throw new ForbiddenException('You do not have write permission on this message bucket');
+    }
+    await this.messagesRepository.delete(messageId);
+    return message;
+  }
+
   /**
    * Find all messages
    */
@@ -924,6 +1096,37 @@ export class MessagesService {
       where: { id },
       relations: ['bucket', 'fileAttachments'],
     });
+  }
+
+  async updateMessage(
+    messageId: string,
+    userId: string,
+    dto: UpdateMessageDto,
+  ): Promise<Message> {
+    const message = await this.messagesRepository.findOne({
+      where: { id: messageId },
+      relations: ['bucket', 'bucket.user'],
+    });
+    if (!message) {
+      throw new NotFoundException(`Message ${messageId} not found`);
+    }
+    const permissions = await this.bucketsService.calculateBucketPermissions(
+      message.bucket,
+      userId,
+    );
+    if (!permissions.canWrite) {
+      throw new ForbiddenException('You do not have write permission on this message bucket');
+    }
+    if (dto.scheduledSendAt !== undefined) {
+      await this.messagesRepository.update(messageId, {
+        scheduledSendAt: dto.scheduledSendAt ?? null,
+      });
+    }
+    const updated = await this.messagesRepository.findOne({
+      where: { id: messageId },
+      relations: ['bucket'],
+    });
+    return updated!;
   }
 
   private parseDurationToMs(input: string): number {

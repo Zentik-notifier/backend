@@ -297,6 +297,12 @@ jobs:
           BASE_URL: http://localhost:3000/api/v1
         run: node scripts/ntfy/test-ntfy-e2e.js
 
+      - name: Gotify E2E tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/gotify/test-gotify-e2e.js
+
       - name: Show server logs on failure
         if: failure()
         run: |

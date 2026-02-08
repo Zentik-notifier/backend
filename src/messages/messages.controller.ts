@@ -5,9 +5,12 @@ import {
   Get,
   Headers,
   Logger,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
+  UnauthorizedException,
   UploadedFile,
   UseGuards,
   UseInterceptors
@@ -30,6 +33,7 @@ import { ScopesGuard } from '../auth/guards/scopes.guard';
 import { CreateMessageResponseDto } from './dto/create-message-response.dto';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { UpdateMessageDto } from './dto/update-message.dto';
 
 import { CombineMessageSources } from './decorators/combine-message-sources.decorator';
 import { MessagesService } from './messages.service';
@@ -112,6 +116,22 @@ export class MessagesController {
     const { message, notificationsCount } =
       await this.messagesService.createWithAttachment(input, userId, file);
     return { message, notificationsCount };
+  }
+
+  @Patch(':id')
+  @UseGuards(ScopesGuard)
+  @ApiOperation({ summary: 'Update a message (e.g. scheduled send time)' })
+  @ApiBody({ type: UpdateMessageDto })
+  @ApiResponse({ status: 200, description: 'Message updated' })
+  @ApiResponse({ status: 403, description: 'No write permission on bucket' })
+  @ApiResponse({ status: 404, description: 'Message not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() input: UpdateMessageDto,
+    @GetUser('id') userId: string | undefined,
+  ) {
+    if (!userId) throw new UnauthorizedException('Unauthorized');
+    return this.messagesService.updateMessage(id, userId, input);
   }
 
   @Get()
