@@ -11,6 +11,7 @@ import {
   MessagesQueryDto,
   MessagesResponseDto,
 } from './dto';
+import { MessageReminderService } from './message-reminder.service';
 import { MessagesService } from './messages.service';
 import {
   MediaType,
@@ -65,6 +66,10 @@ describe('MessagesResolver', () => {
     create: jest.fn(),
   };
 
+  const mockMessageReminderService = {
+    findByUser: jest.fn().mockResolvedValue([]),
+  };
+
   const mockAccessTokenService = {
     validateAccessToken: jest.fn(),
   };
@@ -90,6 +95,10 @@ describe('MessagesResolver', () => {
         {
           provide: MessagesService,
           useValue: mockMessagesService,
+        },
+        {
+          provide: MessageReminderService,
+          useValue: mockMessageReminderService,
         },
         {
           provide: AccessTokenService,
