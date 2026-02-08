@@ -45,9 +45,11 @@ import { EntityExecutionService } from '../entity-execution/entity-execution.ser
 import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.entity';
 import { BucketsService } from '../buckets/buckets.service';
 import { ExternalNotifySystemType } from '../entities/external-notify-system.entity';
-import { GotifyService } from '../gotify/gotify.service';
-import { NtfyService } from '../ntfy/ntfy.service';
-import { NtfySubscriptionService } from '../ntfy/ntfy-subscription.service';
+import { ExternalNotifyCredentialsStore } from '../external-notify-system/external-notify-credentials.store';
+import { GotifyService } from '../external-notify-system/providers/gotify/gotify.service';
+import { GotifySubscriptionService } from '../external-notify-system/providers/gotify/gotify-subscription.service';
+import { NtfyService } from '../external-notify-system/providers/ntfy/ntfy.service';
+import { NtfySubscriptionService } from '../external-notify-system/providers/ntfy/ntfy-subscription.service';
 
 export interface CreateMessageResult {
   message: Message;
@@ -84,6 +86,8 @@ export class MessagesService {
     @Optional() @Inject(forwardRef(() => NtfyService)) private readonly ntfyService: NtfyService | null,
     @Optional() @Inject(forwardRef(() => NtfySubscriptionService)) private readonly ntfySubscriptionService: NtfySubscriptionService | null,
     @Optional() @Inject(GotifyService) private readonly gotifyService: GotifyService | null,
+    @Optional() @Inject(forwardRef(() => GotifySubscriptionService)) private readonly gotifySubscriptionService: GotifySubscriptionService | null,
+    private readonly externalNotifyCredentialsStore: ExternalNotifyCredentialsStore,
   ) { }
 
 
@@ -592,15 +596,12 @@ export class MessagesService {
       if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
         this.logger.log(`NTFY publish starting for message ${savedMessage.id} topic=${channel}`);
         try {
+          const auth = await this.externalNotifyCredentialsStore.get(ext.userId, ext.id);
           const ntfyResponse = await this.ntfyService.publishMessage(
             savedMessageWithRelations || savedMessage,
             ext.baseUrl,
             channel,
-            {
-              authUser: ext.authUser,
-              authPassword: ext.authPassword,
-              authToken: ext.authToken,
-            },
+            auth ?? undefined,
             bucketWithExt,
           );
           if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
@@ -619,17 +620,22 @@ export class MessagesService {
         }
       }
 
-      if (ext?.type === ExternalNotifySystemType.Gotify && ext.authToken && this.gotifyService) {
+      const gotifyAuth =
+        ext && channel
+          ? await this.externalNotifyCredentialsStore.get(ext.userId, ext.id, channel)
+          : null;
+      if (ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
         this.logger.log(`Gotify publish starting for message ${savedMessage.id}`);
         try {
           const gotifyResponse = await this.gotifyService.publishMessage(
             savedMessageWithRelations || savedMessage,
             ext.baseUrl,
-            ext.authToken,
+            gotifyAuth.authToken,
             bucketWithExt,
           );
           if (gotifyResponse?.id != null) {
             this.logger.log(`Gotify publish id=${gotifyResponse.id} for message ${savedMessage.id}`);
+            this.gotifySubscriptionService?.registerPublishedGotifyId(ext.id, gotifyResponse.id);
             await this.messagesRepository.update(savedMessage.id, {
               externalSystemResponse: { gotify: { id: gotifyResponse.id } },
             });
@@ -637,9 +643,9 @@ export class MessagesService {
             this.logger.warn(`Gotify publish no id in response for message ${savedMessage.id}`);
           }
         } catch (err: any) {
-          this.logger.warn(
-            `Gotify publish failed for message ${savedMessage.id}: ${err?.message}`,
-          );
+            this.logger.warn(
+              `Gotify publish failed for message ${savedMessage.id}: ${err?.message}`,
+            );
         }
       }
     }
@@ -1000,11 +1006,12 @@ export class MessagesService {
         const channel = bucketWithExt?.externalSystemChannel;
         if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
           try {
+            const auth = await this.externalNotifyCredentialsStore.get(ext.userId, ext.id);
             const ntfyResponse = await this.ntfyService.publishMessage(
               baseMessage,
               ext.baseUrl,
               channel,
-              { authUser: ext.authUser, authPassword: ext.authPassword, authToken: ext.authToken },
+              auth ?? undefined,
               bucketWithExt,
             );
             if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
@@ -1015,15 +1022,20 @@ export class MessagesService {
             }
           } catch { }
         }
-        if (ext?.type === ExternalNotifySystemType.Gotify && ext.authToken && this.gotifyService) {
+        const gotifyAuth =
+          ext && channel
+            ? await this.externalNotifyCredentialsStore.get(ext.userId, ext.id, channel)
+            : null;
+        if (ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
           try {
             const gotifyResponse = await this.gotifyService.publishMessage(
               baseMessage,
               ext.baseUrl,
-              ext.authToken,
+              gotifyAuth.authToken,
               bucketWithExt,
             );
             if (gotifyResponse?.id != null) {
+              this.gotifySubscriptionService?.registerPublishedGotifyId(ext.id, gotifyResponse.id);
               await this.messagesRepository.update(message.id, {
                 externalSystemResponse: { gotify: { id: gotifyResponse.id } },
               });

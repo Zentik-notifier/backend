@@ -1,11 +1,11 @@
-import { CreateMessageDto } from 'src/messages/dto';
-import { Bucket } from '../entities/bucket.entity';
-import { Message } from '../entities/message.entity';
+import { CreateMessageDto } from '../../../messages/dto';
+import { Bucket } from '../../../entities/bucket.entity';
+import { Message } from '../../../entities/message.entity';
 import {
   MediaType,
   NotificationActionType,
   NotificationDeliveryType,
-} from '../notifications/notifications.types';
+} from '../../../notifications/notifications.types';
 
 export interface NtfyPublishPayload {
   body: string;
@@ -15,7 +15,6 @@ export interface NtfyPublishPayload {
   click?: string;
   icon?: string;
   attach?: string;
-  /** X-Actions header value (up to 3 actions: view, http, broadcast) */
   actions?: string;
 }
 
@@ -39,31 +38,19 @@ export function messageToNtfyPayload(
   const payload: NtfyPublishPayload = { body };
   const bucketRef = bucket ?? message.bucket;
 
-  if (message.title) {
-    payload.title = message.title;
-  }
-
-  payload.priority =
-    DELIVERY_TO_NTFY_PRIORITY[message.deliveryType] ?? 3;
+  if (message.title) payload.title = message.title;
+  payload.priority = DELIVERY_TO_NTFY_PRIORITY[message.deliveryType] ?? 3;
 
   if (message.tapAction?.type === NotificationActionType.NAVIGATE && message.tapAction.value) {
     payload.click = message.tapAction.value;
   }
-
-  if (bucketRef?.iconUrl) {
-    payload.icon = bucketRef.iconUrl;
-  }
+  if (bucketRef?.iconUrl) payload.icon = bucketRef.iconUrl;
 
   const firstImageUrl = message.attachments?.find(
     (a) => a.mediaType === 'IMAGE' && a.url,
   )?.url;
-  if (firstImageUrl) {
-    payload.attach = firstImageUrl;
-  }
-
-  if (message.subtitle) {
-    payload.tags = [message.subtitle];
-  }
+  if (firstImageUrl) payload.attach = firstImageUrl;
+  if (message.subtitle) payload.tags = [message.subtitle];
 
   const actions = message.actions ?? [];
   const ntfyActionParts: string[] = [];
@@ -81,9 +68,7 @@ export function messageToNtfyPayload(
       ntfyActionParts.push(part);
     }
   }
-  if (ntfyActionParts.length) {
-    payload.actions = ntfyActionParts.join('; ');
-  }
+  if (ntfyActionParts.length) payload.actions = ntfyActionParts.join('; ');
 
   return payload;
 }
@@ -139,15 +124,9 @@ export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): CreateMes
     deliveryType,
   };
 
-  if (ntfy.tags?.length) {
-    result.subtitle = ntfy.tags.join(', ');
-  }
-
+  if (ntfy.tags?.length) result.subtitle = ntfy.tags.join(', ');
   if (ntfy.click) {
-    result.tapAction = {
-      type: NotificationActionType.NAVIGATE,
-      value: ntfy.click,
-    };
+    result.tapAction = { type: NotificationActionType.NAVIGATE, value: ntfy.click };
   }
 
   if (ntfy.actions?.length) {
@@ -186,15 +165,3 @@ export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): CreateMes
 
   return result;
 }
-
-/**
- * NTFY properties NOT supported in our mapping (incoming or outgoing):
- *
- * Incoming (subscribe): icon (URL) – not stored on message; email – not in our
- *   model; delay – not mapped; since (polling) – not used. http action
- *   method/headers/body and broadcast extras are not stored for round-trip.
- *
- * Outgoing (publish): email – not sent; delay – not sent; multiple attachments –
- *   we send at most one (first image); NTFY-specific headers (e.g. X-Markdown,
- *   X-Filename) – not sent. We send up to 3 actions (view, http, broadcast).
- */

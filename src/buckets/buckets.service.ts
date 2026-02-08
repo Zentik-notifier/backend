@@ -12,9 +12,11 @@ import { Permission, ResourceType } from 'src/auth/dto/auth.dto';
 import { Repository, In } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { Bucket } from '../entities/bucket.entity';
+import { ExternalNotifySystem, ExternalNotifySystemType } from '../entities/external-notify-system.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
 import { User } from '../entities/user.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { ExternalNotifyCredentialsStore } from '../external-notify-system/external-notify-credentials.store';
 import { EventTrackingService } from '../events/event-tracking.service';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
@@ -38,11 +40,14 @@ export class BucketsService {
     private readonly userBucketRepository: Repository<UserBucket>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(ExternalNotifySystem)
+    private readonly externalNotifySystemRepository: Repository<ExternalNotifySystem>,
     private readonly entityPermissionService: EntityPermissionService,
     private readonly eventTrackingService: EventTrackingService,
     private readonly attachmentsService: AttachmentsService,
     private readonly urlBuilderService: UrlBuilderService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly externalNotifyCredentialsStore: ExternalNotifyCredentialsStore,
   ) { }
 
   async create(
@@ -52,6 +57,7 @@ export class BucketsService {
     const {
       externalNotifySystemId,
       externalSystemChannel,
+      externalSystemAuthToken,
       ...rest
     } = createBucketDto;
     const bucket = this.bucketsRepository.create({
@@ -110,6 +116,25 @@ export class BucketsService {
     this.eventEmitter.emit(BUCKET_LINKS_CHANGED, {
       affectedSystemIds,
     } as BucketLinksChangedPayload);
+
+    if (
+      externalNotifySystemId &&
+      externalSystemChannel &&
+      externalSystemAuthToken &&
+      reloaded?.externalNotifySystem
+    ) {
+      const system = await this.externalNotifySystemRepository.findOne({
+        where: { id: externalNotifySystemId },
+      });
+      if (system?.type === ExternalNotifySystemType.Gotify) {
+        await this.externalNotifyCredentialsStore.set(
+          userId,
+          externalNotifySystemId,
+          { authToken: externalSystemAuthToken },
+          externalSystemChannel,
+        );
+      }
+    }
 
     return reloaded ?? saved;
   }
@@ -314,6 +339,7 @@ export class BucketsService {
     }
 
     const previousExternalSystemId = bucket.externalNotifySystem?.id ?? null;
+    const previousChannel = bucket.externalSystemChannel ?? null;
 
     // Check if user owns the bucket or has admin permissions
     const isOwner = bucket.user.id === userId;
@@ -379,6 +405,7 @@ export class BucketsService {
       generateIconWithInitials: _g,
       externalNotifySystemId: _eid,
       externalSystemChannel: _ech,
+      externalSystemAuthToken: _authToken,
       ...bucketUpdates
     } = updateBucketDto;
     Object.assign(bucket, bucketUpdates);
@@ -401,6 +428,36 @@ export class BucketsService {
       updateBucketDto.externalNotifySystemId !== undefined
         ? (updateBucketDto.externalNotifySystemId ?? null)
         : (bucket.externalNotifySystem?.id ?? null);
+    const newChannel =
+      updateBucketDto.externalSystemChannel !== undefined
+        ? (updateBucketDto.externalSystemChannel ?? null)
+        : (bucket.externalSystemChannel ?? null);
+
+    if (previousExternalSystemId && previousChannel) {
+      await this.externalNotifyCredentialsStore.delete(
+        userId,
+        previousExternalSystemId,
+        previousChannel,
+      );
+    }
+    if (
+      newExternalSystemId &&
+      newChannel &&
+      updateBucketDto.externalSystemAuthToken
+    ) {
+      const system = await this.externalNotifySystemRepository.findOne({
+        where: { id: newExternalSystemId },
+      });
+      if (system?.type === ExternalNotifySystemType.Gotify) {
+        await this.externalNotifyCredentialsStore.set(
+          userId,
+          newExternalSystemId,
+          { authToken: updateBucketDto.externalSystemAuthToken },
+          newChannel,
+        );
+      }
+    }
+
     if (previousExternalSystemId || newExternalSystemId) {
       const payload: BucketLinksChangedPayload = {
         affectedSystemIds: [previousExternalSystemId, newExternalSystemId].filter(

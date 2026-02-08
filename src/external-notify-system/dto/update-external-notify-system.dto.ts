@@ -51,21 +51,21 @@ export class UpdateExternalNotifySystemDto {
   color?: string | null;
 
   @Field(() => String, { nullable: true })
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'Auth username (stored in user_settings, never returned)' })
   @IsOptional()
   @IsString()
   @MaxLength(255)
   authUser?: string | null;
 
   @Field(() => String, { nullable: true })
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'Auth password (stored in user_settings, never returned)' })
   @IsOptional()
   @IsString()
   @MaxLength(512)
   authPassword?: string | null;
 
   @Field(() => String, { nullable: true })
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'Auth token (stored in user_settings, never returned)' })
   @IsOptional()
   @IsString()
   @MaxLength(1024)

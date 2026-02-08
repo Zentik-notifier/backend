@@ -101,4 +101,13 @@ export class CreateBucketDto {
   @IsOptional()
   @IsString()
   externalSystemChannel?: string | null;
+
+  @Field(() => String, { nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Gotify application token for this bucket (systemId+channel). Required when linking to Gotify.',
+  })
+  @IsOptional()
+  @IsString()
+  externalSystemAuthToken?: string | null;
 }

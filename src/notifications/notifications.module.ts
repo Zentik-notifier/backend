@@ -47,7 +47,7 @@ import { NotificationsResolver } from './notifications.resolver';
     EventsModule,
     GraphQLSharedModule,
     forwardRef(() => MessagesModule),
-    BucketsModule,
+    forwardRef(() => BucketsModule),
     ServerManagerModule,
     SystemAccessTokenModule,
   ],

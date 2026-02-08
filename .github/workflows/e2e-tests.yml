@@ -92,6 +92,12 @@ jobs:
           BASE_URL: http://localhost:3000/api/v1
         run: node scripts/auth/test-role-based-access.js
 
+      - name: User settings isolation tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/auth/test-user-settings-isolation.js
+
       - name: Bucket permission scope tests
         env:
           TOKEN: ${{ env.TOKEN }}

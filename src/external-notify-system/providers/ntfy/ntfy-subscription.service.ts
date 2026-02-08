@@ -2,9 +2,10 @@ import { Inject, Injectable, Logger, OnModuleInit, forwardRef } from '@nestjs/co
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
-import { Bucket } from '../entities/bucket.entity';
-import { ExternalNotifySystem, ExternalNotifySystemType } from '../entities/external-notify-system.entity';
-import { MessagesService } from '../messages/messages.service';
+import { Bucket } from '../../../entities/bucket.entity';
+import { ExternalNotifySystem, ExternalNotifySystemType } from '../../../entities/external-notify-system.entity';
+import { ExternalNotifyCredentialsStore } from '../../external-notify-credentials.store';
+import { MessagesService } from '../../../messages/messages.service';
 import { NtfyIncomingMessage, ntfyMessageToCreatePayload } from './ntfy-mapper';
 import { NTFY_ZENTIK_TAG, NtfyAuth, NtfyService } from './ntfy.service';
 
@@ -31,6 +32,7 @@ export class NtfySubscriptionService implements OnModuleInit {
     @Inject(forwardRef(() => MessagesService))
     private readonly messagesService: MessagesService,
     private readonly ntfyService: NtfyService,
+    private readonly credentialsStore: ExternalNotifyCredentialsStore,
   ) { }
 
   async onModuleInit() {
@@ -136,9 +138,10 @@ export class NtfySubscriptionService implements OnModuleInit {
 
     const topicsSegment = channels.map((c) => encodeURIComponent(c)).join(',');
     const url = `${system.baseUrl.replace(/\/$/, '')}/${topicsSegment}/sse`;
+    const auth = await this.credentialsStore.get(system.userId, system.id);
     const headers: Record<string, string> = {
       Accept: 'text/event-stream',
-      ...this.ntfyService.buildAuthHeaders(this.authFrom(system)),
+      ...this.ntfyService.buildAuthHeaders((auth as NtfyAuth) ?? {}),
     };
 
     try {
@@ -169,14 +172,6 @@ export class NtfySubscriptionService implements OnModuleInit {
     }
     this.currentTopicsBySystemId.delete(system.id);
     this.subscribe(system, 30_000).catch(() => { });
-  }
-
-  private authFrom(system: ExternalNotifySystem): NtfyAuth {
-    return {
-      authUser: system.authUser,
-      authPassword: system.authPassword,
-      authToken: system.authToken,
-    };
   }
 
   private async consumeStream(

@@ -30,15 +30,13 @@ import { UsersModule } from '../users/users.module';
 import { PayloadMapperModule } from '../payload-mapper/payload-mapper.module';
 import { EntityExecutionModule } from '../entity-execution/entity-execution.module';
 import { BucketsModule } from '../buckets/buckets.module';
-import { GotifyModule } from '../gotify/gotify.module';
-import { NtfyModule } from '../ntfy/ntfy.module';
+import { ExternalNotifySystemModule } from '../external-notify-system/external-notify-system.module';
 
 @Module({
   imports: [
-    NtfyModule,
-    GotifyModule,
+    forwardRef(() => ExternalNotifySystemModule),
     TypeOrmModule.forFeature([Message, MessageReminder, Notification, UserDevice, Bucket, User, UserBucket, UserTemplate]),
-    BucketsModule,
+    forwardRef(() => BucketsModule),
     AuthModule,
     forwardRef(() => NotificationsModule),
     AttachmentsModule,

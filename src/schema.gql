@@ -143,6 +143,7 @@ input CreateBucketDto {
   color: String
   description: String
   externalNotifySystemId: String
+  externalSystemAuthToken: String
   externalSystemChannel: String
   generateIconWithInitials: Boolean
   generateMagicCode: Boolean
@@ -413,9 +414,6 @@ enum ExecutionType {
 }
 
 type ExternalNotifySystem {
-  authPassword: String
-  authToken: String
-  authUser: String
   baseUrl: String!
   color: String
   createdAt: DateTime!
@@ -1425,6 +1423,7 @@ input UpdateBucketDto {
   color: String
   description: String
   externalNotifySystemId: String
+  externalSystemAuthToken: String
   externalSystemChannel: String
   generateIconWithInitials: Boolean
   icon: String
@@ -1741,6 +1740,7 @@ enum UserSettingType {
   DefaultSnoozes
   DisableUserTracking
   ExpoKey
+  ExternalNotifyCredentials
   GithubEventsFilter
   HomeassistantToken
   HomeassistantUrl

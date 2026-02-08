@@ -19,6 +19,8 @@ export enum UserSettingType {
   ServerStableIdentifier = 'ServerStableIdentifier',
   // Privacy: disable user action tracking for non-commercial purposes
   DisableUserTracking = 'DisableUserTracking',
+  // External notify systems credentials (JSON keyed by system id), server-side only
+  ExternalNotifyCredentials = 'ExternalNotifyCredentials',
 }
 
 registerEnumType(UserSettingType, { name: 'UserSettingType' });

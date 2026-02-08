@@ -21,7 +21,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { ExternalNotifySystem } from '../entities/external-notify-system.entity';
-import { NtfySubscriptionService } from '../ntfy/ntfy-subscription.service';
+import { NtfySubscriptionService } from './providers/ntfy/ntfy-subscription.service';
 import { ExternalNotifySystemService } from './external-notify-system.service';
 import { CreateExternalNotifySystemDto, UpdateExternalNotifySystemDto } from './dto';
 

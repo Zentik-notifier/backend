@@ -3,7 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import {
   BUCKET_LINKS_CHANGED,
   BucketLinksChangedPayload,
-} from '../common/events/bucket-events';
+} from '../../../common/events/bucket-events';
 import { NtfySubscriptionService } from './ntfy-subscription.service';
 
 @Injectable()

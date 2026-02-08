@@ -6,9 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, ResourceType } from '../auth/dto/auth.dto';
 import { Repository } from 'typeorm';
-import { ExternalNotifySystem } from '../entities/external-notify-system.entity';
+import { ExternalNotifySystem, ExternalNotifySystemType } from '../entities/external-notify-system.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { GotifySubscriptionService } from './providers/gotify/gotify-subscription.service';
+import { NtfySubscriptionService } from './providers/ntfy/ntfy-subscription.service';
 import { ResourcePermissionsDto } from '../entity-permission/dto/entity-permission.dto';
+import { ExternalNotifyCredentialsStore } from './external-notify-credentials.store';
 import {
   CreateExternalNotifySystemDto,
   UpdateExternalNotifySystemDto,
@@ -20,6 +23,9 @@ export class ExternalNotifySystemService {
     @InjectRepository(ExternalNotifySystem)
     private readonly repo: Repository<ExternalNotifySystem>,
     private readonly entityPermissionService: EntityPermissionService,
+    private readonly credentialsStore: ExternalNotifyCredentialsStore,
+    private readonly ntfySubscriptionService: NtfySubscriptionService,
+    private readonly gotifySubscriptionService: GotifySubscriptionService,
   ) {}
 
   async findAll(userId: string): Promise<ExternalNotifySystem[]> {
@@ -83,11 +89,16 @@ export class ExternalNotifySystemService {
     userId: string,
     dto: CreateExternalNotifySystemDto,
   ): Promise<ExternalNotifySystem> {
-    const entity = this.repo.create({
-      ...dto,
-      user: { id: userId },
-    });
+    const { authUser, authPassword, authToken, ...rest } = dto;
+    const entity = this.repo.create({ ...rest, user: { id: userId } });
     const saved = await this.repo.save(entity);
+    if (authUser !== undefined || authPassword !== undefined || authToken !== undefined) {
+      await this.credentialsStore.set(userId, saved.id, {
+        authUser: authUser ?? null,
+        authPassword: authPassword ?? null,
+        authToken: authToken ?? null,
+      });
+    }
     return this.repo.findOneOrFail({
       where: { id: saved.id },
       relations: ['user'],
@@ -120,8 +131,26 @@ export class ExternalNotifySystemService {
         );
       }
     }
-    Object.assign(system, dto);
+    const { authUser, authPassword, authToken, ...rest } = dto;
+    Object.assign(system, rest);
     await this.repo.save(system);
+    const hasAuthInput =
+      authUser !== undefined || authPassword !== undefined || authToken !== undefined;
+    if (hasAuthInput) {
+      const existing = await this.credentialsStore.get(userId, id);
+      await this.credentialsStore.set(userId, id, {
+        authUser: authUser !== undefined ? authUser : (existing?.authUser ?? null),
+        authPassword:
+          authPassword !== undefined ? authPassword : (existing?.authPassword ?? null),
+        authToken: authToken !== undefined ? authToken : (existing?.authToken ?? null),
+      });
+    }
+    if (system.type === ExternalNotifySystemType.NTFY) {
+      this.ntfySubscriptionService.refreshSubscriptionForSystem(id).catch(() => {});
+    }
+    if (system.type === ExternalNotifySystemType.Gotify) {
+      this.gotifySubscriptionService.refreshSubscriptionForSystem(id).catch(() => {});
+    }
     return this.repo.findOneOrFail({
       where: { id },
       relations: ['user'],
@@ -150,6 +179,7 @@ export class ExternalNotifySystemService {
         );
       }
     }
+    await this.credentialsStore.delete(system.userId, id);
     await this.repo.remove(system);
     return true;
   }

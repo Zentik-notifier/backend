@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Message } from '../entities/message.entity';
+import { Message } from '../../../entities/message.entity';
 import { messageToGotifyPayload, GotifyPublishPayload } from './gotify-mapper';
 
 @Injectable()

@@ -63,21 +63,6 @@ export class ExternalNotifySystem {
   @Column({ type: 'varchar', nullable: true })
   color?: string | null;
 
-  @Field(() => String, { nullable: true })
-  @ApiProperty({ required: false, description: 'Auth username for the external system' })
-  @Column({ type: 'varchar', nullable: true })
-  authUser?: string | null;
-
-  @Field(() => String, { nullable: true })
-  @ApiProperty({ required: false, description: 'Auth password for the external system' })
-  @Column({ type: 'varchar', nullable: true })
-  authPassword?: string | null;
-
-  @Field(() => String, { nullable: true })
-  @ApiProperty({ required: false, description: 'Auth token for the external system' })
-  @Column({ type: 'varchar', nullable: true })
-  authToken?: string | null;
-
   @Column()
   userId: string;
 
