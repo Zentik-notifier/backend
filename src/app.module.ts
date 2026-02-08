@@ -33,6 +33,7 @@ import { ServerSettingsService } from './server-manager/server-settings.service'
 import { ServerSettingType } from './entities/server-setting.entity';
 import { ChangelogModule } from './changelog/changelog.module';
 import { ExternalNotifySystemModule } from './external-notify-system/external-notify-system.module';
+import { LanDiscoveryModule } from './lan-discovery/lan-discovery.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { ExternalNotifySystemModule } from './external-notify-system/external-no
     EntityExecutionModule,
     ChangelogModule,
     ExternalNotifySystemModule,
+    LanDiscoveryModule,
   ],
   controllers: [AppController],
   providers: [
