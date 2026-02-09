@@ -2,6 +2,8 @@ import { CreateMessageDto } from '../../../messages/dto';
 import { Bucket } from '../../../entities/bucket.entity';
 import { Message } from '../../../entities/message.entity';
 import {
+  MediaType,
+  NotificationActionType,
   NotificationDeliveryType,
 } from '../../../notifications/notifications.types';
 
@@ -46,6 +48,8 @@ const GOTIFY_PRIORITY_TO_DELIVERY: Record<number, NotificationDeliveryType> = {
   10: NotificationDeliveryType.CRITICAL,
 };
 
+const GOTIFY_EXTRAS_CLIENT_NOTIFICATION = 'client::notification';
+
 export function messageToGotifyPayload(
   message: Message,
   _bucket?: Bucket | null,
@@ -60,7 +64,28 @@ export function messageToGotifyPayload(
   payload.priority =
     DELIVERY_TO_GOTIFY_PRIORITY[message.deliveryType] ?? 5;
 
-  payload.extras = { [GOTIFY_ZENTIK_EXTRA_KEY]: GOTIFY_ZENTIK_EXTRA_VALUE };
+  const extras: Record<string, unknown> = {
+    [GOTIFY_ZENTIK_EXTRA_KEY]: GOTIFY_ZENTIK_EXTRA_VALUE,
+  };
+
+  const clientNotification: Record<string, unknown> = {};
+  if (
+    message.tapAction?.type === NotificationActionType.NAVIGATE &&
+    message.tapAction.value
+  ) {
+    clientNotification['click'] = { url: message.tapAction.value };
+  }
+  const firstImageAttachment = message.attachments?.find(
+    (a) => a.mediaType === MediaType.IMAGE && a.url,
+  );
+  if (firstImageAttachment?.url) {
+    clientNotification['bigImageUrl'] = firstImageAttachment.url;
+  }
+  if (Object.keys(clientNotification).length > 0) {
+    extras[GOTIFY_EXTRAS_CLIENT_NOTIFICATION] = clientNotification;
+  }
+
+  payload.extras = extras;
 
   return payload;
 }
@@ -74,9 +99,26 @@ export function gotifyMessageToCreatePayload(
   const deliveryType =
     GOTIFY_PRIORITY_TO_DELIVERY[priority] ?? NotificationDeliveryType.NORMAL;
 
-  return {
+  const dto: CreateMessageDto = {
     title: title || 'Notification',
     body: body || undefined,
     deliveryType,
   };
+
+  const clientNotif = gotify.extras?.[GOTIFY_EXTRAS_CLIENT_NOTIFICATION] as
+    | { click?: { url?: string }; bigImageUrl?: string }
+    | undefined;
+  if (clientNotif?.click?.url) {
+    dto.tapAction = {
+      type: NotificationActionType.NAVIGATE,
+      value: clientNotif.click.url,
+    };
+  }
+  if (clientNotif?.bigImageUrl) {
+    dto.attachments = [
+      { mediaType: MediaType.IMAGE, url: clientNotif.bigImageUrl },
+    ];
+  }
+
+  return dto;
 }
