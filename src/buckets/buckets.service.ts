@@ -21,6 +21,7 @@ import { EventTrackingService } from '../events/event-tracking.service';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { UrlBuilderService } from '../common/services/url-builder.service';
 import { generateMagicCode } from '../common/utils/code-generation.utils';
+import { isUuid } from '../common/utils/validation.utils';
 import { UserRole } from '../users/users.types';
 import { CreateBucketDto, UpdateBucketDto } from './dto/index';
 import { ResourcePermissionsDto } from '../entity-permission/dto/entity-permission.dto';
@@ -274,6 +275,23 @@ export class BucketsService {
     } catch { }
 
     return baseBucket;
+  }
+
+  async resolveBucketIdForUser(userId: string, bucketIdOrName: string): Promise<string | undefined> {
+    if (!bucketIdOrName || typeof bucketIdOrName !== 'string') return undefined;
+    const trimmed = bucketIdOrName.trim();
+    if (!trimmed) return undefined;
+    if (isUuid(trimmed)) {
+      try {
+        await this.findOne(trimmed, userId);
+        return trimmed;
+      } catch {
+        return undefined;
+      }
+    }
+    const buckets = await this.findAll(userId);
+    const byName = buckets.find((b) => b.name === trimmed);
+    return byName?.id;
   }
 
   /**

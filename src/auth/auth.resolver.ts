@@ -84,6 +84,10 @@ export class AuthResolver {
       ServerSettingType.IconUploaderEnabled,
       true,
     );
+    const externalNotifySystemsEnabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
     const response: PublicAppConfig = {
       oauthProviders: providers,
       emailEnabled,
@@ -93,6 +97,7 @@ export class AuthResolver {
       socialLoginEnabled,
       localRegistrationEnabled,
       socialRegistrationEnabled,
+      externalNotifySystemsEnabled,
     };
     this.publicAppConfigCache = { data: response, fetchedAt: Date.now() };
     return response;

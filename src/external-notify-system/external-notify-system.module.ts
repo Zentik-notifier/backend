@@ -7,6 +7,7 @@ import { User } from '../entities/user.entity';
 import { UserSetting } from '../entities/user-setting.entity';
 import { EntityPermissionModule } from '../entity-permission/entity-permission.module';
 import { MessagesModule } from '../messages/messages.module';
+import { ServerManagerModule } from '../server-manager/server-manager.module';
 import { ExternalNotifySystemController } from './external-notify-system.controller';
 import { ExternalNotifyCredentialsStore } from './external-notify-credentials.store';
 import { ExternalNotifySystemResolver } from './external-notify-system.resolver';
@@ -23,6 +24,7 @@ import { NtfySubscriptionService } from './providers/ntfy/ntfy-subscription.serv
     TypeOrmModule.forFeature([ExternalNotifySystem, User, UserSetting, Bucket]),
     AuthModule,
     EntityPermissionModule,
+    ServerManagerModule,
     forwardRef(() => MessagesModule),
   ],
   controllers: [ExternalNotifySystemController],

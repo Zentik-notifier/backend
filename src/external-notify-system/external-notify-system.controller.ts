@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -21,6 +22,8 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { ExternalNotifySystem } from '../entities/external-notify-system.entity';
+import { ServerSettingType } from '../entities/server-setting.entity';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { NtfySubscriptionService } from './providers/ntfy/ntfy-subscription.service';
 import { ExternalNotifySystemService } from './external-notify-system.service';
 import { CreateExternalNotifySystemDto, UpdateExternalNotifySystemDto } from './dto';
@@ -33,6 +36,7 @@ export class ExternalNotifySystemController {
   constructor(
     private readonly externalNotifySystemService: ExternalNotifySystemService,
     private readonly ntfySubscriptionService: NtfySubscriptionService,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   @Post()
@@ -66,7 +70,15 @@ export class ExternalNotifySystemController {
   @UseGuards(AdminOnlyGuard)
   @ApiOperation({ summary: 'Reload NTFY subscriptions (admin only)' })
   @ApiResponse({ status: 200, description: 'Subscriptions reloaded' })
+  @ApiResponse({ status: 403, description: 'External notify systems disabled' })
   async reloadNtfySubscriptions(): Promise<{ ok: boolean }> {
+    const enabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
+    if (!enabled) {
+      throw new ForbiddenException('External notify systems are disabled');
+    }
     await this.ntfySubscriptionService.startAllSubscriptions();
     return { ok: true };
   }

@@ -216,6 +216,7 @@ export class ServerSettingsService {
         // Prometheus
         { configType: ServerSettingType.PrometheusEnabled, envKey: 'PROMETHEUS_ENABLED', type: 'boolean', defaultValue: false },
         { configType: ServerSettingType.EnableSystemTokenRequests, envKey: 'ENABLE_SYSTEM_TOKEN_REQUESTS', type: 'boolean', defaultValue: false },
+        { configType: ServerSettingType.ExternalNotifySystemsEnabled, envKey: 'EXTERNAL_NOTIFY_SYSTEMS_ENABLED', type: 'boolean', defaultValue: true },
       ];
 
     const createdSettings: string[] = [];

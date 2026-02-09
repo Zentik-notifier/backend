@@ -112,6 +112,9 @@ export enum ServerSettingType {
   
   // System Access Token Usage Tracking
   SystemTokenUsageStats = 'SystemTokenUsageStats',
+
+  // External notify systems (Gotify, NTFY, etc.)
+  ExternalNotifySystemsEnabled = 'ExternalNotifySystemsEnabled',
 }
 
 registerEnumType(ServerSettingType, { name: 'ServerSettingType' });

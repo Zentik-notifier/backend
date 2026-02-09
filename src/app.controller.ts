@@ -80,6 +80,10 @@ export class AppController {
         ServerSettingType.SocialLoginEnabled,
         true,
       );
+      const externalNotifySystemsEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.ExternalNotifySystemsEnabled,
+        true,
+      );
 
       const response = {
         oauthProviders: providers,
@@ -90,6 +94,7 @@ export class AppController {
         localRegistrationEnabled,
         socialRegistrationEnabled,
         socialLoginEnabled,
+        externalNotifySystemsEnabled,
       };
 
       this.publicAppConfigCache = { data: response, fetchedAt: Date.now() };

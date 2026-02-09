@@ -120,6 +120,13 @@ async function runTest(name, fn) {
 async function main() {
   await ensureDevice();
 
+  const bucketData = await graphql(
+    `query GetBucket($id: String!) { bucket(id: $id) { id name } }`,
+    { id: BUCKET_ID }
+  );
+  const bucketName = bucketData?.bucket?.name;
+  if (!bucketName) throw new Error('Bucket name not found for BUCKET_ID');
+
   await runTest('SSE /messages/stream (EventSource, ntfy-style open+message)', async () => {
     const streamUrl = `${BASE_URL}/messages/stream`;
     const { messageId, event, openReceived } = await createMessageAndWaitForSseWithEventSource(streamUrl, SUBSCRIPTION_TIMEOUT_MS);
@@ -144,6 +151,19 @@ async function main() {
     const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
     if (data.id !== messageId) {
       throw new Error(`SSE /stream message id mismatch: expected ${messageId}, got ${data.id}`);
+    }
+  });
+
+  await runTest('SSE /messages/stream filtered by bucket name', async () => {
+    const streamUrl = `${BASE_URL}/messages/stream?bucketId=${encodeURIComponent(bucketName)}`;
+    const { messageId, event, openReceived } = await createMessageAndWaitForSseWithEventSource(streamUrl, SUBSCRIPTION_TIMEOUT_MS);
+    if (!openReceived) throw new Error('SSE (by name) expected open event');
+    if (!event || event.type !== 'message' || !event.data) {
+      throw new Error(`SSE (by name) expected message event, got ${JSON.stringify(event)}`);
+    }
+    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+    if (data.id !== messageId) {
+      throw new Error(`SSE (by name) message id mismatch: expected ${messageId}, got ${data.id}`);
     }
   });
 
@@ -178,6 +198,35 @@ async function main() {
     }
   });
 
+  await runTest('Long poll /messages/poll filtered by bucket name', async () => {
+    const since = 0;
+    const created = await graphql(
+      `mutation CreateMessage($input: CreateMessageDto!) { createMessage(input: $input) { id } }`,
+      {
+        input: {
+          bucketId: BUCKET_ID,
+          title: `E2E poll by name ${Date.now()}`,
+          deliveryType: 'NORMAL',
+          body: 'E2E long poll by bucket name',
+        },
+      }
+    );
+    const messageId = created?.createMessage?.id;
+    if (!messageId) throw new Error('createMessage did not return message id');
+    await new Promise((r) => setTimeout(r, 500));
+    const res = await fetchHttp(
+      `${BASE_URL}/messages/poll?since=${since}&bucketId=${encodeURIComponent(bucketName)}`,
+      { method: 'GET', headers: { Authorization: `Bearer ${TOKEN}` } }
+    );
+    if (res.status !== 200) throw new Error(`poll (by name) returned ${res.status}: ${res.data}`);
+    const body = JSON.parse(res.data || '{}');
+    const events = body.events || [];
+    const createdEvent = events.find((e) => e.type === 'message_created' && e.message?.id === messageId);
+    if (!createdEvent) {
+      throw new Error(`poll (by name) did not return message_created for ${messageId}, got ${JSON.stringify(events)}`);
+    }
+  });
+
   await runTest('Long poll /poll shortcut returns message_created after create', async () => {
     const since = 0;
     const created = await graphql(
@@ -209,10 +258,110 @@ async function main() {
     }
   });
 
+  await runTest('SSE /messages/stream for shared bucket (not owned by user)', async () => {
+    const ts = Date.now();
+    const otherUsername = `e2e-stream-other-${ts}`;
+    const otherPassword = 'E2eStreamOther1!';
+    const registerRes = await fetchHttp(`${BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: `${otherUsername}@example.com`,
+        username: otherUsername,
+        password: otherPassword,
+      }),
+    });
+    if (registerRes.status < 200 || registerRes.status >= 300) {
+      throw new Error(`Register other user failed: ${registerRes.status} ${registerRes.data}`);
+    }
+    const loginRes = await fetchHttp(`${BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: otherUsername, password: otherPassword }),
+    });
+    if (loginRes.status < 200 || loginRes.status >= 300) {
+      throw new Error(`Login other user failed: ${loginRes.status}`);
+    }
+    const jwt = JSON.parse(loginRes.data || '{}').accessToken;
+    if (!jwt) throw new Error('No JWT for other user');
+    const tokenRes = await fetchHttp(`${BASE_URL}/access-tokens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ name: 'E2E Stream Other', storeToken: true, scopes: [] }),
+    });
+    if (tokenRes.status < 200 || tokenRes.status >= 300) {
+      throw new Error(`Create access token for other user failed: ${tokenRes.status}`);
+    }
+    const otherToken = JSON.parse(tokenRes.data || '{}').token;
+    if (!otherToken) throw new Error('No token for other user');
+    const bucketData = await graphql(
+      `mutation CreateBucket($input: CreateBucketDto!) { createBucket(input: $input) { id name } }`,
+      {
+        input: {
+          name: `E2E shared stream bucket ${ts}`,
+          generateIconWithInitials: true,
+          generateMagicCode: false,
+        },
+      },
+      otherToken
+    );
+    const sharedBucketId = bucketData?.createBucket?.id;
+    if (!sharedBucketId) throw new Error('Other user createBucket did not return id');
+    await graphql(
+      `mutation RegisterDevice($input: RegisterDeviceDto!) { registerDevice(input: $input) { id } }`,
+      {
+        input: {
+          platform: 'IOS',
+          deviceToken: `e2e-stream-other-${ts}`,
+          deviceName: 'E2E Stream Other',
+          deviceModel: 'iPhone',
+        },
+      },
+      otherToken
+    );
+    const meData = await graphql(`query { me { username } }`);
+    const firstUserUsername = meData?.me?.username;
+    if (!firstUserUsername) throw new Error('me.username not found');
+    await graphql(
+      `mutation ShareBucket($input: GrantEntityPermissionInput!) {
+        shareBucket(input: $input) { id }
+      }`,
+      {
+        input: {
+          resourceType: 'BUCKET',
+          resourceId: sharedBucketId,
+          username: firstUserUsername,
+          permissions: ['READ', 'WRITE'],
+        },
+      },
+      otherToken
+    );
+    const streamUrl = `${BASE_URL}/messages/stream?bucketId=${encodeURIComponent(sharedBucketId)}`;
+    const { messageId, event, openReceived } = await createMessageAndWaitForSseWithEventSource(
+      streamUrl,
+      SUBSCRIPTION_TIMEOUT_MS,
+      sharedBucketId,
+      otherToken
+    );
+    if (!openReceived) throw new Error('SSE (shared bucket) expected open event');
+    if (!event || event.type !== 'message' || !event.data) {
+      throw new Error(`SSE (shared bucket) expected message event, got ${JSON.stringify(event)}`);
+    }
+    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+    if (data.id !== messageId) {
+      throw new Error(`SSE (shared bucket) message id mismatch: expected ${messageId}, got ${data.id}`);
+    }
+  });
+
   log('All stream E2E tests passed.');
 }
 
-function createMessageAndWaitForSseWithEventSource(streamUrl, timeoutMs) {
+function createMessageAndWaitForSseWithEventSource(
+  streamUrl,
+  timeoutMs,
+  bucketIdForCreate = BUCKET_ID,
+  createMessageToken = TOKEN
+) {
   return new Promise((resolve, reject) => {
     const state = { messageId: null, messageEvent: null, openReceived: false, resolved: false };
     const doResolve = () => {
@@ -254,12 +403,13 @@ function createMessageAndWaitForSseWithEventSource(streamUrl, timeoutMs) {
         `mutation CreateMessage($input: CreateMessageDto!) { createMessage(input: $input) { id } }`,
         {
           input: {
-            bucketId: BUCKET_ID,
+            bucketId: bucketIdForCreate,
             title: `E2E SSE ${Date.now()}`,
             deliveryType: 'NORMAL',
             body: 'E2E SSE test',
           },
-        }
+        },
+        createMessageToken
       )
         .then((data) => {
           state.messageId = data?.createMessage?.id || null;

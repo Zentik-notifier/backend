@@ -30,6 +30,7 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
+import { BucketsService } from '../buckets/buckets.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { CreateMessageResponseDto } from './dto/create-message-response.dto';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
@@ -53,6 +54,7 @@ export class MessagesRootController {
     private readonly messagesService: MessagesService,
     private readonly subscriptionService: GraphQLSubscriptionService,
     private readonly streamService: MessagesStreamService,
+    private readonly bucketsService: BucketsService,
   ) {}
 
   @Post('message')
@@ -392,14 +394,17 @@ export class MessagesRootController {
   @Get('stream')
   @UseGuards(JwtOrAccessTokenGuard)
   @ApiOperation({
-    summary: 'SSE stream of new messages (Root). Same as GET /messages/stream.',
+    summary: 'SSE stream of new messages (Root). Same as GET /messages/stream. Supports bucketId or bucket name.',
   })
   async stream(
     @Res({ passthrough: false }) res: Response,
     @GetUser('id') userId: string | undefined,
-    @Query('bucketId') bucketId?: string,
+    @Query('bucketId') bucketIdParam?: string,
   ): Promise<void> {
     if (!userId) throw new UnauthorizedException();
+    const bucketId = bucketIdParam
+      ? await this.bucketsService.resolveBucketIdForUser(userId, bucketIdParam)
+      : undefined;
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -449,14 +454,17 @@ export class MessagesRootController {
   @Get('poll')
   @UseGuards(JwtOrAccessTokenGuard)
   @ApiOperation({
-    summary: 'Long poll: new message events (Root). Same as GET /messages/poll.',
+    summary: 'Long poll: new message events (Root). Same as GET /messages/poll. Supports bucketId or bucket name.',
   })
   async poll(
     @GetUser('id') userId: string | undefined,
     @Query('since') sinceParam?: string,
-    @Query('bucketId') bucketId?: string,
+    @Query('bucketId') bucketIdParam?: string,
   ): Promise<{ events: StreamEventDto[]; nextSince: number }> {
     if (!userId) throw new UnauthorizedException();
+    const bucketId = bucketIdParam
+      ? await this.bucketsService.resolveBucketIdForUser(userId, bucketIdParam)
+      : undefined;
     const since = this.parseStreamSince(sinceParam);
     const events = this.streamService.getEvents(userId, bucketId ?? undefined, since);
     if (events.length > 0) {

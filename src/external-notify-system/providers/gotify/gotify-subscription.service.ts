@@ -8,6 +8,8 @@ import {
   ExternalNotifySystem,
   ExternalNotifySystemType,
 } from '../../../entities/external-notify-system.entity';
+import { ServerSettingType } from '../../../entities/server-setting.entity';
+import { ServerSettingsService } from '../../../server-manager/server-settings.service';
 import { ExternalNotifyCredentialsStore } from '../../external-notify-credentials.store';
 import { MessagesService } from '../../../messages/messages.service';
 import {
@@ -18,13 +20,15 @@ import {
 } from './gotify-mapper';
 
 const PUBLISHED_GOTIFY_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const GOTIFY_PING_INTERVAL_MS = 30_000; // 30s, keep connection alive for proxies/server
+const GOTIFY_PING_INTERVAL_MS = 10_000; // 10s, keep connection alive (proxies/servers often use 5–15s idle timeout)
+const GOTIFY_FIRST_PING_DELAY_MS = 2_000; // send first ping soon after open to avoid idle timeout before first interval
 
 @Injectable()
 export class GotifySubscriptionService implements OnModuleInit {
   private readonly logger = new Logger(GotifySubscriptionService.name);
   private socketsBySystemId = new Map<string, WebSocket>();
   private pingIntervalsBySystemId = new Map<string, NodeJS.Timeout>();
+  private firstPingTimeoutsBySystemId = new Map<string, NodeJS.Timeout>();
   private publishedGotifyIds = new Map<string, number>(); // "systemId:id" -> timestamp
 
   constructor(
@@ -35,6 +39,7 @@ export class GotifySubscriptionService implements OnModuleInit {
     @Inject(forwardRef(() => MessagesService))
     private readonly messagesService: MessagesService,
     private readonly credentialsStore: ExternalNotifyCredentialsStore,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   async onModuleInit() {
@@ -42,6 +47,11 @@ export class GotifySubscriptionService implements OnModuleInit {
   }
 
   async startAllSubscriptions() {
+    const enabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
+    if (!enabled) return;
     const systems = await this.systemRepo.find({
       where: { type: ExternalNotifySystemType.Gotify },
       relations: ['user'],
@@ -56,6 +66,11 @@ export class GotifySubscriptionService implements OnModuleInit {
   }
 
   async refreshSubscriptionForSystem(systemId: string): Promise<void> {
+    const enabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
+    if (!enabled) return;
     const system = await this.systemRepo.findOne({
       where: { id: systemId, type: ExternalNotifySystemType.Gotify },
       relations: ['user'],
@@ -104,10 +119,13 @@ export class GotifySubscriptionService implements OnModuleInit {
     await this.startAllSubscriptions();
   }
 
-  private clearPingInterval(systemId: string): void {
-    const id = this.pingIntervalsBySystemId.get(systemId);
-    if (id) clearInterval(id);
+  private clearPingTimers(systemId: string): void {
+    const intervalId = this.pingIntervalsBySystemId.get(systemId);
+    if (intervalId) clearInterval(intervalId);
     this.pingIntervalsBySystemId.delete(systemId);
+    const timeoutId = this.firstPingTimeoutsBySystemId.get(systemId);
+    if (timeoutId) clearTimeout(timeoutId);
+    this.firstPingTimeoutsBySystemId.delete(systemId);
   }
 
   private getStreamUrl(baseUrl: string, clientToken: string): string {
@@ -136,7 +154,7 @@ export class GotifySubscriptionService implements OnModuleInit {
 
     const existing = this.socketsBySystemId.get(system.id);
     if (existing) {
-      this.clearPingInterval(system.id);
+      this.clearPingTimers(system.id);
       existing.close();
       this.socketsBySystemId.delete(system.id);
     }
@@ -149,6 +167,11 @@ export class GotifySubscriptionService implements OnModuleInit {
       ws.on('open', () => {
         this.logger.debug(`Gotify WebSocket connected to ${system.baseUrl}`);
         this.socketsBySystemId.set(system.id, ws);
+        const firstPingTimeout = setTimeout(() => {
+          this.firstPingTimeoutsBySystemId.delete(system.id);
+          if (ws.readyState === WebSocket.OPEN) ws.ping();
+        }, GOTIFY_FIRST_PING_DELAY_MS);
+        this.firstPingTimeoutsBySystemId.set(system.id, firstPingTimeout);
         const pingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) ws.ping();
         }, GOTIFY_PING_INTERVAL_MS);
@@ -173,7 +196,7 @@ export class GotifySubscriptionService implements OnModuleInit {
       });
 
       ws.on('close', (code, reason) => {
-        this.clearPingInterval(system.id);
+        this.clearPingTimers(system.id);
         this.socketsBySystemId.delete(system.id);
         const delayMs = 5_000;
         this.logger.warn(
@@ -183,7 +206,7 @@ export class GotifySubscriptionService implements OnModuleInit {
       });
 
       ws.on('error', (err) => {
-        this.clearPingInterval(system.id);
+        this.clearPingTimers(system.id);
         this.socketsBySystemId.delete(system.id);
         const msg = err?.message ?? '';
         this.logger.warn(`Gotify WebSocket error ${system.baseUrl}: ${msg}`);

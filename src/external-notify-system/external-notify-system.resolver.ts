@@ -13,12 +13,14 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { EntityPermission } from '../entities/entity-permission.entity';
 import { ExternalNotifySystem } from '../entities/external-notify-system.entity';
+import { ServerSettingType } from '../entities/server-setting.entity';
 import {
   GrantEntityPermissionInput,
   ResourcePermissionsDto,
   RevokeEntityPermissionInput,
 } from '../entity-permission/dto/entity-permission.dto';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import {
   CreateExternalNotifySystemDto,
   UpdateExternalNotifySystemDto,
@@ -31,6 +33,7 @@ export class ExternalNotifySystemResolver {
   constructor(
     private readonly externalNotifySystemService: ExternalNotifySystemService,
     private readonly entityPermissionService: EntityPermissionService,
+    private readonly serverSettingsService: ServerSettingsService,
   ) {}
 
   @Query(() => [ExternalNotifySystem])
@@ -71,6 +74,11 @@ export class ExternalNotifySystemResolver {
     @Args('resourceId') resourceId: string,
     @GetUser('id') userId: string,
   ) {
+    const enabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
+    if (!enabled) return [];
     return this.entityPermissionService.getResourcePermissions(
       ResourceType.EXTERNAL_NOTIFY_SYSTEM,
       resourceId,

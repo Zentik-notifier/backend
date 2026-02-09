@@ -649,4 +649,7 @@ export class PublicAppConfig {
 
   @Field()
   iconUploaderEnabled: boolean;
+
+  @Field()
+  externalNotifySystemsEnabled: boolean;
 }

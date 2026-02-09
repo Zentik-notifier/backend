@@ -1016,6 +1016,7 @@ type PostponeResponseDto {
 
 type PublicAppConfig {
   emailEnabled: Boolean!
+  externalNotifySystemsEnabled: Boolean!
   iconUploaderEnabled: Boolean!
   localRegistrationEnabled: Boolean!
   oauthProviders: [OAuthProviderPublicDto!]!
@@ -1272,6 +1273,7 @@ enum ServerSettingType {
   EmailType
   EmailUser
   EnableSystemTokenRequests
+  ExternalNotifySystemsEnabled
   FirebaseClientEmail
   FirebasePrivateKey
   FirebaseProjectId

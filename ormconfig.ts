@@ -56,6 +56,7 @@ import { AddEphemeralToMessages1769500000000 } from './database/migrations/17695
 import { AddExternalSystemResponseToMessages1769600000000 } from './database/migrations/1769600000000-AddExternalSystemResponseToMessages';
 import { AddScheduledSendAtToMessages1769700000000 } from './database/migrations/1769700000000-AddScheduledSendAtToMessages';
 import { AddExternalNotifyCredentialsSetting1769800000000 } from './database/migrations/1769800000000-AddExternalNotifyCredentialsSetting';
+import { AddExternalNotifySystemsEnabledSetting1769900000000 } from './database/migrations/1769900000000-AddExternalNotifySystemsEnabledSetting';
 
 config({ path: '.env' });
 
@@ -133,6 +134,7 @@ const dataSource = new DataSource({
     AddExternalSystemResponseToMessages1769600000000,
     AddScheduledSendAtToMessages1769700000000,
     AddExternalNotifyCredentialsSetting1769800000000,
+    AddExternalNotifySystemsEnabledSetting1769900000000,
   ],
   migrationsTableName: 'migrations',
 });

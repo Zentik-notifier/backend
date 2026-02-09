@@ -5,6 +5,8 @@ import { EventSource } from 'eventsource';
 import { IsNull, Not, Repository } from 'typeorm';
 import { Bucket } from '../../../entities/bucket.entity';
 import { ExternalNotifySystem, ExternalNotifySystemType } from '../../../entities/external-notify-system.entity';
+import { ServerSettingType } from '../../../entities/server-setting.entity';
+import { ServerSettingsService } from '../../../server-manager/server-settings.service';
 import { ExternalNotifyCredentialsStore } from '../../external-notify-credentials.store';
 import { MessagesService } from '../../../messages/messages.service';
 import { NtfyIncomingMessage, ntfyMessageToCreatePayload } from './ntfy-mapper';
@@ -42,6 +44,7 @@ export class NtfySubscriptionService implements OnModuleInit {
     private readonly messagesService: MessagesService,
     private readonly ntfyService: NtfyService,
     private readonly credentialsStore: ExternalNotifyCredentialsStore,
+    private readonly serverSettingsService: ServerSettingsService,
   ) { }
 
   async onModuleInit() {
@@ -49,6 +52,11 @@ export class NtfySubscriptionService implements OnModuleInit {
   }
 
   async startAllSubscriptions() {
+    const enabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
+    if (!enabled) return;
     const systems = await this.systemRepo.find({
       where: { type: ExternalNotifySystemType.NTFY },
       relations: ['user'],
@@ -63,6 +71,11 @@ export class NtfySubscriptionService implements OnModuleInit {
   }
 
   async refreshSubscriptionForSystem(systemId: string): Promise<void> {
+    const enabled = await this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
+    if (!enabled) return;
     const system = await this.systemRepo.findOne({
       where: { id: systemId, type: ExternalNotifySystemType.NTFY },
       relations: ['user'],

@@ -33,6 +33,7 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
+import { BucketsService } from '../buckets/buckets.service';
 import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { CreateMessageResponseDto } from './dto/create-message-response.dto';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
@@ -60,6 +61,7 @@ export class MessagesController {
     private readonly messagesService: MessagesService,
     private readonly subscriptionService: GraphQLSubscriptionService,
     private readonly streamService: MessagesStreamService,
+    private readonly bucketsService: BucketsService,
   ) {}
 
   @Post()
@@ -425,14 +427,17 @@ export class MessagesController {
   @Get('stream')
   @UseGuards(JwtOrAccessTokenGuard)
   @ApiOperation({
-    summary: 'SSE stream of new messages for the current user (optional bucketId query)',
+    summary: 'SSE stream of new messages for the current user (optional bucketId or bucket name query)',
   })
   async stream(
     @Res({ passthrough: false }) res: Response,
     @GetUser('id') userId: string | undefined,
-    @Query('bucketId') bucketId?: string,
+    @Query('bucketId') bucketIdParam?: string,
   ): Promise<void> {
     if (!userId) throw new UnauthorizedException();
+    const bucketId = bucketIdParam
+      ? await this.bucketsService.resolveBucketIdForUser(userId, bucketIdParam)
+      : undefined;
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -483,14 +488,17 @@ export class MessagesController {
   @UseGuards(JwtOrAccessTokenGuard)
   @ApiOperation({
     summary:
-      'Long poll: new message events for the current user (optional bucketId, since query)',
+      'Long poll: new message events for the current user (optional bucketId or bucket name, since query)',
   })
   async poll(
     @GetUser('id') userId: string | undefined,
     @Query('since') sinceParam?: string,
-    @Query('bucketId') bucketId?: string,
+    @Query('bucketId') bucketIdParam?: string,
   ): Promise<{ events: StreamEventDto[]; nextSince: number }> {
     if (!userId) throw new UnauthorizedException();
+    const bucketId = bucketIdParam
+      ? await this.bucketsService.resolveBucketIdForUser(userId, bucketIdParam)
+      : undefined;
     const since = this.parseStreamSince(sinceParam);
     const events = this.streamService.getEvents(userId, bucketId ?? undefined, since);
     if (events.length > 0) {

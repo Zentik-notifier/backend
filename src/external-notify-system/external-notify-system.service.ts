@@ -7,7 +7,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, ResourceType } from '../auth/dto/auth.dto';
 import { Repository } from 'typeorm';
 import { ExternalNotifySystem, ExternalNotifySystemType } from '../entities/external-notify-system.entity';
+import { ServerSettingType } from '../entities/server-setting.entity';
 import { EntityPermissionService } from '../entity-permission/entity-permission.service';
+import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { GotifySubscriptionService } from './providers/gotify/gotify-subscription.service';
 import { NtfySubscriptionService } from './providers/ntfy/ntfy-subscription.service';
 import { ResourcePermissionsDto } from '../entity-permission/dto/entity-permission.dto';
@@ -24,11 +26,22 @@ export class ExternalNotifySystemService {
     private readonly repo: Repository<ExternalNotifySystem>,
     private readonly entityPermissionService: EntityPermissionService,
     private readonly credentialsStore: ExternalNotifyCredentialsStore,
+    private readonly serverSettingsService: ServerSettingsService,
     private readonly ntfySubscriptionService: NtfySubscriptionService,
     private readonly gotifySubscriptionService: GotifySubscriptionService,
   ) {}
 
+  private async isExternalNotifySystemsEnabled(): Promise<boolean> {
+    return this.serverSettingsService.getBooleanValue(
+      ServerSettingType.ExternalNotifySystemsEnabled,
+      true,
+    );
+  }
+
   async findAll(userId: string): Promise<ExternalNotifySystem[]> {
+    if (!(await this.isExternalNotifySystemsEnabled())) {
+      return [];
+    }
     const owned = await this.repo.find({
       where: { userId },
       relations: ['user'],
@@ -61,6 +74,9 @@ export class ExternalNotifySystemService {
   }
 
   async findOne(id: string, userId: string): Promise<ExternalNotifySystem> {
+    if (!(await this.isExternalNotifySystemsEnabled())) {
+      throw new ForbiddenException('External notify systems are disabled');
+    }
     const system = await this.repo.findOne({
       where: { id },
       relations: ['user'],
@@ -89,6 +105,9 @@ export class ExternalNotifySystemService {
     userId: string,
     dto: CreateExternalNotifySystemDto,
   ): Promise<ExternalNotifySystem> {
+    if (!(await this.isExternalNotifySystemsEnabled())) {
+      throw new ForbiddenException('External notify systems are disabled');
+    }
     const { authUser, authPassword, authToken, ...rest } = dto;
     const entity = this.repo.create({ ...rest, user: { id: userId } });
     const saved = await this.repo.save(entity);
@@ -110,6 +129,9 @@ export class ExternalNotifySystemService {
     userId: string,
     dto: UpdateExternalNotifySystemDto,
   ): Promise<ExternalNotifySystem> {
+    if (!(await this.isExternalNotifySystemsEnabled())) {
+      throw new ForbiddenException('External notify systems are disabled');
+    }
     const system = await this.repo.findOne({
       where: { id },
       relations: ['user'],
@@ -158,6 +180,9 @@ export class ExternalNotifySystemService {
   }
 
   async remove(id: string, userId: string): Promise<boolean> {
+    if (!(await this.isExternalNotifySystemsEnabled())) {
+      throw new ForbiddenException('External notify systems are disabled');
+    }
     const system = await this.repo.findOne({
       where: { id },
       relations: ['user'],

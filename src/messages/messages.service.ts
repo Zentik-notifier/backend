@@ -593,7 +593,11 @@ export class MessagesService {
       });
       const ext = bucketWithExt?.externalNotifySystem;
       const channel = bucketWithExt?.externalSystemChannel;
-      if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
+      const externalNotifyEnabled = await this.serverSettingsService.getBooleanValue(
+        ServerSettingType.ExternalNotifySystemsEnabled,
+        true,
+      );
+      if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
         this.logger.log(`NTFY publish starting for message ${savedMessage.id} topic=${channel}`);
         try {
           const auth = await this.externalNotifyCredentialsStore.get(ext.userId, ext.id);
@@ -624,7 +628,7 @@ export class MessagesService {
         ext && channel
           ? await this.externalNotifyCredentialsStore.get(ext.userId, ext.id, channel)
           : null;
-      if (ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
+      if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
         this.logger.log(`Gotify publish starting for message ${savedMessage.id}`);
         try {
           const gotifyResponse = await this.gotifyService.publishMessage(
@@ -1004,7 +1008,11 @@ export class MessagesService {
         });
         const ext = bucketWithExt?.externalNotifySystem;
         const channel = bucketWithExt?.externalSystemChannel;
-        if (ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
+        const externalNotifyEnabled = await this.serverSettingsService.getBooleanValue(
+          ServerSettingType.ExternalNotifySystemsEnabled,
+          true,
+        );
+        if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
           try {
             const auth = await this.externalNotifyCredentialsStore.get(ext.userId, ext.id);
             const ntfyResponse = await this.ntfyService.publishMessage(
@@ -1026,7 +1034,7 @@ export class MessagesService {
           ext && channel
             ? await this.externalNotifyCredentialsStore.get(ext.userId, ext.id, channel)
             : null;
-        if (ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
+        if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
           try {
             const gotifyResponse = await this.gotifyService.publishMessage(
               baseMessage,
