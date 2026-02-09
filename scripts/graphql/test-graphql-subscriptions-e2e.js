@@ -86,6 +86,32 @@ async function graphql(query, variables, token = TOKEN) {
   return payload.data;
 }
 
+async function ensureDevice() {
+  const query = `
+    query UserDevices {
+      userDevices { id platform deviceToken }
+    }
+  `;
+  const data = await graphql(query);
+  const devices = data?.userDevices || [];
+  if (devices.length > 0) return;
+  const deviceToken = `e2e-subscriptions-${Date.now()}`;
+  const mutation = `
+    mutation RegisterDevice($input: RegisterDeviceDto!) {
+      registerDevice(input: $input) { id platform deviceToken }
+    }
+  `;
+  await graphql(mutation, {
+    input: {
+      platform: 'IOS',
+      deviceToken,
+      deviceName: 'E2E Subscriptions',
+      deviceModel: 'iPhone Simulator',
+    },
+  });
+  log('Registered test device for notification subscriptions');
+}
+
 function createWsClient() {
   return createClient({
     url: wsUrl,
@@ -132,6 +158,7 @@ async function runTest(name, fn) {
 }
 
 async function main() {
+  await ensureDevice();
   log('Connecting to ' + wsUrl);
   const client = createWsClient();
 
@@ -165,8 +192,13 @@ async function main() {
       throw new Error('createMessage did not return message id');
     }
     const [notifPayload, msgPayload] = await Promise.all([notifPromise, msgPromise]);
-    if (!notifPayload?.data?.notificationCreated?.id) {
-      throw new Error('notificationCreated payload missing id');
+    const notif = notifPayload?.data?.notificationCreated;
+    if (!notif?.id) {
+      const hint =
+        notif && typeof notif === 'object' && notif.message?.id
+          ? ` (notification has message.id only, top-level id missing)`
+          : ` (payload: ${JSON.stringify(notifPayload?.data ?? notifPayload)?.slice(0, 300)})`;
+      throw new Error('notificationCreated payload missing id' + hint);
     }
     if (!msgPayload?.data?.messageCreated?.id || msgPayload.data.messageCreated.id !== created.createMessage.id) {
       throw new Error('messageCreated payload mismatch');
