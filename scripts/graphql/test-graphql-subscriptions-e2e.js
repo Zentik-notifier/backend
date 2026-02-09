@@ -138,7 +138,7 @@ async function main() {
   await runTest('notificationCreated + messageCreated', async () => {
     const sub = `
       subscription {
-        notificationCreated { id title message { id } }
+        notificationCreated { id message { id } }
       }
     `;
     const msgSub = `
