@@ -40,6 +40,12 @@ function log(msg) {
   console.log(`[e2e-subscriptions] ${msg}`);
 }
 
+function toError(err) {
+  if (err instanceof Error) return err;
+  if (Array.isArray(err)) return new Error(`GraphQL errors: ${JSON.stringify(err)}`);
+  return new Error(String(err));
+}
+
 async function fetchHttp(url, options = {}) {
   const urlObj = new URL(url);
   const client = urlObj.protocol === 'https:' ? https : http;
@@ -106,7 +112,7 @@ function subscribeAndWaitForOne(client, subscriptionQuery, subscriptionName) {
         },
         error: (err) => {
           clearTimeout(timeout);
-          reject(err);
+          reject(toError(err));
         },
         complete: () => {},
       }
@@ -119,8 +125,9 @@ async function runTest(name, fn) {
     await fn();
     log(`OK ${name}`);
   } catch (err) {
-    log(`FAIL ${name}: ${err.message}`);
-    throw err;
+    const e = toError(err);
+    log(`FAIL ${name}: ${e.message}`);
+    throw e;
   }
 }
 
@@ -422,6 +429,7 @@ function createMessageAndWaitForSseWithEventSource(streamUrl, timeoutMs) {
 }
 
 main().catch((err) => {
-  console.error('[e2e-subscriptions]', err);
+  const e = toError(err);
+  console.error('[e2e-subscriptions]', e.message);
   process.exit(1);
 });
