@@ -240,6 +240,7 @@ describe('MessagesService', () => {
             getSettingByType: jest.fn().mockResolvedValue({
               valueText: '7d',
             }),
+            getBooleanValue: jest.fn().mockResolvedValue(true),
           },
         },
         {
