@@ -4,12 +4,15 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.guard';
 import { AccessTokenService } from '../auth/access-token.service';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { Message } from '../entities/message.entity';
 import { UserAccessToken } from '../entities/user-access-token.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
 import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesRootController } from './messages.root.controller';
+import { MessagesStreamService } from './messages-stream.service';
 import { MessagesService } from './messages.service';
 
 describe('MessagesRootController', () => {
@@ -68,6 +71,15 @@ describe('MessagesRootController', () => {
     verify: jest.fn(),
   };
 
+  const mockGraphQLSubscriptionService = {
+    messageCreated: jest.fn().mockReturnValue({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ value: null, done: true }) }) }),
+  };
+
+  const mockMessagesStreamService = {
+    getEvents: jest.fn().mockReturnValue([]),
+    waitForNext: jest.fn().mockResolvedValue(false),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MessagesRootController],
@@ -75,6 +87,14 @@ describe('MessagesRootController', () => {
         {
           provide: MessagesService,
           useValue: mockMessagesService,
+        },
+        {
+          provide: GraphQLSubscriptionService,
+          useValue: mockGraphQLSubscriptionService,
+        },
+        {
+          provide: MessagesStreamService,
+          useValue: mockMessagesStreamService,
         },
         {
           provide: AccessTokenService,
@@ -97,6 +117,8 @@ describe('MessagesRootController', () => {
       .overrideGuard(MagicCodeGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(JwtOrAccessTokenGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(AttachmentsDisabledGuard)
       .useValue(mockAttachmentsDisabledGuard)

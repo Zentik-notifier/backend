@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleInit, forwardRef } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EventSource } from 'eventsource';
 import { IsNull, Not, Repository } from 'typeorm';
 import { Bucket } from '../../../entities/bucket.entity';
 import { ExternalNotifySystem, ExternalNotifySystemType } from '../../../entities/external-notify-system.entity';
@@ -17,12 +18,20 @@ function setEquals<T>(a: Set<T>, b: Set<T>): boolean {
 
 const PUBLISHED_NTFY_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+interface NtfyUrlRecord {
+  es: EventSource;
+  systems: Map<string, { system: ExternalNotifySystem; buckets: Bucket[] }>;
+}
+
 @Injectable()
 export class NtfySubscriptionService implements OnModuleInit {
   private readonly logger = new Logger(NtfySubscriptionService.name);
-  private abortControllers = new Map<string, AbortController>();
+  private eventSourcesByUrl = new Map<string, NtfyUrlRecord>();
+  private systemIdToUrl = new Map<string, string>();
   private currentTopicsBySystemId = new Map<string, Set<string>>();
-  private publishedNtfyIds = new Map<string, number>(); // id -> timestamp when registered
+  private subscriptionLocksBySystemId = new Map<string, Promise<void>>();
+  private subscriptionLocksByUrl = new Map<string, Promise<void>>();
+  private publishedNtfyIds = new Map<string, number>();
 
   constructor(
     @InjectRepository(ExternalNotifySystem)
@@ -100,7 +109,21 @@ export class NtfySubscriptionService implements OnModuleInit {
     await this.startAllSubscriptions();
   }
 
-  private async subscribe(system: ExternalNotifySystem, reconnectDelayMs = 0) {
+  private async subscribe(system: ExternalNotifySystem, reconnectDelayMs = 0): Promise<void> {
+    const key = system.id;
+    const previous = this.subscriptionLocksBySystemId.get(key) ?? Promise.resolve();
+    const run = previous.then(() => this.runSubscribe(system, reconnectDelayMs));
+    this.subscriptionLocksBySystemId.set(key, run);
+    try {
+      await run;
+    } finally {
+      if (this.subscriptionLocksBySystemId.get(key) === run) {
+        this.subscriptionLocksBySystemId.delete(key);
+      }
+    }
+  }
+
+  private async runSubscribe(system: ExternalNotifySystem, reconnectDelayMs: number): Promise<void> {
     if (reconnectDelayMs > 0) {
       await new Promise((r) => setTimeout(r, reconnectDelayMs));
     }
@@ -121,7 +144,7 @@ export class NtfySubscriptionService implements OnModuleInit {
     const newTopics = new Set(channels);
     if (channels.length === 0) {
       this.currentTopicsBySystemId.delete(system.id);
-      this.abortControllers.get(system.id)?.abort();
+      this.removeSystemFromUrl(system.id);
       return;
     }
 
@@ -130,94 +153,107 @@ export class NtfySubscriptionService implements OnModuleInit {
       return;
     }
 
-    const key = `${system.id}`;
-    this.abortControllers.get(key)?.abort();
     this.currentTopicsBySystemId.set(system.id, newTopics);
-    const ac = new AbortController();
-    this.abortControllers.set(key, ac);
+    this.removeSystemFromUrl(system.id);
 
     const topicsSegment = channels.map((c) => encodeURIComponent(c)).join(',');
     const url = `${system.baseUrl.replace(/\/$/, '')}/${topicsSegment}/sse`;
-    const auth = await this.credentialsStore.get(system.userId, system.id);
-    const headers: Record<string, string> = {
-      Accept: 'text/event-stream',
-      ...this.ntfyService.buildAuthHeaders((auth as NtfyAuth) ?? {}),
-    };
 
+    const urlPrevious = this.subscriptionLocksByUrl.get(url) ?? Promise.resolve();
+    const urlRun = urlPrevious.then(() =>
+      this.createOrAttachEventSource(url, system, buckets),
+    );
+    this.subscriptionLocksByUrl.set(url, urlRun);
     try {
-      const res = await fetch(url, {
-        method: 'GET',
-        headers,
-        signal: ac.signal,
-      });
-      if (!res.ok || !res.body) {
-        this.logger.warn(
-          `NTFY SSE ${url} returned ${res.status}, retrying in 30s`,
-        );
-        this.currentTopicsBySystemId.delete(system.id);
-        this.subscribe(system, 30_000).catch(() => { });
-        return;
-      }
-      await this.consumeStream(system, buckets, res.body as any, key);
-    } catch (e: any) {
-      if (e?.name === 'AbortError') return;
-      this.logger.warn(
-        `NTFY SSE ${url} error: ${e?.message}, retrying in 30s`,
-      );
-      this.currentTopicsBySystemId.delete(system.id);
-      this.subscribe(system, 30_000).catch(() => { });
-      return;
+      await urlRun;
     } finally {
-      this.abortControllers.delete(key);
+      if (this.subscriptionLocksByUrl.get(url) === urlRun) {
+        this.subscriptionLocksByUrl.delete(url);
+      }
     }
-    this.currentTopicsBySystemId.delete(system.id);
-    this.subscribe(system, 30_000).catch(() => { });
   }
 
-  private async consumeStream(
+  private removeSystemFromUrl(systemId: string): void {
+    const url = this.systemIdToUrl.get(systemId);
+    if (!url) return;
+    this.systemIdToUrl.delete(systemId);
+    const record = this.eventSourcesByUrl.get(url);
+    if (!record) return;
+    record.systems.delete(systemId);
+    if (record.systems.size === 0) {
+      record.es.close();
+      this.eventSourcesByUrl.delete(url);
+    }
+  }
+
+  private async createOrAttachEventSource(
+    url: string,
     system: ExternalNotifySystem,
     buckets: Bucket[],
-    body: NodeJS.ReadableStream,
-    key: string,
-  ) {
-    let buffer = '';
-    const onData = (chunk: Buffer) => {
-      buffer += chunk.toString('utf-8');
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6)) as NtfyIncomingMessage;
-            if (data.event === 'message' && data.topic) {
-              const bucketsForTopic = buckets.filter(
-                (b) => b.externalSystemChannel === data.topic,
+  ): Promise<void> {
+    const existing = this.eventSourcesByUrl.get(url);
+    if (existing) {
+      existing.systems.set(system.id, { system, buckets });
+      this.systemIdToUrl.set(system.id, url);
+      return;
+    }
+
+    try {
+      const auth = await this.credentialsStore.get(system.userId, system.id);
+      const authHeaders = this.ntfyService.buildAuthHeaders((auth as NtfyAuth) ?? {});
+
+      const es = new EventSource(url, {
+        fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+          fetch(input, {
+            ...init,
+            headers: { ...init?.headers, ...authHeaders },
+          }),
+      });
+
+      const record: NtfyUrlRecord = { es, systems: new Map([[system.id, { system, buckets }]]) };
+      this.eventSourcesByUrl.set(url, record);
+      this.systemIdToUrl.set(system.id, url);
+
+      es.addEventListener('open', () => {
+        this.logger.debug(`NTFY EventSource open: ${url}`);
+      });
+
+      es.addEventListener('message', (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data as string) as NtfyIncomingMessage;
+          if (data.event === 'message' && data.topic) {
+            for (const { system: s, buckets: b } of record.systems.values()) {
+              const bucketsForTopic = b.filter(
+                (bucket) => bucket.externalSystemChannel === data.topic,
               );
               if (bucketsForTopic.length > 0) {
-                this.handleMessage(system, data, bucketsForTopic).catch((err) =>
-                  this.logger.error(
-                    `NTFY handle message error: ${err?.message}`,
-                  ),
+                this.handleMessage(s, data, bucketsForTopic).catch((err) =>
+                  this.logger.error(`NTFY handle message error: ${err?.message}`),
                 );
               }
             }
-          } catch (_) {
-            // ignore parse errors
           }
+        } catch (_) {
+          // ignore
         }
-      }
-    };
+      });
 
-    const reader = (body as unknown as ReadableStream<Uint8Array>).getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) onData(Buffer.from(value));
-      }
-    } finally {
-      reader.releaseLock();
+      es.addEventListener('error', () => {
+        es.close();
+        const systemsToReconnect = [...record.systems.values()];
+        this.eventSourcesByUrl.delete(url);
+        for (const { system: s } of systemsToReconnect) {
+          this.systemIdToUrl.delete(s.id);
+          this.currentTopicsBySystemId.delete(s.id);
+        }
+        this.logger.warn(`NTFY EventSource error for ${url}, retrying in 30s`);
+        for (const { system: s } of systemsToReconnect) {
+          this.subscribe(s, 30_000).catch(() => {});
+        }
+      });
+    } catch (err) {
+      this.currentTopicsBySystemId.delete(system.id);
+      throw err;
     }
   }
 

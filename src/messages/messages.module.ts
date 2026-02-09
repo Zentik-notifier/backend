@@ -23,6 +23,7 @@ import { MessageReminderService } from './message-reminder.service';
 import { MessagesController } from './messages.controller';
 import { MessagesRootController } from './messages.root.controller';
 import { MessagesService } from './messages.service';
+import { MessagesStreamService } from './messages-stream.service';
 import { UserTemplatesController } from './user-templates.controller';
 import { UserTemplatesResolver } from './user-templates.resolver';
 import { UserTemplatesService } from './user-templates.service';
@@ -56,6 +57,7 @@ import { ExternalNotifySystemModule } from '../external-notify-system/external-n
     MessagesCleanupScheduler,
     MessageReminderScheduler,
     MessagesResolver,
+    MessagesStreamService,
     UserTemplatesService,
     UserTemplatesResolver,
   ],

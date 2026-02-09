@@ -1346,6 +1346,21 @@ type Subscription {
   bucketDeleted: String!
   bucketUpdated: Bucket!
   entityPermissionUpdated(bucketId: String): EntityPermission!
+
+  """
+  Emitted when a new message is created and the current user receives a notification for it. Optionally filter by bucketId.
+  """
+  messageCreated(bucketId: String): Message!
+
+  """
+  Emitted when a message the current user had a notification for is deleted.
+  """
+  messageDeleted: String!
+
+  """
+  Same as messageCreated: new messages for the current user only. Use this name when you only care about new messages (optionally in a bucket).
+  """
+  newMessagesForUser(bucketId: String): Message!
   notificationCreated: Notification!
   notificationDeleted: String!
   notificationUpdated: Notification!

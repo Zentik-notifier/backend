@@ -115,8 +115,29 @@ export class GotifySubscriptionService implements OnModuleInit {
       await new Promise((r) => setTimeout(r, reconnectDelayMs));
     }
 
-    const auth = await this.credentialsStore.get(system.userId, system.id);
-    const clientToken = auth?.authPassword ?? auth?.authToken ?? null;
+    let auth = await this.credentialsStore.get(system.userId, system.id);
+    let clientToken = auth?.authPassword ?? auth?.authToken ?? null;
+    if (!clientToken) {
+      const buckets = await this.bucketRepo.find({
+        where: {
+          externalNotifySystem: { id: system.id },
+          externalSystemChannel: Not(IsNull()),
+        },
+      });
+      const channels = [
+        ...new Set(
+          buckets
+            .map((b) => b.externalSystemChannel)
+            .filter((c): c is string => !!c),
+        ),
+      ];
+      for (const channel of channels) {
+        const channelKey = channel != null ? String(channel) : null;
+        auth = await this.credentialsStore.get(system.userId, system.id, channelKey);
+        clientToken = auth?.authPassword ?? auth?.authToken ?? null;
+        if (clientToken) break;
+      }
+    }
     if (!clientToken) {
       this.logger.debug(
         `Gotify subscription skipped for ${system.baseUrl}: no client token (authPassword or authToken)`,
@@ -168,9 +189,8 @@ export class GotifySubscriptionService implements OnModuleInit {
       ws.on('error', (err) => {
         this.socketsBySystemId.delete(system.id);
         this.logger.warn(
-          `Gotify WebSocket error ${system.baseUrl}: ${err?.message}, reconnecting in 30s`,
+          `Gotify WebSocket error ${system.baseUrl}: ${err?.message}`,
         );
-        this.subscribe(system, 30_000).catch(() => {});
         reject(err);
       });
     });

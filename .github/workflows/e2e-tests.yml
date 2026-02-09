@@ -217,6 +217,13 @@ jobs:
           node scripts/messages/test-messages-bucket-combinations.js
           node scripts/messages/test-messages-rate-limit.js
 
+      - name: GraphQL subscriptions E2E tests
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BUCKET_ID: ${{ env.BUCKET_ID }}
+          BASE_URL: http://localhost:3000/api/v1
+        run: node scripts/graphql/test-graphql-subscriptions-e2e.js
+
       - name: Show server logs on failure
         if: failure()
         run: |

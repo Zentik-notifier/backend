@@ -11,6 +11,7 @@ import {
   MessagesQueryDto,
   MessagesResponseDto,
 } from './dto';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { MessageReminderService } from './message-reminder.service';
 import { MessagesService } from './messages.service';
 import {
@@ -70,6 +71,11 @@ describe('MessagesResolver', () => {
     findByUser: jest.fn().mockResolvedValue([]),
   };
 
+  const mockGraphQLSubscriptionService = {
+    messageCreated: jest.fn().mockReturnValue({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ value: null, done: true }) }) }),
+    messageDeleted: jest.fn().mockReturnValue({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ value: null, done: true }) }) }),
+  };
+
   const mockAccessTokenService = {
     validateAccessToken: jest.fn(),
   };
@@ -99,6 +105,10 @@ describe('MessagesResolver', () => {
         {
           provide: MessageReminderService,
           useValue: mockMessageReminderService,
+        },
+        {
+          provide: GraphQLSubscriptionService,
+          useValue: mockGraphQLSubscriptionService,
         },
         {
           provide: AccessTokenService,

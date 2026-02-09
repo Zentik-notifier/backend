@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UnauthorizedException,
   UploadedFile,
   UseGuards,
@@ -24,19 +25,29 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AttachmentsDisabledGuard } from '../attachments/attachments-disabled.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { RequireMessageBucketCreation } from '../auth/decorators/require-scopes.decorator';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
+import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { CreateMessageResponseDto } from './dto/create-message-response.dto';
 import { CreateMessageWithAttachmentDto } from './dto/create-message-with-attachment.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 
 import { CombineMessageSources } from './decorators/combine-message-sources.decorator';
+import {
+  MessagesStreamService,
+  StreamEvent,
+} from './messages-stream.service';
 import { MessagesService } from './messages.service';
+
+const POLL_TIMEOUT_MS = 28_000;
+const POLL_MAX_SINCE_AGE_MS = 60 * 60 * 1000;
 
 @UseGuards(MagicCodeGuard)
 @Controller('messages')
@@ -45,7 +56,11 @@ import { MessagesService } from './messages.service';
 export class MessagesController {
   private readonly logger = new Logger(MessagesController.name);
 
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly subscriptionService: GraphQLSubscriptionService,
+    private readonly streamService: MessagesStreamService,
+  ) {}
 
   @Post()
   @UseGuards(ScopesGuard)
@@ -406,4 +421,119 @@ export class MessagesController {
 
     return result;
   }
+
+  @Get('stream')
+  @UseGuards(JwtOrAccessTokenGuard)
+  @ApiOperation({
+    summary: 'SSE stream of new messages for the current user (optional bucketId query)',
+  })
+  async stream(
+    @Res({ passthrough: false }) res: Response,
+    @GetUser('id') userId: string | undefined,
+    @Query('bucketId') bucketId?: string,
+  ): Promise<void> {
+    if (!userId) throw new UnauthorizedException();
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const writeEvent = (event: string, data: Record<string, unknown>) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      (res as Response & { flush?: () => void }).flush?.();
+    };
+    writeEvent('open', { event: 'open', time: Math.floor(Date.now() / 1000) });
+
+    const KEEPALIVE_INTERVAL_MS = 25_000;
+    const keepaliveId = setInterval(() => {
+      if (res.writableEnded) return;
+      writeEvent('keepalive', { event: 'keepalive', time: Math.floor(Date.now() / 1000) });
+    }, KEEPALIVE_INTERVAL_MS);
+
+    const iterator = this.subscriptionService.messageCreated() as AsyncIterable<{
+      userId: string;
+      messageCreated?: { bucketId?: string } & Record<string, unknown>;
+    }>;
+    let closed = false;
+    res.on('close', () => {
+      closed = true;
+      clearInterval(keepaliveId);
+    });
+
+    try {
+      for await (const payload of iterator) {
+        if (closed) break;
+        if (payload?.userId !== userId) continue;
+        const message = payload.messageCreated;
+        if (!message) continue;
+        if (bucketId != null && bucketId !== '' && message.bucketId !== bucketId) continue;
+        const data = { ...message, event: 'message', time: Math.floor(Date.now() / 1000) };
+        writeEvent('message', data as Record<string, unknown>);
+      }
+    } catch (err) {
+      if (!closed) this.logger.warn('SSE message stream error', err);
+    } finally {
+      clearInterval(keepaliveId);
+      res.end();
+    }
+  }
+
+  @Get('poll')
+  @UseGuards(JwtOrAccessTokenGuard)
+  @ApiOperation({
+    summary:
+      'Long poll: new message events for the current user (optional bucketId, since query)',
+  })
+  async poll(
+    @GetUser('id') userId: string | undefined,
+    @Query('since') sinceParam?: string,
+    @Query('bucketId') bucketId?: string,
+  ): Promise<{ events: StreamEventDto[]; nextSince: number }> {
+    if (!userId) throw new UnauthorizedException();
+    const since = this.parseStreamSince(sinceParam);
+    const events = this.streamService.getEvents(userId, bucketId ?? undefined, since);
+    if (events.length > 0) {
+      const nextSince = Math.max(...events.map((e) => e.at));
+      return { events: events.map(streamEventToDto), nextSince };
+    }
+    const hadNew = await this.streamService.waitForNext(
+      userId,
+      bucketId ?? undefined,
+      POLL_TIMEOUT_MS,
+    );
+    const nextSince = Date.now();
+    const after = hadNew
+      ? this.streamService.getEvents(userId, bucketId ?? undefined, since)
+      : [];
+    return {
+      events: after.map(streamEventToDto),
+      nextSince:
+        after.length > 0 ? Math.max(...after.map((e) => e.at)) : nextSince,
+    };
+  }
+
+  private parseStreamSince(sinceParam: string | undefined): number {
+    if (sinceParam == null || sinceParam === '') return 0;
+    const n = Number(sinceParam);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    const maxAge = Date.now() - POLL_MAX_SINCE_AGE_MS;
+    return Math.max(n, maxAge);
+  }
+}
+
+interface StreamEventDto {
+  at: number;
+  type: 'message_created' | 'message_deleted';
+  message?: Record<string, unknown>;
+  messageId?: string;
+}
+
+function streamEventToDto(
+  e: StreamEvent,
+): StreamEventDto {
+  const dto: StreamEventDto = { at: e.at, type: e.type };
+  if (e.message) dto.message = e.message;
+  if (e.messageId) dto.messageId = e.messageId;
+  return dto;
 }

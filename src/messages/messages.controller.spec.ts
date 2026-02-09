@@ -9,8 +9,10 @@ import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
 import { Message } from '../entities/message.entity';
 import { UserAccessToken } from '../entities/user-access-token.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
+import { GraphQLSubscriptionService } from '../graphql/services/graphql-subscription.service';
 import { CreateMessageDto, CreateMessageWithAttachmentDto } from './dto';
 import { MessagesController } from './messages.controller';
+import { MessagesStreamService } from './messages-stream.service';
 import { MessagesService } from './messages.service';
 
 describe('MessagesController', () => {
@@ -71,6 +73,15 @@ describe('MessagesController', () => {
     verify: jest.fn(),
   };
 
+  const mockGraphQLSubscriptionService = {
+    messageCreated: jest.fn().mockReturnValue({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ value: null, done: true }) }) }),
+  };
+
+  const mockMessagesStreamService = {
+    getEvents: jest.fn().mockReturnValue([]),
+    waitForNext: jest.fn().mockResolvedValue(false),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MessagesController],
@@ -78,6 +89,14 @@ describe('MessagesController', () => {
         {
           provide: MessagesService,
           useValue: mockMessagesService,
+        },
+        {
+          provide: GraphQLSubscriptionService,
+          useValue: mockGraphQLSubscriptionService,
+        },
+        {
+          provide: MessagesStreamService,
+          useValue: mockMessagesStreamService,
         },
         {
           provide: AccessTokenService,
@@ -100,6 +119,8 @@ describe('MessagesController', () => {
       .overrideGuard(MagicCodeGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(JwtOrAccessTokenGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .overrideGuard(AttachmentsDisabledGuard)
       .useValue(mockAttachmentsDisabledGuard)

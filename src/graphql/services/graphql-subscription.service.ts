@@ -5,6 +5,8 @@ export enum SubscriptionEvents {
   NOTIFICATION_CREATED = 'notificationCreated',
   NOTIFICATION_UPDATED = 'notificationUpdated',
   NOTIFICATION_DELETED = 'notificationDeleted',
+  MESSAGE_CREATED = 'messageCreated',
+  MESSAGE_DELETED = 'messageDeleted',
   BUCKET_CREATED = 'bucketCreated',
   BUCKET_UPDATED = 'bucketUpdated',
   BUCKET_DELETED = 'bucketDeleted',
@@ -25,6 +27,14 @@ export class GraphQLSubscriptionService {
     });
   }
 
+  async publishMessageCreated(message: any, userId: string) {
+    await this.pubSub.publish(SubscriptionEvents.MESSAGE_CREATED, {
+      messageCreated: message,
+      newMessagesForUser: message,
+      userId,
+    });
+  }
+
   async publishNotificationUpdated(notification: any, userId: string) {
     await this.pubSub.publish(SubscriptionEvents.NOTIFICATION_UPDATED, {
       notificationUpdated: notification,
@@ -35,6 +45,13 @@ export class GraphQLSubscriptionService {
   async publishNotificationDeleted(notificationId: string, userId: string) {
     await this.pubSub.publish(SubscriptionEvents.NOTIFICATION_DELETED, {
       notificationDeleted: { id: notificationId },
+      userId,
+    });
+  }
+
+  async publishMessageDeleted(messageId: string, userId: string) {
+    await this.pubSub.publish(SubscriptionEvents.MESSAGE_DELETED, {
+      messageDeleted: messageId,
       userId,
     });
   }
@@ -115,6 +132,18 @@ export class GraphQLSubscriptionService {
   notificationDeleted() {
     return this.pubSub.asyncIterableIterator(
       SubscriptionEvents.NOTIFICATION_DELETED,
+    );
+  }
+
+  messageCreated() {
+    return this.pubSub.asyncIterableIterator(
+      SubscriptionEvents.MESSAGE_CREATED,
+    );
+  }
+
+  messageDeleted() {
+    return this.pubSub.asyncIterableIterator(
+      SubscriptionEvents.MESSAGE_DELETED,
     );
   }
 

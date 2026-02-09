@@ -1073,13 +1073,18 @@ export class MessagesService {
 
   /**
    * Delete a message if the user has write permission on its bucket.
+   * Returns the deleted message and the list of user ids who had a notification for it (for subscription publish).
    */
-  async deleteMessage(messageId: string, userId: string): Promise<Message | null> {
+  async deleteMessage(
+    messageId: string,
+    userId: string,
+  ): Promise<{ message: Message | null; affectedUserIds: string[] }> {
     const message = await this.messagesRepository.findOne({
       where: { id: messageId },
       relations: ['bucket'],
     });
-    if (!message) return null;
+    if (!message)
+      return { message: null, affectedUserIds: [] };
     const permissions = await this.bucketsService.calculateBucketPermissions(
       message.bucket,
       userId,
@@ -1087,8 +1092,13 @@ export class MessagesService {
     if (!permissions.canWrite) {
       throw new ForbiddenException('You do not have write permission on this message bucket');
     }
+    const notifications = await this.notificationsRepository.find({
+      where: { message: { id: messageId } },
+      select: ['userId'],
+    });
+    const affectedUserIds = [...new Set(notifications.map((n) => n.userId))];
     await this.messagesRepository.delete(messageId);
-    return message;
+    return { message, affectedUserIds };
   }
 
   /**

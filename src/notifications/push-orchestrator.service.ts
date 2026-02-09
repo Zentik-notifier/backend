@@ -457,6 +457,12 @@ export class PushNotificationOrchestratorService {
             notificationWithRelations,
             notificationWithRelations.userId,
           );
+          if (notificationWithRelations.message) {
+            await this.subscriptionService.publishMessageCreated(
+              notificationWithRelations.message,
+              notificationWithRelations.userId,
+            );
+          }
         } catch (error) {
           this.logger.error(
             `Failed to publish notification subscription for user ${notificationWithRelations.userId}`,
