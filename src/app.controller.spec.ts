@@ -38,8 +38,11 @@ describe('AppController', () => {
         {
           provide: ServerSettingsService,
           useValue: {
-            getBooleanValue: jest.fn().mockImplementation((type: ServerSettingType, defaultValue: boolean) => {
+            getBooleanValue: jest.fn().mockImplementation((type: ServerSettingType, defaultValue?: boolean) => {
               if (type === ServerSettingType.EnableSystemTokenRequests) {
+                return Promise.resolve(defaultValue ?? true);
+              }
+              if (type === ServerSettingType.ExternalNotifySystemsEnabled) {
                 return Promise.resolve(defaultValue ?? true);
               }
               return Promise.resolve(defaultValue ?? false);

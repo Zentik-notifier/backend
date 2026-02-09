@@ -175,6 +175,7 @@ describe('AuthService', () => {
               }
               return Promise.resolve({ valueText: '7d' });
             }),
+            getBooleanValue: jest.fn().mockResolvedValue(true),
           },
         },
       ],
