@@ -61,6 +61,18 @@ const GRAPHQL_PATH = `/api/v1/graphql`;
             };
           }
 
+          if (connectionParams && typeof connectionParams === 'object') {
+            return {
+              req: {
+                headers: {
+                  ...(req?.headers ?? {}),
+                  ...connectionParams,
+                },
+              },
+              websocketHeader: { connectionParams },
+            };
+          }
+
           return { req };
         },
       }),
