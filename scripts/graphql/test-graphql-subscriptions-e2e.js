@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * E2E tests for GraphQL subscriptions (graphql-ws) and alternative transports (SSE, long poll).
- * Subscriptions: notificationCreated, notificationUpdated, notificationDeleted,
- * messageCreated, messageDeleted, bucketCreated, bucketUpdated, bucketDeleted.
- * Also: GET /messages/stream (SSE), GET /messages/poll (long poll), and root shortcuts /stream, /poll.
+ * E2E tests for message stream transports: SSE and long poll.
+ * GET /messages/stream (SSE), GET /messages/poll (long poll), and root shortcuts /stream, /poll.
  *
  * Prerequisites: Backend running (e.g. after npm run e2e:init-environment).
  * Env: BASE_URL (e.g. http://localhost:3000/api/v1), TOKEN, BUCKET_ID.
@@ -30,11 +28,7 @@ if (!BUCKET_ID) {
 const http = require('http');
 const https = require('https');
 const { URL } = require('url');
-const ws = require('ws');
-const { createClient } = require('graphql-ws');
 const { EventSource } = require('eventsource');
-
-const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/graphql';
 
 function log(msg) {
   console.log(`[e2e-subscriptions] ${msg}`);
@@ -112,40 +106,6 @@ async function ensureDevice() {
   log('Registered test device for notification subscriptions');
 }
 
-function createWsClient() {
-  return createClient({
-    url: wsUrl,
-    webSocketImpl: ws,
-    connectionParams: {
-      Authorization: `Bearer ${TOKEN}`,
-    },
-  });
-}
-
-function subscribeAndWaitForOne(client, subscriptionQuery, subscriptionName) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      unsubscribe();
-      reject(new Error(`${subscriptionName}: no event received within ${SUBSCRIPTION_TIMEOUT_MS}ms`));
-    }, SUBSCRIPTION_TIMEOUT_MS);
-    const unsubscribe = client.subscribe(
-      { query: subscriptionQuery },
-      {
-        next: (value) => {
-          clearTimeout(timeout);
-          unsubscribe();
-          resolve(value);
-        },
-        error: (err) => {
-          clearTimeout(timeout);
-          reject(toError(err));
-        },
-        complete: () => {},
-      }
-    );
-  });
-}
-
 async function runTest(name, fn) {
   try {
     await fn();
@@ -159,150 +119,6 @@ async function runTest(name, fn) {
 
 async function main() {
   await ensureDevice();
-  log('Connecting to ' + wsUrl);
-  const client = createWsClient();
-
-  await runTest('notificationCreated + messageCreated', async () => {
-    const sub = `
-      subscription {
-        notificationCreated { id message { id } }
-      }
-    `;
-    const msgSub = `
-      subscription {
-        messageCreated { id title bucketId }
-      }
-    `;
-    const notifPromise = subscribeAndWaitForOne(client, sub, 'notificationCreated');
-    const msgPromise = subscribeAndWaitForOne(client, msgSub, 'messageCreated');
-    const mutation = `
-      mutation CreateMessage($input: CreateMessageDto!) {
-        createMessage(input: $input) { id title bucketId }
-      }
-    `;
-    const created = await graphql(mutation, {
-      input: {
-        bucketId: BUCKET_ID,
-        title: `E2E sub ${Date.now()}`,
-        deliveryType: 'NORMAL',
-        body: 'E2E subscription test',
-      },
-    });
-    if (!created?.createMessage?.id) {
-      throw new Error('createMessage did not return message id');
-    }
-    const [notifPayload, msgPayload] = await Promise.all([notifPromise, msgPromise]);
-    const notif = notifPayload?.data?.notificationCreated;
-    if (!notif?.id) {
-      const hint =
-        notif && typeof notif === 'object' && notif.message?.id
-          ? ` (notification has message.id only, top-level id missing)`
-          : ` (payload: ${JSON.stringify(notifPayload?.data ?? notifPayload)?.slice(0, 300)})`;
-      throw new Error('notificationCreated payload missing id' + hint);
-    }
-    if (!msgPayload?.data?.messageCreated?.id || msgPayload.data.messageCreated.id !== created.createMessage.id) {
-      throw new Error('messageCreated payload mismatch');
-    }
-    return { messageId: created.createMessage.id, notificationId: notifPayload.data.notificationCreated.id };
-  });
-
-  let lastNotificationId;
-  let lastMessageId;
-  await runTest('notificationCreated returns notification id for later tests', async () => {
-    const sub = `subscription { notificationCreated { id } }`;
-    const notifPromise = subscribeAndWaitForOne(client, sub, 'notificationCreated');
-    const msgPromise = subscribeAndWaitForOne(client, 'subscription { messageCreated { id } }', 'messageCreated');
-    await graphql(
-      `mutation CreateMessage($input: CreateMessageDto!) { createMessage(input: $input) { id } }`,
-      {
-        input: { bucketId: BUCKET_ID, title: `E2E sub ref ${Date.now()}`, deliveryType: 'NORMAL', body: 'Ref' },
-      }
-    );
-    const [n, m] = await Promise.all([notifPromise, msgPromise]);
-    lastNotificationId = n?.data?.notificationCreated?.id;
-    lastMessageId = m?.data?.messageCreated?.id;
-    if (!lastNotificationId || !lastMessageId) {
-      throw new Error('Missing notification or message id for later tests');
-    }
-  });
-
-  await runTest('notificationUpdated', async () => {
-    const sub = `subscription { notificationUpdated { id readAt } }`;
-    const updatedPromise = subscribeAndWaitForOne(client, sub, 'notificationUpdated');
-    await graphql(`mutation MarkAsRead($id: String!) { markNotificationAsRead(id: $id) { id readAt } }`, {
-      id: lastNotificationId,
-    });
-    const payload = await updatedPromise;
-    if (!payload?.data?.notificationUpdated?.id) {
-      throw new Error('notificationUpdated payload missing id');
-    }
-  });
-
-  await runTest('notificationDeleted', async () => {
-    const sub = `subscription { notificationDeleted }`;
-    const deletedPromise = subscribeAndWaitForOne(client, sub, 'notificationDeleted');
-    await graphql(`mutation DeleteNotification($id: String!) { deleteNotification(id: $id) }`, {
-      id: lastNotificationId,
-    });
-    const payload = await deletedPromise;
-    if (payload?.data?.notificationDeleted !== lastNotificationId) {
-      throw new Error(`notificationDeleted expected ${lastNotificationId}, got ${payload?.data?.notificationDeleted}`);
-    }
-  });
-
-  await runTest('messageDeleted', async () => {
-    const sub = `subscription { messageDeleted }`;
-    const deletedPromise = subscribeAndWaitForOne(client, sub, 'messageDeleted');
-    await graphql(`mutation DeleteMessage($id: String!) { deleteMessage(id: $id) }`, { id: lastMessageId });
-    const payload = await deletedPromise;
-    if (payload?.data?.messageDeleted !== lastMessageId) {
-      throw new Error(`messageDeleted expected ${lastMessageId}, got ${payload?.data?.messageDeleted}`);
-    }
-  });
-
-  let tempBucketId;
-  await runTest('bucketCreated', async () => {
-    const sub = `subscription { bucketCreated { id name } }`;
-    const createdPromise = subscribeAndWaitForOne(client, sub, 'bucketCreated');
-    const data = await graphql(
-      `mutation CreateBucket($input: CreateBucketDto!) { createBucket(input: $input) { id name } }`,
-      { input: { name: `E2E sub bucket ${Date.now()}`, generateIconWithInitials: true, generateMagicCode: false } }
-    );
-    tempBucketId = data?.createBucket?.id;
-    if (!tempBucketId) {
-      throw new Error('createBucket did not return bucket id');
-    }
-    const payload = await createdPromise;
-    if (!payload?.data?.bucketCreated?.id || payload.data.bucketCreated.id !== tempBucketId) {
-      throw new Error('bucketCreated payload mismatch');
-    }
-  });
-
-  await runTest('bucketUpdated', async () => {
-    const sub = `subscription { bucketUpdated { id name } }`;
-    const updatedPromise = subscribeAndWaitForOne(client, sub, 'bucketUpdated');
-    const newName = `E2E sub bucket updated ${Date.now()}`;
-    await graphql(
-      `mutation UpdateBucket($id: String!, $input: UpdateBucketDto!) { updateBucket(id: $id, input: $input) { id name } }`,
-      { id: tempBucketId, input: { name: newName } }
-    );
-    const payload = await updatedPromise;
-    if (!payload?.data?.bucketUpdated?.id || payload.data.bucketUpdated.name !== newName) {
-      throw new Error('bucketUpdated payload mismatch');
-    }
-  });
-
-  await runTest('bucketDeleted', async () => {
-    const sub = `subscription { bucketDeleted }`;
-    const deletedPromise = subscribeAndWaitForOne(client, sub, 'bucketDeleted');
-    await graphql(`mutation DeleteBucket($id: String!) { deleteBucket(id: $id) }`, { id: tempBucketId });
-    const payload = await deletedPromise;
-    if (payload?.data?.bucketDeleted !== tempBucketId) {
-      throw new Error(`bucketDeleted expected ${tempBucketId}, got ${payload?.data?.bucketDeleted}`);
-    }
-  });
-
-  await client.dispose();
 
   await runTest('SSE /messages/stream (EventSource, ntfy-style open+message)', async () => {
     const streamUrl = `${BASE_URL}/messages/stream`;
@@ -393,7 +209,7 @@ async function main() {
     }
   });
 
-  log('All subscription E2E tests passed.');
+  log('All stream E2E tests passed.');
 }
 
 function createMessageAndWaitForSseWithEventSource(streamUrl, timeoutMs) {

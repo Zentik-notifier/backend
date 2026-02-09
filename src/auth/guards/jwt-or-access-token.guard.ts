@@ -122,14 +122,8 @@ export class JwtOrAccessTokenGuard implements CanActivate {
 
       // Handle WebSocket GraphQL subscriptions
       if (ctx.websocketHeader?.connectionParams) {
-        const params = ctx.websocketHeader.connectionParams as Record<string, string>;
-        const auth = params?.Authorization ?? params?.authorization;
-        return {
-          headers: {
-            ...params,
-            ...(auth ? { authorization: auth } : {}),
-          },
-        };
+        const websocketHeader = ctx.websocketHeader?.connectionParams || {};
+        return { headers: { ...websocketHeader } };
       }
 
       return ctx.req;
