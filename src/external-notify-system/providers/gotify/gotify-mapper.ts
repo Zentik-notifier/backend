@@ -5,10 +5,14 @@ import {
   NotificationDeliveryType,
 } from '../../../notifications/notifications.types';
 
+export const GOTIFY_ZENTIK_EXTRA_KEY = 'zentik::source';
+export const GOTIFY_ZENTIK_EXTRA_VALUE = 'zentik';
+
 export interface GotifyPublishPayload {
   message: string;
   title?: string;
   priority?: number;
+  extras?: Record<string, unknown>;
 }
 
 export interface GotifyIncomingMessage {
@@ -18,6 +22,7 @@ export interface GotifyIncomingMessage {
   title?: string;
   date: string;
   priority?: number;
+  extras?: Record<string, unknown>;
 }
 
 const DELIVERY_TO_GOTIFY_PRIORITY: Record<NotificationDeliveryType, number> = {
@@ -54,6 +59,8 @@ export function messageToGotifyPayload(
 
   payload.priority =
     DELIVERY_TO_GOTIFY_PRIORITY[message.deliveryType] ?? 5;
+
+  payload.extras = { [GOTIFY_ZENTIK_EXTRA_KEY]: GOTIFY_ZENTIK_EXTRA_VALUE };
 
   return payload;
 }

@@ -11,16 +11,20 @@ import {
 import { ExternalNotifyCredentialsStore } from '../../external-notify-credentials.store';
 import { MessagesService } from '../../../messages/messages.service';
 import {
+  GOTIFY_ZENTIK_EXTRA_KEY,
+  GOTIFY_ZENTIK_EXTRA_VALUE,
   GotifyIncomingMessage,
   gotifyMessageToCreatePayload,
 } from './gotify-mapper';
 
 const PUBLISHED_GOTIFY_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const GOTIFY_PING_INTERVAL_MS = 30_000; // 30s, keep connection alive for proxies/server
 
 @Injectable()
 export class GotifySubscriptionService implements OnModuleInit {
   private readonly logger = new Logger(GotifySubscriptionService.name);
   private socketsBySystemId = new Map<string, WebSocket>();
+  private pingIntervalsBySystemId = new Map<string, NodeJS.Timeout>();
   private publishedGotifyIds = new Map<string, number>(); // "systemId:id" -> timestamp
 
   constructor(
@@ -100,6 +104,12 @@ export class GotifySubscriptionService implements OnModuleInit {
     await this.startAllSubscriptions();
   }
 
+  private clearPingInterval(systemId: string): void {
+    const id = this.pingIntervalsBySystemId.get(systemId);
+    if (id) clearInterval(id);
+    this.pingIntervalsBySystemId.delete(systemId);
+  }
+
   private getStreamUrl(baseUrl: string, clientToken: string): string {
     const url = new URL(baseUrl.replace(/\/$/, '') || 'http://localhost');
     const wsProtocol = url.protocol === 'https:' ? 'wss' : 'ws';
@@ -115,29 +125,8 @@ export class GotifySubscriptionService implements OnModuleInit {
       await new Promise((r) => setTimeout(r, reconnectDelayMs));
     }
 
-    let auth = await this.credentialsStore.get(system.userId, system.id);
-    let clientToken = auth?.authPassword ?? auth?.authToken ?? null;
-    if (!clientToken) {
-      const buckets = await this.bucketRepo.find({
-        where: {
-          externalNotifySystem: { id: system.id },
-          externalSystemChannel: Not(IsNull()),
-        },
-      });
-      const channels = [
-        ...new Set(
-          buckets
-            .map((b) => b.externalSystemChannel)
-            .filter((c): c is string => !!c),
-        ),
-      ];
-      for (const channel of channels) {
-        const channelKey = channel != null ? String(channel) : null;
-        auth = await this.credentialsStore.get(system.userId, system.id, channelKey);
-        clientToken = auth?.authPassword ?? auth?.authToken ?? null;
-        if (clientToken) break;
-      }
-    }
+    const auth = await this.credentialsStore.get(system.userId, system.id);
+    const clientToken = auth?.authPassword ?? auth?.authToken ?? null;
     if (!clientToken) {
       this.logger.debug(
         `Gotify subscription skipped for ${system.baseUrl}: no client token (authPassword or authToken)`,
@@ -147,6 +136,7 @@ export class GotifySubscriptionService implements OnModuleInit {
 
     const existing = this.socketsBySystemId.get(system.id);
     if (existing) {
+      this.clearPingInterval(system.id);
       existing.close();
       this.socketsBySystemId.delete(system.id);
     }
@@ -159,6 +149,10 @@ export class GotifySubscriptionService implements OnModuleInit {
       ws.on('open', () => {
         this.logger.debug(`Gotify WebSocket connected to ${system.baseUrl}`);
         this.socketsBySystemId.set(system.id, ws);
+        const pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) ws.ping();
+        }, GOTIFY_PING_INTERVAL_MS);
+        this.pingIntervalsBySystemId.set(system.id, pingInterval);
         resolve();
       });
 
@@ -179,18 +173,25 @@ export class GotifySubscriptionService implements OnModuleInit {
       });
 
       ws.on('close', (code, reason) => {
+        this.clearPingInterval(system.id);
         this.socketsBySystemId.delete(system.id);
+        const delayMs = 5_000;
         this.logger.warn(
-          `Gotify WebSocket closed ${system.baseUrl} code=${code} reason=${reason?.toString() ?? ''}, reconnecting in 30s`,
+          `Gotify WebSocket closed ${system.baseUrl} code=${code} reason=${reason?.toString() ?? ''}, reconnecting in ${delayMs / 1000}s`,
         );
-        this.subscribe(system, 30_000).catch(() => {});
+        this.subscribe(system, delayMs).catch(() => {});
       });
 
       ws.on('error', (err) => {
+        this.clearPingInterval(system.id);
         this.socketsBySystemId.delete(system.id);
-        this.logger.warn(
-          `Gotify WebSocket error ${system.baseUrl}: ${err?.message}`,
-        );
+        const msg = err?.message ?? '';
+        this.logger.warn(`Gotify WebSocket error ${system.baseUrl}: ${msg}`);
+        if (msg.includes('401')) {
+          this.logger.warn(
+            `Gotify stream requires a client token (create one under Gotify "Clients"), not an application token.`,
+          );
+        }
         reject(err);
       });
     });
@@ -200,6 +201,7 @@ export class GotifySubscriptionService implements OnModuleInit {
     system: ExternalNotifySystem,
     gotify: GotifyIncomingMessage,
   ): Promise<void> {
+    if (gotify.extras?.[GOTIFY_ZENTIK_EXTRA_KEY] === GOTIFY_ZENTIK_EXTRA_VALUE) return;
     if (this.isPublishedByUs(system.id, gotify.id)) return;
 
     const buckets = await this.bucketRepo.find({
