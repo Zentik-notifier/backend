@@ -55,6 +55,9 @@ const GRAPHQL_PATH = `/api/v1/graphql`;
                   ...connectionParams,
                 },
               },
+              websocketHeader: connectionParams
+                ? { connectionParams }
+                : undefined,
             };
           }
 
