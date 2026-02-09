@@ -6,6 +6,7 @@ import { AccessTokenService } from '../auth/access-token.service';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { MagicCodeGuard } from '../auth/guards/magic-code.guard';
+import { BucketsService } from '../buckets/buckets.service';
 import { Message } from '../entities/message.entity';
 import { UserAccessToken } from '../entities/user-access-token.entity';
 import { UserBucket } from '../entities/user-bucket.entity';
@@ -97,6 +98,13 @@ describe('MessagesController', () => {
         {
           provide: MessagesStreamService,
           useValue: mockMessagesStreamService,
+        },
+        {
+          provide: BucketsService,
+          useValue: {
+            calculateBucketPermissions: jest.fn().mockResolvedValue({ canWrite: true, canRead: true }),
+            findOne: jest.fn().mockResolvedValue({ id: 'bucket-1', name: 'Test' }),
+          },
         },
         {
           provide: AccessTokenService,
