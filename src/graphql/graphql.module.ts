@@ -1,7 +1,8 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
+import type { GraphQLFormattedError } from 'graphql';
 import { AttachmentsModule } from '../attachments/attachments.module';
 import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
@@ -28,6 +29,7 @@ import { ChangelogModule } from 'src/changelog/changelog.module';
 import { ChangelogResolver } from 'src/changelog/changelog.resolver';
 
 const GRAPHQL_PATH = `/api/v1/graphql`;
+const gqlLogger = new Logger('GraphQL');
 
 @Module({
   imports: [
@@ -39,6 +41,18 @@ const GRAPHQL_PATH = `/api/v1/graphql`;
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         sortSchema: true,
         path: GRAPHQL_PATH,
+        formatError: (formattedError: GraphQLFormattedError, error: unknown): GraphQLFormattedError => {
+          const path = formattedError.path?.length ? formattedError.path.join('.') : 'unknown';
+          gqlLogger.error(
+            `GraphQL error [${path}]: ${formattedError.message}`,
+            (error as Error)?.stack ?? String(error),
+          );
+          const ext = (error as { extensions?: unknown })?.extensions;
+          if (ext && Object.keys(ext as object).length > 0) {
+            gqlLogger.debug(`GraphQL error extensions: ${JSON.stringify(ext)}`);
+          }
+          return formattedError;
+        },
         subscriptions: {
           'graphql-ws': {
             path: GRAPHQL_PATH,
