@@ -43,6 +43,10 @@ export class MessageAttachment {
 
   @Field({ nullable: true })
   @ApiProperty({ required: false })
+  mime?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
   url?: string;
 
   @Field({ nullable: true })

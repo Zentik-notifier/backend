@@ -54,7 +54,7 @@ export class AttachmentsService {
     uploadAttachmentDto: UploadAttachmentDto,
     file: Express.Multer.File,
   ): Promise<Attachment> {
-    const { filename, mediaType } = uploadAttachmentDto;
+    const { filename, mediaType, mime: mimeInput } = uploadAttachmentDto;
 
     // Generate unique attachment ID
     const attachmentId = uuidv4();
@@ -70,12 +70,14 @@ export class AttachmentsService {
         finalMediaType = MediaType.VIDEO;
       } else if (file.mimetype.startsWith('audio/')) {
         finalMediaType = MediaType.AUDIO;
-      } else if (file.mimetype === 'application/pdf') {
-        finalMediaType = MediaType.ICON; // Use ICON as fallback for documents
+      } else if (file.mimetype.startsWith('text/') || file.mimetype.startsWith('application/')) {
+        finalMediaType = MediaType.FILE;
       } else {
-        finalMediaType = MediaType.ICON; // Default fallback for other file types
+        finalMediaType = MediaType.FILE;
       }
     }
+
+    const mimeValue = mimeInput ?? file.mimetype;
 
     // Get user-specific media type path: /attachments/userid/mediatype/id/
     const attachmentPath = await this.getUserMediaTypePath(
@@ -103,9 +105,27 @@ export class AttachmentsService {
         'audio/wav',
         'audio/ogg',
         'application/pdf',
-        'text/plain',
+        'text/*',
+        'application/rtf',
+        'application/json',
+        'application/xml',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.presentation',
+        'application/vnd.oasis.opendocument.graphics',
+        'application/vnd.oasis.opendocument.formula',
+        'application/vnd.oasis.opendocument.chart',
+        'application/vnd.oasis.opendocument.image',
+        'application/vnd.oasis.opendocument.database',
+        'application/vnd.oasis.opendocument.text-master',
       ];
-    
+
     // Check if mime type is allowed (supports wildcards like image/*)
     const isAllowed = allowedMimeTypes.some(allowedType => {
       if (allowedType.endsWith('/*')) {
@@ -114,7 +134,7 @@ export class AttachmentsService {
       }
       return allowedType === file.mimetype;
     });
-    
+
     if (!isAllowed) {
       throw new BadRequestException(
         `File type ${file.mimetype} is not allowed`,
@@ -154,6 +174,7 @@ export class AttachmentsService {
       size: file.size,
       filepath,
       mediaType: finalMediaType,
+      mime: mimeValue,
       userId,
     });
 
@@ -179,6 +200,28 @@ export class AttachmentsService {
       ogg: 'audio/ogg',
       pdf: 'application/pdf',
       txt: 'text/plain',
+      md: 'text/markdown',
+      csv: 'text/csv',
+      html: 'text/html',
+      htm: 'text/html',
+      xml: 'application/xml',
+      json: 'application/json',
+      rtf: 'application/rtf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ppt: 'application/vnd.ms-powerpoint',
+      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      odt: 'application/vnd.oasis.opendocument.text',
+      ods: 'application/vnd.oasis.opendocument.spreadsheet',
+      odp: 'application/vnd.oasis.opendocument.presentation',
+      odg: 'application/vnd.oasis.opendocument.graphics',
+      odf: 'application/vnd.oasis.opendocument.formula',
+      odc: 'application/vnd.oasis.opendocument.chart',
+      odi: 'application/vnd.oasis.opendocument.image',
+      odb: 'application/vnd.oasis.opendocument.database',
+      odm: 'application/vnd.oasis.opendocument.text-master',
     };
     return mimeTypes[ext || ''] || 'application/octet-stream';
   }
@@ -384,10 +427,14 @@ export class AttachmentsService {
           finalMediaType = MediaType.VIDEO;
         } else if (finalFilename.match(/\.(mp3|wav|ogg|m4a)$/i)) {
           finalMediaType = MediaType.AUDIO;
+        } else if (finalFilename.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|odg|odf|odc|odi|odb|odm|txt|md|csv|html|htm|xml|json|rtf)$/i)) {
+          finalMediaType = MediaType.FILE;
         } else {
-          finalMediaType = MediaType.ICON; // Default fallback
+          finalMediaType = MediaType.FILE;
         }
       }
+
+      const mimeFromExtension = this.getMimeType(finalFilename);
 
       // Get user-specific media type path: /attachments/userid/mediatype/id/
       const attachmentPath = await this.getUserMediaTypePath(
@@ -413,6 +460,7 @@ export class AttachmentsService {
         size: buffer.length,
         filepath,
         mediaType: finalMediaType,
+        mime: mimeFromExtension,
         userId,
       });
 
@@ -575,7 +623,7 @@ export class AttachmentsService {
 
         if (metadata.format === 'svg') {
           iconType = 'svg';
-          
+
           // Parse color
           const colorMatch = bucketColor.match(/#([0-9A-Fa-f]{6})/);
           if (!colorMatch) {
@@ -584,7 +632,7 @@ export class AttachmentsService {
           const r = parseInt(colorMatch[1].substring(0, 2), 16);
           const g = parseInt(colorMatch[1].substring(2, 4), 16);
           const b = parseInt(colorMatch[1].substring(4, 6), 16);
-          
+
           // Step 1: Create colored circular background directly with sharp
           const circleBackground = await sharp({
             create: {
@@ -594,16 +642,16 @@ export class AttachmentsService {
               background: { r, g, b, alpha: 1 }
             }
           })
-          .png()
-          .toBuffer();
-          
+            .png()
+            .toBuffer();
+
           // Apply circular mask
           const circleMask = Buffer.from(
             `<svg width="${size}" height="${size}">
-              <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="white"/>
+              <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="white"/>
             </svg>`
           );
-          
+
           const maskedBackground = await sharp(circleBackground)
             .composite([{
               input: circleMask,
@@ -611,13 +659,13 @@ export class AttachmentsService {
             }])
             .png()
             .toBuffer();
-          
+
           // Step 2: Render SVG to PNG (transparent, full size)
           const svgPng = await sharp(iconBuffer)
             .resize(size, size, { fit: 'inside', background: { r: 0, g: 0, b: 0, alpha: 0 } })
             .png()
             .toBuffer();
-          
+
           // Step 3: Composite SVG icon on top of colored circle
           finalBuffer = await sharp(maskedBackground)
             .composite([
@@ -630,7 +678,7 @@ export class AttachmentsService {
             .toBuffer();
         } else {
           iconType = 'image';
-          
+
           // Parse color
           const colorMatch = bucketColor.match(/#([0-9A-Fa-f]{6})/);
           if (!colorMatch) {
@@ -639,7 +687,7 @@ export class AttachmentsService {
           const r = parseInt(colorMatch[1].substring(0, 2), 16);
           const g = parseInt(colorMatch[1].substring(2, 4), 16);
           const b = parseInt(colorMatch[1].substring(4, 6), 16);
-          
+
           // Create colored circular background directly with sharp
           const circleBackground = await sharp({
             create: {
@@ -649,16 +697,16 @@ export class AttachmentsService {
               background: { r, g, b, alpha: 1 }
             }
           })
-          .png()
-          .toBuffer();
-          
+            .png()
+            .toBuffer();
+
           // Apply circular mask
           const circleMask = Buffer.from(
             `<svg width="${size}" height="${size}">
-              <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="white"/>
+              <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="white"/>
             </svg>`
           );
-          
+
           const maskedBackground = await sharp(circleBackground)
             .composite([{
               input: circleMask,
@@ -735,7 +783,7 @@ export class AttachmentsService {
     return new Promise((resolve, reject) => {
       const protocol = url.startsWith('https') ? https : http;
       const urlObj = new URL(url);
-      
+
       const options = {
         hostname: urlObj.hostname,
         port: urlObj.port,
@@ -749,7 +797,7 @@ export class AttachmentsService {
           'Referer': `${urlObj.protocol}//${urlObj.hostname}/`,
         }
       };
-      
+
       protocol.get(options, (response) => {
         // Follow redirects
         if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307 || response.statusCode === 308) {
@@ -786,11 +834,11 @@ export class AttachmentsService {
   ): Promise<Buffer> {
     const sharp = require('sharp');
     const size = 200;
-    
+
     // Generate initials from bucket name (same logic as Swift/React)
     const generateInitials = (name: string): string => {
       const words = name.split(' ').filter(w => w.length > 0);
-      
+
       if (words.length >= 2) {
         return words[0][0] + words[1][0];
       } else if (words.length === 1 && words[0].length >= 2) {
@@ -798,18 +846,18 @@ export class AttachmentsService {
       } else if (words.length === 1) {
         return words[0][0];
       }
-      
+
       return '?';
     };
 
     let svg: string;
-    
+
     if (includeInitials) {
       const initials = generateInitials(bucketName).toUpperCase();
       svg = `
         <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
           <rect width="${size}" height="${size}" fill="${bucketColor}"/>
-          <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${bucketColor}"/>
+          <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="${bucketColor}"/>
           <text 
             x="50%" 
             y="50%" 
@@ -827,7 +875,7 @@ export class AttachmentsService {
       svg = `
         <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
           <rect width="${size}" height="${size}" fill="${bucketColor}"/>
-          <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${bucketColor}"/>
+          <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="${bucketColor}"/>
         </svg>
       `;
     }
@@ -836,7 +884,7 @@ export class AttachmentsService {
     try {
       const pngBuffer = await sharp(Buffer.from(svg))
         .resize(size, size)
-        .png({ 
+        .png({
           compressionLevel: 9,
           adaptiveFiltering: true,
         })

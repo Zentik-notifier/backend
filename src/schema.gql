@@ -40,6 +40,7 @@ type Attachment {
   id: ID!
   mediaType: MediaType
   messageId: String
+  mime: String
   originalFilename: String
   size: Float
   updatedAt: DateTime!
@@ -600,6 +601,7 @@ type MassMarkResult {
 
 enum MediaType {
   AUDIO
+  FILE
   GIF
   ICON
   IMAGE
@@ -641,6 +643,7 @@ type Message {
 type MessageAttachment {
   attachmentUuid: String
   mediaType: MediaType!
+  mime: String
   name: String
   saveOnServer: Boolean
   url: String
@@ -866,6 +869,7 @@ enum NotificationActionType {
 input NotificationAttachmentDto {
   attachmentUuid: String
   mediaType: MediaType!
+  mime: String
   name: String
   saveOnServer: Boolean
   url: String

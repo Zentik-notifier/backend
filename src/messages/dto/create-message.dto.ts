@@ -27,6 +27,12 @@ export class NotificationAttachmentDto {
   mediaType: MediaType;
 
   @Field({ nullable: true })
+  @ApiProperty({ required: false, description: 'MIME type (e.g. application/pdf). Auto-detected from upload if not provided.' })
+  @IsOptional()
+  @IsString()
+  mime?: string;
+
+  @Field({ nullable: true })
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()

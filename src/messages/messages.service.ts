@@ -696,9 +696,10 @@ export class MessagesService {
                 attachment.mediaType,
               );
 
-            // Replace url with attachmentUuid
+            // Replace url with attachmentUuid and add mime from saved attachment
             processedAttachment.url = undefined;
             processedAttachment.attachmentUuid = savedAttachment.id;
+            processedAttachment.mime = savedAttachment.mime;
           } catch (error) {
             this.logger.error(
               `Failed to download attachment from URL: ${attachment.url}`,
@@ -743,7 +744,8 @@ export class MessagesService {
         // Create NotificationAttachmentDto with resolved data
         const resolvedAttachment: NotificationAttachmentDto = {
           attachmentUuid: uuid,
-          mediaType: attachment.mediaType || MediaType.ICON, // Fallback to ICON if undefined
+          mediaType: attachment.mediaType || MediaType.ICON,
+          mime: attachment.mime,
           name: attachment.filename,
           url: this.urlBuilderService.buildAttachmentUrl(uuid),
         };
@@ -863,7 +865,6 @@ export class MessagesService {
     // Determine mediaType: use attachmentOptions.mediaType if provided, otherwise try to infer from mimetype
     let mediaType = normalizedInput.attachmentOptions.mediaType;
     if (!mediaType && attachment.mimetype) {
-      // Try to infer mediaType from mimetype
       if (attachment.mimetype === 'image/gif') {
         mediaType = MediaType.GIF;
       } else if (attachment.mimetype.startsWith('image/')) {
@@ -872,6 +873,10 @@ export class MessagesService {
         mediaType = MediaType.VIDEO;
       } else if (attachment.mimetype.startsWith('audio/')) {
         mediaType = MediaType.AUDIO;
+      } else if (attachment.mimetype === 'application/pdf' || attachment.mimetype.startsWith('text/') || attachment.mimetype.startsWith('application/')) {
+        mediaType = MediaType.FILE;
+      } else {
+        mediaType = MediaType.FILE;
       }
     }
 
@@ -887,7 +892,8 @@ export class MessagesService {
 
     // Create attachment DTO for the message
     const attachmentDto: NotificationAttachmentDto = {
-      mediaType,
+      mediaType: savedAttachment.mediaType ?? mediaType,
+      mime: savedAttachment.mime,
       name: filename,
       attachmentUuid: savedAttachment.id,
     };

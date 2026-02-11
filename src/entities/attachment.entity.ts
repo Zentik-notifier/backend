@@ -53,6 +53,11 @@ export class Attachment {
   @Field({ nullable: true })
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  mime?: string;
+
+  @Field({ nullable: true })
+  @ApiProperty({ required: false })
+  @Column({ nullable: true })
   messageId?: string;
 
   @Field(() => User)

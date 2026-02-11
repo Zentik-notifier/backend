@@ -25,6 +25,7 @@ export enum MediaType {
   GIF = 'GIF',
   AUDIO = 'AUDIO',
   ICON = 'ICON',
+  FILE = 'FILE',
 }
 
 export enum NotificationServiceType {

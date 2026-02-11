@@ -57,6 +57,7 @@ import { AddExternalSystemResponseToMessages1769600000000 } from './database/mig
 import { AddScheduledSendAtToMessages1769700000000 } from './database/migrations/1769700000000-AddScheduledSendAtToMessages';
 import { AddExternalNotifyCredentialsSetting1769800000000 } from './database/migrations/1769800000000-AddExternalNotifyCredentialsSetting';
 import { AddExternalNotifySystemsEnabledSetting1769900000000 } from './database/migrations/1769900000000-AddExternalNotifySystemsEnabledSetting';
+import { AddFileMediaTypeAndMimeToAttachments1770000000000 } from './database/migrations/1770000000000-AddFileMediaTypeAndMimeToAttachments';
 
 config({ path: '.env' });
 
@@ -135,6 +136,7 @@ const dataSource = new DataSource({
     AddScheduledSendAtToMessages1769700000000,
     AddExternalNotifyCredentialsSetting1769800000000,
     AddExternalNotifySystemsEnabledSetting1769900000000,
+    AddFileMediaTypeAndMimeToAttachments1770000000000,
   ],
   migrationsTableName: 'migrations',
 });

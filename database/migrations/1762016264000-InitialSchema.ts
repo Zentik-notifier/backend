@@ -95,7 +95,7 @@ export class InitialSchema1762016264000 implements MigrationInterface {
   private async createEnumTypes(queryRunner: QueryRunner): Promise<void> {
     const enums = [
       { name: 'UserSettingType', values: ['Timezone', 'Language', 'UnencryptOnBigPayload', 'ExpoKey', 'HomeassistantUrl', 'HomeassistantToken', 'AutoAddDeleteAction', 'AutoAddMarkAsReadAction', 'AutoAddOpenNotificationAction', 'DefaultPostpones', 'DefaultSnoozes', 'GithubEventsFilter'] },
-      { name: 'attachments_mediatype_enum', values: ['VIDEO', 'IMAGE', 'GIF', 'AUDIO', 'ICON'] },
+      { name: 'attachments_mediatype_enum', values: ['VIDEO', 'IMAGE', 'GIF', 'AUDIO', 'ICON', 'FILE'] },
       { name: 'device_platform_enum', values: ['IOS', 'ANDROID', 'WEB'] },
       { name: 'entity_executions_status_enum', values: ['SUCCESS', 'ERROR', 'TIMEOUT', 'SKIPPED'] },
       { name: 'entity_executions_type_enum', values: ['WEBHOOK', 'PAYLOAD_MAPPER'] },
@@ -326,6 +326,7 @@ END$$;`;
             { name: 'filename', type: 'varchar' },
             { name: 'filepath', type: 'varchar' },
             { name: 'mediaType', type: 'enum', enumName: 'attachments_mediatype_enum', isNullable: true },
+            { name: 'mime', type: 'varchar', isNullable: true },
             { name: 'messageId', type: 'varchar', isNullable: true },
             { name: 'userId', type: 'uuid' },
             { name: 'createdAt', type: 'timestamp', default: 'now()' },

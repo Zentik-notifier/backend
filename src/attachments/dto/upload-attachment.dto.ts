@@ -18,4 +18,13 @@ export class UploadAttachmentDto {
   })
   @IsOptional()
   mediaType?: MediaType;
+
+  @Field({ nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'MIME type. Auto-detected from file if not provided.',
+  })
+  @IsOptional()
+  @IsString()
+  mime?: string;
 }
