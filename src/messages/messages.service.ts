@@ -873,7 +873,7 @@ export class MessagesService {
         mediaType = MediaType.VIDEO;
       } else if (attachment.mimetype.startsWith('audio/')) {
         mediaType = MediaType.AUDIO;
-      } else if (attachment.mimetype === 'application/pdf' || attachment.mimetype.startsWith('text/') || attachment.mimetype.startsWith('application/')) {
+      } else if (attachment.mimetype.startsWith('application/')) {
         mediaType = MediaType.FILE;
       } else {
         mediaType = MediaType.FILE;

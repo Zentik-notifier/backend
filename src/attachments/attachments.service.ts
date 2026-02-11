@@ -70,7 +70,7 @@ export class AttachmentsService {
         finalMediaType = MediaType.VIDEO;
       } else if (file.mimetype.startsWith('audio/')) {
         finalMediaType = MediaType.AUDIO;
-      } else if (file.mimetype.startsWith('text/') || file.mimetype.startsWith('application/')) {
+      } else if (file.mimetype.startsWith('application/')) {
         finalMediaType = MediaType.FILE;
       } else {
         finalMediaType = MediaType.FILE;
@@ -99,31 +99,9 @@ export class AttachmentsService {
     const allowedMimeTypes = (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsAllowedMimeTypes))?.valueText
       ?.split(',') || [
         'image/*',
-        'video/mp4',
-        'video/webm',
-        'audio/mpeg',
-        'audio/wav',
-        'audio/ogg',
-        'application/pdf',
-        'text/*',
-        'application/rtf',
-        'application/json',
-        'application/xml',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/vnd.oasis.opendocument.text',
-        'application/vnd.oasis.opendocument.spreadsheet',
-        'application/vnd.oasis.opendocument.presentation',
-        'application/vnd.oasis.opendocument.graphics',
-        'application/vnd.oasis.opendocument.formula',
-        'application/vnd.oasis.opendocument.chart',
-        'application/vnd.oasis.opendocument.image',
-        'application/vnd.oasis.opendocument.database',
-        'application/vnd.oasis.opendocument.text-master',
+        'video/*',
+        'audio/*',
+        'application/*',
       ];
 
     // Check if mime type is allowed (supports wildcards like image/*)
@@ -198,30 +176,6 @@ export class AttachmentsService {
       mp3: 'audio/mpeg',
       wav: 'audio/wav',
       ogg: 'audio/ogg',
-      pdf: 'application/pdf',
-      txt: 'text/plain',
-      md: 'text/markdown',
-      csv: 'text/csv',
-      html: 'text/html',
-      htm: 'text/html',
-      xml: 'application/xml',
-      json: 'application/json',
-      rtf: 'application/rtf',
-      doc: 'application/msword',
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      xls: 'application/vnd.ms-excel',
-      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      ppt: 'application/vnd.ms-powerpoint',
-      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      odt: 'application/vnd.oasis.opendocument.text',
-      ods: 'application/vnd.oasis.opendocument.spreadsheet',
-      odp: 'application/vnd.oasis.opendocument.presentation',
-      odg: 'application/vnd.oasis.opendocument.graphics',
-      odf: 'application/vnd.oasis.opendocument.formula',
-      odc: 'application/vnd.oasis.opendocument.chart',
-      odi: 'application/vnd.oasis.opendocument.image',
-      odb: 'application/vnd.oasis.opendocument.database',
-      odm: 'application/vnd.oasis.opendocument.text-master',
     };
     return mimeTypes[ext || ''] || 'application/octet-stream';
   }
@@ -427,7 +381,7 @@ export class AttachmentsService {
           finalMediaType = MediaType.VIDEO;
         } else if (finalFilename.match(/\.(mp3|wav|ogg|m4a)$/i)) {
           finalMediaType = MediaType.AUDIO;
-        } else if (finalFilename.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|odg|odf|odc|odi|odb|odm|txt|md|csv|html|htm|xml|json|rtf)$/i)) {
+        } else if (finalFilename.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|odg|odf|odc|odi|odb|odm|xml|json|rtf)$/i)) {
           finalMediaType = MediaType.FILE;
         } else {
           finalMediaType = MediaType.FILE;
