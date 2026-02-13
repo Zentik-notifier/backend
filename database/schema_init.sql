@@ -806,7 +806,7 @@ ALTER TABLE public.user_buckets OWNER TO zentik_user;
 CREATE TABLE public.user_devices (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     "userId" uuid NOT NULL,
-    "deviceToken" character varying(255),
+    "deviceToken" text,
     platform public.device_platform_enum NOT NULL,
     "deviceName" character varying,
     "deviceModel" character varying,

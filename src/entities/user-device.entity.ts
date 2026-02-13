@@ -43,7 +43,7 @@ export class UserDevice {
 
   @Field(() => String, { nullable: true })
   @ApiProperty({ required: false })
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   deviceToken?: string | null;
 
   @Field()
