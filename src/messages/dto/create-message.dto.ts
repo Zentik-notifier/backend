@@ -233,6 +233,23 @@ export class CreateMessageDto {
   @IsBoolean()
   addDeleteAction?: boolean = true;
 
+  @Field(() => [String], { nullable: true })
+  @ApiProperty({
+    type: [String],
+    required: false,
+    description: 'Optional tags for filtering and categorization',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+    return value;
+  })
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
   @Field(() => [Number], { nullable: true })
   @ApiProperty({ type: [Number], required: false })
   @IsOptional()

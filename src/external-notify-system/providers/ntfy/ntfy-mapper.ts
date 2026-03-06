@@ -41,7 +41,10 @@ export function messageToNtfyPayload(
   if (message.title) payload.title = message.title;
   payload.priority = DELIVERY_TO_NTFY_PRIORITY[message.deliveryType] ?? 3;
 
-  if (message.tapAction?.type === NotificationActionType.NAVIGATE && message.tapAction.value) {
+  if (
+    message.tapAction?.type === NotificationActionType.NAVIGATE &&
+    message.tapAction.value
+  ) {
     payload.click = message.tapAction.value;
   }
   if (bucketRef?.iconUrl) payload.icon = bucketRef.iconUrl;
@@ -50,7 +53,7 @@ export function messageToNtfyPayload(
     (a) => a.mediaType === 'IMAGE' && a.url,
   )?.url;
   if (firstImageUrl) payload.attach = firstImageUrl;
-  if (message.subtitle) payload.tags = [message.subtitle];
+  if (message.tags?.length) payload.tags = message.tags;
 
   const actions = message.actions ?? [];
   const ntfyActionParts: string[] = [];
@@ -58,9 +61,13 @@ export function messageToNtfyPayload(
     const label = a.title ?? '';
     const value = a.value ?? '';
     if (a.type === NotificationActionType.NAVIGATE && value) {
-      ntfyActionParts.push(`view, ${quoteForNtfyAction(label)}, ${quoteForNtfyAction(value)}`);
+      ntfyActionParts.push(
+        `view, ${quoteForNtfyAction(label)}, ${quoteForNtfyAction(value)}`,
+      );
     } else if (a.type === NotificationActionType.WEBHOOK && value) {
-      ntfyActionParts.push(`http, ${quoteForNtfyAction(label)}, ${quoteForNtfyAction(value)}`);
+      ntfyActionParts.push(
+        `http, ${quoteForNtfyAction(label)}, ${quoteForNtfyAction(value)}`,
+      );
     } else if (a.type === NotificationActionType.BACKGROUND_CALL) {
       const part = value
         ? `broadcast, ${quoteForNtfyAction(label)}, intent=${quoteForNtfyAction(value)}`
@@ -95,7 +102,13 @@ export interface NtfyIncomingMessage {
   priority?: number;
   tags?: string[];
   click?: string;
-  attachment?: { name?: string; url: string; type?: string; size?: number; expires?: number };
+  attachment?: {
+    name?: string;
+    url: string;
+    type?: string;
+    size?: number;
+    expires?: number;
+  };
   actions?: NtfyIncomingAction[];
   icon?: string;
 }
@@ -108,7 +121,9 @@ const NTFY_PRIORITY_TO_DELIVERY: Record<number, NotificationDeliveryType> = {
   5: NotificationDeliveryType.CRITICAL,
 };
 
-export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): CreateMessageDto {
+export function ntfyMessageToCreatePayload(
+  ntfy: NtfyIncomingMessage,
+): CreateMessageDto {
   let title = ntfy.title;
   let body = ntfy.message;
   if (!title) {
@@ -116,7 +131,8 @@ export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): CreateMes
     body = undefined;
   }
   const deliveryType =
-    NTFY_PRIORITY_TO_DELIVERY[ntfy.priority ?? 3] ?? NotificationDeliveryType.NORMAL;
+    NTFY_PRIORITY_TO_DELIVERY[ntfy.priority ?? 3] ??
+    NotificationDeliveryType.NORMAL;
 
   const result: CreateMessageDto = {
     title: title ?? '',
@@ -124,9 +140,12 @@ export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): CreateMes
     deliveryType,
   };
 
-  if (ntfy.tags?.length) result.subtitle = ntfy.tags.join(', ');
+  if (ntfy.tags?.length) result.tags = ntfy.tags;
   if (ntfy.click) {
-    result.tapAction = { type: NotificationActionType.NAVIGATE, value: ntfy.click };
+    result.tapAction = {
+      type: NotificationActionType.NAVIGATE,
+      value: ntfy.click,
+    };
   }
 
   if (ntfy.actions?.length) {
@@ -134,10 +153,18 @@ export function ntfyMessageToCreatePayload(ntfy: NtfyIncomingMessage): CreateMes
       .map((a) => {
         const label = a.label ?? '';
         if (a.action === 'view' && a.url) {
-          return { type: NotificationActionType.NAVIGATE, value: a.url, title: label };
+          return {
+            type: NotificationActionType.NAVIGATE,
+            value: a.url,
+            title: label,
+          };
         }
         if (a.action === 'http' && a.url) {
-          return { type: NotificationActionType.WEBHOOK, value: a.url, title: label };
+          return {
+            type: NotificationActionType.WEBHOOK,
+            value: a.url,
+            title: label,
+          };
         }
         if (a.action === 'broadcast') {
           return {

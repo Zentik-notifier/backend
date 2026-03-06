@@ -59,6 +59,7 @@ import { AddExternalNotifyCredentialsSetting1769800000000 } from './database/mig
 import { AddExternalNotifySystemsEnabledSetting1769900000000 } from './database/migrations/1769900000000-AddExternalNotifySystemsEnabledSetting';
 import { AddFileMediaTypeAndMimeToAttachments1770000000000 } from './database/migrations/1770000000000-AddFileMediaTypeAndMimeToAttachments';
 import { ExtendDeviceTokenLength1770100000000 } from './database/migrations/1770100000000-ExtendDeviceTokenLength';
+import { AddTagsToMessages1770200000000 } from './database/migrations/1770200000000-AddTagsToMessages';
 
 config({ path: '.env' });
 
@@ -139,9 +140,9 @@ const dataSource = new DataSource({
     AddExternalNotifySystemsEnabledSetting1769900000000,
     AddFileMediaTypeAndMimeToAttachments1770000000000,
     ExtendDeviceTokenLength1770100000000,
+    AddTagsToMessages1770200000000,
   ],
   migrationsTableName: 'migrations',
 });
 
 export default dataSource;
-

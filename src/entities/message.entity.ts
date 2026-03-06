@@ -169,6 +169,15 @@ export class Message {
   @Column({ nullable: true })
   addDeleteAction?: boolean;
 
+  @Field(() => [String], { nullable: true })
+  @ApiProperty({
+    type: [String],
+    required: false,
+    description: 'List of tags for filtering and categorization',
+  })
+  @Column({ type: 'text', array: true, nullable: true })
+  tags?: string[];
+
   @Field(() => [Number], { nullable: true })
   @ApiProperty({ type: [Number], required: false })
   @Column({ type: 'int', array: true, nullable: true })
@@ -242,7 +251,8 @@ export class Message {
   @Field({ nullable: true })
   @ApiProperty({
     required: false,
-    description: 'When true, message is deleted automatically after 1 hour by cleanup',
+    description:
+      'When true, message is deleted automatically after 1 hour by cleanup',
   })
   @Column({ type: 'boolean', nullable: true, default: false })
   ephemeral?: boolean;
@@ -250,7 +260,8 @@ export class Message {
   @Field(() => GraphQLJSON, { nullable: true })
   @ApiProperty({
     required: false,
-    description: 'Data from external notify system responses (e.g. NTFY message id)',
+    description:
+      'Data from external notify system responses (e.g. NTFY message id)',
   })
   @Column({ type: 'json', nullable: true })
   externalSystemResponse?: Record<string, unknown>;
@@ -258,7 +269,8 @@ export class Message {
   @Field(() => Date, { nullable: true })
   @ApiProperty({
     required: false,
-    description: 'When set, message is sent at this time by the scheduler instead of immediately',
+    description:
+      'When set, message is sent at this time by the scheduler instead of immediately',
   })
   @Column({ type: 'timestamp with time zone', nullable: true })
   scheduledSendAt?: Date | null;

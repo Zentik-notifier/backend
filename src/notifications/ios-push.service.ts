@@ -9,7 +9,10 @@ import { ServerSettingType } from '../entities/server-setting.entity';
 import { UserDevice } from '../entities/user-device.entity';
 import { ServerSettingsService } from '../server-manager/server-settings.service';
 import { DevicePlatform } from '../users/dto';
-import { AutoActionSettings, generateAutomaticActions } from './notification-actions.util';
+import {
+  AutoActionSettings,
+  generateAutomaticActions,
+} from './notification-actions.util';
 import {
   ExternalApnsPrebuiltVariantDto,
   ExternalApnsPrebuiltMultiPayloadDto,
@@ -71,7 +74,7 @@ export class IOSPushService {
   constructor(
     private localeService: LocaleService,
     private serverSettingsService: ServerSettingsService,
-  ) { }
+  ) {}
 
   /**
    * Ensure provider is initialized before use (lazy initialization)
@@ -86,7 +89,7 @@ export class IOSPushService {
     return attachments
       .filter((att) => att.mediaType?.toUpperCase() !== MediaType.ICON)
       .map((att) => `${att.mediaType}:${att.url}`);
-  };
+  }
 
   /**
    * Privatize sensitive fields in APNs payload for logging/tracking purposes
@@ -121,7 +124,9 @@ export class IOSPushService {
         if (sensitive.tp) {
           privatizedSensitive.tp = {
             ...sensitive.tp,
-            v: sensitive.tp.v ? `${String(sensitive.tp.v).substring(0, 8)}...` : sensitive.tp.v,
+            v: sensitive.tp.v
+              ? `${String(sensitive.tp.v).substring(0, 8)}...`
+              : sensitive.tp.v,
           };
         }
 
@@ -130,7 +135,9 @@ export class IOSPushService {
           privatizedSensitive.a = sensitive.a.map((action: any) => ({
             ...action,
             v: action.v ? `${String(action.v).substring(0, 8)}...` : action.v,
-            title: action.title ? `${String(action.title).substring(0, 5)}...` : action.title,
+            title: action.title
+              ? `${String(action.title).substring(0, 5)}...`
+              : action.title,
           }));
         }
 
@@ -156,7 +163,9 @@ export class IOSPushService {
     if (privatized.tp) {
       privatized.tp = {
         ...privatized.tp,
-        v: privatized.tp.v ? `${String(privatized.tp.v).substring(0, 8)}...` : privatized.tp.v,
+        v: privatized.tp.v
+          ? `${String(privatized.tp.v).substring(0, 8)}...`
+          : privatized.tp.v,
       };
     }
 
@@ -198,9 +207,9 @@ export class IOSPushService {
     if (message.collapseId) {
       apsPayload['apns-collapse-id'] = message.collapseId;
     } else {
-      apsPayload['thread-id'] = message.groupId || notification.message.bucketId
+      apsPayload['thread-id'] =
+        message.groupId || notification.message.bucketId;
     }
-
 
     let priority = 10;
     // Configure delivery type based on notification.deliveryType
@@ -225,53 +234,52 @@ export class IOSPushService {
     }
 
     // Combine manual actions with automatic actions
-    const allActions = [
-      ...automaticActions,
-      ...(message.actions || []),
-    ].map((action) => {
-      const optimized: any = {
-        ...action,
-        t: ActionTypeMap[action.type] || 0,
-        v: action.value,
-      };
+    const allActions = [...automaticActions, ...(message.actions || [])].map(
+      (action) => {
+        const optimized: any = {
+          ...action,
+          t: ActionTypeMap[action.type] || 0,
+          v: action.value,
+        };
 
-      // Optimization: remove icon for well-known actions (client maps icon 1:1)
-      if (
-        action.type === NotificationActionType.DELETE ||
-        action.type === NotificationActionType.MARK_AS_READ ||
-        action.type === NotificationActionType.OPEN_NOTIFICATION ||
-        action.type === NotificationActionType.SNOOZE ||
-        action.type === NotificationActionType.POSTPONE
-      ) {
-        delete optimized.icon;
-      }
+        // Optimization: remove icon for well-known actions (client maps icon 1:1)
+        if (
+          action.type === NotificationActionType.DELETE ||
+          action.type === NotificationActionType.MARK_AS_READ ||
+          action.type === NotificationActionType.OPEN_NOTIFICATION ||
+          action.type === NotificationActionType.SNOOZE ||
+          action.type === NotificationActionType.POSTPONE
+        ) {
+          delete optimized.icon;
+        }
 
-      // Optimization: remove explicit destructive=false to save bytes
-      if (optimized.destructive === false) {
-        delete optimized.destructive;
-      }
+        // Optimization: remove explicit destructive=false to save bytes
+        if (optimized.destructive === false) {
+          delete optimized.destructive;
+        }
 
-      // Optimization: remove value for known fixed-value actions
-      if (
-        (action.type === NotificationActionType.DELETE) ||
-        (action.type === NotificationActionType.MARK_AS_READ) ||
-        (action.type === NotificationActionType.OPEN_NOTIFICATION)
-      ) {
-        delete optimized.v;
-      }
+        // Optimization: remove value for known fixed-value actions
+        if (
+          action.type === NotificationActionType.DELETE ||
+          action.type === NotificationActionType.MARK_AS_READ ||
+          action.type === NotificationActionType.OPEN_NOTIFICATION
+        ) {
+          delete optimized.v;
+        }
 
-      delete optimized.type;
-      delete optimized.value;
-      return optimized;
-    });
+        delete optimized.type;
+        delete optimized.value;
+        return optimized;
+      },
+    );
 
     // Determine effective tapAction: use provided one or default to OPEN_NOTIFICATION with notification.id
     const effectiveTapAction: NotificationAction = message.tapAction
       ? message.tapAction
       : {
-        type: NotificationActionType.OPEN_NOTIFICATION,
-        value: notification.id,
-      };
+          type: NotificationActionType.OPEN_NOTIFICATION,
+          value: notification.id,
+        };
 
     const optimizedTapAction: any = {
       ...effectiveTapAction,
@@ -297,9 +305,12 @@ export class IOSPushService {
 
     // Optimization: remove value for known fixed-value tap actions
     if (
-      (effectiveTapAction.type === NotificationActionType.DELETE && effectiveTapAction.value === 'delete_notification') ||
-      (effectiveTapAction.type === NotificationActionType.MARK_AS_READ && effectiveTapAction.value === 'mark_as_read_notification') ||
-      (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION && effectiveTapAction.value === notification.id)
+      (effectiveTapAction.type === NotificationActionType.DELETE &&
+        effectiveTapAction.value === 'delete_notification') ||
+      (effectiveTapAction.type === NotificationActionType.MARK_AS_READ &&
+        effectiveTapAction.value === 'mark_as_read_notification') ||
+      (effectiveTapAction.type === NotificationActionType.OPEN_NOTIFICATION &&
+        effectiveTapAction.value === notification.id)
     ) {
       delete optimizedTapAction.v;
     }
@@ -315,11 +326,12 @@ export class IOSPushService {
         action.t === ActionTypeMap[NotificationActionType.NAVIGATE] ||
         action.t === ActionTypeMap[NotificationActionType.BACKGROUND_CALL],
     );
-    const publicActions = allActions.filter(
-      (action) =>
-        action.t !== ActionTypeMap[NotificationActionType.NAVIGATE] &&
-        action.t !== ActionTypeMap[NotificationActionType.BACKGROUND_CALL],
-    ) || [];
+    const publicActions =
+      allActions.filter(
+        (action) =>
+          action.t !== ActionTypeMap[NotificationActionType.NAVIGATE] &&
+          action.t !== ActionTypeMap[NotificationActionType.BACKGROUND_CALL],
+      ) || [];
 
     let payload: any = {
       aps: apsPayload,
@@ -339,13 +351,17 @@ export class IOSPushService {
       payload.bi = message.bucket.iconUrl;
     }
 
-    const sensitivePayload = {
+    const sensitivePayload: any = {
       tit: message.title,
       bdy: message.body,
       stl: message.subtitle,
       att: this.formatAttachments(message.attachments || []),
       tp: optimizedTapAction,
     };
+
+    if (message.tags?.length) {
+      sensitivePayload.tg = message.tags;
+    }
 
     // If device publicKey is present, pack all sensitive values in a single encrypted blob
     let sensitive: any = null;
@@ -377,7 +393,7 @@ export class IOSPushService {
       payload = {
         ...payload,
         ...sensitivePayload,
-      }
+      };
       if (!!allActions.length) {
         payload.a = allActions; // actions
       }
@@ -386,11 +402,16 @@ export class IOSPushService {
       }
     }
 
-    const topic = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText || 'com.apocaliss92.zentik';
+    const topic =
+      (
+        await this.serverSettingsService.getSettingByType(
+          ServerSettingType.ApnBundleId,
+        )
+      )?.valueText || 'com.apocaliss92.zentik';
     const notification_apn = new apn.Notification();
     notification_apn.rawPayload = payload;
     notification_apn.priority = priority;
-    notification_apn.topic = topic
+    notification_apn.topic = topic;
 
     // Privatize sensitive fields in the final payload that will be sent (notification_apn.rawPayload)
     // Create a deep copy to avoid modifying the original payload that will be sent
@@ -443,7 +464,10 @@ export class IOSPushService {
         );
 
         const mockProvider: any = {
-          send: async (_notification: apn.Notification, deviceTokens: string | string[]) => {
+          send: async (
+            _notification: apn.Notification,
+            deviceTokens: string | string[],
+          ) => {
             const tokens = Array.isArray(deviceTokens)
               ? deviceTokens
               : [deviceTokens];
@@ -474,11 +498,32 @@ export class IOSPushService {
         return;
       }
 
-      const keyId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnKeyId))?.valueText;
-      const teamId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnTeamId))?.valueText;
-      const keyPath = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnPrivateKeyPath))?.valueText;
-      const isProduction = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnProduction))?.valueBool ?? true;
-      const bundleId = (await this.serverSettingsService.getSettingByType(ServerSettingType.ApnBundleId))?.valueText;
+      const keyId = (
+        await this.serverSettingsService.getSettingByType(
+          ServerSettingType.ApnKeyId,
+        )
+      )?.valueText;
+      const teamId = (
+        await this.serverSettingsService.getSettingByType(
+          ServerSettingType.ApnTeamId,
+        )
+      )?.valueText;
+      const keyPath = (
+        await this.serverSettingsService.getSettingByType(
+          ServerSettingType.ApnPrivateKeyPath,
+        )
+      )?.valueText;
+      const isProduction =
+        (
+          await this.serverSettingsService.getSettingByType(
+            ServerSettingType.ApnProduction,
+          )
+        )?.valueBool ?? true;
+      const bundleId = (
+        await this.serverSettingsService.getSettingByType(
+          ServerSettingType.ApnBundleId,
+        )
+      )?.valueText;
 
       // Enhanced logging for diagnostics
       this.logger.log(`=== APNs Configuration Diagnostics ===`);
@@ -631,7 +676,7 @@ export class IOSPushService {
 
               // Retry strategy for PayloadTooLarge: resend without encryption (guarded by caller option)
               const statusCode = Number(failedResult.status);
-              const reason = (failedResult)?.response?.reason;
+              const reason = failedResult?.response?.reason;
               if (
                 (statusCode === 403 || statusCode === 413) &&
                 reason === 'PayloadTooLarge'
@@ -717,13 +762,16 @@ export class IOSPushService {
                     `📦 PayloadTooLarge detected. Sending minimal selfDownload payload...`,
                   );
                   try {
-                    const { notification_apn: selfDownloadNotification, privatizedPayload: selfDownloadPrivatized, payloadSizeKB: selfDownloadPayloadSizeKB } =
-                      await this.buildAPNsPayload(
-                        notification,
-                        userSettings,
-                        undefined,
-                        { selfDownload: true },
-                      );
+                    const {
+                      notification_apn: selfDownloadNotification,
+                      privatizedPayload: selfDownloadPrivatized,
+                      payloadSizeKB: selfDownloadPayloadSizeKB,
+                    } = await this.buildAPNsPayload(
+                      notification,
+                      userSettings,
+                      undefined,
+                      { selfDownload: true },
+                    );
 
                     privatizedPayload.push(selfDownloadPrivatized);
 
@@ -732,7 +780,9 @@ export class IOSPushService {
                       token,
                     );
 
-                    const selfDownloadSuccess = !selfDownloadResult.failed || selfDownloadResult.failed.length === 0;
+                    const selfDownloadSuccess =
+                      !selfDownloadResult.failed ||
+                      selfDownloadResult.failed.length === 0;
                     resultEntry.retrySuccess = selfDownloadSuccess;
                     resultEntry.result = selfDownloadResult;
                     resultEntry.payloadSizeInKb = selfDownloadPayloadSizeKB;
@@ -746,7 +796,10 @@ export class IOSPushService {
                       payloadSizeInKb: selfDownloadPayloadSizeKB,
                     });
 
-                    if (selfDownloadResult.failed && selfDownloadResult.failed.length > 0) {
+                    if (
+                      selfDownloadResult.failed &&
+                      selfDownloadResult.failed.length > 0
+                    ) {
                       this.logger.error(
                         `❌ SelfDownload fallback failed for token ${token.substring(0, 8)}...: ${JSON.stringify(
                           selfDownloadResult.failed,
@@ -855,28 +908,26 @@ export class IOSPushService {
   /**
    * Send prebuilt APNs payloads as-is.
    *
-    * Compatibility:
-    *  - legacy format: body.payload = { payload, priority, topic }
-    *  - extended multi-variant format:
-    *      body.payload = {
-    *        encrypted?: { payload, priority, topic },
-    *        unencrypted?: { payload, priority, topic },
-    *        selfDownload?: { payload, priority, topic },
-    *      }
-    *
-    * The external server can send:
-    *  - encrypted payload (encrypted)
-    *  - unencrypted payload for retry (unencrypted, optional)
-    *  - minimal selfDownload payload (selfDownload, recommended)
-    *
-    * This method mirrors the fallback strategy of `send`:
-    * 1) try encrypted payload (if present)
-    * 2) if APNs returns PayloadTooLarge and an unencrypted variant is provided, try it
-    * 3) if it still fails or unencrypted is missing, try selfDownload when available
+   * Compatibility:
+   *  - legacy format: body.payload = { payload, priority, topic }
+   *  - extended multi-variant format:
+   *      body.payload = {
+   *        encrypted?: { payload, priority, topic },
+   *        unencrypted?: { payload, priority, topic },
+   *        selfDownload?: { payload, priority, topic },
+   *      }
+   *
+   * The external server can send:
+   *  - encrypted payload (encrypted)
+   *  - unencrypted payload for retry (unencrypted, optional)
+   *  - minimal selfDownload payload (selfDownload, recommended)
+   *
+   * This method mirrors the fallback strategy of `send`:
+   * 1) try encrypted payload (if present)
+   * 2) if APNs returns PayloadTooLarge and an unencrypted variant is provided, try it
+   * 3) if it still fails or unencrypted is missing, try selfDownload when available
    */
-  async sendPrebuilt(
-    body: ExternalNotifyRequestIosDto,
-  ): Promise<SendResult> {
+  async sendPrebuilt(body: ExternalNotifyRequestIosDto): Promise<SendResult> {
     await this.ensureInitialized();
 
     const token: string | undefined = body?.deviceData?.token;
@@ -907,14 +958,14 @@ export class IOSPushService {
     } =
       multi && (multi.encrypted || multi.unencrypted || multi.selfDownload)
         ? {
-          encrypted: multi.encrypted,
-          unencrypted: multi.unencrypted,
-          selfDownload: multi.selfDownload,
-        }
+            encrypted: multi.encrypted,
+            unencrypted: multi.unencrypted,
+            selfDownload: multi.selfDownload,
+          }
         : {
-          // backward compat: payloadField is directly { payload, priority, topic }
-          encrypted: payloadField as ExternalApnsPrebuiltVariantDto,
-        };
+            // backward compat: payloadField is directly { payload, priority, topic }
+            encrypted: payloadField as ExternalApnsPrebuiltVariantDto,
+          };
 
     const availableMethods: IosDeliveryStrategy[] = [];
     if (payloadVariants.encrypted) {
@@ -1004,7 +1055,10 @@ export class IOSPushService {
 
     try {
       // 1) First attempt: encrypted (when present)
-      let primaryResult = await sendVariant(IosDeliveryStrategy.ENCRYPTED, payloadVariants.encrypted);
+      let primaryResult = await sendVariant(
+        IosDeliveryStrategy.ENCRYPTED,
+        payloadVariants.encrypted,
+      );
 
       let needSelfDownloadFallback = false;
 
@@ -1057,8 +1111,15 @@ export class IOSPushService {
       }
 
       // Case where we only have unencrypted/selfDownload but no encrypted variant
-      if (!payloadVariants.encrypted && payloadVariants.unencrypted && results.length === 0) {
-        const unResult = await sendVariant(IosDeliveryStrategy.UNENCRYPTED, payloadVariants.unencrypted);
+      if (
+        !payloadVariants.encrypted &&
+        payloadVariants.unencrypted &&
+        results.length === 0
+      ) {
+        const unResult = await sendVariant(
+          IosDeliveryStrategy.UNENCRYPTED,
+          payloadVariants.unencrypted,
+        );
         if (unResult.payloadTooLarge && payloadVariants.selfDownload) {
           retryAttempted = true;
           this.logger.warn(

@@ -218,6 +218,7 @@ input CreateMessageDto {
   snoozes: [Float!]
   sound: String
   subtitle: String
+  tags: [String!]
   tapAction: NotificationActionDto
   tapUrl: String
   title: String!
@@ -635,6 +636,7 @@ type Message {
   snoozes: [Float!]
   sound: String
   subtitle: String
+  tags: [String!]
   tapAction: NotificationAction
   title: String!
   updatedAt: DateTime!
