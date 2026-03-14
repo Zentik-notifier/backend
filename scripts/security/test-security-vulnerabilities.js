@@ -634,9 +634,14 @@ async function testSecurityMisconfiguration() {
   for (const path of debugPaths) {
     const apiPath = `/api/v1${path}`;
     const res = await fetchHttp(`${BASE_URL}${apiPath}`, { method: 'GET' });
+    const body = res.data || '';
+    const isHtmlFallback = res.status === 200 && (
+      body.includes('<!DOCTYPE html>') || body.includes('<!doctype html>') || body.includes('<html')
+    );
+    // If the server returns 200 with HTML, it's the SPA fallback (ServeStaticModule), not a real debug endpoint
     assert(
-      res.status === 404 || res.status === 401 || res.status === 403,
-      `API debug path ${apiPath} not exposed → ${res.status}`,
+      res.status === 404 || res.status === 401 || res.status === 403 || isHtmlFallback,
+      `API debug path ${apiPath} not exposed → ${res.status}${isHtmlFallback ? ' (SPA fallback)' : ''}`,
     );
   }
 
