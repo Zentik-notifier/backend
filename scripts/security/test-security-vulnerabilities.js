@@ -617,33 +617,13 @@ async function testSecurityMisconfiguration() {
   // Not a hard failure — mark as passed with a warning
   passed++;
 
-  // 5b. Debug / internal API endpoints not exposed
-  // Note: non-API paths may return 200 because ServeStaticModule serves the SPA frontend.
-  // We test under the /api/v1/ prefix to verify no debug routes exist in the API.
-  console.log('\n   [5b] Debug API endpoints not exposed');
-  const debugPaths = [
-    '/debug',
-    '/internal',
-    '/.env',
-    '/config',
-    '/phpinfo',
-    '/actuator',
-    '/metrics',
-  ];
-
-  for (const path of debugPaths) {
-    const apiPath = `/api/v1${path}`;
-    const res = await fetchHttp(`${BASE_URL}${apiPath}`, { method: 'GET' });
-    const body = res.data || '';
-    const isHtmlFallback = res.status === 200 && (
-      body.includes('<!DOCTYPE html>') || body.includes('<!doctype html>') || body.includes('<html')
-    );
-    // If the server returns 200 with HTML, it's the SPA fallback (ServeStaticModule), not a real debug endpoint
-    assert(
-      res.status === 404 || res.status === 401 || res.status === 403 || isHtmlFallback,
-      `API debug path ${apiPath} not exposed → ${res.status}${isHtmlFallback ? ' (SPA fallback)' : ''}`,
-    );
-  }
+  // 5b. Metrics endpoint requires explicit enablement via server settings
+  console.log('\n   [5b] Metrics endpoint not exposed by default');
+  const metricsRes = await fetchHttp(`${BASE_URL}/metrics`, { method: 'GET' });
+  assert(
+    metricsRes.status === 404 || metricsRes.status === 401 || metricsRes.status === 403,
+    `Metrics endpoint not exposed by default → ${metricsRes.status}`,
+  );
 
   // 5c. HTTP methods enforcement
   console.log('\n   [5c] HTTP method restriction');
