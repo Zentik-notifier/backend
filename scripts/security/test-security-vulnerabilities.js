@@ -632,10 +632,11 @@ async function testSecurityMisconfiguration() {
   ];
 
   for (const path of debugPaths) {
-    const res = await fetchHttp(`${BASE_URL}${path}`, { method: 'GET' });
+    const apiPath = `/api/v1${path}`;
+    const res = await fetchHttp(`${BASE_URL}${apiPath}`, { method: 'GET' });
     assert(
       res.status === 404 || res.status === 401 || res.status === 403,
-      `API debug path ${path} not exposed → ${res.status}`,
+      `API debug path ${apiPath} not exposed → ${res.status}`,
     );
   }
 
