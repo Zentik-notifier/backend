@@ -29,7 +29,8 @@
     "e2e:create-passthrough-token": "node scripts/passthrough/create-system-passthrough-token.js",
     "e2e:configure-passthrough": "node scripts/passthrough/configure-passthrough-settings.js",
     "e2e:test-passthrough-flow": "node scripts/passthrough/test-passthrough-flow.js",
-    "scripts:test-device-keys": "node scripts/auth/test-device-keys.js"
+    "scripts:test-device-keys": "node scripts/auth/test-device-keys.js",
+    "scripts:test-security": "node scripts/security/test-security-vulnerabilities.js"
   },
   "dependencies": {
     "@apollo/server": "4.12.2",
