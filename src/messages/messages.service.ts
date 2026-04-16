@@ -1210,12 +1210,27 @@ export class MessagesService {
 
     if (messages.length === 0) return { deletedMessages: 0 };
 
+    // Postgres protocol limits bind parameters to 2^16-1 (65535).
+    // Batch IN() / delete() operations well below that to stay safe.
+    const ID_BATCH_SIZE = 1000;
+    const chunkIds = (ids: string[]): string[][] => {
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += ID_BATCH_SIZE) {
+        chunks.push(ids.slice(i, i + ID_BATCH_SIZE));
+      }
+      return chunks;
+    };
+
     // Map messageId -> notifications receivedAt counts
     const messageIds = messages.map((m) => m.id);
-    const notifications = await this.notificationsRepository.find({
-      where: { message: { id: In(messageIds) } as any },
-      relations: ['message', 'userDevice'],
-    });
+    const notifications: Notification[] = [];
+    for (const idBatch of chunkIds(messageIds)) {
+      const batch = await this.notificationsRepository.find({
+        where: { message: { id: In(idBatch) } as any },
+        relations: ['message', 'userDevice'],
+      });
+      notifications.push(...batch);
+    }
 
     const messageIdToNotifications: Record<string, Notification[]> = {};
     for (const n of notifications) {
@@ -1279,12 +1294,17 @@ export class MessagesService {
     );
 
     // Delete notifications first (not strictly necessary with ON DELETE CASCADE on notifications.messageId)
-    await this.notificationsRepository.delete({
-      message: { id: In(deletableMessageIds) } as any,
-    });
+    for (const idBatch of chunkIds(deletableMessageIds)) {
+      await this.notificationsRepository.delete({
+        message: { id: In(idBatch) } as any,
+      });
+    }
     // Delete messages
-    const result = await this.messagesRepository.delete(deletableMessageIds);
-    const deleted = result.affected || 0;
+    let deleted = 0;
+    for (const idBatch of chunkIds(deletableMessageIds)) {
+      const result = await this.messagesRepository.delete(idBatch);
+      deleted += result.affected || 0;
+    }
     this.logger.log(`Deleted ${deleted} message(s)`);
     return { deletedMessages: deleted };
   }
