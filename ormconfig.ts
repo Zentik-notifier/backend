@@ -42,6 +42,7 @@ import { AddAdditionalInfoToEventsAndNotificationExecution1732021200000 } from '
 import { AddCustomNameToUserBucket1732050933000 } from './database/migrations/1732050933000-AddCustomNameToUserBucket';
 import { AddUniqueConstraintNotificationAck1732716000000 } from './database/migrations/1732716000000-AddUniqueConstraintNotificationAck';
 import { AddUserLogsAndFeedbackEvent1763200000000 } from './database/migrations/1763200000000-AddUserLogsAndFeedbackEvent';
+import { AddNotificationFailedEvent1763300000000 } from './database/migrations/1763300000000-AddNotificationFailedEvent';
 import { CreateUserTemplatesTable1765194473000 } from './database/migrations/1765194473000-CreateUserTemplatesTable';
 import { AddMetadataToUserDevices1766000000000 } from './database/migrations/1766000000000-AddMetadataToUserDevices';
 import { CreateChangelogTable1767000000000 } from './database/migrations/1767000000000-CreateChangelogTable';
@@ -123,6 +124,7 @@ const dataSource = new DataSource({
     AddCustomNameToUserBucket1732050933000,
     AddUniqueConstraintNotificationAck1732716000000,
     AddUserLogsAndFeedbackEvent1763200000000,
+    AddNotificationFailedEvent1763300000000,
     CreateUserTemplatesTable1765194473000,
     AddMetadataToUserDevices1766000000000,
     CreateChangelogTable1767000000000,
