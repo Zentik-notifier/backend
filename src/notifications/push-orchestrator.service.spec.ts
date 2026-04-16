@@ -74,6 +74,7 @@ describe('PushNotificationOrchestratorService', () => {
     save: jest.fn(),
     update: jest.fn(),
     find: jest.fn(),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
     createQueryBuilder: jest.fn(),
   };
 
@@ -180,6 +181,7 @@ describe('PushNotificationOrchestratorService', () => {
             trackNotification: jest.fn(),
             trackNotificationFailed: jest.fn(),
             trackPushPassthrough: jest.fn(),
+            trackDeviceUnregister: jest.fn(),
           },
         },
         {
@@ -664,6 +666,196 @@ describe('PushNotificationOrchestratorService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Unsupported platform');
+    });
+  });
+
+  describe('Invalid APNs token cleanup', () => {
+    const userSettings = {
+      autoAddDeleteAction: true,
+      autoAddMarkAsReadAction: true,
+      autoAddOpenNotificationAction: true,
+    };
+
+    const buildApnFailure = (status: number, reason: string) => ({
+      success: false,
+      error: `APNs ${status} ${reason}`,
+      results: [
+        {
+          token: 'device-token-123',
+          result: {
+            sent: [],
+            failed: [
+              {
+                device: 'device-token-123',
+                status: String(status),
+                response: { reason },
+              },
+            ],
+          },
+          payloadTooLarge: false,
+          retriedWithoutEncryption: false,
+          retrySuccess: false,
+        },
+      ],
+    });
+
+    it('removes the device and tracks DEVICE_UNREGISTER on APNs 410 Unregistered', async () => {
+      mockIOSPushService.send.mockResolvedValue(
+        buildApnFailure(410, 'Unregistered'),
+      );
+
+      const result = await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(result.success).toBe(false);
+      expect(userDevicesRepository.delete).toHaveBeenCalledWith({
+        id: mockUserDevice.id,
+      });
+
+      const eventTracking = (service as any).eventTrackingService;
+      expect(eventTracking.trackDeviceUnregister).toHaveBeenCalledWith(
+        mockUserDevice.userId,
+        mockUserDevice.id,
+      );
+      expect(eventTracking.trackNotificationFailed).toHaveBeenCalledWith(
+        mockUserDevice.userId,
+        mockUserDevice.id,
+        mockNotification.id,
+        expect.objectContaining({ platform: DevicePlatform.IOS }),
+      );
+    });
+
+    it('removes the device on APNs 400 BadDeviceToken', async () => {
+      mockIOSPushService.send.mockResolvedValue(
+        buildApnFailure(400, 'BadDeviceToken'),
+      );
+
+      await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(userDevicesRepository.delete).toHaveBeenCalledWith({
+        id: mockUserDevice.id,
+      });
+      const eventTracking = (service as any).eventTrackingService;
+      expect(eventTracking.trackDeviceUnregister).toHaveBeenCalledTimes(1);
+    });
+
+    it('removes the device on APNs 400 ExpiredToken', async () => {
+      mockIOSPushService.send.mockResolvedValue(
+        buildApnFailure(400, 'ExpiredToken'),
+      );
+
+      await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(userDevicesRepository.delete).toHaveBeenCalledWith({
+        id: mockUserDevice.id,
+      });
+    });
+
+    it('does not remove the device on transient APNs 503 ServiceUnavailable', async () => {
+      mockIOSPushService.send.mockResolvedValue(
+        buildApnFailure(503, 'ServiceUnavailable'),
+      );
+
+      await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(userDevicesRepository.delete).not.toHaveBeenCalled();
+      const eventTracking = (service as any).eventTrackingService;
+      expect(eventTracking.trackDeviceUnregister).not.toHaveBeenCalled();
+    });
+
+    it('does not remove the device when platform is not iOS', async () => {
+      const androidDevice = {
+        ...mockUserDevice,
+        platform: DevicePlatform.ANDROID,
+      };
+      mockFirebasePushService.send.mockResolvedValue({
+        success: false,
+        successCount: 0,
+        results: [{ success: false, error: 'registration-token-not-registered' }],
+      });
+
+      await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        androidDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(userDevicesRepository.delete).not.toHaveBeenCalled();
+    });
+
+    it('skips DEVICE_UNREGISTER tracking when skipTracking=true but still removes device', async () => {
+      mockIOSPushService.send.mockResolvedValue(
+        buildApnFailure(410, 'Unregistered'),
+      );
+
+      await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+        true,
+      );
+
+      expect(userDevicesRepository.delete).toHaveBeenCalledWith({
+        id: mockUserDevice.id,
+      });
+      const eventTracking = (service as any).eventTrackingService;
+      expect(eventTracking.trackDeviceUnregister).not.toHaveBeenCalled();
+      expect(eventTracking.trackNotificationFailed).not.toHaveBeenCalled();
+    });
+
+    it('does not track DEVICE_UNREGISTER when the device row was already deleted (affected=0)', async () => {
+      mockIOSPushService.send.mockResolvedValue(
+        buildApnFailure(410, 'Unregistered'),
+      );
+      (userDevicesRepository.delete as jest.Mock).mockResolvedValueOnce({
+        affected: 0,
+      });
+
+      await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(userDevicesRepository.delete).toHaveBeenCalledWith({
+        id: mockUserDevice.id,
+      });
+      const eventTracking = (service as any).eventTrackingService;
+      expect(eventTracking.trackDeviceUnregister).not.toHaveBeenCalled();
+    });
+
+    it('swallows repository errors so push flow is not disrupted', async () => {
+      mockIOSPushService.send.mockResolvedValue(
+        buildApnFailure(410, 'Unregistered'),
+      );
+      (userDevicesRepository.delete as jest.Mock).mockRejectedValueOnce(
+        new Error('DB unavailable'),
+      );
+
+      const result = await service.sendPushToSingleDeviceStateless(
+        mockNotification as Notification,
+        mockUserDevice as UserDevice,
+        userSettings,
+      );
+
+      expect(result.success).toBe(false);
+      const eventTracking = (service as any).eventTrackingService;
+      expect(eventTracking.trackDeviceUnregister).not.toHaveBeenCalled();
     });
   });
 

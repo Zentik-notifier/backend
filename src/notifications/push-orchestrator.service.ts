@@ -18,7 +18,7 @@ import { ServerSettingsService } from '../server-manager/server-settings.service
 import { DevicePlatform } from '../users/dto';
 import { UsersService } from '../users/users.service';
 import { FirebasePushService } from './firebase-push.service';
-import { IOSPushService } from './ios-push.service';
+import { IOSPushService, SendResult } from './ios-push.service';
 import { AutoActionSettings } from './notification-actions.util';
 import { NotificationDeliveryType, PushMode } from './notifications.types';
 import { WebPushService } from './web-push.service';
@@ -526,6 +526,36 @@ export class PushNotificationOrchestratorService {
     return processedNotifications;
   }
 
+  private async invalidateDeviceAfterPushFailure(
+    userDevice: UserDevice,
+    reason: string,
+    skipTracking: boolean,
+  ): Promise<void> {
+    try {
+      const { affected } = await this.userDevicesRepository.delete({
+        id: userDevice.id,
+      });
+      if (!affected) {
+        return;
+      }
+
+      this.logger.warn(
+        `Removed device ${userDevice.id} (user ${userDevice.userId}, platform ${userDevice.platform}) after push failure: ${reason}`,
+      );
+
+      if (!skipTracking) {
+        await this.eventTrackingService.trackDeviceUnregister(
+          userDevice.userId,
+          userDevice.id,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to remove invalid device ${userDevice.id}: ${error?.message}`,
+      );
+    }
+  }
+
   /**
    * Extracted push sending logic for a single notification-device pair.
    */
@@ -657,6 +687,24 @@ export class PushNotificationOrchestratorService {
             userDevice.id,
             notification.id,
             metadata,
+          );
+        }
+      }
+
+      if (!result.success && userDevice.platform === DevicePlatform.IOS) {
+        const iosProvider = providerResponse as SendResult | undefined;
+        const firstFailed = iosProvider?.results?.[0]?.result?.failed?.[0];
+        const status = Number(firstFailed?.status);
+        const reason: string | undefined = firstFailed?.response?.reason;
+        const isInvalidToken =
+          status === 410 ||
+          (status === 400 &&
+            (reason === 'BadDeviceToken' || reason === 'ExpiredToken'));
+        if (isInvalidToken) {
+          await this.invalidateDeviceAfterPushFailure(
+            userDevice,
+            `APNs ${status} ${reason ?? 'Unregistered'}`,
+            skipTracking,
           );
         }
       }
