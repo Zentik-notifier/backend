@@ -42,7 +42,10 @@ import {
 import { UserTemplatesService } from './user-templates.service';
 import * as Handlebars from 'handlebars';
 import { EntityExecutionService } from '../entity-execution/entity-execution.service';
-import { ExecutionType, ExecutionStatus } from '../entities/entity-execution.entity';
+import {
+  ExecutionType,
+  ExecutionStatus,
+} from '../entities/entity-execution.entity';
 import { BucketsService } from '../buckets/buckets.service';
 import { ExternalNotifySystemType } from '../entities/external-notify-system.entity';
 import { ExternalNotifyCredentialsStore } from '../external-notify-system/external-notify-credentials.store';
@@ -83,13 +86,20 @@ export class MessagesService {
     private readonly userTemplatesService: UserTemplatesService,
     private readonly entityExecutionService: EntityExecutionService,
     private readonly bucketsService: BucketsService,
-    @Optional() @Inject(forwardRef(() => NtfyService)) private readonly ntfyService: NtfyService | null,
-    @Optional() @Inject(forwardRef(() => NtfySubscriptionService)) private readonly ntfySubscriptionService: NtfySubscriptionService | null,
-    @Optional() @Inject(GotifyService) private readonly gotifyService: GotifyService | null,
-    @Optional() @Inject(forwardRef(() => GotifySubscriptionService)) private readonly gotifySubscriptionService: GotifySubscriptionService | null,
+    @Optional()
+    @Inject(forwardRef(() => NtfyService))
+    private readonly ntfyService: NtfyService | null,
+    @Optional()
+    @Inject(forwardRef(() => NtfySubscriptionService))
+    private readonly ntfySubscriptionService: NtfySubscriptionService | null,
+    @Optional()
+    @Inject(GotifyService)
+    private readonly gotifyService: GotifyService | null,
+    @Optional()
+    @Inject(forwardRef(() => GotifySubscriptionService))
+    private readonly gotifySubscriptionService: GotifySubscriptionService | null,
     private readonly externalNotifyCredentialsStore: ExternalNotifyCredentialsStore,
-  ) { }
-
+  ) {}
 
   private async findBucketByIdOrName(
     bucketIdOrName: string,
@@ -103,9 +113,7 @@ export class MessagesService {
       });
 
       if (!userBucket || !userBucket.bucket) {
-        throw new NotFoundException(
-          `Magic code '${bucketIdOrName}' not found`,
-        );
+        throw new NotFoundException(`Magic code '${bucketIdOrName}' not found`);
       }
 
       return userBucket.bucket;
@@ -129,7 +137,7 @@ export class MessagesService {
         )
         .where(
           'bucket.id = :bucketId AND ' +
-          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketId: bucketIdOrName, userId },
         )
         .getOne();
@@ -148,7 +156,7 @@ export class MessagesService {
         )
         .where(
           'bucket.name = :bucketName AND ' +
-          '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
+            '(bucket.userId = :userId OR bucket.isPublic = true OR ep.id IS NOT NULL)',
           { bucketName: bucketIdOrName, userId },
         )
         .getOne();
@@ -321,16 +329,17 @@ export class MessagesService {
         let bodyTemplate: string | undefined;
 
         try {
-          const template = await this.userTemplatesService.findByUserIdAndNameOrId(
-            userId,
-            templateName,
-          );
+          const template =
+            await this.userTemplatesService.findByUserIdAndNameOrId(
+              userId,
+              templateName,
+            );
           if (template) {
             titleTemplate = template.title;
             subtitleTemplate = template.subtitle;
             bodyTemplate = template.body;
           }
-        } catch (_) { }
+        } catch (_) {}
 
         await this.entityExecutionService.create({
           type: ExecutionType.MESSAGE_TEMPLATE,
@@ -375,7 +384,9 @@ export class MessagesService {
     );
 
     if (!requesterId) {
-      throw new UnauthorizedException('Unable to determine user ID for message creation');
+      throw new UnauthorizedException(
+        'Unable to determine user ID for message creation',
+      );
     }
 
     const permissions = await this.bucketsService.calculateBucketPermissions(
@@ -383,7 +394,9 @@ export class MessagesService {
       requesterId,
     );
     if (!permissions.canWrite) {
-      throw new ForbiddenException('You do not have write permission on this bucket');
+      throw new ForbiddenException(
+        'You do not have write permission on this bucket',
+      );
     }
 
     // If locale missing, fallback from user settings
@@ -397,7 +410,7 @@ export class MessagesService {
         if (lang?.valueText) {
           createMessageDto.locale = lang.valueText as any;
         }
-      } catch { }
+      } catch {}
     }
 
     // Process userIds - convert usernames to user IDs if needed
@@ -410,7 +423,8 @@ export class MessagesService {
     }
 
     // Check if attachments are enabled when saveOnServer is requested
-    const attachmentsEnabled = await this.attachmentsService.isAttachmentsEnabled();
+    const attachmentsEnabled =
+      await this.attachmentsService.isAttachmentsEnabled();
     if (
       !attachmentsEnabled &&
       createMessageDto.attachments?.some((att) => att.saveOnServer === true)
@@ -449,7 +463,10 @@ export class MessagesService {
     }
 
     // Process attachmentUuids if provided
-    if (createMessageDto.attachmentUuids && createMessageDto.attachmentUuids.length > 0) {
+    if (
+      createMessageDto.attachmentUuids &&
+      createMessageDto.attachmentUuids.length > 0
+    ) {
       const resolvedAttachments = await this.resolveAttachmentUuids(
         createMessageDto.attachmentUuids,
         requesterId,
@@ -548,11 +565,12 @@ export class MessagesService {
 
         if (createMessageDto.remindEveryMinutes) {
           const maxReminders = createMessageDto.maxReminders || 5;
-          const userIdsToRemind = processedUserIds.length > 0
-            ? processedUserIds
-            : notificationsCount > 0
-              ? Array.from(new Set(notifications.map((n) => n.userId)))
-              : [];
+          const userIdsToRemind =
+            processedUserIds.length > 0
+              ? processedUserIds
+              : notificationsCount > 0
+                ? Array.from(new Set(notifications.map((n) => n.userId)))
+                : [];
 
           for (const userId of userIdsToRemind) {
             try {
@@ -593,14 +611,25 @@ export class MessagesService {
       });
       const ext = bucketWithExt?.externalNotifySystem;
       const channel = bucketWithExt?.externalSystemChannel;
-      const externalNotifyEnabled = await this.serverSettingsService.getBooleanValue(
-        ServerSettingType.ExternalNotifySystemsEnabled,
-        true,
-      );
-      if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
-        this.logger.log(`NTFY publish starting for message ${savedMessage.id} topic=${channel}`);
+      const externalNotifyEnabled =
+        await this.serverSettingsService.getBooleanValue(
+          ServerSettingType.ExternalNotifySystemsEnabled,
+          true,
+        );
+      if (
+        externalNotifyEnabled &&
+        ext?.type === ExternalNotifySystemType.NTFY &&
+        channel &&
+        this.ntfyService
+      ) {
+        this.logger.log(
+          `NTFY publish starting for message ${savedMessage.id} topic=${channel}`,
+        );
         try {
-          const auth = await this.externalNotifyCredentialsStore.get(ext.userId, ext.id);
+          const auth = await this.externalNotifyCredentialsStore.get(
+            ext.userId,
+            ext.id,
+          );
           const ntfyResponse = await this.ntfyService.publishMessage(
             savedMessageWithRelations || savedMessage,
             ext.baseUrl,
@@ -609,13 +638,21 @@ export class MessagesService {
             bucketWithExt,
           );
           if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
-            this.ntfySubscriptionService?.registerPublishedNtfyId(ntfyResponse.id);
-            this.logger.log(`NTFY publish registered id=${ntfyResponse.id} for message ${savedMessage.id}`);
+            this.ntfySubscriptionService?.registerPublishedNtfyId(
+              ntfyResponse.id,
+            );
+            this.logger.log(
+              `NTFY publish registered id=${ntfyResponse.id} for message ${savedMessage.id}`,
+            );
             await this.messagesRepository.update(savedMessage.id, {
-              externalSystemResponse: { ntfy: { id: ntfyResponse.id, time: ntfyResponse.time } },
+              externalSystemResponse: {
+                ntfy: { id: ntfyResponse.id, time: ntfyResponse.time },
+              },
             });
           } else {
-            this.logger.warn(`NTFY publish no id/time in response for message ${savedMessage.id}`);
+            this.logger.warn(
+              `NTFY publish no id/time in response for message ${savedMessage.id}`,
+            );
           }
         } catch (err: any) {
           this.logger.warn(
@@ -626,10 +663,21 @@ export class MessagesService {
 
       const gotifyAuth =
         ext && channel
-          ? await this.externalNotifyCredentialsStore.get(ext.userId, ext.id, channel)
+          ? await this.externalNotifyCredentialsStore.get(
+              ext.userId,
+              ext.id,
+              channel,
+            )
           : null;
-      if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
-        this.logger.log(`Gotify publish starting for message ${savedMessage.id}`);
+      if (
+        externalNotifyEnabled &&
+        ext?.type === ExternalNotifySystemType.Gotify &&
+        gotifyAuth?.authToken &&
+        this.gotifyService
+      ) {
+        this.logger.log(
+          `Gotify publish starting for message ${savedMessage.id}`,
+        );
         try {
           const gotifyResponse = await this.gotifyService.publishMessage(
             savedMessageWithRelations || savedMessage,
@@ -638,18 +686,25 @@ export class MessagesService {
             bucketWithExt,
           );
           if (gotifyResponse?.id != null) {
-            this.logger.log(`Gotify publish id=${gotifyResponse.id} for message ${savedMessage.id}`);
-            this.gotifySubscriptionService?.registerPublishedGotifyId(ext.id, gotifyResponse.id);
+            this.logger.log(
+              `Gotify publish id=${gotifyResponse.id} for message ${savedMessage.id}`,
+            );
+            this.gotifySubscriptionService?.registerPublishedGotifyId(
+              ext.id,
+              gotifyResponse.id,
+            );
             await this.messagesRepository.update(savedMessage.id, {
               externalSystemResponse: { gotify: { id: gotifyResponse.id } },
             });
           } else {
-            this.logger.warn(`Gotify publish no id in response for message ${savedMessage.id}`);
+            this.logger.warn(
+              `Gotify publish no id in response for message ${savedMessage.id}`,
+            );
           }
         } catch (err: any) {
-            this.logger.warn(
-              `Gotify publish failed for message ${savedMessage.id}: ${err?.message}`,
-            );
+          this.logger.warn(
+            `Gotify publish failed for message ${savedMessage.id}: ${err?.message}`,
+          );
         }
       }
     }
@@ -712,7 +767,9 @@ export class MessagesService {
         }
       } else if (attachment.attachmentUuid) {
         // Attachment already exists, add public URL for direct access
-        processedAttachment.url = this.urlBuilderService.buildAttachmentUrl(attachment.attachmentUuid);
+        processedAttachment.url = this.urlBuilderService.buildAttachmentUrl(
+          attachment.attachmentUuid,
+        );
       }
 
       processedAttachments.push(processedAttachment);
@@ -961,7 +1018,10 @@ export class MessagesService {
     });
   }
 
-  async processScheduledSends(): Promise<{ processed: number; failed: number }> {
+  async processScheduledSends(): Promise<{
+    processed: number;
+    failed: number;
+  }> {
     const messages = await this.findDueScheduledMessages();
     if (messages.length === 0) return { processed: 0, failed: 0 };
     this.logger.log(`Processing ${messages.length} scheduled message(s)`);
@@ -971,7 +1031,9 @@ export class MessagesService {
         const bucket = message.bucket;
         const requesterId = bucket?.user?.id;
         if (!requesterId) {
-          this.logger.warn(`Scheduled message ${message.id} has no bucket owner, skipping`);
+          this.logger.warn(
+            `Scheduled message ${message.id} has no bucket owner, skipping`,
+          );
           failed++;
           continue;
         }
@@ -996,7 +1058,9 @@ export class MessagesService {
         }
         if (message.remindEveryMinutes) {
           const maxReminders = message.maxReminders ?? 5;
-          const userIdsToRemind = authorizedUsers?.length ? authorizedUsers : [];
+          const userIdsToRemind = authorizedUsers?.length
+            ? authorizedUsers
+            : [];
           for (const userId of userIdsToRemind) {
             try {
               await this.reminderService.createReminder(
@@ -1005,7 +1069,7 @@ export class MessagesService {
                 message.remindEveryMinutes,
                 maxReminders,
               );
-            } catch { }
+            } catch {}
           }
         }
         const bucketWithExt = await this.bucketsRepository.findOne({
@@ -1014,13 +1078,22 @@ export class MessagesService {
         });
         const ext = bucketWithExt?.externalNotifySystem;
         const channel = bucketWithExt?.externalSystemChannel;
-        const externalNotifyEnabled = await this.serverSettingsService.getBooleanValue(
-          ServerSettingType.ExternalNotifySystemsEnabled,
-          true,
-        );
-        if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.NTFY && channel && this.ntfyService) {
+        const externalNotifyEnabled =
+          await this.serverSettingsService.getBooleanValue(
+            ServerSettingType.ExternalNotifySystemsEnabled,
+            true,
+          );
+        if (
+          externalNotifyEnabled &&
+          ext?.type === ExternalNotifySystemType.NTFY &&
+          channel &&
+          this.ntfyService
+        ) {
           try {
-            const auth = await this.externalNotifyCredentialsStore.get(ext.userId, ext.id);
+            const auth = await this.externalNotifyCredentialsStore.get(
+              ext.userId,
+              ext.id,
+            );
             const ntfyResponse = await this.ntfyService.publishMessage(
               baseMessage,
               ext.baseUrl,
@@ -1029,18 +1102,31 @@ export class MessagesService {
               bucketWithExt,
             );
             if (ntfyResponse?.id != null && ntfyResponse?.time != null) {
-              this.ntfySubscriptionService?.registerPublishedNtfyId(ntfyResponse.id);
+              this.ntfySubscriptionService?.registerPublishedNtfyId(
+                ntfyResponse.id,
+              );
               await this.messagesRepository.update(message.id, {
-                externalSystemResponse: { ntfy: { id: ntfyResponse.id, time: ntfyResponse.time } },
+                externalSystemResponse: {
+                  ntfy: { id: ntfyResponse.id, time: ntfyResponse.time },
+                },
               });
             }
-          } catch { }
+          } catch {}
         }
         const gotifyAuth =
           ext && channel
-            ? await this.externalNotifyCredentialsStore.get(ext.userId, ext.id, channel)
+            ? await this.externalNotifyCredentialsStore.get(
+                ext.userId,
+                ext.id,
+                channel,
+              )
             : null;
-        if (externalNotifyEnabled && ext?.type === ExternalNotifySystemType.Gotify && gotifyAuth?.authToken && this.gotifyService) {
+        if (
+          externalNotifyEnabled &&
+          ext?.type === ExternalNotifySystemType.Gotify &&
+          gotifyAuth?.authToken &&
+          this.gotifyService
+        ) {
           try {
             const gotifyResponse = await this.gotifyService.publishMessage(
               baseMessage,
@@ -1049,17 +1135,25 @@ export class MessagesService {
               bucketWithExt,
             );
             if (gotifyResponse?.id != null) {
-              this.gotifySubscriptionService?.registerPublishedGotifyId(ext.id, gotifyResponse.id);
+              this.gotifySubscriptionService?.registerPublishedGotifyId(
+                ext.id,
+                gotifyResponse.id,
+              );
               await this.messagesRepository.update(message.id, {
                 externalSystemResponse: { gotify: { id: gotifyResponse.id } },
               });
             }
-          } catch { }
+          } catch {}
         }
-        await this.messagesRepository.update(message.id, { scheduledSendAt: null });
+        await this.messagesRepository.update(message.id, {
+          scheduledSendAt: null,
+        });
       } catch (error) {
         failed++;
-        this.logger.error(`Failed to process scheduled message ${message.id}`, error);
+        this.logger.error(
+          `Failed to process scheduled message ${message.id}`,
+          error,
+        );
       }
     }
     return { processed: messages.length, failed };
@@ -1097,14 +1191,15 @@ export class MessagesService {
       where: { id: messageId },
       relations: ['bucket'],
     });
-    if (!message)
-      return { message: null, affectedUserIds: [] };
+    if (!message) return { message: null, affectedUserIds: [] };
     const permissions = await this.bucketsService.calculateBucketPermissions(
       message.bucket,
       userId,
     );
     if (!permissions.canWrite) {
-      throw new ForbiddenException('You do not have write permission on this message bucket');
+      throw new ForbiddenException(
+        'You do not have write permission on this message bucket',
+      );
     }
     const notifications = await this.notificationsRepository.find({
       where: { message: { id: messageId } },
@@ -1151,7 +1246,9 @@ export class MessagesService {
       userId,
     );
     if (!permissions.canWrite) {
-      throw new ForbiddenException('You do not have write permission on this message bucket');
+      throw new ForbiddenException(
+        'You do not have write permission on this message bucket',
+      );
     }
     if (dto.scheduledSendAt !== undefined) {
       await this.messagesRepository.update(messageId, {
@@ -1198,15 +1295,16 @@ export class MessagesService {
    */
   async deleteMessagesFullyRead(): Promise<{ deletedMessages: number }> {
     const maxAgeInput =
-      (await this.serverSettingsService.getSettingByType(ServerSettingType.MessagesMaxAge))?.valueText || '7d';
+      (
+        await this.serverSettingsService.getSettingByType(
+          ServerSettingType.MessagesMaxAge,
+        )
+      )?.valueText || '7d';
     const maxAgeMs = this.parseDurationToMs(maxAgeInput);
     this.logger.log(
       `Scanning messages for cleanup (ephemeral >1h, all notifications received${maxAgeMs ? ` or older than ${maxAgeMs}ms` : ''})`,
     );
-    // Load all messages with their buckets to check protection status
-    const messages = await this.messagesRepository.find({
-      relations: ['bucket'],
-    });
+    const messages = await this.messagesRepository.find();
 
     if (messages.length === 0) return { deletedMessages: 0 };
 
@@ -1224,12 +1322,20 @@ export class MessagesService {
     // Map messageId -> notifications receivedAt counts
     const messageIds = messages.map((m) => m.id);
     const notifications: Notification[] = [];
-    for (const idBatch of chunkIds(messageIds)) {
+    const notificationIdBatches = chunkIds(messageIds);
+    this.logger.log(
+      `Loading notifications for ${messageIds.length} message(s) in ${notificationIdBatches.length} batch(es) of up to ${ID_BATCH_SIZE}`,
+    );
+    for (let i = 0; i < notificationIdBatches.length; i++) {
+      const idBatch = notificationIdBatches[i];
       const batch = await this.notificationsRepository.find({
-        where: { message: { id: In(idBatch) } as any },
+        where: { message: { id: In(idBatch) } },
         relations: ['message', 'userDevice'],
       });
       notifications.push(...batch);
+      this.logger.debug(
+        `Notifications load batch ${i + 1}/${notificationIdBatches.length}: ${idBatch.length} id(s), ${batch.length} notification(s) fetched`,
+      );
     }
 
     const messageIdToNotifications: Record<string, Notification[]> = {};
@@ -1252,17 +1358,11 @@ export class MessagesService {
         }
       }
 
-      if (m.bucket?.isProtected) {
-        continue;
-      }
-
       const hasPendingPostpones = this.postponeService
         ? await this.postponeService.hasPendingPostpones(m.id)
         : false;
       if (hasPendingPostpones) {
-        this.logger.debug(
-          `Skipping message ${m.id} - has pending postpones`,
-        );
+        this.logger.debug(`Skipping message ${m.id} - has pending postpones`);
         continue;
       }
 
@@ -1293,17 +1393,31 @@ export class MessagesService {
       `Deleting ${deletableMessageIds.length} fully-received message(s)`,
     );
 
+    const deleteIdBatches = chunkIds(deletableMessageIds);
+    this.logger.log(
+      `Deleting notifications and messages in ${deleteIdBatches.length} batch(es) of up to ${ID_BATCH_SIZE}`,
+    );
+
     // Delete notifications first (not strictly necessary with ON DELETE CASCADE on notifications.messageId)
-    for (const idBatch of chunkIds(deletableMessageIds)) {
-      await this.notificationsRepository.delete({
+    for (let i = 0; i < deleteIdBatches.length; i++) {
+      const idBatch = deleteIdBatches[i];
+      const res = await this.notificationsRepository.delete({
         message: { id: In(idBatch) } as any,
       });
+      this.logger.debug(
+        `Notifications delete batch ${i + 1}/${deleteIdBatches.length}: ${idBatch.length} id(s), ${res.affected ?? 0} notification(s) removed`,
+      );
     }
     // Delete messages
     let deleted = 0;
-    for (const idBatch of chunkIds(deletableMessageIds)) {
+    for (let i = 0; i < deleteIdBatches.length; i++) {
+      const idBatch = deleteIdBatches[i];
       const result = await this.messagesRepository.delete(idBatch);
-      deleted += result.affected || 0;
+      const affected = result.affected || 0;
+      deleted += affected;
+      this.logger.debug(
+        `Messages delete batch ${i + 1}/${deleteIdBatches.length}: ${idBatch.length} id(s), ${affected} message(s) removed`,
+      );
     }
     this.logger.log(`Deleted ${deleted} message(s)`);
     return { deletedMessages: deleted };
@@ -1320,13 +1434,14 @@ export class MessagesService {
     headers?: Record<string, string>,
   ): Promise<CreateMessageResult | undefined> {
     // Delegate to PayloadMapperService for parser identification and transformation
-    const { messageDto, executionId } = await this.payloadMapperService.transformPayload(
-      parserName,
-      payload,
-      userId,
-      bucketId,
-      headers,
-    );
+    const { messageDto, executionId } =
+      await this.payloadMapperService.transformPayload(
+        parserName,
+        payload,
+        userId,
+        bucketId,
+        headers,
+      );
 
     // If parser was skipped, return undefined
     if (!messageDto) {

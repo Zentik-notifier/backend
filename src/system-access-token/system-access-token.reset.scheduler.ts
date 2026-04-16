@@ -44,44 +44,51 @@ export class SystemAccessTokenResetScheduler implements OnModuleInit {
     return periodStart;
   }
 
-  async handleResets() {
-    this.logger.log('Cron started: evaluate monthly resets for system access tokens');
+  async handleResets(): Promise<void> {
     try {
-      // Load tokens in batches to avoid memory issues
-      const batchSize = 500;
-      let offset = 0;
-
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const tokens = await this.systemTokenRepo.find({
-          order: { createdAt: 'ASC' },
-          skip: offset,
-          take: batchSize,
-        });
-        if (tokens.length === 0) break;
-
-        for (const token of tokens) {
-          const currentPeriodStart = this.getCurrentPeriodStartForToken(token);
-          const lastResetAt = token.lastResetAt || token.createdAt;
-
-          // If last reset is before the current period start, reset monthly calls
-          if (lastResetAt < currentPeriodStart) {
-            await this.systemTokenRepo.update({ id: token.id }, {
-              calls: 0,
-              lastResetAt: currentPeriodStart,
-            });
-            this.logger.debug(`Reset monthly calls for token ${token.id} at ${currentPeriodStart.toISOString()}`);
-          }
-        }
-
-        offset += tokens.length;
-        if (tokens.length < batchSize) break;
-      }
-
-      this.logger.log('Cron completed: monthly resets evaluated');
+      await this.runResetsNow();
     } catch (error) {
       this.logger.error('Cron failed while resetting system access token monthly calls', error);
     }
+  }
+
+  async runResetsNow(): Promise<{ resetsApplied: number }> {
+    this.logger.log('Cron started: evaluate monthly resets for system access tokens');
+    const batchSize = 500;
+    let offset = 0;
+    let resetsApplied = 0;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const tokens = await this.systemTokenRepo.find({
+        order: { createdAt: 'ASC' },
+        skip: offset,
+        take: batchSize,
+      });
+      if (tokens.length === 0) break;
+
+      for (const token of tokens) {
+        const currentPeriodStart = this.getCurrentPeriodStartForToken(token);
+        const lastResetAt = token.lastResetAt || token.createdAt;
+
+        if (lastResetAt < currentPeriodStart) {
+          await this.systemTokenRepo.update({ id: token.id }, {
+            calls: 0,
+            lastResetAt: currentPeriodStart,
+          });
+          resetsApplied++;
+          this.logger.debug(`Reset monthly calls for token ${token.id} at ${currentPeriodStart.toISOString()}`);
+        }
+      }
+
+      offset += tokens.length;
+      if (tokens.length < batchSize) break;
+    }
+
+    this.logger.log(
+      `Cron completed: monthly resets evaluated, ${resetsApplied} token(s) reset`,
+    );
+    return { resetsApplied };
   }
 }
 

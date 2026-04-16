@@ -16,18 +16,24 @@ export class SessionCleanupScheduler {
       await new Promise((r) => setTimeout(r, 15 * 60 * 1000));
     } catch {}
 
-    const now = new Date();
-    const cutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000); // 14 days
     try {
-      const deleted = await this.sessionService.deleteSessionsOlderThan(cutoff);
-      if (deleted > 0) {
-        this.logger.log(`🧹 Deleted ${deleted} sessions older than 14 days (lastActivity)`);
-      } else {
-        this.logger.debug('🧹 No sessions to delete during this run');
-      }
+      await this.runCleanupNow();
     } catch (error) {
       this.logger.warn(`Failed to cleanup old sessions: ${error?.message}`);
     }
+  }
+
+  async runCleanupNow(): Promise<{ deletedSessions: number }> {
+    const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000); // 14 days
+    const deleted = await this.sessionService.deleteSessionsOlderThan(cutoff);
+    if (deleted > 0) {
+      this.logger.log(
+        `🧹 Deleted ${deleted} sessions older than 14 days (lastActivity)`,
+      );
+    } else {
+      this.logger.debug('🧹 No sessions to delete during this run');
+    }
+    return { deletedSessions: deleted };
   }
 }
 

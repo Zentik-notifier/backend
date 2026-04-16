@@ -30,6 +30,7 @@ import { SessionResolver } from './session.resolver';
 import { SessionService } from './session.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SessionCleanupScheduler } from './session-cleanup.scheduler';
+import { SessionCronResolver } from './session-cron.resolver';
 import { LocalStrategy } from './strategies/local.strategy';
 
 @Module({
@@ -82,6 +83,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     OAuthProviderGuard,
     DynamicOAuthRegistryService,
     SessionCleanupScheduler,
+    SessionCronResolver,
     EmailService,
   ],
   controllers: [AuthController, AccessTokenController, SessionController],

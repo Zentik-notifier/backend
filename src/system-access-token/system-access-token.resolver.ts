@@ -4,12 +4,16 @@ import { AdminOnlyGuard } from '../auth/guards/admin-only.guard';
 import { JwtOrAccessTokenGuard } from '../auth/guards/jwt-or-access-token.guard';
 import { SystemAccessTokenDto } from './dto';
 import { SystemAccessTokenService } from './system-access-token.service';
+import { SystemAccessTokenResetScheduler } from './system-access-token.reset.scheduler';
 
 @Resolver()
 @UseGuards(JwtOrAccessTokenGuard, AdminOnlyGuard)
 @Injectable()
 export class SystemAccessTokenResolver {
-  constructor(private readonly service: SystemAccessTokenService) {}
+  constructor(
+    private readonly service: SystemAccessTokenService,
+    private readonly resetScheduler: SystemAccessTokenResetScheduler,
+  ) {}
 
   @Mutation(() => SystemAccessTokenDto)
   async createSystemToken(
@@ -60,5 +64,15 @@ export class SystemAccessTokenResolver {
   @Mutation(() => Boolean)
   async revokeSystemToken(@Args('id') id: string) {
     return await this.service.revoke(id);
+  }
+
+  @Mutation(() => String, {
+    name: 'triggerSystemAccessTokenReset',
+    description:
+      'Manually trigger the system access tokens monthly reset cron job',
+  })
+  async triggerSystemAccessTokenReset(): Promise<string> {
+    const { resetsApplied } = await this.resetScheduler.runResetsNow();
+    return `${resetsApplied} token(s) reset`;
   }
 }

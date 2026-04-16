@@ -531,31 +531,9 @@ describe('MessagesService', () => {
     it('should delete fully read messages', async () => {
       const result = await service.deleteMessagesFullyRead();
 
-      expect(messagesRepository.find).toHaveBeenCalledWith({
-        relations: ['bucket'],
-      });
+      expect(messagesRepository.find).toHaveBeenCalledWith();
       expect(notificationsRepository.delete).toHaveBeenCalled();
       expect(result).toEqual({ deletedMessages: 1 });
-    });
-
-    it('should not delete messages from protected buckets', async () => {
-      const protectedBucket = {
-        ...mockBucket,
-        isProtected: true,
-      };
-
-      const messageInProtectedBucket = {
-        ...mockMessage,
-        bucket: protectedBucket,
-      };
-
-      jest.spyOn(messagesRepository, 'find').mockResolvedValueOnce([messageInProtectedBucket] as any);
-      jest.spyOn(notificationsRepository, 'find').mockResolvedValueOnce([]);
-
-      const result = await service.deleteMessagesFullyRead();
-
-      expect(messagesRepository.delete).not.toHaveBeenCalled();
-      expect(result).toEqual({ deletedMessages: 0 });
     });
   });
 

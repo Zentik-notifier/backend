@@ -33,26 +33,31 @@ export class AttachmentsCleanupScheduler implements OnModuleInit {
     );
   }
 
-  async handleCleanup() {
-    this.logger.log('Cron started: delete old attachments');
+  async handleCleanup(): Promise<void> {
     try {
-      const maxAgeInput =
-        (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxAge))?.valueText || '0';
-      const maxAgeMs = this.parseDurationToMs(maxAgeInput);
-      if (!maxAgeMs || maxAgeMs <= 0) {
-        this.logger.log(
-          'Skipping attachments cleanup: ATTACHMENTS_MAX_AGE not configured or <= 0',
-        );
-        return;
-      }
-      const { deletedAttachments } =
-        await this.attachmentsService.deleteAttachmentsOlderThan(maxAgeMs);
-      this.logger.log(
-        `Cron completed: deleted ${deletedAttachments} attachment(s)`,
-      );
+      await this.runCleanupNow();
     } catch (error) {
       this.logger.error('Attachments cleanup cron failed', error);
     }
+  }
+
+  async runCleanupNow(): Promise<{ deletedAttachments: number; skipped: boolean }> {
+    this.logger.log('Cron started: delete old attachments');
+    const maxAgeInput =
+      (await this.serverSettingsService.getSettingByType(ServerSettingType.AttachmentsMaxAge))?.valueText || '0';
+    const maxAgeMs = this.parseDurationToMs(maxAgeInput);
+    if (!maxAgeMs || maxAgeMs <= 0) {
+      this.logger.log(
+        'Skipping attachments cleanup: ATTACHMENTS_MAX_AGE not configured or <= 0',
+      );
+      return { deletedAttachments: 0, skipped: true };
+    }
+    const { deletedAttachments } =
+      await this.attachmentsService.deleteAttachmentsOlderThan(maxAgeMs);
+    this.logger.log(
+      `Cron completed: deleted ${deletedAttachments} attachment(s)`,
+    );
+    return { deletedAttachments, skipped: false };
   }
 
   private parseDurationToMs(input: string): number {

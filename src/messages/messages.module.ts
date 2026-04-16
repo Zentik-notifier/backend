@@ -18,6 +18,7 @@ import { MessagesResolver } from './messages.resolver';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ServerManagerModule } from '../server-manager/server-manager.module';
 import { MessagesCleanupScheduler } from './messages.cleanup.scheduler';
+import { MessagesCronResolver } from './messages-cron.resolver';
 import { MessageReminderScheduler } from './message-reminder.scheduler';
 import { MessageReminderService } from './message-reminder.service';
 import { MessagesController } from './messages.controller';
@@ -55,6 +56,7 @@ import { ExternalNotifySystemModule } from '../external-notify-system/external-n
     MessagesService,
     MessageReminderService,
     MessagesCleanupScheduler,
+    MessagesCronResolver,
     MessageReminderScheduler,
     MessagesResolver,
     MessagesStreamService,

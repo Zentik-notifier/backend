@@ -785,11 +785,29 @@ type Mutation {
   shareExternalNotifySystem(input: GrantEntityPermissionInput!): EntityPermission!
   toggleOAuthProvider(id: String!): OAuthProvider!
 
+  """
+  Manually trigger the attachments cleanup cron job (deletes attachments older than ATTACHMENTS_MAX_AGE)
+  """
+  triggerAttachmentsCleanup: String!
+
   """Manually trigger a database backup"""
   triggerBackup: String!
 
   """Manually trigger log cleanup based on retention policy"""
   triggerLogCleanup: Boolean!
+
+  """
+  Manually trigger the messages cleanup cron job (deletes ephemeral, expired and fully-received messages)
+  """
+  triggerMessagesCleanup: String!
+
+  """
+  Manually trigger the sessions cleanup cron job (deletes sessions with lastActivity older than 14 days)
+  """
+  triggerSessionsCleanup: String!
+
+  """Manually trigger the system access tokens monthly reset cron job"""
+  triggerSystemAccessTokenReset: String!
   unshareBucket(input: RevokeEntityPermissionInput!): Boolean!
   unshareExternalNotifySystem(input: RevokeEntityPermissionInput!): Boolean!
   updateAccessToken(input: UpdateAccessTokenDto!, tokenId: String!): AccessTokenListDto!
